@@ -5,8 +5,9 @@ def test_importing_rl_world_ascii_registers_dummy_env():
 
 
 def test_gym_can_make_dummy_env_via_id():
-    import rl_world_ascii  # noqa: F401
     import gymnasium as gym
+
+    import rl_world_ascii  # noqa: F401
     env = gym.make("rl_world_ascii/__dummy-v0")
     obs, info = env.reset(seed=0)
     assert isinstance(obs, str)

@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 from rl_world_ascii.core.action import ActionSpec

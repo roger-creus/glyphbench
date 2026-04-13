@@ -41,7 +41,7 @@ def draw_box(
         )
     height = len(grid)
     width = len(grid[0]) if height > 0 else 0
-    if not (0 <= x0 and 0 <= y0 and x1 < width and y1 < height):
+    if not (x0 >= 0 and y0 >= 0 and x1 < width and y1 < height):
         raise IndexError(
             f"draw_box ({x0},{y0})-({x1},{y1}) out of bounds for {width}x{height} grid"
         )

@@ -1,4 +1,3 @@
-import gymnasium as gym
 
 from rl_world_ascii.core.registry import (
     all_rl_world_ascii_env_ids,

@@ -1,3 +1,5 @@
+import contextlib
+
 from rl_world_ascii.core.observation import GridObservation
 
 
@@ -68,7 +70,5 @@ def test_grid_observation_fields_must_be_strings():
     else:
         # If runtime type check isn't enforced by dataclass, at least render() fails
         obs = GridObservation(grid=None, legend="", hud="", message="")  # type: ignore[arg-type]
-        try:
+        with contextlib.suppress(Exception):
             obs.render()
-        except Exception:
-            pass
