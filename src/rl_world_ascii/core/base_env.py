@@ -56,7 +56,7 @@ class BaseAsciiEnv(gym.Env[str, int], ABC):
         return obs.render(), info
 
     def step(self, action: int) -> tuple[str, float, bool, bool, dict[str, Any]]:
-        if not isinstance(action, (int, np.integer)):
+        if isinstance(action, bool) or not isinstance(action, (int, np.integer)):
             raise TypeError(f"action must be int, got {type(action).__name__}")
         if not 0 <= int(action) < self.action_spec.n:
             raise ValueError(
@@ -90,7 +90,8 @@ class BaseAsciiEnv(gym.Env[str, int], ABC):
 
     @property
     def rng(self) -> np.random.Generator:
-        assert self._rng is not None, "call reset() before accessing rng"
+        if self._rng is None:
+            raise RuntimeError("call reset() before accessing rng")
         return self._rng
 
     def get_observation(self) -> GridObservation:

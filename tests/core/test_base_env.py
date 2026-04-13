@@ -93,6 +93,15 @@ def test_step_rejects_non_integer_action():
         env.step("TICK")  # type: ignore[arg-type]
 
 
+def test_step_rejects_bool_action():
+    env = _TinyEnv()
+    env.reset(seed=0)
+    with pytest.raises(TypeError):
+        env.step(True)  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        env.step(False)  # type: ignore[arg-type]
+
+
 def test_step_rejects_out_of_range_action():
     env = _TinyEnv()
     env.reset(seed=0)
@@ -120,5 +129,5 @@ def test_rng_is_numpy_generator_and_seeded():
 
 def test_rng_before_reset_raises():
     env = _TinyEnv()
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError):
         _ = env.rng
