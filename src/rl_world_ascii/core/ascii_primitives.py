@@ -35,6 +35,16 @@ def draw_box(
     corner: str = "+",
 ) -> None:
     """Draw an axis-aligned box outline in-place. (x0,y0) is top-left; (x1,y1) is bottom-right."""
+    if not (x0 < x1 and y0 < y1):
+        raise ValueError(
+            f"draw_box requires x0 < x1 and y0 < y1, got ({x0},{y0})-({x1},{y1})"
+        )
+    height = len(grid)
+    width = len(grid[0]) if height > 0 else 0
+    if not (0 <= x0 and 0 <= y0 and x1 < width and y1 < height):
+        raise IndexError(
+            f"draw_box ({x0},{y0})-({x1},{y1}) out of bounds for {width}x{height} grid"
+        )
     for x in range(x0 + 1, x1):
         grid[y0][x] = horizontal
         grid[y1][x] = horizontal

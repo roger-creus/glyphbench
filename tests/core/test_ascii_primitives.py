@@ -55,6 +55,44 @@ def test_draw_box_outline():
     assert lines[2] == "|...|"
 
 
+def test_draw_box_minimal_2x2():
+    g = make_empty_grid(2, 2)
+    draw_box(g, 0, 0, 1, 1)
+    # In a 2x2 box the corners overwrite any edges; all four cells are corners.
+    assert g == [["+", "+"], ["+", "+"]]
+
+
+def test_draw_box_custom_chars():
+    g = make_empty_grid(4, 3)
+    draw_box(g, 0, 0, 3, 2, horizontal="=", vertical=":", corner="*")
+    assert grid_to_string(g) == "*==*\n:..:\n*==*"
+
+
+def test_draw_box_interior_unchanged():
+    g = make_empty_grid(5, 5)
+    # Place a sentinel inside the box area
+    g[2][2] = "X"
+    draw_box(g, 0, 0, 4, 4)
+    # Interior sentinel must survive — draw_box only writes the outline.
+    assert g[2][2] == "X"
+
+
+def test_draw_box_rejects_degenerate_coords():
+    g = make_empty_grid(4, 4)
+    with pytest.raises(ValueError):
+        draw_box(g, 2, 2, 2, 2)  # zero area
+    with pytest.raises(ValueError):
+        draw_box(g, 3, 3, 1, 1)  # inverted
+
+
+def test_draw_box_rejects_out_of_bounds():
+    g = make_empty_grid(4, 4)
+    with pytest.raises(IndexError):
+        draw_box(g, 0, 0, 4, 3)  # x1=4 is OOB for width 4
+    with pytest.raises(IndexError):
+        draw_box(g, -1, 0, 3, 3)
+
+
 def test_build_legend_sorted_deterministic():
     legend = build_legend({"@": "you", "#": "wall", ".": "floor"})
     # Sorted alphabetically by symbol char
