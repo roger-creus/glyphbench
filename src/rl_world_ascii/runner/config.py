@@ -34,7 +34,7 @@ class RunConfig(BaseModel):
     dashboard: bool = True
 
     @model_validator(mode="after")
-    def _check(self) -> "RunConfig":
+    def _check(self) -> RunConfig:
         if self.provider == "vllm" and not self.base_url:
             raise ValueError("vllm provider requires base_url")
         if self.episodes_per_env <= 0:
@@ -48,7 +48,7 @@ class RunConfig(BaseModel):
         return self
 
     @classmethod
-    def from_yaml(cls, path: Path | str) -> "RunConfig":
+    def from_yaml(cls, path: Path | str) -> RunConfig:
         with Path(path).open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
         return cls(**data)

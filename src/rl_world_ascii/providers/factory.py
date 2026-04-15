@@ -42,8 +42,8 @@ def build_client(config: ClientBuildConfig, *, pricing: Pricing) -> LLMClient:
         api_key = os.environ.get(config.api_key_env or "OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY not set in env")
-        sdk = openai.AsyncOpenAI(api_key=api_key, timeout=config.timeout_s)
-        return OpenAIClient(sdk_client=sdk, model_id=config.model_id, pricing=pricing)
+        openai_sdk = openai.AsyncOpenAI(api_key=api_key, timeout=config.timeout_s)
+        return OpenAIClient(sdk_client=openai_sdk, model_id=config.model_id, pricing=pricing)
 
     if provider == "anthropic":
         import anthropic
@@ -51,16 +51,18 @@ def build_client(config: ClientBuildConfig, *, pricing: Pricing) -> LLMClient:
         api_key = os.environ.get(config.api_key_env or "ANTHROPIC_API_KEY")
         if not api_key:
             raise ValueError("ANTHROPIC_API_KEY not set in env")
-        sdk = anthropic.AsyncAnthropic(api_key=api_key, timeout=config.timeout_s)
-        return AnthropicClient(sdk_client=sdk, model_id=config.model_id, pricing=pricing)
+        anthropic_sdk = anthropic.AsyncAnthropic(api_key=api_key, timeout=config.timeout_s)
+        return AnthropicClient(
+            sdk_client=anthropic_sdk, model_id=config.model_id, pricing=pricing
+        )
 
     if provider in ("google", "gemini"):
-        from google import genai  # type: ignore[import-not-found]
+        from google import genai
 
         api_key = os.environ.get(config.api_key_env or "GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY not set in env")
-        sdk = genai.Client(api_key=api_key)
-        return GeminiClient(sdk_client=sdk, model_id=config.model_id, pricing=pricing)
+        gemini_sdk = genai.Client(api_key=api_key)
+        return GeminiClient(sdk_client=gemini_sdk, model_id=config.model_id, pricing=pricing)
 
     raise ValueError(f"unknown provider: {config.provider!r}")

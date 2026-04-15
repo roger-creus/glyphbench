@@ -40,8 +40,24 @@ class NullDashboard:
 
     def start(self) -> None: ...
     def stop(self) -> None: ...
-    def update_env(self, env_id, *, episodes_done, episodes_total, mean_return, mean_len) -> None: ...
-    def update_totals(self, *, cost_used, budget, parse_failures, provider_errors, fallback_noops) -> None: ...
+    def update_env(
+        self,
+        env_id: str,
+        *,
+        episodes_done: int,
+        episodes_total: int,
+        mean_return: float,
+        mean_len: float,
+    ) -> None: ...
+    def update_totals(
+        self,
+        *,
+        cost_used: float,
+        budget: float | None,
+        parse_failures: int,
+        provider_errors: int,
+        fallback_noops: int,
+    ) -> None: ...
     def log_event(self, message: str) -> None: ...
 
 

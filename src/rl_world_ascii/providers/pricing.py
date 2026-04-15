@@ -26,7 +26,7 @@ class Pricing:
     providers: dict[str, dict[str, ModelRates]]
 
     @classmethod
-    def from_yaml(cls, path: Path | str) -> "Pricing":
+    def from_yaml(cls, path: Path | str) -> Pricing:
         with Path(path).open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
         version = str(data.get("version", "unknown"))
