@@ -3,7 +3,6 @@ import pytest
 from rl_world_ascii.core.action import ActionSpec
 from rl_world_ascii.harness.parser import (
     MAX_REPAIR_RETRIES,
-    ParseResult,
     extract_json,
     parse_harness_output,
 )
