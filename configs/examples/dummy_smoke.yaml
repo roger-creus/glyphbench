@@ -1,0 +1,18 @@
+# configs/examples/dummy_smoke.yaml
+run_id: "2026-04-12-dummy-smoke"
+provider: mock
+model_id: mock-model
+seeds: [0, 1]
+episodes_per_env: 2
+max_turns_per_episode: 20
+concurrency: 2
+budget_usd: null
+envs:
+  - rl_world_ascii/__dummy-v0
+harness:
+  retry_malformed_n: 3
+  recent_actions_window: 5
+  trajectory_logging: false
+output_dir: "runs/"
+pricing_yaml: "pricing.yaml"
+dashboard: false
