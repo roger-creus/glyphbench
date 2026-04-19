@@ -272,3 +272,13 @@ register_env(
     "atlas_rl.envs.minigrid.fetch:MiniGridPutNear8x8N3Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-redbluedoors-6x6-v0",
+    "atlas_rl.envs.minigrid.redbluedoors:MiniGridRedBlueDoors6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-redbluedoors-8x8-v0",
+    "atlas_rl.envs.minigrid.redbluedoors:MiniGridRedBlueDoors8x8Env",
+    max_episode_steps=None,
+)
