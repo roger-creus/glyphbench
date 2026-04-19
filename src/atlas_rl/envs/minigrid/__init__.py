@@ -72,3 +72,13 @@ register_env(
     "atlas_rl.envs.minigrid.multiroom:MiniGridMultiRoomN6Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-unlock-v0",
+    "atlas_rl.envs.minigrid.unlock:MiniGridUnlockEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-unlockpickup-v0",
+    "atlas_rl.envs.minigrid.unlock:MiniGridUnlockPickupEnv",
+    max_episode_steps=None,
+)
