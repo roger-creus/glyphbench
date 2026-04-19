@@ -1,0 +1,23 @@
+# Random baseline config: uniform random agent on all 5 pilot envs.
+# Used to compute normalized scores (random_mean subtraction).
+run_id: "random-baseline"
+provider: mock
+model_id: "random"
+seeds: [0, 1, 2, 3, 4]
+episodes_per_env: 5
+max_turns_per_episode: 200
+concurrency: 4
+budget_usd: null
+envs:
+  - atlas_rl/minigrid-empty-5x5-v0
+  - atlas_rl/minihack-room-5x5-v0
+  - atlas_rl/procgen-coinrun-v0
+  - atlas_rl/atari-pong-v0
+  - atlas_rl/craftax-classic-v0
+harness:
+  retry_malformed_n: 3
+  recent_actions_window: 5
+  trajectory_logging: false
+output_dir: "runs/"
+pricing_yaml: "pricing.yaml"
+dashboard: false
