@@ -282,3 +282,73 @@ register_env(
     "atlas_rl.envs.minigrid.redbluedoors:MiniGridRedBlueDoors8x8Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-1dl-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMaze1DlEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-1dlh-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMaze1DlhEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-1dlhb-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMaze1DlhbEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-2dl-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMaze2DlEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-2dlh-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMaze2DlhEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-2dlhb-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMaze2DlhbEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-1q-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMaze1QEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-2q-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMaze2QEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-obstructedmaze-full-v0",
+    "atlas_rl.envs.minigrid.obstructedmaze:MiniGridObstructedMazeFullEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-memory-s7-v0",
+    "atlas_rl.envs.minigrid.memory:MiniGridMemoryS7Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-memory-s9-v0",
+    "atlas_rl.envs.minigrid.memory:MiniGridMemoryS9Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-memory-s11-v0",
+    "atlas_rl.envs.minigrid.memory:MiniGridMemoryS11Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-memory-s13-v0",
+    "atlas_rl.envs.minigrid.memory:MiniGridMemoryS13Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-memory-s17-v0",
+    "atlas_rl.envs.minigrid.memory:MiniGridMemoryS17Env",
+    max_episode_steps=None,
+)
