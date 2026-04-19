@@ -12,15 +12,16 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import matplotlib.figure
 import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
+import seaborn as sns  # type: ignore[import-untyped]
 
 from atlas_rl.plotting.common import load_run
 from atlas_rl.plotting.style import paper_style
 
 
-def _save_fig(fig: plt.Figure, fig_dir: Path, name: str) -> None:
+def _save_fig(fig: matplotlib.figure.Figure, fig_dir: Path, name: str) -> None:
     """Save figure as both PDF and PNG."""
     fig.savefig(fig_dir / f"{name}.pdf")
     fig.savefig(fig_dir / f"{name}.png")
