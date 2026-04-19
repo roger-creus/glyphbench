@@ -352,3 +352,8 @@ register_env(
     "atlas_rl.envs.minigrid.memory:MiniGridMemoryS17Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-playground-v0",
+    "atlas_rl.envs.minigrid.playground:MiniGridPlaygroundEnv",
+    max_episode_steps=None,
+)
