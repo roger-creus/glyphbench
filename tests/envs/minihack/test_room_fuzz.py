@@ -1,6 +1,7 @@
 """Property-based fuzz tests for MiniHack Room-5x5."""
 
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from atlas_rl.envs.minihack.room import MiniHackRoom5x5Env
 

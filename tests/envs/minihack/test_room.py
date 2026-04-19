@@ -60,7 +60,6 @@ class TestMiniHackRoom5x5:
         _, info = env.reset(seed=0)
         # Agent and goal positions should be deterministic for seed 0
         # We just check they exist and are within bounds
-        assert "agent_pos" in info or True  # info populated by step, check grid
         grid_obs = env.get_observation()
         grid_str = grid_obs.grid
         assert "@" in grid_str, "Agent '@' must be in the grid"

@@ -219,7 +219,6 @@ class TestCoinRun:
         env.reset(seed=0)
         jump = env.action_spec.index_of("JUMP")
         env.step(jump)  # First jump
-        y_after_first = env._agent_y
         env.step(jump)  # Second jump should be no-op (still in air)
         # Agent should continue the original jump arc, not start a new one
         # (y may change due to the arc, but it should not re-initiate)

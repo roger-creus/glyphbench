@@ -1,6 +1,7 @@
 """Property-based fuzz tests for Procgen CoinRun."""
 
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from atlas_rl.envs.procgen.coinrun import CoinRunEnv
 

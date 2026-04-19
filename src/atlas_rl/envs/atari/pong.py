@@ -10,8 +10,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-
 from atlas_rl.core.action import ActionSpec
 from atlas_rl.core.ascii_primitives import build_legend, grid_to_string
 from atlas_rl.core.base_env import BaseAsciiEnv
@@ -149,8 +147,7 @@ class PongEnv(BaseAsciiEnv):
     def _on_paddle_hit(self) -> None:
         """Handle rally hit count and speed increase."""
         self._rally_hits += 1
-        if self._rally_hits % self._SPEED_UP_INTERVAL == 0:
-            if self._ball_speed_level < self._MAX_VX:
+        if self._rally_hits % self._SPEED_UP_INTERVAL == 0 and self._ball_speed_level < self._MAX_VX:
                 self._ball_speed_level += 1
                 # Update ball speed (maintain direction)
                 if self._ball_vx > 0:
@@ -242,9 +239,8 @@ class PongEnv(BaseAsciiEnv):
 
                 self._ball_x = new_x
 
-            if not scored:
+            if not scored and self._ball_vy != 0:
                 # Move vertically
-                if self._ball_vy != 0:
                     new_y = self._ball_y + self._ball_vy
                     # Wall bounce
                     if new_y < self._COURT_TOP:
@@ -275,8 +271,7 @@ class PongEnv(BaseAsciiEnv):
                     self._serve_ball()
 
         # --- 4. Move opponent AI ---
-        if not self._serving:
-            if self.rng.random() < self._OPPONENT_TRACK_PROB:
+        if not self._serving and self.rng.random() < self._OPPONENT_TRACK_PROB:
                 # Track ball
                 if self._ball_y < self._paddle_left_y:
                     new_y = self._paddle_left_y - 1

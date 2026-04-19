@@ -101,11 +101,14 @@ class TestCraftaxClassic:
             # Check all 4 adjacent cells for a tree
             for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
                 nx, ny = ax + dx, ay + dy
-                if 0 <= nx < env._WORLD_SIZE and 0 <= ny < env._WORLD_SIZE:
-                    if env._world[ny][nx] == "T":
-                        # Move to be adjacent to the tree, facing it
-                        tree_found = True
-                        break
+                if (
+                    0 <= nx < env._WORLD_SIZE
+                    and 0 <= ny < env._WORLD_SIZE
+                    and env._world[ny][nx] == "T"
+                ):
+                    # Move to be adjacent to the tree, facing it
+                    tree_found = True
+                    break
             if tree_found:
                 break
 
@@ -138,10 +141,13 @@ class TestCraftaxClassic:
         ax, ay = env._agent_x, env._agent_y
         for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
             nx, ny = ax + dx, ay + dy
-            if 0 <= nx < env._WORLD_SIZE and 0 <= ny < env._WORLD_SIZE:
-                if env._world[ny][nx] == "t":
-                    table_placed = True
-                    break
+            if (
+                0 <= nx < env._WORLD_SIZE
+                and 0 <= ny < env._WORLD_SIZE
+                and env._world[ny][nx] == "t"
+            ):
+                table_placed = True
+                break
         # If table was placed in front of agent, proceed
         if not table_placed:
             # Table might need to be adjacent; try moving and placing
@@ -242,7 +248,6 @@ class TestCraftaxClassic:
     def test_movement_changes_position(self):
         env = self._make_env()
         env.reset(seed=0)
-        ax_before = env._agent_x
         right = env.action_spec.index_of("MOVE_RIGHT")
         env.step(right)
         # Agent should have moved right (unless blocked)

@@ -11,9 +11,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-
-from atlas_rl.core.action import ActionSpec
 from atlas_rl.core.ascii_primitives import build_legend, grid_to_string
 from atlas_rl.core.base_env import BaseAsciiEnv
 from atlas_rl.core.observation import GridObservation
@@ -37,7 +34,6 @@ from atlas_rl.envs.craftax.base import (
     VIEW_HEIGHT,
     VIEW_WIDTH,
 )
-
 
 # Tiles the agent can walk on
 WALKABLE_TILES = frozenset({
@@ -144,9 +140,8 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                 for dy in range(-radius, radius + 1):
                     if dx * dx + dy * dy <= radius * radius:
                         x, y = cx + dx, cy + dy
-                        if 0 <= x < size and 0 <= y < size:
-                            if self.rng.random() < 0.7:
-                                self._world[y][x] = TILE_TREE
+                        if 0 <= x < size and 0 <= y < size and self.rng.random() < 0.7:
+                            self._world[y][x] = TILE_TREE
 
         # Place stone deposits
         num_stone = int(self.rng.integers(5, 10))
@@ -158,9 +153,8 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                 for dy in range(-radius, radius + 1):
                     if dx * dx + dy * dy <= radius * radius:
                         x, y = cx + dx, cy + dy
-                        if 0 <= x < size and 0 <= y < size:
-                            if self.rng.random() < 0.6:
-                                self._world[y][x] = TILE_STONE
+                        if 0 <= x < size and 0 <= y < size and self.rng.random() < 0.6:
+                            self._world[y][x] = TILE_STONE
 
         # Place coal deposits
         num_coal = int(self.rng.integers(3, 6))
@@ -172,9 +166,8 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                 for dy in range(-radius, radius + 1):
                     if dx * dx + dy * dy <= radius * radius:
                         x, y = cx + dx, cy + dy
-                        if 0 <= x < size and 0 <= y < size:
-                            if self.rng.random() < 0.5:
-                                self._world[y][x] = TILE_COAL
+                        if 0 <= x < size and 0 <= y < size and self.rng.random() < 0.5:
+                            self._world[y][x] = TILE_COAL
 
         # Place iron deposits
         num_iron = int(self.rng.integers(3, 5))
@@ -186,9 +179,8 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                 for dy in range(-radius, radius + 1):
                     if dx * dx + dy * dy <= radius * radius:
                         x, y = cx + dx, cy + dy
-                        if 0 <= x < size and 0 <= y < size:
-                            if self.rng.random() < 0.4:
-                                self._world[y][x] = TILE_IRON
+                        if 0 <= x < size and 0 <= y < size and self.rng.random() < 0.4:
+                            self._world[y][x] = TILE_IRON
 
         # Place water bodies
         num_water = int(self.rng.integers(2, 5))
@@ -200,9 +192,8 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                 for dy in range(-radius, radius + 1):
                     if dx * dx + dy * dy <= radius * radius:
                         x, y = cx + dx, cy + dy
-                        if 0 <= x < size and 0 <= y < size:
-                            if self.rng.random() < 0.8:
-                                self._world[y][x] = TILE_WATER
+                        if 0 <= x < size and 0 <= y < size and self.rng.random() < 0.8:
+                            self._world[y][x] = TILE_WATER
 
         # Place diamond (rare, single tiles)
         num_diamond = int(self.rng.integers(1, 3))
@@ -224,9 +215,12 @@ class CraftaxClassicEnv(BaseAsciiEnv):
         for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
             nx = self._agent_x + dx
             ny = self._agent_y + dy
-            if 0 <= nx < self._WORLD_SIZE and 0 <= ny < self._WORLD_SIZE:
-                if self._world[ny][nx] == TILE_TABLE:
-                    return True
+            if (
+                0 <= nx < self._WORLD_SIZE
+                and 0 <= ny < self._WORLD_SIZE
+                and self._world[ny][nx] == TILE_TABLE
+            ):
+                return True
         return False
 
     def _near_furnace(self) -> bool:
@@ -234,9 +228,12 @@ class CraftaxClassicEnv(BaseAsciiEnv):
         for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
             nx = self._agent_x + dx
             ny = self._agent_y + dy
-            if 0 <= nx < self._WORLD_SIZE and 0 <= ny < self._WORLD_SIZE:
-                if self._world[ny][nx] == TILE_FURNACE:
-                    return True
+            if (
+                0 <= nx < self._WORLD_SIZE
+                and 0 <= ny < self._WORLD_SIZE
+                and self._world[ny][nx] == TILE_FURNACE
+            ):
+                return True
         return False
 
     def _try_unlock_achievement(self, name: str) -> float:
@@ -383,19 +380,7 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                 self._message = "Crafted stone pickaxe."
                 reward += self._try_unlock_achievement("make_stone_pickaxe")
 
-        elif name == "MAKE_WOOD_SWORD":
-            # No-op in Stage 0
-            pass
-
-        elif name == "MAKE_STONE_SWORD":
-            # No-op in Stage 0
-            pass
-
-        elif name == "EAT_PLANT":
-            # No-op in Stage 0
-            pass
-
-        elif name == "DRINK_WATER":
+        elif name == "MAKE_WOOD_SWORD" or name == "MAKE_STONE_SWORD" or name == "EAT_PLANT" or name == "DRINK_WATER":
             # No-op in Stage 0
             pass
 

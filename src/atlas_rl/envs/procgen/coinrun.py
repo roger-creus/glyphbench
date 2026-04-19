@@ -11,14 +11,11 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-
 from atlas_rl.core.action import ActionSpec
 from atlas_rl.core.ascii_primitives import build_legend, grid_to_string
 from atlas_rl.core.base_env import BaseAsciiEnv
 from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import JUMP_ARC_DY, VIEW_HEIGHT, VIEW_WIDTH
-
 
 # Cell types in the level
 CELL_EMPTY = "."
@@ -113,7 +110,7 @@ class CoinRunEnv(BaseAsciiEnv):
 
         for y in range(self._LEVEL_HEIGHT):
             row: list[str] = []
-            for x in range(self._level_width):
+            for _x in range(self._level_width):
                 if y >= self._ground_y:
                     row.append(CELL_GROUND)
                 else:
@@ -284,9 +281,8 @@ class CoinRunEnv(BaseAsciiEnv):
                 self._jump_step = -1  # cancel jump
         else:
             # No vertical movement, check if still on ground
-            if not self._is_solid(new_x, self._agent_y + 1):
+            if not self._is_solid(new_x, self._agent_y + 1) and self._on_ground:
                 # No ground beneath -- start falling
-                if self._on_ground:
                     self._on_ground = False
 
         # Horizontal collision with solid

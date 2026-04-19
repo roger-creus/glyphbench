@@ -240,7 +240,7 @@ class TestMiniGridEmpty5x5:
         env.step(fwd)  # Try to move into wall -- should stay at (1,1)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
-        assert grid_lines[1][1] == "^", f"Expected '^' at (1,1) after wall bump"
+        assert grid_lines[1][1] == "^", "Expected '^' at (1,1) after wall bump"
 
     # --- Spec 8.1: HUD format ---
     def test_hud_format(self):
