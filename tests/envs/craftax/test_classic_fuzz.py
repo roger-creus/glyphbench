@@ -8,7 +8,7 @@ from atlas_rl.envs.craftax.classic import CraftaxClassicEnv
 
 @given(
     actions=st.lists(
-        st.integers(min_value=0, max_value=16),
+        st.integers(min_value=0, max_value=18),
         max_size=500,
     ),
     seed=st.integers(min_value=0, max_value=1000),
