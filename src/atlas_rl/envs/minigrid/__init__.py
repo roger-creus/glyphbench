@@ -147,3 +147,63 @@ register_env(
     "atlas_rl.envs.minigrid.lavagap:MiniGridLavaGapS7Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-crossing-n1-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridCrossingN1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-crossing-n2-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridCrossingN2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-crossing-n3-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridCrossingN3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-crossing-n1-safe-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridCrossingN1SafeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-crossing-n2-safe-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridCrossingN2SafeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-crossing-n3-safe-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridCrossingN3SafeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-simplecrossing-n1-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridSimpleCrossingN1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-simplecrossing-n2-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridSimpleCrossingN2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-simplecrossing-n3-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridSimpleCrossingN3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-simplecrossing-easy-n1-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridSimpleCrossingEasyN1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-simplecrossing-easy-n2-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridSimpleCrossingEasyN2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-simplecrossing-easy-n3-v0",
+    "atlas_rl.envs.minigrid.crossing:MiniGridSimpleCrossingEasyN3Env",
+    max_episode_steps=None,
+)
