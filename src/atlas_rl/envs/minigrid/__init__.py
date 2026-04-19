@@ -132,3 +132,18 @@ register_env(
     "atlas_rl.envs.minigrid.distshift:MiniGridDistShift2Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-lavagap-s5-v0",
+    "atlas_rl.envs.minigrid.lavagap:MiniGridLavaGapS5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-lavagap-s6-v0",
+    "atlas_rl.envs.minigrid.lavagap:MiniGridLavaGapS6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-lavagap-s7-v0",
+    "atlas_rl.envs.minigrid.lavagap:MiniGridLavaGapS7Env",
+    max_episode_steps=None,
+)
