@@ -274,7 +274,9 @@ class TestMiniGridEmpty5x5:
         assert "seed" in info
         fwd = env.action_spec.index_of("MOVE_FORWARD")
         _, _, _, _, info = env.step(fwd)
-        assert "goal_reached" in info
+        assert "agent_pos" in info
+        # goal_reached is set only when the goal is actually reached
+        assert "goal_reached" not in info
 
     # --- Edge: reset clears state from previous episode ---
     def test_reset_clears_previous_state(self):
