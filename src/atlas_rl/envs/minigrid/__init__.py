@@ -207,3 +207,23 @@ register_env(
     "atlas_rl.envs.minigrid.crossing:MiniGridSimpleCrossingEasyN3Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-dynamic-obstacles-5x5-v0",
+    "atlas_rl.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles5x5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-dynamic-obstacles-6x6-v0",
+    "atlas_rl.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-dynamic-obstacles-8x8-v0",
+    "atlas_rl.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles8x8Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-dynamic-obstacles-16x16-v0",
+    "atlas_rl.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles16x16Env",
+    max_episode_steps=None,
+)
