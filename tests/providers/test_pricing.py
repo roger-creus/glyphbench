@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from rl_world_ascii.providers.pricing import Pricing, compute_cost
+from rl_world_ascii.providers.pricing import Pricing
 
 
 @pytest.fixture
@@ -80,15 +80,3 @@ def test_compute_cost_with_reasoning_null_counts_as_output(pricing_file: Path):
         tokens_reasoning=100_000,  # 0.1M * $10 = $1
     )
     assert cost == pytest.approx(1.0)
-
-
-def test_module_level_compute_cost_helper(pricing_file: Path):
-    cost = compute_cost(
-        pricing=Pricing.from_yaml(pricing_file),
-        provider="vllm",
-        model_id="anything",
-        tokens_in=1000,
-        tokens_out=1000,
-        tokens_reasoning=0,
-    )
-    assert cost == 0.0

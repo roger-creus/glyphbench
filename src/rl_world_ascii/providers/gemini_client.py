@@ -10,7 +10,6 @@ from typing import Any
 
 from rl_world_ascii.providers.base import (
     LLMResponse,
-    ProviderInvalidRequest,
     ProviderRateLimit,
     ProviderTimeout,
     ProviderTransient,
@@ -67,7 +66,7 @@ class GeminiClient:
                 raise ProviderTimeout(msg) from e
             if "500" in lower or "503" in lower or "unavailable" in lower:
                 raise ProviderTransient(msg) from e
-            raise ProviderInvalidRequest(msg) from e
+            raise ProviderTransient(msg) from e
         latency_s = time.perf_counter() - start
 
         text = getattr(response, "text", "") or ""

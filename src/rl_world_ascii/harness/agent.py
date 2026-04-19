@@ -7,32 +7,18 @@ Wires env + LLM client + persistent state + parser into a single
 from __future__ import annotations
 
 import time
-from typing import Any, Protocol, runtime_checkable
+from typing import Any
 
 from rl_world_ascii.core.base_env import BaseAsciiEnv
 from rl_world_ascii.core.metrics import TurnMetrics
-from rl_world_ascii.harness.mock_client import LLMResponse
 from rl_world_ascii.harness.parser import MAX_REPAIR_RETRIES, parse_harness_output
 from rl_world_ascii.harness.prompt_builder import build_user_prompt
 from rl_world_ascii.harness.schema import HarnessOutput
 from rl_world_ascii.harness.state import EpisodeState, Subgoal
+from rl_world_ascii.providers.base import LLMClient, LLMResponse
+from rl_world_ascii.providers.retries import with_retries
 
-
-@runtime_checkable
-class LLMClientLike(Protocol):
-    model_id: str
-    provider: str
-
-    async def complete(
-        self,
-        system_prompt: str,
-        user_prompt: str,
-        *,
-        temperature: float,
-        max_output_tokens: int,
-        response_format: dict[str, Any] | None,
-        seed: int | None,
-    ) -> LLMResponse: ...
+_HARNESS_SCHEMA: dict[str, Any] = HarnessOutput.model_json_schema()
 
 
 class HarnessAgent:
@@ -41,7 +27,7 @@ class HarnessAgent:
     def __init__(
         self,
         env: BaseAsciiEnv,
-        client: LLMClientLike,
+        client: LLMClient,
         *,
         temperature: float,
         max_output_tokens: int,
@@ -117,13 +103,20 @@ class HarnessAgent:
         cumulative_latency_provider = 0.0
 
         while True:
-            response = await self.client.complete(
-                system_prompt=system_prompt,
-                user_prompt=current_user_prompt,
-                temperature=self.temperature,
-                max_output_tokens=self.max_output_tokens,
-                response_format=HarnessOutput.model_json_schema(),
-                seed=self.model_seed,
+            async def _call(prompt: str = current_user_prompt) -> LLMResponse:
+                return await self.client.complete(
+                    system_prompt=system_prompt,
+                    user_prompt=prompt,
+                    temperature=self.temperature,
+                    max_output_tokens=self.max_output_tokens,
+                    response_format=_HARNESS_SCHEMA,
+                    seed=self.model_seed,
+                )
+
+            response = await with_retries(
+                _call,
+                max_retries=5,
+                base_backoff_s=1.0,
             )
             raw_responses.append(response.text)
             cumulative_tokens_in += response.tokens_in

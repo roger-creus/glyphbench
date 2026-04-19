@@ -95,6 +95,8 @@ async def run_benchmark(
         for env_id in config.envs
     }
 
+    budget_event = asyncio.Event()
+
     dashboard.start()
     try:
         tasks: list[asyncio.Task[None]] = []
@@ -115,6 +117,7 @@ async def run_benchmark(
                                 semaphore=semaphore,
                                 env_stats=env_stats,
                                 lock=lock,
+                                budget_event=budget_event,
                             )
                         )
                     )
@@ -137,8 +140,11 @@ async def _run_episode(
     semaphore: asyncio.Semaphore,
     env_stats: dict[str, dict[str, Any]],
     lock: asyncio.Lock,
+    budget_event: asyncio.Event,
 ) -> None:
     async with semaphore:
+        if budget_event.is_set():
+            return
         episode_seed = _derive_episode_seed(env_id, seed, episode_idx)
         raw_env = gym.make(env_id, max_turns=config.max_turns_per_episode)
         env: BaseAsciiEnv = raw_env.unwrapped  # type: ignore[assignment]
@@ -151,13 +157,9 @@ async def _run_episode(
             model_seed=config.model_seed,
         )
 
-        try:
-            episode_return, length, turn_metrics = await agent.run_episode(
-                seed=episode_seed
-            )
-        except BudgetExceeded:
-            dashboard.log_event(f"[{env_id}] aborted: budget exceeded")
-            return
+        episode_return, length, turn_metrics = await agent.run_episode(
+            seed=episode_seed
+        )
 
         terminated_reason = "success" if episode_return > 0 else "timeout"
         if turn_metrics and turn_metrics[-1].terminated:
@@ -167,6 +169,7 @@ async def _run_episode(
         try:
             cost_tracker.add(total_cost)
         except BudgetExceeded:
+            budget_event.set()
             dashboard.log_event(f"[{env_id}] budget exceeded after episode complete")
 
         record = EpisodeRecord(

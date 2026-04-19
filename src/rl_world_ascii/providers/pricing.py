@@ -7,7 +7,7 @@ passed to `Pricing.from_yaml`). Loaded lazily by the runner at startup.
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -24,6 +24,7 @@ class ModelRates:
 class Pricing:
     version: str
     providers: dict[str, dict[str, ModelRates]]
+    _warned: set[tuple[str, str]] = field(default_factory=set, repr=False)
 
     @classmethod
     def from_yaml(cls, path: Path | str) -> Pricing:
@@ -60,19 +61,24 @@ class Pricing:
         a wildcard `"*"` entry for the provider if present (used by vLLM and
         mock, which are free regardless of model).
         """
+        key = (provider, model_id)
         models = self.providers.get(provider)
         if models is None:
-            warnings.warn(
-                f"no pricing entry for provider {provider!r}; cost will be None",
-                stacklevel=2,
-            )
+            if key not in self._warned:
+                self._warned.add(key)
+                warnings.warn(
+                    f"no pricing entry for provider {provider!r}; cost will be None",
+                    stacklevel=2,
+                )
             return None
         rates = models.get(model_id) or models.get("*")
         if rates is None:
-            warnings.warn(
-                f"no pricing entry for {provider!r}/{model_id!r}; cost will be None",
-                stacklevel=2,
-            )
+            if key not in self._warned:
+                self._warned.add(key)
+                warnings.warn(
+                    f"no pricing entry for {provider!r}/{model_id!r}; cost will be None",
+                    stacklevel=2,
+                )
             return None
         in_cost = (tokens_in / 1_000_000.0) * rates.input_per_1m_tokens
         out_cost = (tokens_out / 1_000_000.0) * rates.output_per_1m_tokens
@@ -83,21 +89,3 @@ class Pricing:
         )
         reasoning_cost = (tokens_reasoning / 1_000_000.0) * reasoning_rate
         return in_cost + out_cost + reasoning_cost
-
-
-def compute_cost(
-    *,
-    pricing: Pricing,
-    provider: str,
-    model_id: str,
-    tokens_in: int,
-    tokens_out: int,
-    tokens_reasoning: int,
-) -> float | None:
-    return pricing.compute_cost(
-        provider=provider,
-        model_id=model_id,
-        tokens_in=tokens_in,
-        tokens_out=tokens_out,
-        tokens_reasoning=tokens_reasoning,
-    )
