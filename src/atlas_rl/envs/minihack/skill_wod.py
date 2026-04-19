@@ -31,10 +31,15 @@ class _WoDBase(MiniHackBase):
         # Monsters between player and stairs
         monster_types = [KOBOLD, ORC, ZOMBIE, OGRE]
         for i in range(self._num_monsters):
-            mx = int(self.rng.integers(5, 7))
-            my = int(self.rng.integers(1, 8))
             ctype = monster_types[i % len(monster_types)]
-            self._spawn_creature(ctype, mx, my)
+            attempts = 0
+            while attempts < 50:
+                mx = int(self.rng.integers(5, 7))
+                my = int(self.rng.integers(1, 8))
+                if self._creature_at(mx, my) is None:
+                    self._spawn_creature(ctype, mx, my)
+                    break
+                attempts += 1
 
     def _on_zap_wand(self, wand: Item) -> None:
         if wand.name == "wand of death":

@@ -106,7 +106,7 @@ class BossFightEnv(ProcgenBase):
                     self._boss_y + 1, dx=aim_dx, dy=1,
                 )
 
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Move all entities. Boss moves horizontally."""
         # Move boss
         self._boss_x += self._boss_dir
@@ -122,6 +122,7 @@ class BossFightEnv(ProcgenBase):
             if e.x < 0 or e.x >= self.GRID_W or e.y < 0 or e.y >= self.GRID_H:
                 e.alive = False
         self._entities = [e for e in self._entities if e.alive]
+        return 0.0
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0

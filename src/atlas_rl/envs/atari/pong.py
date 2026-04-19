@@ -147,7 +147,10 @@ class PongEnv(BaseAsciiEnv):
     def _on_paddle_hit(self) -> None:
         """Handle rally hit count and speed increase."""
         self._rally_hits += 1
-        if self._rally_hits % self._SPEED_UP_INTERVAL == 0 and self._ball_speed_level < self._MAX_VX:
+        if (
+            self._rally_hits % self._SPEED_UP_INTERVAL == 0
+            and self._ball_speed_level < self._MAX_VX
+        ):
                 self._ball_speed_level += 1
                 # Update ball speed (maintain direction)
                 if self._ball_vx > 0:

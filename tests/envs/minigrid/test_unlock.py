@@ -32,8 +32,8 @@ class TestUnlock:
     def test_has_key_and_door(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=200)
         obs, _ = env.reset(seed=0)
-        assert "K" in obs
-        assert "D" in obs
+        assert "key" in obs
+        assert "door" in obs
 
     def test_unlock_has_goal(self) -> None:
         env = gym.make("atlas_rl/minigrid-unlock-v0", max_turns=200)
@@ -43,7 +43,7 @@ class TestUnlock:
     def test_unlockpickup_has_box(self) -> None:
         env = gym.make("atlas_rl/minigrid-unlockpickup-v0", max_turns=200)
         obs, _ = env.reset(seed=0)
-        assert "B" in obs
+        assert "box" in obs
 
     @pytest.mark.parametrize("env_id", UNLOCK_VARIANTS)
     def test_random_rollout_no_crash(self, env_id: str) -> None:

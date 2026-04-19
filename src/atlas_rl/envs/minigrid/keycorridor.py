@@ -21,10 +21,10 @@ class _KeyCorridorBase(MiniGridBase):
         # Width: (rs + 1) * nr + 1  (rooms with shared walls between)
         # Height: top wall + top rooms + corridor + bottom rooms + bottom wall
         grid_w = (rs + 1) * nr + 1
-        grid_h = 2 * rs + 3
+        grid_h = 2 * rs + 5
         self._init_grid(grid_w, grid_h)
 
-        corridor_y = rs + 1  # y position of corridor row
+        corridor_y = rs + 2  # y position of corridor row
 
         # Horizontal wall above corridor
         for x in range(1, grid_w - 1):

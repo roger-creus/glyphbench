@@ -61,7 +61,7 @@ class PlunderEnv(ProcgenBase):
             cx = int(self.rng.integers(1, w - 1))
             self._add_entity("civilian", "c", cx, 0, dx=0, dy=1)
 
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Move entities: cannonballs up, ships down."""
         for e in self._entities:
             if not e.alive:
@@ -80,6 +80,7 @@ class PlunderEnv(ProcgenBase):
                     e.x = nx
 
         self._entities = [e for e in self._entities if e.alive]
+        return 0.0
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0

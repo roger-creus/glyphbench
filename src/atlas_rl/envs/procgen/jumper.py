@@ -145,17 +145,23 @@ class JumperEnv(ProcgenBase):
         return 0.0, False, {}
 
     # ------------------------------------------------------------------
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Enemies patrol on ground, bouncing at edges."""
         for e in self._entities:
             if not e.alive or e.etype != "enemy":
                 continue
             nx = e.x + e.dx
             below = self._world_at(nx, e.y + 1)
-            if self._is_solid(nx, e.y) or below not in ("=", "#") or nx <= 0 or nx >= self._world_w - 1:
+            if (
+                self._is_solid(nx, e.y)
+                or below not in ("=", "#")
+                or nx <= 0
+                or nx >= self._world_w - 1
+            ):
                 e.dx = -e.dx
             else:
                 e.x = nx
+        return 0.0
 
     # ------------------------------------------------------------------
     def _symbol_meaning(self, ch: str) -> str:

@@ -157,7 +157,7 @@ class MiniHackRoom5x5Env(_RoomBase):
             else (-1, -1)
         )
         info["room_size"] = (5, 5)
-        info["steps_to_goal"] = (self._turn + 1) if info.get("goal_reached") else -1
+        info["steps_to_goal"] = self._turn if info.get("goal_reached") else -1
         return obs, reward, terminated, truncated, info
 
     def _render_current_observation(self) -> GridObservation:

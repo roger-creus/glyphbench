@@ -40,8 +40,8 @@ class TestFetchPutNear:
     def test_has_objects(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=100)
         obs, _ = env.reset(seed=0)
-        # Should have at least one pickable object (K or O)
-        assert "K" in obs or "O" in obs
+        # Should have at least one pickable object (key or ball)
+        assert "key" in obs or "ball" in obs
 
     @pytest.mark.parametrize("env_id", ALL_VARIANTS)
     def test_random_rollout_no_crash(self, env_id: str) -> None:

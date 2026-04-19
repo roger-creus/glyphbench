@@ -8,6 +8,7 @@ Gym ID: atlas_rl/procgen-heist-v0
 
 from __future__ import annotations
 
+from collections import deque
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
@@ -84,6 +85,86 @@ class HeistEnv(ProcgenBase):
             if not door_placed and floor_cells:
                 dx, dy = floor_cells.pop()
                 self._set_cell(dx, dy, door_ch)
+
+        # --- Reachability fix: ensure keys are obtainable in sequence ---
+        self._fix_key_reachability(w, h)
+
+    # ------------------------------------------------------------------
+    def _bfs_reachable(
+        self, start: tuple[int, int], w: int, h: int, passable_doors: set[str]
+    ) -> set[tuple[int, int]]:
+        """BFS from *start*, treating walls and locked doors as impassable.
+
+        *passable_doors* is the set of door chars (e.g. ``{"R", "B"}``)
+        whose matching keys have already been collected, so they can be
+        traversed.
+        """
+        visited: set[tuple[int, int]] = set()
+        queue: deque[tuple[int, int]] = deque()
+        queue.append(start)
+        visited.add(start)
+        while queue:
+            cx, cy = queue.popleft()
+            for ddx, ddy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = cx + ddx, cy + ddy
+                if (nx, ny) in visited:
+                    continue
+                if not (0 <= nx < w and 0 <= ny < h):
+                    continue
+                ch = self._world_at(nx, ny)
+                if ch == "#":
+                    continue
+                # A door that is NOT passable blocks movement.
+                if ch in ("R", "B", "Y") and ch not in passable_doors:
+                    continue
+                visited.add((nx, ny))
+                queue.append((nx, ny))
+        return visited
+
+    def _fix_key_reachability(self, w: int, h: int) -> None:
+        """Ensure each key is reachable without needing to pass through its
+        own matching door.  Keys are processed in order; once a key is
+        confirmed reachable, its door becomes passable for subsequent
+        checks.
+        """
+        key_door_map = {"r": "R", "b": "B", "y": "Y"}
+        start = (self._agent_x, self._agent_y)
+        collected_doors: set[str] = set()  # doors passable so far
+
+        for key_ch, door_ch in key_door_map.items():
+            # Find the key position on the grid (if it exists).
+            key_pos: tuple[int, int] | None = None
+            for yy in range(h):
+                for xx in range(w):
+                    if self._world_at(xx, yy) == key_ch:
+                        key_pos = (xx, yy)
+                        break
+                if key_pos is not None:
+                    break
+            if key_pos is None:
+                continue  # key not placed
+
+            reachable = self._bfs_reachable(start, w, h, collected_doors)
+            if key_pos in reachable:
+                # Key is already reachable; mark its door as passable.
+                collected_doors.add(door_ch)
+                continue
+
+            # Key is NOT reachable -- relocate it to a reachable floor cell.
+            reachable_floors = [
+                (rx, ry)
+                for (rx, ry) in reachable
+                if self._world_at(rx, ry) == "."
+                and (rx, ry) != start
+            ]
+            if reachable_floors:
+                idx = int(self.rng.integers(0, len(reachable_floors)))
+                nx, ny = reachable_floors[idx]
+                # Clear old key position
+                self._set_cell(key_pos[0], key_pos[1], ".")
+                self._set_cell(nx, ny, key_ch)
+            # Mark this door as passable for subsequent keys.
+            collected_doors.add(door_ch)
 
     def _gen_maze(self, w: int, h: int) -> None:
         """Carve a maze using recursive backtracking."""

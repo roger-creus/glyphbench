@@ -41,7 +41,7 @@ class TestDynamicObstacles:
     def test_has_obstacles(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=100)
         obs, _ = env.reset(seed=0)
-        assert "O" in obs  # ball obstacles render as O
+        assert "ball" in obs  # ball obstacles in legend
 
     @pytest.mark.parametrize("env_id", DYNAMIC_VARIANTS)
     def test_obstacles_move(self, env_id: str) -> None:

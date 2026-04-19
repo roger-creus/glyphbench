@@ -25,9 +25,9 @@ class TestPlayground:
         env = gym.make("atlas_rl/minigrid-playground-v0", max_turns=500)
         obs, _ = env.reset(seed=0)
         # Should have keys, balls, and goal
-        assert "K" in obs
-        assert "O" in obs
-        assert "G" in obs
+        assert "key" in obs
+        assert "ball" in obs
+        assert "goal" in obs
 
     def test_grid_size(self) -> None:
         env = gym.make("atlas_rl/minigrid-playground-v0", max_turns=500)

@@ -62,8 +62,8 @@ class BaseAsciiEnv(gym.Env[str, int], ABC):
             raise ValueError(
                 f"action {action} out of range [0, {self.action_spec.n})"
             )
-        obs, reward, terminated, truncated, info = self._step(int(action))
         self._turn += 1
+        obs, reward, terminated, truncated, info = self._step(int(action))
         if self._turn >= self.max_turns and not (terminated or truncated):
             truncated = True
             info["truncation_reason"] = "max_turns"

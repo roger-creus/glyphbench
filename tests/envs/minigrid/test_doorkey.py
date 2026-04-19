@@ -34,9 +34,9 @@ class TestDoorKey:
     def test_has_key_and_door(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=200)
         obs, _ = env.reset(seed=0)
-        # Should see key (K) and door (D) in observation
-        assert "K" in obs
-        assert "D" in obs
+        # Should see key and door in the legend
+        assert "key" in obs
+        assert "door" in obs
 
     @pytest.mark.parametrize("env_id", DOORKEY_VARIANTS)
     def test_has_goal(self, env_id: str) -> None:

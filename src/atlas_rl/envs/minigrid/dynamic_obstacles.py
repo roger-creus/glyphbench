@@ -50,7 +50,9 @@ class _DynamicObstaclesBase(MiniGridBase):
             occupied.add((ox, oy))
             self._obstacle_positions.append((ox, oy))
             self._obstacle_directions.append(int(self.rng.integers(0, 4)))
-            self._place_obj(ox, oy, Ball(color="blue"))
+            obs_ball = Ball(color="blue")
+            obs_ball.can_pickup = False  # obstacles must not be picked up
+            self._place_obj(ox, oy, obs_ball)
 
     # ------------------------------------------------------------------
     # Step: base action then move obstacles

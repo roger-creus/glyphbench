@@ -70,32 +70,33 @@ class TestWorldObject:
     def test_key_properties(self) -> None:
         from atlas_rl.envs.minigrid.objects import Key
         k = Key(color="blue")
-        assert k.char == "K"
         assert k.can_pickup is True
         assert k.color == "blue"
+        assert len(k.render_char()) == 1  # single char per color
 
     def test_ball_properties(self) -> None:
         from atlas_rl.envs.minigrid.objects import Ball
         b = Ball(color="green")
-        assert b.char == "O"
         assert b.can_pickup is True
         assert b.color == "green"
+        assert len(b.render_char()) == 1
 
     def test_box_properties(self) -> None:
         from atlas_rl.envs.minigrid.objects import Box
         b = Box(color="yellow")
-        assert b.char == "B"
         assert b.can_pickup is True
         assert b.color == "yellow"
+        assert len(b.render_char()) == 1
 
     def test_color_suffix(self) -> None:
-        from atlas_rl.envs.minigrid.objects import COLOR_TO_SUFFIX, Key
-        assert COLOR_TO_SUFFIX["red"] == "R"
-        assert COLOR_TO_SUFFIX["green"] == "G"
-        assert COLOR_TO_SUFFIX["blue"] == "B"
-        k = Key(color="red")
-        assert k.render_char() == "K"
-        assert k.legend_name() == "key (red)"
+        from atlas_rl.envs.minigrid.objects import Key
+        k_red = Key(color="red")
+        assert k_red.render_char() == "K"
+        assert k_red.legend_name() == "key (red)"
+        # Different colors produce distinct chars
+        k_green = Key(color="green")
+        assert k_green.render_char() == "k"
+        assert k_green.render_char() != k_red.render_char()
 
     def test_door_render_char_variants(self) -> None:
         from atlas_rl.envs.minigrid.objects import Door
@@ -104,3 +105,6 @@ class TestWorldObject:
         d_open = Door(color="red")
         d_open.toggle(carrying=None)
         assert d_open.render_char() == "d"
+        # Different colors produce distinct chars
+        d_yellow = Door(color="yellow")
+        assert d_yellow.render_char() != d_closed.render_char()

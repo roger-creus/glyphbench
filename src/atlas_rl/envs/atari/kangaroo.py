@@ -52,7 +52,6 @@ class KangarooEnv(AtariBase):
         return "atlas_rl/atari-kangaroo-v0"
 
     def _generate_level(self, seed: int) -> None:
-        self._lives = 3
         self._jumping = False
         self._jump_vy = 0
         self._fruits_collected = 0
@@ -95,7 +94,11 @@ class KangarooEnv(AtariBase):
         ]
         for lx, ly_top, ly_bot in ladder_positions:
             for y in range(ly_top, ly_bot):
-                if 0 < lx < self._WIDTH - 1 and 0 < y < self._HEIGHT - 1 and self._grid_at(lx, y) == " ":
+                if (
+                    0 < lx < self._WIDTH - 1
+                    and 0 < y < self._HEIGHT - 1
+                    and self._grid_at(lx, y) == " "
+                ):
                     self._set_cell(lx, y, "H")
 
         # Baby kangaroo at top
@@ -202,7 +205,12 @@ class KangarooEnv(AtariBase):
         # Punch: destroy nearby enemies
         if punch:
             for e in self._entities:
-                if e.etype == "enemy" and e.alive and abs(e.x - self._player_x) <= 1 and e.y == self._player_y:
+                if (
+                    e.etype == "enemy"
+                    and e.alive
+                    and abs(e.x - self._player_x) <= 1
+                    and e.y == self._player_y
+                ):
                     e.alive = False
                     self._on_point_scored(50)
                     reward += 50

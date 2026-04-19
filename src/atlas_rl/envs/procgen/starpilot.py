@@ -69,7 +69,7 @@ class StarPilotEnv(ProcgenBase):
             py = int(self.rng.integers(1, h - 1))
             self._add_entity("powerup", "$", w - 1, py, dx=-1, dy=0)
 
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Move all entities. Remove out-of-bounds ones."""
         for e in self._entities:
             if not e.alive:
@@ -88,6 +88,7 @@ class StarPilotEnv(ProcgenBase):
                     e.y = ny
 
         self._entities = [e for e in self._entities if e.alive]
+        return 0.0
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0

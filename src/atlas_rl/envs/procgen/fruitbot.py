@@ -48,6 +48,8 @@ class FruitBotEnv(ProcgenBase):
     def _generate_level(self, seed: int) -> None:
         W, H = 14, 40
         self._init_world(W, H, fill=".")
+        self._fruits_collected = 0
+        self._obstacles_hit = 0
 
         # Walls on sides
         for y in range(H):

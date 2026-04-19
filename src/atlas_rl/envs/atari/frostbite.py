@@ -58,7 +58,6 @@ class FrostbiteEnv(AtariBase):
         return "atlas_rl/atari-frostbite-v0"
 
     def _generate_level(self, seed: int) -> None:
-        self._lives = 3
         self._igloo_built = 0
         self._on_floe = False
         self._current_floe = None
@@ -193,7 +192,10 @@ class FrostbiteEnv(AtariBase):
                                         self._on_point_scored(10)
                                         reward += 10
                                         self._igloo_built += 1
-                                        self._message = f"Floe! +10 (igloo {self._igloo_built}/{self._IGLOO_SECTIONS})"
+                                        self._message = (
+                                            f"Floe! +10 (igloo "
+                                            f"{self._igloo_built}/{self._IGLOO_SECTIONS})"
+                                        )
                                 break
                     if landed:
                         break
@@ -213,7 +215,11 @@ class FrostbiteEnv(AtariBase):
                     self._message = "Fell in water!"
 
         # Check if on top shore and igloo complete
-        if self._player_y <= self._SHORE_Y + 1 and self._on_shore() and self._igloo_built >= self._IGLOO_SECTIONS:
+        if (
+            self._player_y <= self._SHORE_Y + 1
+            and self._on_shore()
+            and self._igloo_built >= self._IGLOO_SECTIONS
+        ):
                 self._on_point_scored(100)
                 reward += 100
                 self._message = "Igloo complete! +100"

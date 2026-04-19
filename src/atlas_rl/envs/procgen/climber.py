@@ -49,6 +49,8 @@ class ClimberEnv(ProcgenBase):
     def _generate_level(self, seed: int) -> None:
         W, H = 14, 40
         self._init_world(W, H, fill=".")
+        self._total_stars = 0
+        self._stars_collected = 0
 
         # Bottom ground
         for x in range(W):
@@ -58,7 +60,7 @@ class ClimberEnv(ProcgenBase):
         y = H - 4
         plat_idx = 0
         while y > 2:
-            gap = int(self.rng.integers(3, 6))
+            gap = int(self.rng.integers(2, 4))
             px = int(self.rng.integers(1, W - 5))
             pw = int(self.rng.integers(4, min(8, W - px)))
             for dx in range(pw):
@@ -138,7 +140,7 @@ class ClimberEnv(ProcgenBase):
         return reward, False, {}
 
     # ------------------------------------------------------------------
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Enemies patrol: bounce off walls / platform edges."""
         for e in self._entities:
             if not e.alive or e.etype != "enemy":
@@ -146,7 +148,12 @@ class ClimberEnv(ProcgenBase):
             nx = e.x + e.dx
             # Bounce off walls / solid / edge of platform
             below = self._world_at(nx, e.y + 1)
-            if self._is_solid(nx, e.y) or below not in ("=", "#") or nx <= 0 or nx >= self._world_w - 1:
+            if (
+                self._is_solid(nx, e.y)
+                or below not in ("=", "#")
+                or nx <= 0
+                or nx >= self._world_w - 1
+            ):
                 e.dx = -e.dx
             else:
                 e.x = nx
@@ -155,6 +162,8 @@ class ClimberEnv(ProcgenBase):
         for e in self._entities:
             if e.alive and e.x == self._agent_x and e.y == self._agent_y:
                 self._message = "Hit by an enemy!"
+                self._entity_terminated = True
+        return 0.0
 
     # ------------------------------------------------------------------
     def _symbol_meaning(self, ch: str) -> str:

@@ -64,6 +64,7 @@ class ProcgenBase(BaseAsciiEnv):
         self._jump_step: int = -1  # -1 = not jumping
         self._view_w: int = VIEW_WIDTH
         self._view_h: int = VIEW_HEIGHT
+        self._entity_terminated: bool = False  # set by _advance_entities to end episode
 
     # --- World setup helpers ---
 
@@ -100,6 +101,7 @@ class ProcgenBase(BaseAsciiEnv):
         self._message = ""
         self._jump_step = -1
         self._on_ground = True
+        self._entity_terminated = False
         self._generate_level(seed)
         return self._render_current_observation()
 
@@ -121,7 +123,12 @@ class ProcgenBase(BaseAsciiEnv):
         self._score += reward
 
         # Advance entities
-        self._advance_entities()
+        self._entity_terminated = False
+        entity_reward = self._advance_entities()
+        reward += entity_reward
+        self._score += entity_reward
+        if self._entity_terminated:
+            terminated = True
 
         # Gravity (if enabled)
         if self._has_gravity and not terminated:
@@ -131,8 +138,12 @@ class ProcgenBase(BaseAsciiEnv):
         info["agent_pos"] = (self._agent_x, self._agent_y)
         return self._render_current_observation(), reward, terminated, False, info
 
-    def _advance_entities(self) -> None:
-        """Move all entities by their velocity. Remove dead ones."""
+    def _advance_entities(self) -> float:
+        """Move all entities by their velocity. Remove dead ones.
+
+        Returns additional reward generated during entity advancement
+        (e.g. kills in Ninja). Default: 0.0.
+        """
         for e in self._entities:
             if not e.alive:
                 continue
@@ -147,6 +158,7 @@ class ProcgenBase(BaseAsciiEnv):
             ):
                 e.alive = False
         self._entities = [e for e in self._entities if e.alive]
+        return 0.0
 
     def _apply_gravity(self) -> None:
         """Simple gravity: agent falls if not on solid ground and not jumping."""

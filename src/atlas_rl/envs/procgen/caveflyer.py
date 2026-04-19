@@ -89,7 +89,7 @@ class CaveFlyerEnv(ProcgenBase):
                     self._add_entity("enemy", "E", ex, ey, dx=0, dy=dy)
                     break
 
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Move entities: bullets fly right, enemies patrol vertically."""
         for e in self._entities:
             if not e.alive:
@@ -113,6 +113,7 @@ class CaveFlyerEnv(ProcgenBase):
                 e.dx = -e.dx
                 e.dy = -e.dy
         self._entities = [e for e in self._entities if e.alive]
+        return 0.0
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0

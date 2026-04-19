@@ -108,7 +108,6 @@ class MinerEnv(ProcgenBase):
         elif ch == "D":
             self._set_cell(nx, ny, ".")
             self._diamonds_collected += 1
-            self._score += 1.0
             self._message = "Collected a diamond!"
 
         self._agent_x = nx

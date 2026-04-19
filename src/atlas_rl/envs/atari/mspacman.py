@@ -52,7 +52,7 @@ _MAZE_H = len(_MAZE_TEMPLATE)
 # Ghost spawn positions (inside the ghost pen)
 _GHOST_SPAWNS = [(12, 11), (13, 11), (14, 11), (15, 11)]
 _GHOST_CHARS = ["R", "P", "B", "O"]  # red, pink, blue, orange
-_PLAYER_START = (14, 17)
+_PLAYER_START = (14, 18)
 
 _FRIGHTENED_DURATION = 20
 
@@ -220,14 +220,16 @@ class MsPacManEnv(AtariBase):
                         self._frightened_timer = 0
 
         # Level complete?
-        terminated = False
         if self._pellet_count <= 0:
-            terminated = True
-            self._message = "Level complete!"
+            self._on_point_scored(500)
+            reward += 500.0
+            self._message = "Level complete! +500"
+            self._level += 1
+            self._generate_level(self._level)
 
         info["pellets_remaining"] = self._pellet_count
         info["frightened_timer"] = self._frightened_timer
-        return reward, terminated, info
+        return reward, self._game_over, info
 
     def _move_ghost(self, ghost: AtariEntity) -> None:
         """Simple ghost AI: chase player or move randomly."""

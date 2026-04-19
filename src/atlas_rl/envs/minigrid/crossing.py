@@ -16,7 +16,8 @@ class _CrossingBase(MiniGridBase):
     _easy: bool = False  # if True, gaps always at center
 
     def _generate_grid(self, seed: int) -> None:
-        size = 9
+        # Scale grid so strips never overlap the goal row (y=1)
+        size = max(9, 2 * self._num_strips + 5)
         self._init_grid(size, size)
 
         # Place obstacle strips at evenly spaced y positions

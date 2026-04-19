@@ -52,6 +52,7 @@ class MontezumaRevengeEnv(AtariBase):
         self._room_x: int = 0
         self._room_y: int = 0
         self._keys: set[str] = set()
+        self._collected_keys: set[int] = set()
         self._collected_treasures: set[int] = set()
         self._opened_doors: set[int] = set()
         self._rooms_cleared: set[int] = set()
@@ -70,6 +71,7 @@ class MontezumaRevengeEnv(AtariBase):
         self._room_x = 0
         self._room_y = 0
         self._keys = set()
+        self._collected_keys = set()
         self._collected_treasures = set()
         self._opened_doors = set()
         self._rooms_cleared = set()
@@ -149,7 +151,7 @@ class MontezumaRevengeEnv(AtariBase):
         # Key (one per room if not already collected)
         key_color = ["red", "blue", "green", "yellow"][rid % 4]
         key_char = key_color[0].upper()
-        if rid not in self._collected_treasures:
+        if rid not in self._collected_keys:
             kx = 5 + ((plat_seed + 17) % (self._WIDTH - 10))
             ky = self._HEIGHT - 3
             self._add_entity("key", key_char, kx, ky)
@@ -232,7 +234,11 @@ class MontezumaRevengeEnv(AtariBase):
         # Gravity (if not jumping, not on ladder, not on platform)
         if not self._jumping and not self._on_ladder:
             below = self._player_y + 1
-            if below < self._HEIGHT and not self._is_platform(self._player_x, below) and self._grid_at(self._player_x, below) != "#":
+            if (
+                below < self._HEIGHT
+                and not self._is_platform(self._player_x, below)
+                and self._grid_at(self._player_x, below) != "#"
+            ):
                 self._player_y = below
 
         # Update on_ladder status
@@ -272,6 +278,7 @@ class MontezumaRevengeEnv(AtariBase):
                     color = e.char
                     self._keys.add(color)
                     e.alive = False
+                    self._collected_keys.add(rid)
                     self._message = f"Got key {color}!"
                 elif e.etype == "treasure":
                     e.alive = False
@@ -289,7 +296,7 @@ class MontezumaRevengeEnv(AtariBase):
                         self._message = "Door opened!"
                     else:
                         # Block passage
-                        self._player_x -= 1 if self._player_x > 1 else -1
+                        self._player_x -= 1
                         self._message = f"Need {needed} key!"
 
         # Enemy bounce logic

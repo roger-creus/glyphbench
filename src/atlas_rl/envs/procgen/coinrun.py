@@ -286,7 +286,7 @@ class CoinRunEnv(BaseAsciiEnv):
                     self._on_ground = False
 
         # Horizontal collision with solid
-        if self._is_solid(new_x, self._agent_y) and dx != 0:
+        if self._is_solid(new_x, new_y) and dx != 0:
             new_x = self._agent_x  # can't move horizontally into wall
 
         self._agent_x = new_x
@@ -354,7 +354,11 @@ class CoinRunEnv(BaseAsciiEnv):
         return {
             "level_seed": self._level_seed,
             "agent_pos": (self._agent_x, self._agent_y),
-            "coins_remaining": 0 if (not self._alive or self._message == "You got the coin!") else 1,
+            "coins_remaining": (
+                0
+                if (not self._alive or self._message == "You got the coin!")
+                else 1
+            ),
             "distance_to_finish": max(0, self._coin_x - self._agent_x),
             "killed_by": killed_by,
         }

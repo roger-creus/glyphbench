@@ -297,7 +297,12 @@ class SpaceInvadersEnv(AtariBase):
         # Draw aliens
         for alien_row in self._aliens:
             for alien in alien_row:
-                if alien is not None and alien.alive and 0 < alien.x < self._WIDTH - 1 and 0 < alien.y < self._HEIGHT - 1:
+                if (
+                    alien is not None
+                    and alien.alive
+                    and 0 < alien.x < self._WIDTH - 1
+                    and 0 < alien.y < self._HEIGHT - 1
+                ):
                     self._set_cell(alien.x, alien.y, alien.char)
 
         # Draw bullets
@@ -312,7 +317,12 @@ class SpaceInvadersEnv(AtariBase):
 
         # Draw mystery ships
         for e in self._entities:
-            if e.etype == "mystery" and e.alive and 0 < e.x < self._WIDTH - 1 and 0 < e.y < self._HEIGHT - 1:
+            if (
+                e.etype == "mystery"
+                and e.alive
+                and 0 < e.x < self._WIDTH - 1
+                and 0 < e.y < self._HEIGHT - 1
+            ):
                 self._set_cell(e.x, e.y, "?")
 
     def _advance_entities(self) -> None:

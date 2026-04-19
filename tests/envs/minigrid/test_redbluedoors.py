@@ -33,7 +33,7 @@ class TestRedBlueDoors:
     def test_has_doors(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=100)
         obs, _ = env.reset(seed=0)
-        assert "D" in obs  # closed doors
+        assert "door" in obs  # closed doors
 
     @pytest.mark.parametrize("env_id", REDBLUEDOORS_VARIANTS)
     def test_has_two_door_colors_in_legend(self, env_id: str) -> None:

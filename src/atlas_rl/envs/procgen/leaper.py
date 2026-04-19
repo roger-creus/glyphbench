@@ -57,7 +57,8 @@ class LeaperEnv(ProcgenBase):
         self._log_dx = 0
 
         # Build lanes from bottom-1 upward
-        # Pattern: safe, road, road, safe, water, water, safe, road, road, safe, water, water, safe/goal
+        # Pattern: safe, road, road, safe, water, water,
+        # safe, road, road, safe, water, water, safe/goal
         lane_pattern = ["safe"]  # row h-1 (bottom, start)
         # Fill middle rows
         for i in range(1, h - 1):
@@ -119,7 +120,7 @@ class LeaperEnv(ProcgenBase):
         self._agent_x = w // 2
         self._agent_y = h - 1
 
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Move cars. Cars wrap around the grid instead of being removed."""
         self._step_count += 1
         for e in self._entities:
@@ -166,6 +167,19 @@ class LeaperEnv(ProcgenBase):
                     else:
                         # Carried off edge -> death
                         self._on_log = False
+
+        # Bug 7 fix: check water death after log scroll carries (or fails
+        # to carry) the agent.  Without this, an agent that ends up on
+        # water after logs move survives for one extra turn.
+        if (
+            0 <= self._agent_y < self.GRID_H
+            and self._lane_types[self._agent_y] == "water"
+        ):
+            cell = self._world_at(self._agent_x, self._agent_y)
+            if cell != _LOG:
+                self._message = "Fell in the water!"
+                self._entity_terminated = True
+        return 0.0
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0

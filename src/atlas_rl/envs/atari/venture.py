@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -46,6 +47,7 @@ class VentureEnv(AtariBase):
         self._facing: str = "RIGHT"
         self._collected: set[int] = set()
         self._arrow_cooldown: int = 0
+        self._arrow_kill_reward: float = 0
 
     def env_id(self) -> str:
         return "atlas_rl/atari-venture-v0"
@@ -56,6 +58,7 @@ class VentureEnv(AtariBase):
         self._facing = "RIGHT"
         self._collected = set()
         self._arrow_cooldown = 0
+        self._arrow_kill_reward = 0
         self._player_x = self._WIDTH // 2
         self._player_y = self._HEIGHT // 2
         self._build_hallway()
@@ -127,6 +130,7 @@ class VentureEnv(AtariBase):
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0
+        self._arrow_kill_reward = 0
         info: dict[str, Any] = {}
 
         if self._arrow_cooldown > 0:
@@ -153,7 +157,11 @@ class VentureEnv(AtariBase):
         new_x = self._player_x + dx
         new_y = self._player_y + dy
 
-        if 0 <= new_x < self._WIDTH and 0 <= new_y < self._HEIGHT and not self._is_solid(new_x, new_y):
+        if (
+            0 <= new_x < self._WIDTH
+            and 0 <= new_y < self._HEIGHT
+            and not self._is_solid(new_x, new_y)
+        ):
             self._player_x = new_x
             self._player_y = new_y
 
@@ -220,6 +228,13 @@ class VentureEnv(AtariBase):
 
         return reward, self._game_over, info
 
+    def _step(
+        self, action: int
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        obs, reward, terminated, truncated, info = super()._step(action)
+        reward += self._arrow_kill_reward
+        return obs, reward, terminated, truncated, info
+
     def _fire_arrow(self) -> None:
         """Fire arrow in facing direction."""
         adx, ady = 0, 0
@@ -244,7 +259,9 @@ class VentureEnv(AtariBase):
                 if arrow.x == enemy.x and arrow.y == enemy.y:
                     arrow.alive = False
                     enemy.alive = False
-                    self._message = "Enemy destroyed!"
+                    self._on_point_scored(50)
+                    self._arrow_kill_reward += 50
+                    self._message = "Enemy destroyed! +50"
         self._entities = [e for e in self._entities if e.alive]
 
     def _symbol_meaning(self, ch: str) -> str:

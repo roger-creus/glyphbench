@@ -34,7 +34,7 @@ class TestMultiRoom:
     def test_has_doors(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=300)
         obs, _ = env.reset(seed=0)
-        assert "D" in obs  # closed door
+        assert "door" in obs  # closed door
 
     @pytest.mark.parametrize("env_id", MULTIROOM_VARIANTS)
     def test_random_rollout_no_crash(self, env_id: str) -> None:

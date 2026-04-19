@@ -160,10 +160,8 @@ class MiniGridBase(BaseAsciiEnv):
         """Reward granted when the agent reaches the goal.
 
         Default: 1 - 0.9 * (step_count / max_turns), so faster = better.
-        ``_turn`` has not been incremented yet when ``_step`` runs, so the
-        1-based step count for this step is ``_turn + 1``.
         """
-        step_count = self._turn + 1
+        step_count = self._turn
         return 1.0 - 0.9 * (step_count / self.max_turns)
 
     # ------------------------------------------------------------------

@@ -130,7 +130,7 @@ class ChaserEnv(ProcgenBase):
                 if adj_floor >= 2:
                     self._set_cell(x, y, _FLOOR)
 
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Move ghosts toward or away from agent."""
         if self._power_timer > 0:
             self._power_timer -= 1
@@ -150,6 +150,7 @@ class ChaserEnv(ProcgenBase):
             if best_dir is not None:
                 e.x += best_dir[0]
                 e.y += best_dir[1]
+        return 0.0
 
     def _pick_ghost_dir(
         self, ghost: Entity, flee: bool

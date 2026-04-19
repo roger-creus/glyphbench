@@ -28,10 +28,18 @@ class _CorridorBattleBase(MiniHackBase):
         # Place monsters along the corridor
         monster_types = [RAT, KOBOLD, ORC]
         for i in range(self._num_monsters):
-            mx = int(self.rng.integers(3, w - 3))
-            if self._grid[corridor_y][mx] == "." and (mx, corridor_y) != (1, corridor_y):
-                ctype = monster_types[i % len(monster_types)]
-                self._spawn_creature(ctype, mx, corridor_y)
+            ctype = monster_types[i % len(monster_types)]
+            attempts = 0
+            while attempts < 50:
+                mx = int(self.rng.integers(3, w - 3))
+                if (
+                    self._grid[corridor_y][mx] == "."
+                    and (mx, corridor_y) != (1, corridor_y)
+                    and self._creature_at(mx, corridor_y) is None
+                ):
+                    self._spawn_creature(ctype, mx, corridor_y)
+                    break
+                attempts += 1
 
     def _task_description(self) -> str:
         parts = [

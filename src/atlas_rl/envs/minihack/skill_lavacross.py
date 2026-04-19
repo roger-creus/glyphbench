@@ -45,30 +45,30 @@ class _LavaCrossBase(MiniHackBase):
             self._levitating_turns = 20
             self._message += " You start to float!"
 
+    def _is_walkable(self, x: int, y: int) -> bool:
+        # During levitation, lava is walkable without modifying the grid
+        if self._levitating_turns > 0 and self._terrain_at(x, y) == "}":
+            return True
+        return super()._is_walkable(x, y)
+
     def _step(
         self, action: int
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
-        # While levitating, temporarily convert lava to safe floor so the
-        # base _step terrain check doesn't kill the player.
-        lava_cells: list[tuple[int, int]] = []
-        if self._levitating_turns > 0:
-            for y in range(self._grid_h):
-                for x in range(self._grid_w):
-                    if self._grid[y][x] == "}":
-                        lava_cells.append((x, y))
-                        self._grid[y][x] = "."
-
         obs, reward, terminated, truncated, info = super()._step(action)
-
-        # Restore lava tiles
-        for x, y in lava_cells:
-            self._grid[y][x] = "}"
 
         # Decrement levitation
         if self._levitating_turns > 0:
             self._levitating_turns -= 1
             if self._levitating_turns == 0:
                 self._message += " You float gently to the ground."
+                # Check if standing on lava when levitation expires
+                px, py = self._player_pos
+                if self._terrain_at(px, py) == "}":
+                    self._player_hp = 0
+                    self._message += " You fall into the lava! You die."
+                    terminated = True
+                    reward = -1.0
+                    info["cause_of_death"] = "hazard"
                 # Re-render to include updated message
                 obs = self._render_current_observation()
 

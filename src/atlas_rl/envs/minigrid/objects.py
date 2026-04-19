@@ -85,15 +85,37 @@ class Water(WorldObject):
         self.can_pickup = False
 
 
+# Distinct single-character render for each (type, color) combination.
+# This lets the LLM distinguish same-type objects of different colors.
+_KEY_CHARS: dict[str, str] = {
+    "red": "K", "green": "k", "blue": "j", "yellow": "Y", "purple": "y", "grey": "J",
+}
+_BALL_CHARS: dict[str, str] = {
+    "red": "O", "green": "o", "blue": "Q", "yellow": "q", "purple": "0", "grey": "9",
+}
+_BOX_CHARS: dict[str, str] = {
+    "red": "B", "green": "b", "blue": "P", "yellow": "p", "purple": "8", "grey": "7",
+}
+_DOOR_CLOSED_CHARS: dict[str, str] = {
+    "red": "D", "green": "A", "blue": "E", "yellow": "F", "purple": "H", "grey": "I",
+}
+_DOOR_OPEN_CHARS: dict[str, str] = {
+    "red": "d", "green": "a", "blue": "e", "yellow": "f", "purple": "h", "grey": "i",
+}
+
+
 @dataclass
 class Key(WorldObject):
     color: str = "red"
 
     def __post_init__(self) -> None:
         self.obj_type = "key"
-        self.char = "K"
+        self.char = _KEY_CHARS.get(self.color, "K")
         self.can_overlap = False
         self.can_pickup = True
+
+    def render_char(self) -> str:
+        return _KEY_CHARS.get(self.color, "K")
 
 
 @dataclass
@@ -102,9 +124,12 @@ class Ball(WorldObject):
 
     def __post_init__(self) -> None:
         self.obj_type = "ball"
-        self.char = "O"
+        self.char = _BALL_CHARS.get(self.color, "O")
         self.can_overlap = False
         self.can_pickup = True
+
+    def render_char(self) -> str:
+        return _BALL_CHARS.get(self.color, "O")
 
 
 @dataclass
@@ -114,9 +139,12 @@ class Box(WorldObject):
 
     def __post_init__(self) -> None:
         self.obj_type = "box"
-        self.char = "B"
+        self.char = _BOX_CHARS.get(self.color, "B")
         self.can_overlap = False
         self.can_pickup = True
+
+    def render_char(self) -> str:
+        return _BOX_CHARS.get(self.color, "B")
 
 
 @dataclass
@@ -127,7 +155,10 @@ class Door(WorldObject):
 
     def __post_init__(self) -> None:
         self.obj_type = "door"
-        self.char = "d" if self.is_open else "D"
+        self.char = (
+            _DOOR_OPEN_CHARS.get(self.color, "d") if self.is_open
+            else _DOOR_CLOSED_CHARS.get(self.color, "D")
+        )
         self.can_overlap = self.is_open
         self.can_pickup = False
 
@@ -137,12 +168,15 @@ class Door(WorldObject):
             if isinstance(carrying, Key) and carrying.color == self.color:
                 self.is_locked = False
                 self.is_open = True
-                self.char = "d"
+                self.char = _DOOR_OPEN_CHARS.get(self.color, "d")
                 self.can_overlap = True
                 return True
             return False
         self.is_open = not self.is_open
-        self.char = "d" if self.is_open else "D"
+        self.char = (
+            _DOOR_OPEN_CHARS.get(self.color, "d") if self.is_open
+            else _DOOR_CLOSED_CHARS.get(self.color, "D")
+        )
         self.can_overlap = self.is_open
         return True
 

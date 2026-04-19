@@ -40,7 +40,10 @@ class _WieldBase(MiniHackBase):
                 # Wielded weapon does more damage (6-10 instead of 1-4)
                 dmg = max(1, int(self.rng.integers(6, 11)))
                 monster.hp -= dmg
-                self._message = f"You slash the {monster.ctype.name} with your {self._wielding.name}!"
+                self._message = (
+                    f"You slash the {monster.ctype.name}"
+                    f" with your {self._wielding.name}!"
+                )
                 if monster.hp <= 0:
                     self._message += f" The {monster.ctype.name} dies."
                     self._creatures = [c for c in self._creatures if c.hp > 0]
@@ -66,7 +69,11 @@ class _WieldBase(MiniHackBase):
                         1.0,
                         True,
                         False,
-                        {"goal_reached": True, "player_pos": self._player_pos, "hp": self._player_hp},
+                        {
+                            "goal_reached": True,
+                            "player_pos": self._player_pos,
+                            "hp": self._player_hp,
+                        },
                     )
 
                 return (

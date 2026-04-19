@@ -87,7 +87,7 @@ class BigFishEnv(ProcgenBase):
             data={"size": size},
         )
 
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Move fish horizontally. Wrap around edges. Respawn eaten fish."""
         for e in self._entities:
             if not e.alive:
@@ -113,6 +113,7 @@ class BigFishEnv(ProcgenBase):
         while alive_count < 6:
             self._spawn_fish(force_edge=True)
             alive_count += 1
+        return 0.0
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0

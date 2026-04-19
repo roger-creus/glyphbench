@@ -49,6 +49,7 @@ class NinjaEnv(ProcgenBase):
     def _generate_level(self, seed: int) -> None:
         W, H = 40, 12
         self._init_world(W, H, fill=".")
+        self._enemies_killed = 0
         ground_y = H - 2
 
         # Ground
@@ -130,8 +131,9 @@ class NinjaEnv(ProcgenBase):
         return reward, False, {}
 
     # ------------------------------------------------------------------
-    def _advance_entities(self) -> None:
+    def _advance_entities(self) -> float:
         """Move shurikens and enemies; handle collisions."""
+        kills_before = self._enemies_killed
         for e in self._entities:
             if not e.alive:
                 continue
@@ -157,17 +159,22 @@ class NinjaEnv(ProcgenBase):
                         other.alive = False
                         e.alive = False
                         self._enemies_killed += 1
-                        self._score += 1.0
                         self._message = "Defeated an enemy!"
             elif e.etype == "enemy":
                 nx = e.x + e.dx
                 below = self._world_at(nx, e.y + 1)
-                if self._is_solid(nx, e.y) or below not in ("=", "#") or nx <= 0 or nx >= self._world_w - 1:
+                if (
+                    self._is_solid(nx, e.y)
+                    or below not in ("=", "#")
+                    or nx <= 0
+                    or nx >= self._world_w - 1
+                ):
                     e.dx = -e.dx
                 else:
                     e.x = nx
 
         self._entities = [e for e in self._entities if e.alive]
+        return float(self._enemies_killed - kills_before)
 
     # ------------------------------------------------------------------
     def _is_solid(self, x: int, y: int) -> bool:

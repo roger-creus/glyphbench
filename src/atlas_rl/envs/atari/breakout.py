@@ -86,6 +86,10 @@ class BreakoutEnv(AtariBase):
         self._paddle_x = self._WIDTH // 2 - self._PADDLE_WIDTH // 2
         self._redraw_paddle()
 
+        # Track player position on the paddle for base renderer
+        self._player_x = self._paddle_x + self._PADDLE_WIDTH // 2
+        self._player_y = self._PADDLE_Y
+
         # Ball on paddle
         self._ball_x = self._paddle_x + self._PADDLE_WIDTH // 2
         self._ball_y = self._PADDLE_Y - 1
@@ -113,6 +117,10 @@ class BreakoutEnv(AtariBase):
             self._paddle_x -= 1
         elif action_name == "RIGHT" and self._paddle_x + self._PADDLE_WIDTH < self._WIDTH - 1:
             self._paddle_x += 1
+
+        # Keep player position in sync with paddle
+        self._player_x = self._paddle_x + self._PADDLE_WIDTH // 2
+        self._player_y = self._PADDLE_Y
 
         # Serve
         if self._serving:
@@ -145,7 +153,8 @@ class BreakoutEnv(AtariBase):
                 self._ball_dy = -self._ball_dy
 
             # Paddle collision
-            if new_y == self._PADDLE_Y and self._paddle_x <= new_x < self._paddle_x + self._PADDLE_WIDTH:
+            paddle_end = self._paddle_x + self._PADDLE_WIDTH
+            if new_y == self._PADDLE_Y and self._paddle_x <= new_x < paddle_end:
                 new_y = self._PADDLE_Y - 1
                 self._ball_dy = -1
                 # Adjust dx based on hit position
@@ -157,7 +166,11 @@ class BreakoutEnv(AtariBase):
                 # else keep dx
 
             # Ball past paddle (lose life)
-            if new_y >= self._PADDLE_Y and not (new_y == self._PADDLE_Y and self._paddle_x <= new_x < self._paddle_x + self._PADDLE_WIDTH):
+            on_paddle = (
+                new_y == self._PADDLE_Y
+                and self._paddle_x <= new_x < paddle_end
+            )
+            if new_y >= self._PADDLE_Y and not on_paddle:
                     self._on_life_lost()
                     self._serving = True
                     self._ball_x = self._paddle_x + self._PADDLE_WIDTH // 2
@@ -216,7 +229,7 @@ class BreakoutEnv(AtariBase):
         for x in range(self._PADDLE_WIDTH):
             px = self._paddle_x + x
             if 1 <= px < self._WIDTH - 1:
-                self._set_cell(px, self._PADDLE_Y, "_")
+                self._set_cell(px, self._PADDLE_Y, "=")
 
         # Draw ball
         if 0 < self._ball_x < self._WIDTH - 1 and 0 < self._ball_y < self._HEIGHT - 1:
@@ -231,8 +244,7 @@ class BreakoutEnv(AtariBase):
             "-": "wall (top/bottom)",
             "|": "wall (side)",
             "+": "corner",
-            "=": "brick",
-            "_": "paddle",
+            "=": "brick / paddle",
             "*": "ball",
             " ": "empty",
         }.get(ch, ch)

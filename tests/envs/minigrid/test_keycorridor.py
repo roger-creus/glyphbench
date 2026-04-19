@@ -36,9 +36,9 @@ class TestKeyCorridor:
     def test_has_key_and_doors(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=300)
         obs, _ = env.reset(seed=0)
-        assert "K" in obs
+        assert "key" in obs
         # Should have at least one door
-        assert "D" in obs or "d" in obs
+        assert "door" in obs
 
     @pytest.mark.parametrize("env_id", KEYCORRIDOR_VARIANTS)
     def test_random_rollout_no_crash(self, env_id: str) -> None:

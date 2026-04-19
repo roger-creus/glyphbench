@@ -54,13 +54,16 @@ INTERACTABLE_TILES: dict[str, str] = {
     TILE_DIAMOND: "diamond",
 }
 
-# Tiles that require a pickaxe to mine, mapping to minimum required tool
-PICKAXE_REQUIRED: dict[str, str] = {
-    TILE_STONE: "wood_pickaxe",
-    TILE_COAL: "stone_pickaxe",
-    TILE_IRON: "stone_pickaxe",
-    TILE_DIAMOND: "iron_pickaxe",
+# Tiles that require a pickaxe to mine, mapping to minimum required tier (0-indexed)
+PICKAXE_REQUIRED: dict[str, int] = {
+    TILE_STONE: 0,   # wood_pickaxe or better
+    TILE_COAL: 1,    # stone_pickaxe or better
+    TILE_IRON: 1,    # stone_pickaxe or better
+    TILE_DIAMOND: 2, # iron_pickaxe only
 }
+
+# Pickaxe tier list, ordered by strength
+_PICKAXE_TIERS = ("wood_pickaxe", "stone_pickaxe", "iron_pickaxe")
 
 # Day/night timing (in steps)
 _DAY_LENGTH = 200
@@ -173,7 +176,7 @@ class CraftaxClassicEnv(BaseAsciiEnv):
             "SURVIVAL\n"
             "- Food drains 1 every 50 steps. At 0: lose 1 HP per step.\n"
             "- Water drains 1 every 40 steps. At 0: lose 1 HP per step.\n"
-            "- Energy drains 1 every 100 steps. At 0: movement costs double.\n"
+            "- Energy drains 1 every 100 steps. At 0: 50% chance movement fails.\n"
             "- Eat a ripe plant to restore 3 food. Eat cow meat for 5 food.\n"
             "- DRINK_WATER facing water restores water to 9.\n"
             "- SLEEP restores energy to 9, skips 50 steps.\n\n"
@@ -283,6 +286,42 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                         x, y = cx + dx, cy + dy
                         if 0 <= x < size and 0 <= y < size and self.rng.random() < 0.8:
                             self._world[y][x] = TILE_WATER
+
+        # Place sand patches (near water)
+        num_sand = int(self.rng.integers(2, 5))
+        for _ in range(num_sand):
+            cx = int(self.rng.integers(8, size - 8))
+            cy = int(self.rng.integers(8, size - 8))
+            radius = int(self.rng.integers(2, 4))
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+                    if dx * dx + dy * dy <= radius * radius:
+                        x, y = cx + dx, cy + dy
+                        if (
+                            0 <= x < size
+                            and 0 <= y < size
+                            and self._world[y][x] == TILE_GRASS
+                            and self.rng.random() < 0.6
+                        ):
+                            self._world[y][x] = TILE_SAND
+
+        # Place lava pools (small, dangerous)
+        num_lava = int(self.rng.integers(1, 3))
+        for _ in range(num_lava):
+            cx = int(self.rng.integers(15, size - 15))
+            cy = int(self.rng.integers(15, size - 15))
+            radius = int(self.rng.integers(1, 3))
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+                    if dx * dx + dy * dy <= radius * radius:
+                        x, y = cx + dx, cy + dy
+                        if (
+                            0 <= x < size
+                            and 0 <= y < size
+                            and self._world[y][x] == TILE_GRASS
+                            and self.rng.random() < 0.7
+                        ):
+                            self._world[y][x] = TILE_LAVA
 
         # Place diamond (rare, single tiles)
         num_diamond = int(self.rng.integers(1, 3))
@@ -442,7 +481,7 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                 and abs(mob["x"] - self._agent_x) + abs(mob["y"] - self._agent_y) <= 1
             ):
                 dmg = _MOB_STATS[mob_type]["damage"]
-                self._hp -= dmg
+                self._hp = max(0, self._hp - dmg)
                 if not self._message:
                     self._message = f"A {mob_type} hits you for {dmg} damage!"
 
@@ -505,21 +544,27 @@ class CraftaxClassicEnv(BaseAsciiEnv):
     # -------------------------------------------------------------------
 
     def _apply_survival_drain(self) -> None:
-        """Apply periodic food/water/energy drain. Called each step."""
-        step = self._day_counter
+        """Apply periodic food/water/energy drain. Called each step.
 
+        Damage is applied BEFORE drain so that the player only takes damage
+        if food/water was already 0 at the start of this step, giving one
+        step to eat/drink after a stat first reaches zero.
+        """
+        # Starvation / dehydration damage (check before drain)
+        if self._food == 0:
+            self._hp -= 1
+        if self._water == 0:
+            self._hp -= 1
+        self._hp = max(0, self._hp)
+
+        # Periodic drain
+        step = self._day_counter
         if step > 0 and step % _FOOD_DRAIN_INTERVAL == 0:
             self._food = max(0, self._food - 1)
         if step > 0 and step % _WATER_DRAIN_INTERVAL == 0:
             self._water = max(0, self._water - 1)
         if step > 0 and step % _ENERGY_DRAIN_INTERVAL == 0:
             self._energy = max(0, self._energy - 1)
-
-        # Starvation / dehydration damage
-        if self._food == 0:
-            self._hp -= 1
-        if self._water == 0:
-            self._hp -= 1
 
     # -------------------------------------------------------------------
     # Plant mechanics
@@ -680,7 +725,10 @@ class CraftaxClassicEnv(BaseAsciiEnv):
     # -------------------------------------------------------------------
 
     def _handle_move(self, name: str) -> float:
-        """Handle MOVE_LEFT/RIGHT/UP/DOWN."""
+        """Handle MOVE_LEFT/RIGHT/UP/DOWN.
+
+        At 0 energy, movement fails 50% of the time (effectively doubling cost).
+        """
         direction_map: dict[str, tuple[int, int]] = {
             "MOVE_LEFT": (-1, 0),
             "MOVE_RIGHT": (1, 0),
@@ -689,6 +737,12 @@ class CraftaxClassicEnv(BaseAsciiEnv):
         }
         dx, dy = direction_map[name]
         self._facing = (dx, dy)
+
+        # Energy exhaustion: 50% chance movement fails
+        if self._energy == 0 and self.rng.random() < 0.5:
+            self._message = "Too exhausted to move!"
+            return 0.0
+
         nx = self._agent_x + dx
         ny = self._agent_y + dy
         if (
@@ -721,11 +775,14 @@ class CraftaxClassicEnv(BaseAsciiEnv):
             resource = INTERACTABLE_TILES[tile]
             # Check if pickaxe is required
             if tile in PICKAXE_REQUIRED:
-                required_tool = PICKAXE_REQUIRED[tile]
-                if self._inventory.get(required_tool, 0) < 1:
-                    self._message = (
-                        f"You need a {required_tool.replace('_', ' ')} to mine this."
-                    )
+                min_tier = PICKAXE_REQUIRED[tile]
+                has_pickaxe = any(
+                    self._inventory.get(p, 0) > 0
+                    for p in _PICKAXE_TIERS[min_tier:]
+                )
+                if not has_pickaxe:
+                    needed = _PICKAXE_TIERS[min_tier].replace("_", " ")
+                    self._message = f"You need a {needed} or better to mine this."
                     return 0.0
             # Collect the resource
             self._inventory[resource] = self._inventory.get(resource, 0) + 1
@@ -744,7 +801,11 @@ class CraftaxClassicEnv(BaseAsciiEnv):
         return reward
 
     def _handle_sleep(self) -> float:
-        """Handle the SLEEP action: restore energy, skip time."""
+        """Handle the SLEEP action: restore energy, skip time.
+
+        Simulates 49 steps of day/night, survival drain, and plant growth.
+        The post-action tick in _step adds the 50th step, totaling 50.
+        """
         reward = 0.0
         self._energy = _MAX_ENERGY
 
@@ -752,13 +813,16 @@ class CraftaxClassicEnv(BaseAsciiEnv):
         if not self._has_shelter() and self.rng.random() < 0.5:
             # Mob attack during sleep
             damage = int(self.rng.integers(1, 4))
-            self._hp -= damage
+            self._hp = max(0, self._hp - damage)
             self._message = f"Attacked while sleeping! Lost {damage} HP."
         else:
             self._message = "You sleep and wake refreshed."
 
-        # Skip 50 steps worth of day/night
-        self._advance_day_counter(50)
+        # Simulate 49 steps (post-action tick adds the 50th)
+        for _ in range(49):
+            self._advance_day_counter()
+            self._apply_survival_drain()
+            self._tick_plants()
 
         reward += self._try_unlock_achievement("wake_up")
         return reward

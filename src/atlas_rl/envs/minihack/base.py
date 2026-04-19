@@ -93,6 +93,7 @@ class MiniHackBase(BaseAsciiEnv):
         self._inventory: list[Item] = []
         self._floor_items: dict[tuple[int, int], list[Item]] = {}
         self._wielding: Item | None = None
+        self._ring_equipped: bool = False
         self._hunger: int = 100  # 100 = full, 0 = starving
 
     # ------------------------------------------------------------------
@@ -169,6 +170,7 @@ class MiniHackBase(BaseAsciiEnv):
         self._inventory = []
         self._floor_items = {}
         self._wielding = None
+        self._ring_equipped = False
         self._hunger = 100
         self._generate_level(seed)
         return self._render_current_observation()
@@ -212,10 +214,19 @@ class MiniHackBase(BaseAsciiEnv):
                     self._message = f"You fall into a trap! (-{trap_dmg} HP)"
                     self._grid[ny][nx] = "."  # trap sprung
                 elif terrain == "}":
-                    self._player_hp = 0
-                    self._message = "You fall into lava!"
+                    if not getattr(self, "_levitating_turns", 0):
+                        self._player_hp = 0
+                        self._message = "You fall into lava!"
                 elif terrain == "~":
                     info["water"] = True
+                    # Water is dangerous without levitation
+                    if (
+                        not getattr(self, "_ring_equipped", False)
+                        and not getattr(self, "_levitating_turns", 0)
+                    ):
+                        water_dmg = 3
+                        self._player_hp -= water_dmg
+                        self._message = f"You fall into the water! (-{water_dmg} HP)"
         elif name == "PICKUP":
             px, py = self._player_pos
             items = self._floor_items.get((px, py), [])
@@ -231,6 +242,8 @@ class MiniHackBase(BaseAsciiEnv):
                 px, py = self._player_pos
                 self._place_item(px, py, item)
                 self._message = f"You drop the {item.name}."
+                if self._wielding is item:
+                    self._wielding = None
         elif name == "EAT":
             food = next(
                 (i for i in self._inventory if i.item_type == "food"), None
@@ -259,9 +272,21 @@ class MiniHackBase(BaseAsciiEnv):
             weapon = next(
                 (i for i in self._inventory if i.item_type == "weapon"), None
             )
+            ring = next(
+                (i for i in self._inventory if i.item_type == "ring"), None
+            )
             if weapon:
                 self._wielding = weapon
                 self._message = f"You wield the {weapon.name}."
+            elif ring:
+                self._ring_equipped = True
+                self._message = f"You put on the {ring.name}."
+                # Grant levitation effect for rings of levitation
+                if ring.name == "ring of levitation":
+                    self._levitating_turns = getattr(self, "_levitating_turns", 0)
+                    if self._levitating_turns <= 0:
+                        self._levitating_turns = 20
+                        self._message += " You start to float!"
         elif name == "ZAP":
             wand = next(
                 (i for i in self._inventory if i.item_type == "wand"), None
