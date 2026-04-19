@@ -91,7 +91,7 @@ class TestRiverEnvs:
     @pytest.mark.parametrize("cls", RIVER_CLASSES)
     def test_action_spec(self, cls: type) -> None:
         env = cls()
-        assert env.action_spec.n == 15
+        assert env.action_spec.n == 22
         assert env.noop_action_name == "WAIT"
 
     @pytest.mark.parametrize("cls", RIVER_CLASSES)

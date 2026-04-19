@@ -14,15 +14,17 @@ class TestMiniHackRoom5x5:
     # --- Spec 10.1: test_action_space_defined ---
     def test_action_space_defined(self):
         env = self._make_env()
-        assert env.action_spec.n == 15
+        assert env.action_spec.n == 22
         expected_names = (
             "MOVE_N", "MOVE_S", "MOVE_E", "MOVE_W",
             "MOVE_NE", "MOVE_NW", "MOVE_SE", "MOVE_SW",
             "WAIT", "SEARCH", "LOOK",
-            "PICKUP", "APPLY", "INVENTORY", "ESCAPE",
+            "PICKUP", "DROP", "EAT", "READ", "QUAFF",
+            "WIELD", "ZAP", "PRAY",
+            "APPLY", "INVENTORY", "ESCAPE",
         )
         assert env.action_spec.names == expected_names
-        assert len(set(env.action_spec.names)) == 15
+        assert len(set(env.action_spec.names)) == 22
 
     def test_noop_action_name(self):
         env = self._make_env()
@@ -170,7 +172,8 @@ class TestMiniHackRoom5x5:
         env = self._make_env()
         env.reset(seed=0)
         before_grid = env.get_observation().grid
-        for name in ("WAIT", "SEARCH", "LOOK", "PICKUP", "APPLY", "INVENTORY", "ESCAPE"):
+        for name in ("WAIT", "SEARCH", "LOOK", "PICKUP", "DROP", "EAT", "READ",
+                     "QUAFF", "WIELD", "ZAP", "PRAY", "APPLY", "INVENTORY", "ESCAPE"):
             idx = env.action_spec.index_of(name)
             env.step(idx)
         after_grid = env.get_observation().grid

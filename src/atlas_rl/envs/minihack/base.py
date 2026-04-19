@@ -14,14 +14,17 @@ from atlas_rl.core.ascii_primitives import build_legend, grid_to_string, make_em
 from atlas_rl.core.base_env import BaseAsciiEnv
 from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.minihack.creatures import Creature, CreatureType
+from atlas_rl.envs.minihack.items import Item
 
-# Shared MiniHack action spec (15 actions)
+# Shared MiniHack action spec (22 actions)
 MINIHACK_ACTION_SPEC = ActionSpec(
     names=(
         "MOVE_N", "MOVE_S", "MOVE_E", "MOVE_W",
         "MOVE_NE", "MOVE_NW", "MOVE_SE", "MOVE_SW",
         "WAIT", "SEARCH", "LOOK",
-        "PICKUP", "APPLY", "INVENTORY", "ESCAPE",
+        "PICKUP", "DROP", "EAT", "READ", "QUAFF",
+        "WIELD", "ZAP", "PRAY",
+        "APPLY", "INVENTORY", "ESCAPE",
     ),
     descriptions=(
         "move one cell north (up)",
@@ -36,6 +39,13 @@ MINIHACK_ACTION_SPEC = ActionSpec(
         "search the area around you",
         "look around",
         "pick up an item at your feet",
+        "drop an item",
+        "eat food from inventory",
+        "read a scroll from inventory",
+        "drink a potion from inventory",
+        "wield a weapon from inventory",
+        "zap a wand (at nearest target)",
+        "pray for divine help",
         "apply/use an item",
         "check your inventory",
         "escape/cancel",
@@ -80,6 +90,10 @@ class MiniHackBase(BaseAsciiEnv):
         self._message: str = ""
         self._dark: bool = False
         self._vision_radius: int = 1  # for dark rooms
+        self._inventory: list[Item] = []
+        self._floor_items: dict[tuple[int, int], list[Item]] = {}
+        self._wielding: Item | None = None
+        self._hunger: int = 100  # 100 = full, 0 = starving
 
     # ------------------------------------------------------------------
     # Grid setup helpers (called from _generate_level)
@@ -119,6 +133,12 @@ class MiniHackBase(BaseAsciiEnv):
     def _place_door(self, x: int, y: int) -> None:
         self._grid[y][x] = "+"
 
+    def _place_item(self, x: int, y: int, item: Item) -> None:
+        key = (x, y)
+        if key not in self._floor_items:
+            self._floor_items[key] = []
+        self._floor_items[key].append(item)
+
     def _spawn_creature(self, ctype: CreatureType, x: int, y: int) -> None:
         self._creatures.append(Creature.spawn(ctype, x, y))
 
@@ -146,6 +166,10 @@ class MiniHackBase(BaseAsciiEnv):
         self._creatures = []
         self._message = ""
         self._goal_pos = None
+        self._inventory = []
+        self._floor_items = {}
+        self._wielding = None
+        self._hunger = 100
         self._generate_level(seed)
         return self._render_current_observation()
 
@@ -192,7 +216,64 @@ class MiniHackBase(BaseAsciiEnv):
                     self._message = "You fall into lava!"
                 elif terrain == "~":
                     info["water"] = True
-        # WAIT, SEARCH, LOOK, etc: no-op for navigation tasks
+        elif name == "PICKUP":
+            px, py = self._player_pos
+            items = self._floor_items.get((px, py), [])
+            if items:
+                item = items.pop(0)
+                self._inventory.append(item)
+                self._message = f"You pick up the {item.name}."
+                if not items:
+                    del self._floor_items[(px, py)]
+        elif name == "DROP":
+            if self._inventory:
+                item = self._inventory.pop(0)
+                px, py = self._player_pos
+                self._place_item(px, py, item)
+                self._message = f"You drop the {item.name}."
+        elif name == "EAT":
+            food = next(
+                (i for i in self._inventory if i.item_type == "food"), None
+            )
+            if food:
+                self._inventory.remove(food)
+                self._hunger = min(100, self._hunger + 50)
+                self._message = f"You eat the {food.name}. Yum!"
+        elif name == "READ":
+            scroll = next(
+                (i for i in self._inventory if i.item_type == "scroll"), None
+            )
+            if scroll:
+                self._inventory.remove(scroll)
+                self._message = f"You read the {scroll.name}."
+                self._on_read_scroll(scroll)
+        elif name == "QUAFF":
+            potion = next(
+                (i for i in self._inventory if i.item_type == "potion"), None
+            )
+            if potion:
+                self._inventory.remove(potion)
+                self._message = f"You drink the {potion.name}."
+                self._on_quaff_potion(potion)
+        elif name == "WIELD":
+            weapon = next(
+                (i for i in self._inventory if i.item_type == "weapon"), None
+            )
+            if weapon:
+                self._wielding = weapon
+                self._message = f"You wield the {weapon.name}."
+        elif name == "ZAP":
+            wand = next(
+                (i for i in self._inventory if i.item_type == "wand"), None
+            )
+            if wand:
+                self._inventory.remove(wand)
+                self._message = f"You zap the {wand.name}!"
+                self._on_zap_wand(wand)
+        elif name == "PRAY":
+            self._message = "You pray to the gods."
+            self._on_pray()
+        # WAIT, SEARCH, LOOK, APPLY, INVENTORY, ESCAPE: no-op for navigation tasks
 
         # Check player death
         if self._player_hp <= 0:
@@ -247,6 +328,22 @@ class MiniHackBase(BaseAsciiEnv):
                 c.x, c.y = nx, ny
 
     # ------------------------------------------------------------------
+    # Item-action hooks (override in subclasses for effects)
+    # ------------------------------------------------------------------
+
+    def _on_read_scroll(self, scroll: Item) -> None:
+        """Override for scroll effects."""
+
+    def _on_quaff_potion(self, potion: Item) -> None:
+        """Override for potion effects."""
+
+    def _on_zap_wand(self, wand: Item) -> None:
+        """Override for wand effects."""
+
+    def _on_pray(self) -> None:
+        """Override for prayer effects."""
+
+    # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
 
@@ -286,6 +383,19 @@ class MiniHackBase(BaseAsciiEnv):
                 elif ch == "+":
                     symbols["+"] = "door"
 
+        # Floor items
+        for (ix, iy), items in self._floor_items.items():
+            if items and (
+                not self._dark
+                or (
+                    abs(ix - px) <= self._vision_radius
+                    and abs(iy - py) <= self._vision_radius
+                )
+            ):
+                ch = items[0].char
+                render[iy][ix] = ch
+                symbols[ch] = items[0].legend_name()
+
         # Creatures
         for c in self._creatures:
             if c.hp <= 0:
@@ -305,9 +415,10 @@ class MiniHackBase(BaseAsciiEnv):
         legend = build_legend(symbols)
 
         dark_note = "  Vision: limited (dark room)" if self._dark else ""
+        inv_note = f"  Inv: {len(self._inventory)}" if self._inventory else ""
         hud = (
             f"Dlvl: 1    HP: {self._player_hp}/{self._player_max_hp}    "
-            f"Turn: {self._turn}    Pos: ({px},{py}){dark_note}"
+            f"Turn: {self._turn}    Pos: ({px},{py}){dark_note}{inv_note}"
         )
 
         return GridObservation(

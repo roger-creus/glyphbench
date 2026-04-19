@@ -40,11 +40,11 @@ class TestMiniHackSuiteConformance:
                 if terminated or truncated:
                     break
 
-    def test_action_space_is_15(self, env_id: str) -> None:
+    def test_action_space_is_22(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=10)
         from atlas_rl.core.base_env import BaseAsciiEnv
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        assert unwrapped.action_spec.n == 15
+        assert unwrapped.action_spec.n == 22
 
     def test_seed_reproducibility(self, env_id: str) -> None:
         for seed in [0, 42, 99]:

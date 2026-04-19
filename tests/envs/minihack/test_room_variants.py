@@ -54,7 +54,7 @@ class TestRoomVariants:
     def test_action_space(self, variant) -> None:  # noqa: ANN001
         cls, *_ = variant
         env = cls(max_turns=50)
-        assert env.action_spec.n == 15
+        assert env.action_spec.n == 22
 
     def test_reset_determinism(self, variant) -> None:  # noqa: ANN001
         cls, *_ = variant

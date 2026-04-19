@@ -77,3 +77,196 @@ class TestMiniHackBase:
         prompt = env.system_prompt()
         assert len(prompt) > 50
         assert "MOVE_N" in prompt
+
+    def test_pickup_item(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import FOOD_RATION
+
+        class ItemEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-items-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(1, 1, FOOD_RATION)
+
+        env = ItemEnv(max_turns=100)
+        env.reset(seed=0)
+        pickup = env.action_spec.index_of("PICKUP")
+        env.step(pickup)
+        assert len(env._inventory) == 1
+        assert env._inventory[0].name == "food ration"
+
+    def test_eat_food(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import FOOD_RATION
+
+        class EatEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-eat-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(1, 1, FOOD_RATION)
+
+        env = EatEnv(max_turns=100)
+        env.reset(seed=0)
+        env.step(env.action_spec.index_of("PICKUP"))
+        env.step(env.action_spec.index_of("EAT"))
+        assert len(env._inventory) == 0  # food consumed
+
+    def test_drop_item(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import SWORD
+
+        class DropEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-drop-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(1, 1, SWORD)
+
+        env = DropEnv(max_turns=100)
+        env.reset(seed=0)
+        env.step(env.action_spec.index_of("PICKUP"))
+        assert len(env._inventory) == 1
+        env.step(env.action_spec.index_of("DROP"))
+        assert len(env._inventory) == 0
+        assert (1, 1) in env._floor_items
+
+    def test_wield_weapon(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import SWORD
+
+        class WieldEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-wield-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(1, 1, SWORD)
+
+        env = WieldEnv(max_turns=100)
+        env.reset(seed=0)
+        env.step(env.action_spec.index_of("PICKUP"))
+        env.step(env.action_spec.index_of("WIELD"))
+        assert env._wielding is not None
+        assert env._wielding.name == "long sword"
+        # Wielding does NOT remove from inventory
+        assert len(env._inventory) == 1
+
+    def test_read_scroll(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import SCROLL_LIGHT
+
+        class ReadEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-read-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(1, 1, SCROLL_LIGHT)
+
+        env = ReadEnv(max_turns=100)
+        env.reset(seed=0)
+        env.step(env.action_spec.index_of("PICKUP"))
+        env.step(env.action_spec.index_of("READ"))
+        assert len(env._inventory) == 0  # scroll consumed
+
+    def test_quaff_potion(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import POTION_HEALING
+
+        class QuaffEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-quaff-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(1, 1, POTION_HEALING)
+
+        env = QuaffEnv(max_turns=100)
+        env.reset(seed=0)
+        env.step(env.action_spec.index_of("PICKUP"))
+        env.step(env.action_spec.index_of("QUAFF"))
+        assert len(env._inventory) == 0  # potion consumed
+
+    def test_zap_wand(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import WAND_DEATH
+
+        class ZapEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-zap-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(1, 1, WAND_DEATH)
+
+        env = ZapEnv(max_turns=100)
+        env.reset(seed=0)
+        env.step(env.action_spec.index_of("PICKUP"))
+        env.step(env.action_spec.index_of("ZAP"))
+        assert len(env._inventory) == 0  # wand consumed
+
+    def test_pray_action(self) -> None:
+        env = self._make_env()
+        env.reset(seed=0)
+        env.step(env.action_spec.index_of("PRAY"))
+        obs = env.get_observation()
+        assert "pray" in obs.message.lower()
+
+    def test_floor_item_rendered(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import FOOD_RATION
+
+        class RenderEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-render-item-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(3, 3, FOOD_RATION)
+
+        env = RenderEnv(max_turns=100)
+        env.reset(seed=0)
+        obs = env.get_observation()
+        assert "%" in obs.grid
+
+    def test_inventory_clears_on_reset(self) -> None:
+        from atlas_rl.envs.minihack.base import MiniHackBase
+        from atlas_rl.envs.minihack.items import FOOD_RATION
+
+        class ResetEnv(MiniHackBase):
+            def env_id(self) -> str:
+                return "atlas_rl/test-reset-inv-v0"
+
+            def _generate_level(self, seed: int) -> None:
+                self._init_grid(7, 7)
+                self._place_player(1, 1)
+                self._place_stairs(5, 5)
+                self._place_item(1, 1, FOOD_RATION)
+
+        env = ResetEnv(max_turns=100)
+        env.reset(seed=0)
+        env.step(env.action_spec.index_of("PICKUP"))
+        assert len(env._inventory) == 1
+        env.reset(seed=0)
+        assert len(env._inventory) == 0
