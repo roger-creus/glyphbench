@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from rl_world_ascii.providers.base import LLMResponse, ProviderInvalidRequest, ProviderRateLimit
-from rl_world_ascii.providers.openai_client import OpenAIClient
-from rl_world_ascii.providers.pricing import ModelRates, Pricing
+from atlas_rl.providers.base import LLMResponse, ProviderInvalidRequest, ProviderRateLimit
+from atlas_rl.providers.openai_client import OpenAIClient
+from atlas_rl.providers.pricing import ModelRates, Pricing
 
 
 def _pricing() -> Pricing:

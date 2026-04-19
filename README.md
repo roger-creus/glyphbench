@@ -1,4 +1,6 @@
-# rl-world-ascii
+# ATLAS
+
+**ASCII Testbed for LLM Agent Skills**
 
 Unified ASCII reimplementation of major discrete-action RL benchmarks (Atari-57, Procgen, MiniHack, MiniGrid, Craftax) for evaluating LLMs on sequential decision-making tasks.
 

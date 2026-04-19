@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from rl_world_ascii.providers.base import ProviderRateLimit, ProviderTransient
-from rl_world_ascii.providers.retries import with_retries
+from atlas_rl.providers.base import ProviderRateLimit, ProviderTransient
+from atlas_rl.providers.retries import with_retries
 
 
 @pytest.mark.asyncio

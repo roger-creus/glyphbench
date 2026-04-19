@@ -8,7 +8,7 @@ max_turns_per_episode: 20
 concurrency: 2
 budget_usd: null
 envs:
-  - rl_world_ascii/__dummy-v0
+  - atlas_rl/__dummy-v0
 harness:
   retry_malformed_n: 3
   recent_actions_window: 5

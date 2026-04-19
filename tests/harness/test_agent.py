@@ -1,8 +1,8 @@
 import pytest
 
-from rl_world_ascii.envs.dummy.env import DummyEnv
-from rl_world_ascii.harness.agent import HarnessAgent
-from rl_world_ascii.harness.mock_client import MockLLMClient, ScriptedResponse
+from atlas_rl.envs.dummy.env import DummyEnv
+from atlas_rl.harness.agent import HarnessAgent
+from atlas_rl.harness.mock_client import MockLLMClient, ScriptedResponse
 
 
 @pytest.mark.asyncio

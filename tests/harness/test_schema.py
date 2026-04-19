@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from rl_world_ascii.harness.schema import HarnessOutput
+from atlas_rl.harness.schema import HarnessOutput
 
 
 def test_minimal_valid_output_only_action_required():

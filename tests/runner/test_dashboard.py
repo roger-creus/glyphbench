@@ -1,4 +1,4 @@
-from rl_world_ascii.runner.dashboard import Dashboard, NullDashboard
+from atlas_rl.runner.dashboard import Dashboard, NullDashboard
 
 
 def test_null_dashboard_methods_noop():

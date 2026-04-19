@@ -1,6 +1,6 @@
 import pytest
 
-from rl_world_ascii.providers.base import (
+from atlas_rl.providers.base import (
     LLMClient,
     LLMResponse,
     ProviderError,

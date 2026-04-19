@@ -1,6 +1,6 @@
 import contextlib
 
-from rl_world_ascii.core.observation import GridObservation
+from atlas_rl.core.observation import GridObservation
 
 
 def test_grid_observation_holds_all_four_string_fields():

@@ -1,7 +1,7 @@
 import pytest
 
-from rl_world_ascii.providers.factory import ClientBuildConfig, build_client
-from rl_world_ascii.providers.pricing import Pricing
+from atlas_rl.providers.factory import ClientBuildConfig, build_client
+from atlas_rl.providers.pricing import Pricing
 
 
 @pytest.fixture

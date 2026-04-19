@@ -1,6 +1,6 @@
-from rl_world_ascii.core.observation import GridObservation
-from rl_world_ascii.harness.prompt_builder import build_user_prompt
-from rl_world_ascii.harness.state import EpisodeState, Subgoal
+from atlas_rl.core.observation import GridObservation
+from atlas_rl.harness.prompt_builder import build_user_prompt
+from atlas_rl.harness.state import EpisodeState, Subgoal
 
 
 def _fresh_obs() -> GridObservation:

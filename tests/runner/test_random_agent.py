@@ -1,7 +1,7 @@
 import pytest
 
-from rl_world_ascii.envs.dummy.env import DummyEnv
-from rl_world_ascii.runner.random_agent import RandomAgent
+from atlas_rl.envs.dummy.env import DummyEnv
+from atlas_rl.runner.random_agent import RandomAgent
 
 
 @pytest.mark.asyncio

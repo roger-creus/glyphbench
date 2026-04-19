@@ -1,0 +1,51 @@
+{# src/atlas_rl/harness/system_prompts/_base.j2 #}
+You are playing: {{ env_name }}
+
+{% block task_section %}
+TASK
+{{ task_description }}
+{% endblock %}
+
+{% block symbols_section %}
+{% if symbol_legend_summary %}
+SYMBOLS (game-wide reference)
+{{ symbol_legend_summary }}
+
+A per-turn legend showing only currently-visible symbols will accompany every observation.
+{% endif %}
+{% endblock %}
+
+{% block actions_section %}
+{{ action_table }}
+{% endblock %}
+
+{% block rewards_section %}
+REWARD
+{{ reward_description }}
+{% endblock %}
+
+{% block physics_section %}
+{% if physics_notes %}
+PHYSICS NOTES
+{{ physics_notes }}
+{% endif %}
+{% endblock %}
+
+{% block response_format %}
+RESPONSE FORMAT
+You must respond with a single JSON object, no prose outside the JSON, matching this schema:
+{
+  "thinking": "free-form chain of thought for this turn (not persisted, not re-shown)",
+  "strategic_plan_update": null | "new plan text" (null = keep prior; string replaces prior),
+  "tactical_plan": "your immediate next steps (replaces prior)",
+  "subgoals_update": { "add": ["new subgoal text", ...], "mark_done": [index, ...] },
+  "lessons_to_add": ["things you learned this turn"],
+  "action": "ACTION_NAME"  // must be one of the actions listed above
+}
+
+Rules:
+- `action` is required; everything else has sensible defaults.
+- `thinking` is discarded immediately after this turn. Use it for scratch reasoning.
+- Your strategic_plan, tactical_plan, subgoals, and lessons persist to the next turn.
+- You may rewrite your plans or subgoals freely; you cannot retract lessons.
+{% endblock %}

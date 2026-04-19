@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from rl_world_ascii.providers.anthropic_client import AnthropicClient
-from rl_world_ascii.providers.base import ProviderInvalidRequest, ProviderRateLimit
-from rl_world_ascii.providers.pricing import ModelRates, Pricing
+from atlas_rl.providers.anthropic_client import AnthropicClient
+from atlas_rl.providers.base import ProviderInvalidRequest, ProviderRateLimit
+from atlas_rl.providers.pricing import ModelRates, Pricing
 
 
 def _pricing() -> Pricing:

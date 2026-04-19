@@ -1,7 +1,7 @@
 import pytest
 
-from rl_world_ascii.core.action import ActionSpec
-from rl_world_ascii.harness.parser import (
+from atlas_rl.core.action import ActionSpec
+from atlas_rl.harness.parser import (
     MAX_REPAIR_RETRIES,
     extract_json,
     parse_harness_output,

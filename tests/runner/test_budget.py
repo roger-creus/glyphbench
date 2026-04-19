@@ -1,6 +1,6 @@
 import pytest
 
-from rl_world_ascii.runner.budget import BudgetExceeded, CostTracker
+from atlas_rl.runner.budget import BudgetExceeded, CostTracker
 
 
 def test_no_cap_never_exceeds():

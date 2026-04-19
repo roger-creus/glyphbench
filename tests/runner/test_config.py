@@ -1,7 +1,7 @@
 import pytest
 import yaml
 
-from rl_world_ascii.runner.config import HarnessConfig, RunConfig
+from atlas_rl.runner.config import HarnessConfig, RunConfig
 
 
 def _valid_dict():
@@ -11,7 +11,7 @@ def _valid_dict():
         "model_id": "llama-3.1-8b",
         "base_url": "http://localhost:8000/v1",
         "seeds": [0, 1, 2],
-        "envs": ["rl_world_ascii/__dummy-v0"],
+        "envs": ["atlas_rl/__dummy-v0"],
     }
 
 

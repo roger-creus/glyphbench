@@ -1,6 +1,6 @@
 import pytest
 
-from rl_world_ascii.harness.mock_client import MockLLMClient, ScriptedResponse
+from atlas_rl.harness.mock_client import MockLLMClient, ScriptedResponse
 
 
 @pytest.mark.asyncio

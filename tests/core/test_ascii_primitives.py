@@ -1,6 +1,6 @@
 import pytest
 
-from rl_world_ascii.core.ascii_primitives import (
+from atlas_rl.core.ascii_primitives import (
     build_legend,
     draw_box,
     grid_to_string,

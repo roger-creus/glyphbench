@@ -1,9 +1,9 @@
 import httpx
 import pytest
 
-from rl_world_ascii.providers.base import LLMResponse, ProviderInvalidRequest, ProviderRateLimit
-from rl_world_ascii.providers.pricing import ModelRates, Pricing
-from rl_world_ascii.providers.vllm_client import VllmClient
+from atlas_rl.providers.base import LLMResponse, ProviderInvalidRequest, ProviderRateLimit
+from atlas_rl.providers.pricing import ModelRates, Pricing
+from atlas_rl.providers.vllm_client import VllmClient
 
 
 def _pricing_stub() -> Pricing:

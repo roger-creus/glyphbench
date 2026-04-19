@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from rl_world_ascii.providers.gemini_client import GeminiClient
-from rl_world_ascii.providers.pricing import ModelRates, Pricing
+from atlas_rl.providers.gemini_client import GeminiClient
+from atlas_rl.providers.pricing import ModelRates, Pricing
 
 
 def _pricing() -> Pricing:

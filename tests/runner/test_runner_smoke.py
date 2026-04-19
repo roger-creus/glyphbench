@@ -8,9 +8,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from rl_world_ascii.harness.mock_client import MockLLMClient, ScriptedResponse
-from rl_world_ascii.runner.config import RunConfig
-from rl_world_ascii.runner.runner import run_benchmark
+from atlas_rl.harness.mock_client import MockLLMClient, ScriptedResponse
+from atlas_rl.runner.config import RunConfig
+from atlas_rl.runner.runner import run_benchmark
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ def smoke_config(tmp_path: Path) -> RunConfig:
         episodes_per_env=1,
         max_turns_per_episode=10,
         concurrency=1,
-        envs=["rl_world_ascii/__dummy-v0"],
+        envs=["atlas_rl/__dummy-v0"],
         output_dir=str(tmp_path / "runs"),
         pricing_yaml=str(pricing_dst),
         dashboard=False,
@@ -36,7 +36,7 @@ def smoke_config(tmp_path: Path) -> RunConfig:
 
 
 async def test_runner_produces_parquet_with_mock_client(smoke_config: RunConfig) -> None:
-    import rl_world_ascii  # noqa: F401 — triggers env registration
+    import atlas_rl  # noqa: F401 — triggers env registration
 
     def client_factory() -> MockLLMClient:
         return MockLLMClient(
