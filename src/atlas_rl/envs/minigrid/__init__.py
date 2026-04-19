@@ -247,3 +247,28 @@ register_env(
     "atlas_rl.envs.minigrid.goto:MiniGridGoToObject6x6N2Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-fetch-5x5-n2-v0",
+    "atlas_rl.envs.minigrid.fetch:MiniGridFetch5x5N2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-fetch-6x6-n2-v0",
+    "atlas_rl.envs.minigrid.fetch:MiniGridFetch6x6N2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-fetch-8x8-n3-v0",
+    "atlas_rl.envs.minigrid.fetch:MiniGridFetch8x8N3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-putnear-6x6-n2-v0",
+    "atlas_rl.envs.minigrid.fetch:MiniGridPutNear6x6N2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-putnear-8x8-n3-v0",
+    "atlas_rl.envs.minigrid.fetch:MiniGridPutNear8x8N3Env",
+    max_episode_steps=None,
+)
