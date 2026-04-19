@@ -57,3 +57,33 @@ register_env(
     "atlas_rl.envs.atari.amidar:AmidarEnv",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/atari-qbert-v0",
+    "atlas_rl.envs.atari.qbert:QbertEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-breakout-v0",
+    "atlas_rl.envs.atari.breakout:BreakoutEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-spaceinvaders-v0",
+    "atlas_rl.envs.atari.spaceinvaders:SpaceInvadersEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-hero-v0",
+    "atlas_rl.envs.atari.hero:HeroEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-freeway-v0",
+    "atlas_rl.envs.atari.freeway:FreewayEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-surround-v0",
+    "atlas_rl.envs.atari.surround:SurroundEnv",
+    max_episode_steps=None,
+)
