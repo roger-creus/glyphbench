@@ -112,3 +112,13 @@ register_env(
     "atlas_rl.envs.minigrid.keycorridor:MiniGridKeyCorridorS6R3Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-lockedroom-v0",
+    "atlas_rl.envs.minigrid.lockedroom:MiniGridLockedRoomEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-blockedunlockpickup-v0",
+    "atlas_rl.envs.minigrid.lockedroom:MiniGridBlockedUnlockPickupEnv",
+    max_episode_steps=None,
+)
