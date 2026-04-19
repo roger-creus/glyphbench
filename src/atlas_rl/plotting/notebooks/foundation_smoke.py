@@ -28,6 +28,13 @@ def _save_fig(fig: matplotlib.figure.Figure, fig_dir: Path, name: str) -> None:
     plt.close(fig)
 
 
+def _empty_plot(fig_dir: Path, name: str, title: str) -> None:
+    """Save an empty plot as placeholder when no data is available."""
+    fig, ax = plt.subplots()
+    ax.set_title(title)
+    _save_fig(fig, fig_dir, name)
+
+
 def plot_return_distribution(summary: pd.DataFrame, fig_dir: Path) -> None:
     """1. Per-env return distribution (violin plot)."""
     fig, ax = plt.subplots()
@@ -55,9 +62,7 @@ def plot_episode_length(summary: pd.DataFrame, fig_dir: Path) -> None:
 def plot_token_usage(summary: pd.DataFrame, fig_dir: Path) -> None:
     """3. Token usage (grouped bar chart)."""
     if len(summary) == 0:
-        fig, ax = plt.subplots()
-        ax.set_title("Token Usage per Environment")
-        _save_fig(fig, fig_dir, "token_usage")
+        _empty_plot(fig_dir, "token_usage", "Token Usage per Environment")
         return
     means = summary.groupby("env_id")[["total_tokens_in", "total_tokens_out"]].mean()
     fig, ax = plt.subplots()
@@ -73,9 +78,7 @@ def plot_token_usage(summary: pd.DataFrame, fig_dir: Path) -> None:
 def plot_parse_failure_rate(summary: pd.DataFrame, fig_dir: Path) -> None:
     """4. Parse failure rate (bar chart)."""
     if len(summary) == 0:
-        fig, ax = plt.subplots()
-        ax.set_title("Action Parse Failure Rate")
-        _save_fig(fig, fig_dir, "parse_failure_rate")
+        _empty_plot(fig_dir, "parse_failure_rate", "Action Parse Failure Rate")
         return
     means = summary.groupby("env_id")["action_parse_failure_rate"].mean()
     fig, ax = plt.subplots()
@@ -90,9 +93,7 @@ def plot_parse_failure_rate(summary: pd.DataFrame, fig_dir: Path) -> None:
 def plot_action_distribution(turns: pd.DataFrame, fig_dir: Path) -> None:
     """5. Action distribution (stacked bar of top-10 actions per env)."""
     if len(turns) == 0 or "action_name" not in turns.columns:
-        fig, ax = plt.subplots()
-        ax.set_title("Action Distribution")
-        _save_fig(fig, fig_dir, "action_distribution")
+        _empty_plot(fig_dir, "action_distribution", "Action Distribution")
         return
     fig, ax = plt.subplots(figsize=(8, 5))
     action_counts = turns.groupby(["env_id", "action_name"]).size().unstack(fill_value=0)
@@ -110,9 +111,7 @@ def plot_action_distribution(turns: pd.DataFrame, fig_dir: Path) -> None:
 def plot_cost_per_episode(summary: pd.DataFrame, fig_dir: Path) -> None:
     """6. Cost per episode (bar chart)."""
     if len(summary) == 0:
-        fig, ax = plt.subplots()
-        ax.set_title("Cost per Episode")
-        _save_fig(fig, fig_dir, "cost_per_episode")
+        _empty_plot(fig_dir, "cost_per_episode", "Cost per Episode")
         return
     means = summary.groupby("env_id")["total_dollar_cost"].mean()
     fig, ax = plt.subplots()
@@ -127,9 +126,7 @@ def plot_cost_per_episode(summary: pd.DataFrame, fig_dir: Path) -> None:
 def plot_return_over_episodes(summary: pd.DataFrame, fig_dir: Path) -> None:
     """7. Return over episodes (learning-curve style)."""
     if len(summary) == 0:
-        fig, ax = plt.subplots()
-        ax.set_title("Return over Episodes")
-        _save_fig(fig, fig_dir, "return_over_episodes")
+        _empty_plot(fig_dir, "return_over_episodes", "Return over Episodes")
         return
     fig, ax = plt.subplots()
     for env_id in sorted(summary["env_id"].unique()):

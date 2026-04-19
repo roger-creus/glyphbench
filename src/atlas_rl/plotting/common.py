@@ -12,6 +12,13 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 
+def _read_parquet(path: Path) -> pd.DataFrame:
+    """Read a parquet file if it exists, else return empty DataFrame."""
+    if path.exists():
+        return pq.read_table(path).to_pandas()
+    return pd.DataFrame()
+
+
 def load_run(run_dir: str) -> dict[str, pd.DataFrame]:
     """Load a single run directory.
 
@@ -22,26 +29,17 @@ def load_run(run_dir: str) -> dict[str, pd.DataFrame]:
     if not path.exists():
         raise FileNotFoundError(f"Run directory not found: {run_dir}")
 
-    result: dict[str, pd.DataFrame] = {}
-    summary_path = path / "summary.parquet"
-    if summary_path.exists():
-        result["summary"] = pq.read_table(summary_path).to_pandas()
-    else:
-        result["summary"] = pd.DataFrame()
-
-    turns_path = path / "turns.parquet"
-    if turns_path.exists():
-        result["turns"] = pq.read_table(turns_path).to_pandas()
-    else:
-        result["turns"] = pd.DataFrame()
-
-    return result
+    return {
+        "summary": _read_parquet(path / "summary.parquet"),
+        "turns": _read_parquet(path / "turns.parquet"),
+    }
 
 
 def load_runs(run_dirs: list[str]) -> pd.DataFrame:
     """Load and concatenate summary DataFrames from multiple runs.
 
     Adds a 'run_id' column derived from the directory name.
+    Only reads summary.parquet (skips turns for efficiency).
     Returns an empty DataFrame if run_dirs is empty.
     """
     if not run_dirs:
@@ -49,11 +47,13 @@ def load_runs(run_dirs: list[str]) -> pd.DataFrame:
 
     frames: list[pd.DataFrame] = []
     for run_dir in run_dirs:
-        data = load_run(run_dir)
-        summary = data["summary"]
+        path = Path(run_dir)
+        if not path.exists():
+            raise FileNotFoundError(f"Run directory not found: {run_dir}")
+        summary = _read_parquet(path / "summary.parquet")
         if len(summary) > 0:
             summary = summary.copy()
-            summary["run_id"] = Path(run_dir).name
+            summary["run_id"] = path.name
             frames.append(summary)
 
     if not frames:
@@ -75,22 +75,16 @@ def compute_normalized_scores(
     that env_id, and ref is either the expert_reference value for that env_id
     (if provided) or 1.0 (identity scaling).
     """
-    random_means = (
-        random_baseline_summary.groupby("env_id")["episode_return"].mean().to_dict()
-    )
+    rand_means = random_baseline_summary.groupby("env_id")["episode_return"].mean()
     result = summary.copy()
-    normalized: list[float] = []
-    for _, row in result.iterrows():
-        env_id = row["env_id"]
-        ret = row["episode_return"]
-        rand_mean = random_means.get(env_id, 0.0)
-        if expert_reference and env_id in expert_reference:
-            ref = expert_reference[env_id]
-            denom = ref - rand_mean
-        else:
-            denom = 1.0
-        if denom == 0.0:
-            denom = 1.0
-        normalized.append((ret - rand_mean) / denom)
-    result["normalized_return"] = normalized
+    rand_mean_col = result["env_id"].map(rand_means).fillna(0.0)
+
+    if expert_reference:
+        ref_col = result["env_id"].map(expert_reference)
+        denom = (ref_col - rand_mean_col).where(ref_col.notna(), 1.0)
+    else:
+        denom = pd.Series(1.0, index=result.index)
+
+    denom = denom.replace(0.0, 1.0)
+    result["normalized_return"] = (result["episode_return"] - rand_mean_col) / denom
     return result

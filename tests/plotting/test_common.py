@@ -91,7 +91,7 @@ class TestLoadRuns:
 
 
 class TestComputeNormalizedScores:
-    def test_normalized_scores_basic(self, tmp_path: Path) -> None:
+    def test_normalized_scores_basic(self) -> None:
         from atlas_rl.plotting.common import compute_normalized_scores
         summary = pd.DataFrame({
             "env_id": ["env-a", "env-a", "env-b", "env-b"],
@@ -104,7 +104,7 @@ class TestComputeNormalizedScores:
         result = compute_normalized_scores(summary, random_summary)
         assert "normalized_return" in result.columns
 
-    def test_normalized_scores_with_expert(self, tmp_path: Path) -> None:
+    def test_normalized_scores_with_expert(self) -> None:
         from atlas_rl.plotting.common import compute_normalized_scores
         summary = pd.DataFrame({
             "env_id": ["env-a", "env-a"],
