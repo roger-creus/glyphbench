@@ -32,3 +32,28 @@ register_env(
     "atlas_rl.envs.procgen.bigfish:BigFishEnv",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/procgen-climber-v0",
+    "atlas_rl.envs.procgen.climber:ClimberEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/procgen-jumper-v0",
+    "atlas_rl.envs.procgen.jumper:JumperEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/procgen-ninja-v0",
+    "atlas_rl.envs.procgen.ninja:NinjaEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/procgen-fruitbot-v0",
+    "atlas_rl.envs.procgen.fruitbot:FruitBotEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/procgen-miner-v0",
+    "atlas_rl.envs.procgen.miner:MinerEnv",
+    max_episode_steps=None,
+)
