@@ -82,3 +82,33 @@ register_env(
     "atlas_rl.envs.minigrid.unlock:MiniGridUnlockPickupEnv",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-keycorridor-s3r1-v0",
+    "atlas_rl.envs.minigrid.keycorridor:MiniGridKeyCorridorS3R1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-keycorridor-s3r2-v0",
+    "atlas_rl.envs.minigrid.keycorridor:MiniGridKeyCorridorS3R2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-keycorridor-s3r3-v0",
+    "atlas_rl.envs.minigrid.keycorridor:MiniGridKeyCorridorS3R3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-keycorridor-s4r3-v0",
+    "atlas_rl.envs.minigrid.keycorridor:MiniGridKeyCorridorS4R3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-keycorridor-s5r3-v0",
+    "atlas_rl.envs.minigrid.keycorridor:MiniGridKeyCorridorS5R3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-keycorridor-s6r3-v0",
+    "atlas_rl.envs.minigrid.keycorridor:MiniGridKeyCorridorS6R3Env",
+    max_episode_steps=None,
+)
