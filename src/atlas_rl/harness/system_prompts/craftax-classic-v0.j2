@@ -1,0 +1,36 @@
+{# src/atlas_rl/harness/system_prompts/craftax-classic-v0.j2 #}
+{% extends "_base.j2" %}
+
+{% block physics_section %}
+WORLD
+64x64 grid world with biomes: grass, trees, stone, coal, iron, diamond, water,
+lava, sand. You see a 9x7 window centered on yourself. Explore to discover
+resources.
+
+MECHANICS
+- Movement: MOVE_LEFT/RIGHT/UP/DOWN. You cannot walk through trees, stone,
+  ores, water, or lava. You can walk on grass, sand, placed items.
+- DO: interact with the block you face. Chops trees (no tool needed), mines
+  stone (needs wood pickaxe), mines coal/iron (needs stone pickaxe).
+- Placing: PLACE_TABLE (2 wood), PLACE_FURNACE (4 stone), PLACE_STONE (1 stone).
+  Items are placed in the cell you face (must be empty grass).
+- Crafting: MAKE_WOOD_PICKAXE (1 wood, near table), MAKE_STONE_PICKAXE
+  (1 wood + 1 stone, near table + furnace).
+
+TECH TREE (achievements in order)
+1. collect_wood: chop any tree with DO
+2. place_table: place a crafting table (2 wood)
+3. make_wood_pickaxe: craft at table (1 wood)
+4. collect_stone: mine stone with wood pickaxe
+5. place_furnace: place a furnace (4 stone)
+6. make_stone_pickaxe: craft at table+furnace (1 wood + 1 stone)
+7. collect_iron: mine iron ore with stone pickaxe
+8. collect_coal: mine coal ore with stone pickaxe
+
+Each achievement unlocks once and gives +1 reward. Repeats give 0.
+
+STRATEGY
+Start by gathering wood from trees. Build a crafting table and wood pickaxe.
+Then find and mine stone. Build a furnace, then craft a stone pickaxe. Finally,
+find and mine iron and coal deposits.
+{% endblock %}
