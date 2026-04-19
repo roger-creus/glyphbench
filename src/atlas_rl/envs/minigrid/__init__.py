@@ -32,3 +32,23 @@ register_env(
     "atlas_rl.envs.minigrid.empty:MiniGridEmptyRandom6x6Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-doorkey-5x5-v0",
+    "atlas_rl.envs.minigrid.doorkey:MiniGridDoorKey5x5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-doorkey-6x6-v0",
+    "atlas_rl.envs.minigrid.doorkey:MiniGridDoorKey6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-doorkey-8x8-v0",
+    "atlas_rl.envs.minigrid.doorkey:MiniGridDoorKey8x8Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-doorkey-16x16-v0",
+    "atlas_rl.envs.minigrid.doorkey:MiniGridDoorKey16x16Env",
+    max_episode_steps=None,
+)
