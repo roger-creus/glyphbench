@@ -227,3 +227,23 @@ register_env(
     "atlas_rl.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles16x16Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-gotodoor-5x5-v0",
+    "atlas_rl.envs.minigrid.goto:MiniGridGoToDoor5x5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-gotodoor-6x6-v0",
+    "atlas_rl.envs.minigrid.goto:MiniGridGoToDoor6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-gotodoor-8x8-v0",
+    "atlas_rl.envs.minigrid.goto:MiniGridGoToDoor8x8Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-gotoobject-6x6-n2-v0",
+    "atlas_rl.envs.minigrid.goto:MiniGridGoToObject6x6N2Env",
+    max_episode_steps=None,
+)
