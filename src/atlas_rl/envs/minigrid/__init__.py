@@ -57,3 +57,18 @@ register_env(
     "atlas_rl.envs.minigrid.fourrooms:MiniGridFourRoomsEnv",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-multiroom-n2-s4-v0",
+    "atlas_rl.envs.minigrid.multiroom:MiniGridMultiRoomN2S4Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-multiroom-n4-s5-v0",
+    "atlas_rl.envs.minigrid.multiroom:MiniGridMultiRoomN4S5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-multiroom-n6-v0",
+    "atlas_rl.envs.minigrid.multiroom:MiniGridMultiRoomN6Env",
+    max_episode_steps=None,
+)
