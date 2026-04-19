@@ -1,0 +1,20 @@
+# Quickstart config: run 3 easy envs with mock provider for testing
+run_id: "quickstart"
+provider: mock
+model_id: mock-model
+seeds: [0]
+episodes_per_env: 1
+max_turns_per_episode: 50
+concurrency: 1
+budget_usd: null
+envs:
+  - atlas_rl/minigrid-empty-5x5-v0
+  - atlas_rl/minihack-room-5x5-v0
+  - atlas_rl/procgen-coinrun-v0
+harness:
+  retry_malformed_n: 3
+  recent_actions_window: 5
+  trajectory_logging: false
+output_dir: "runs/"
+pricing_yaml: "pricing.yaml"
+dashboard: false
