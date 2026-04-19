@@ -57,3 +57,28 @@ register_env(
     "atlas_rl.envs.procgen.miner:MinerEnv",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/procgen-dodgeball-v0",
+    "atlas_rl.envs.procgen.dodgeball:DodgeballEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/procgen-caveflyer-v0",
+    "atlas_rl.envs.procgen.caveflyer:CaveFlyerEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/procgen-starpilot-v0",
+    "atlas_rl.envs.procgen.starpilot:StarPilotEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/procgen-plunder-v0",
+    "atlas_rl.envs.procgen.plunder:PlunderEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/procgen-bossfight-v0",
+    "atlas_rl.envs.procgen.bossfight:BossFightEnv",
+    max_episode_steps=None,
+)
