@@ -7,3 +7,9 @@ register_env(
     "atlas_rl.envs.craftax.classic:CraftaxClassicEnv",
     max_episode_steps=None,
 )
+
+register_env(
+    "atlas_rl/craftax-v0",
+    "atlas_rl.envs.craftax.full:CraftaxFullEnv",
+    max_episode_steps=None,
+)
