@@ -269,3 +269,47 @@ register_env(
     "atlas_rl.envs.minihack.skill_wield:MiniHackWieldDistractEnv",
     max_episode_steps=None,
 )
+
+# --- Skill: Wand of Death (WoD) ---
+register_env(
+    "atlas_rl/minihack-wod-easy-v0",
+    "atlas_rl.envs.minihack.skill_wod:MiniHackWoDEasyEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-wod-medium-v0",
+    "atlas_rl.envs.minihack.skill_wod:MiniHackWoDMediumEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-wod-hard-v0",
+    "atlas_rl.envs.minihack.skill_wod:MiniHackWoDHardEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-wod-pro-v0",
+    "atlas_rl.envs.minihack.skill_wod:MiniHackWoDProEnv",
+    max_episode_steps=None,
+)
+
+# --- Skill: LavaCross ---
+register_env(
+    "atlas_rl/minihack-lavacross-full-v0",
+    "atlas_rl.envs.minihack.skill_lavacross:MiniHackLavaCrossFullEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-lavacross-levitate-v0",
+    "atlas_rl.envs.minihack.skill_lavacross:MiniHackLavaCrossLevitateEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-lavacross-levitate-potion-inv-v0",
+    "atlas_rl.envs.minihack.skill_lavacross:MiniHackLavaCrossPotionInvEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-lavacross-levitate-ring-inv-v0",
+    "atlas_rl.envs.minihack.skill_lavacross:MiniHackLavaCrossRingInvEnv",
+    max_episode_steps=None,
+)
