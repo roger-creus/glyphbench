@@ -1,0 +1,228 @@
+"""Atari Skiing environment.
+
+Downhill slalom. Navigate gates, avoid flags.
+
+Gym ID: atlas_rl/atari-skiing-v0
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from atlas_rl.core.action import ActionSpec
+
+from .base import AtariBase
+
+
+class SkiingEnv(AtariBase):
+    """Skiing: downhill slalom racing.
+
+    20x24 viewport scrolling vertically. Navigate between
+    gate flags. Missing a gate adds a time penalty.
+
+    Actions: NOOP, LEFT, RIGHT
+    Reward: -1 per missed gate (penalty), +1 per gate passed
+    """
+
+    action_spec = ActionSpec(
+        names=("NOOP", "LEFT", "RIGHT"),
+        descriptions=(
+            "go straight",
+            "steer left",
+            "steer right",
+        ),
+    )
+
+    _WIDTH = 20
+    _HEIGHT = 24
+    _COURSE_LEN = 60
+    _GATE_SPACING = 6
+    _PENALTY_PER_MISS = 5
+
+    def __init__(self, max_turns: int = 10000) -> None:
+        super().__init__(max_turns=max_turns)
+        self._gates: list[tuple[int, int]] = []
+        self._scroll_y: int = 0
+        self._time: int = 0
+        self._gates_passed: int = 0
+        self._gates_missed: int = 0
+        self._total_gates: int = 0
+        self._finished: bool = False
+
+    def env_id(self) -> str:
+        return "atlas_rl/atari-skiing-v0"
+
+    def _generate_level(self, seed: int) -> None:
+        self._init_grid(self._WIDTH, self._HEIGHT)
+        self._entities = []
+        self._scroll_y = 0
+        self._time = 0
+        self._gates_passed = 0
+        self._gates_missed = 0
+        self._finished = False
+        self._lives = 99
+
+        rng = self.rng
+        self._gates = []
+        self._total_gates = self._COURSE_LEN // self._GATE_SPACING
+
+        for i in range(self._total_gates):
+            gate_y = (i + 1) * self._GATE_SPACING
+            gate_cx = int(
+                rng.integers(4, self._WIDTH - 4)
+            )
+            self._gates.append((gate_cx, gate_y))
+
+        # Player at top center
+        self._player_x = self._WIDTH // 2
+        self._player_y = 3
+        self._redraw()
+
+    def _game_step(
+        self, action_name: str
+    ) -> tuple[float, bool, dict[str, Any]]:
+        reward = 0.0
+        info: dict[str, Any] = {}
+
+        if self._finished:
+            return 0.0, True, info
+
+        self._time += 1
+
+        # Player movement (horizontal only)
+        if action_name == "LEFT":
+            nx = self._player_x - 1
+            if nx >= 1:
+                self._player_x = nx
+        elif action_name == "RIGHT":
+            nx = self._player_x + 1
+            if nx < self._WIDTH - 1:
+                self._player_x = nx
+
+        # Scroll down (skier moves downhill)
+        self._scroll_y += 1
+
+        # Check if passing through a gate row
+        for _i, (gcx, gy) in enumerate(self._gates):
+            # Gate row just scrolled past player
+            if gy == self._scroll_y + self._player_y:
+                gate_l = gcx - 2
+                gate_r = gcx + 2
+                if gate_l <= self._player_x <= gate_r:
+                    self._gates_passed += 1
+                    self._on_point_scored(1)
+                    reward = 1.0
+                    self._message = "Gate passed! +1"
+                else:
+                    self._gates_missed += 1
+                    penalty = -self._PENALTY_PER_MISS
+                    self._on_point_scored(penalty)
+                    reward = -1.0
+                    self._message = (
+                        f"Gate missed! {penalty} penalty"
+                    )
+
+        # Check if course complete
+        total_distance = (
+            self._total_gates * self._GATE_SPACING + 10
+        )
+        if self._scroll_y >= total_distance:
+            self._finished = True
+            final = self._time + (
+                self._gates_missed * self._PENALTY_PER_MISS
+            )
+            self._message = (
+                f"Finished! Time: {final} "
+                f"({self._gates_missed} missed)"
+            )
+
+        info["gates_passed"] = self._gates_passed
+        info["gates_missed"] = self._gates_missed
+        info["time"] = self._time
+        self._redraw()
+        return reward, self._finished, info
+
+    def _redraw(self) -> None:
+        for y in range(self._HEIGHT):
+            for x in range(self._WIDTH):
+                self._set_cell(x, y, ".")
+
+        # Draw borders (trees)
+        for y in range(self._HEIGHT):
+            self._set_cell(0, y, "T")
+            self._set_cell(self._WIDTH - 1, y, "T")
+
+        # Draw gates visible in viewport
+        for gcx, gy in self._gates:
+            screen_y = gy - self._scroll_y + self._player_y
+            if 0 <= screen_y < self._HEIGHT:
+                gate_l = gcx - 2
+                gate_r = gcx + 2
+                if 0 <= gate_l < self._WIDTH:
+                    self._set_cell(gate_l, screen_y, "[")
+                if 0 <= gate_r < self._WIDTH:
+                    self._set_cell(gate_r, screen_y, "]")
+                # Gate markers between flags
+                for gx in range(gate_l + 1, gate_r):
+                    if 0 < gx < self._WIDTH - 1:
+                        self._set_cell(gx, screen_y, " ")
+
+        # Draw random trees for atmosphere
+        for y in range(self._HEIGHT):
+            for x in range(2, self._WIDTH - 2):
+                world_y = y + self._scroll_y - self._player_y
+                if (
+                    self._grid_at(x, y) == "."
+                    and (world_y * 7 + x * 13) % 19 == 0
+                ):
+                    self._set_cell(x, y, "T")
+
+    def _advance_entities(self) -> None:
+        pass
+
+    def _render_current_observation(self, **kw: Any):  # type: ignore[override]
+        from atlas_rl.core.ascii_primitives import (
+            build_legend,
+            grid_to_string,
+        )
+        from atlas_rl.core.observation import GridObservation
+
+        render = [row[:] for row in self._grid]
+        symbols: dict[str, str] = {}
+        for y in range(self._grid_h):
+            for x in range(self._grid_w):
+                ch = render[y][x]
+                if ch not in symbols:
+                    symbols[ch] = self._symbol_meaning(ch)
+        r, c = self._player_y, self._player_x
+        if 0 <= c < self._grid_w and 0 <= r < self._grid_h:
+            render[r][c] = "@"
+        symbols["@"] = "you (skier)"
+        hud = (
+            f"Score: {self._score}  "
+            f"Gates: {self._gates_passed}/{self._total_gates}  "
+            f"Time: {self._time}"
+        )
+        return GridObservation(
+            grid=grid_to_string(render),
+            legend=build_legend(symbols),
+            hud=hud,
+            message=self._message,
+        )
+
+    def _symbol_meaning(self, ch: str) -> str:
+        return {
+            ".": "snow",
+            "T": "tree",
+            "[": "left gate flag",
+            "]": "right gate flag",
+            " ": "gate opening",
+        }.get(ch, ch)
+
+    def _task_description(self) -> str:
+        return (
+            "Ski downhill through slalom gates. "
+            "Steer LEFT/RIGHT to pass between the "
+            "[ ] flags. Missing a gate adds a time "
+            "penalty. Lower time is better."
+        )

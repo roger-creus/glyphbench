@@ -1,0 +1,354 @@
+"""Atari KungFuMaster environment.
+
+Side-scrolling beat-em-up across 5 floors of a temple.
+
+Gym ID: atlas_rl/atari-kungfumaster-v0
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import numpy as np
+
+from atlas_rl.core.action import ActionSpec
+
+from .base import AtariBase
+
+_W = 30
+_H = 16
+_FLOOR_Y = 12
+_PLAYER_START_X = 2
+
+
+class KungFuMasterEnv(AtariBase):
+    """KungFuMaster: side-scrolling beat-em-up.
+
+    Fight through 5 floors of enemies. Punch and kick
+    grippers (G) and knife throwers (K). Reach the boss (B)
+    at the right end of each floor.
+
+    Grid: 30x16.
+    Reward: +10 per enemy, +100 per boss defeated.
+    """
+
+    action_spec = ActionSpec(
+        names=(
+            "NOOP", "LEFT", "RIGHT",
+            "PUNCH", "KICK", "JUMP", "DUCK",
+        ),
+        descriptions=(
+            "do nothing",
+            "walk left",
+            "walk right",
+            "punch (short range)",
+            "kick (medium range)",
+            "jump up",
+            "duck (dodge high attacks)",
+        ),
+    )
+
+    def __init__(self, max_turns: int = 10000) -> None:
+        super().__init__(max_turns=max_turns)
+        self._floor: int = 1
+        self._ducking: bool = False
+        self._jumping: bool = False
+        self._jump_timer: int = 0
+        self._spawn_timer: int = 0
+        self._boss_spawned: bool = False
+
+    def env_id(self) -> str:
+        return "atlas_rl/atari-kungfumaster-v0"
+
+    def _generate_level(self, seed: int) -> None:
+        rng = np.random.default_rng(
+            seed + self._level * 1013
+        )
+        self._init_grid(_W, _H)
+        self._entities = []
+        self._ducking = False
+        self._jumping = False
+        self._jump_timer = 0
+        self._spawn_timer = 0
+        self._boss_spawned = False
+
+        # Top/bottom borders
+        for x in range(_W):
+            self._set_cell(x, 0, "-")
+            self._set_cell(x, _H - 1, "-")
+
+        # Floor label area (top rows)
+        floor_label = f" FLOOR {self._floor} "
+        lx = (_W - len(floor_label)) // 2
+        for i, ch in enumerate(floor_label):
+            if 0 <= lx + i < _W:
+                self._set_cell(lx + i, 1, ch)
+
+        # Ground platform
+        for x in range(_W):
+            self._set_cell(x, _FLOOR_Y, "=")
+
+        # Side walls
+        self._set_cell(0, _FLOOR_Y - 1, "|")
+        for y in range(2, _FLOOR_Y):
+            self._set_cell(0, y, "|")
+            self._set_cell(_W - 1, y, "|")
+
+        # Decorative pillars
+        for px in range(6, _W - 4, 8):
+            for py in range(_FLOOR_Y - 3, _FLOOR_Y):
+                self._set_cell(px, py, ":")
+
+        # Spawn initial enemies
+        n_enemies = 3 + self._floor
+        for i in range(n_enemies):
+            ex = int(rng.integers(10, _W - 3))
+            side = 1 if rng.random() < 0.5 else -1
+            etype = "gripper" if rng.random() < 0.6 else "knife"
+            ch = "G" if etype == "gripper" else "K"
+            e = self._add_entity(
+                etype, ch, ex, _FLOOR_Y - 1, dx=-side
+            )
+            e.data["timer"] = int(rng.integers(3, 8))
+
+        # Player start
+        self._player_x = _PLAYER_START_X
+        self._player_y = _FLOOR_Y - 1
+
+    def _game_step(
+        self, action_name: str
+    ) -> tuple[float, bool, dict[str, Any]]:
+        reward = 0.0
+        info: dict[str, Any] = {}
+        self._ducking = False
+        attack = ""
+
+        if action_name == "LEFT":
+            if self._player_x > 1:
+                self._player_x -= 1
+        elif action_name == "RIGHT":
+            if self._player_x < _W - 2:
+                self._player_x += 1
+        elif action_name == "PUNCH":
+            attack = "punch"
+        elif action_name == "KICK":
+            attack = "kick"
+        elif action_name == "JUMP":
+            if not self._jumping:
+                self._jumping = True
+                self._jump_timer = 4
+                self._player_y = _FLOOR_Y - 3
+        elif action_name == "DUCK":
+            self._ducking = True
+
+        # Jump physics
+        if self._jumping:
+            self._jump_timer -= 1
+            if self._jump_timer <= 0:
+                self._jumping = False
+                self._player_y = _FLOOR_Y - 1
+
+        # Attack: hit nearby enemies
+        if attack:
+            reach = 1 if attack == "punch" else 2
+            for e in self._entities:
+                if e.etype in ("gripper", "knife", "boss"):
+                    if not e.alive:
+                        continue
+                    if (
+                        abs(e.x - self._player_x) <= reach
+                        and abs(e.y - self._player_y) <= 1
+                    ):
+                        if e.etype == "boss":
+                            e.data["hp"] = (
+                                e.data.get("hp", 5) - 1
+                            )
+                            if e.data["hp"] <= 0:
+                                e.alive = False
+                                self._on_point_scored(100)
+                                reward += 100
+                                self._message = (
+                                    "Boss defeated! +100"
+                                )
+                        else:
+                            e.alive = False
+                            self._on_point_scored(10)
+                            reward += 10
+                            self._message = (
+                                f"{e.etype} defeated! +10"
+                            )
+
+        # Enemy AI
+        for e in self._entities:
+            if not e.alive:
+                continue
+            if e.etype == "gripper":
+                e.data["timer"] = (
+                    e.data.get("timer", 3) - 1
+                )
+                if e.data["timer"] <= 0:
+                    e.data["timer"] = int(
+                        self.rng.integers(2, 5)
+                    )
+                    # Move toward player
+                    if e.x > self._player_x:
+                        e.x -= 1
+                    elif e.x < self._player_x:
+                        e.x += 1
+            elif e.etype == "knife":
+                e.data["timer"] = (
+                    e.data.get("timer", 4) - 1
+                )
+                if e.data["timer"] <= 0:
+                    e.data["timer"] = int(
+                        self.rng.integers(3, 7)
+                    )
+                    # Throw knife projectile
+                    kdir = (
+                        -1 if e.x > self._player_x else 1
+                    )
+                    self._add_entity(
+                        "projectile", "~", e.x + kdir,
+                        e.y, dx=kdir,
+                    )
+                    # Also approach slowly
+                    if self.rng.random() < 0.3:
+                        if e.x > self._player_x:
+                            e.x -= 1
+                        else:
+                            e.x += 1
+            elif e.etype == "boss":
+                e.data["timer"] = (
+                    e.data.get("timer", 5) - 1
+                )
+                if e.data["timer"] <= 0:
+                    e.data["timer"] = int(
+                        self.rng.integers(3, 6)
+                    )
+                    if e.x > self._player_x:
+                        e.x -= 1
+                    elif e.x < self._player_x:
+                        e.x += 1
+
+        # Move projectiles
+        for e in self._entities:
+            if e.etype == "projectile" and e.alive:
+                e.x += e.dx
+                if e.x <= 0 or e.x >= _W - 1:
+                    e.alive = False
+
+        # Collision: projectiles hit player
+        for e in self._entities:
+            if e.etype != "projectile" or not e.alive:
+                continue
+            if (
+                e.x == self._player_x
+                and abs(e.y - self._player_y) <= 1
+            ):
+                if self._ducking:
+                    pass  # dodged by ducking
+                else:
+                    e.alive = False
+                    self._on_life_lost()
+                    self._message = "Hit by projectile!"
+                    if not self._game_over:
+                        self._player_x = _PLAYER_START_X
+                        self._player_y = _FLOOR_Y - 1
+                    return reward, self._game_over, info
+
+        # Collision: enemies touch player
+        for e in self._entities:
+            if e.etype not in ("gripper", "boss"):
+                continue
+            if not e.alive:
+                continue
+            if (
+                e.x == self._player_x
+                and abs(e.y - self._player_y) <= 1
+            ):
+                if self._jumping:
+                    pass  # jumped over
+                else:
+                    self._on_life_lost()
+                    self._message = f"Grabbed by {e.etype}!"
+                    if not self._game_over:
+                        self._player_x = _PLAYER_START_X
+                        self._player_y = _FLOOR_Y - 1
+                    return reward, self._game_over, info
+
+        self._entities = [
+            e for e in self._entities if e.alive
+        ]
+
+        # Spawn more enemies periodically
+        self._spawn_timer += 1
+        if self._spawn_timer >= max(15 - self._floor * 2, 5):
+            self._spawn_timer = 0
+            enemies_alive = sum(
+                1 for e in self._entities
+                if e.etype in ("gripper", "knife")
+            )
+            if enemies_alive < 3 + self._floor:
+                side = (
+                    _W - 2 if self.rng.random() < 0.5 else 1
+                )
+                etype = (
+                    "gripper"
+                    if self.rng.random() < 0.6
+                    else "knife"
+                )
+                ch = "G" if etype == "gripper" else "K"
+                self._add_entity(
+                    etype, ch, side, _FLOOR_Y - 1
+                )
+
+        # Boss spawn when player reaches right side
+        if (
+            not self._boss_spawned
+            and self._player_x >= _W - 6
+        ):
+            self._boss_spawned = True
+            b = self._add_entity(
+                "boss", "B", _W - 3, _FLOOR_Y - 1
+            )
+            b.data["hp"] = 3 + self._floor
+            self._message = "Boss appeared!"
+
+        # Floor cleared: all enemies dead + boss dead
+        bosses = [
+            e for e in self._entities
+            if e.etype == "boss" and e.alive
+        ]
+        if self._boss_spawned and len(bosses) == 0:
+            self._floor += 1
+            if self._floor > 5:
+                self._floor = 1
+                self._level += 1
+            self._message = f"Floor cleared! Floor {self._floor}"
+            self._generate_level(self._level * 4001 + self._floor)
+
+        info["floor"] = self._floor
+        return reward, self._game_over, info
+
+    def _advance_entities(self) -> None:
+        pass
+
+    def _symbol_meaning(self, ch: str) -> str:
+        return {
+            "-": "border",
+            "|": "wall",
+            "=": "floor",
+            ":": "pillar",
+            "G": "gripper enemy",
+            "K": "knife thrower",
+            "B": "boss",
+            "~": "thrown knife",
+            " ": "empty",
+        }.get(ch, ch)
+
+    def _task_description(self) -> str:
+        return (
+            "Fight through 5 floors. PUNCH and KICK enemies. "
+            "JUMP to dodge, DUCK to avoid knives. "
+            "Defeat the boss (B) at each floor's end."
+        )

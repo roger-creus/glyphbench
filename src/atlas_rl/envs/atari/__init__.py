@@ -87,3 +87,203 @@ register_env(
     "atlas_rl.envs.atari.surround:SurroundEnv",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/atari-phoenix-v0",
+    "atlas_rl.envs.atari.phoenix:PhoenixEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-demonattack-v0",
+    "atlas_rl.envs.atari.demonattack:DemonAttackEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-assault-v0",
+    "atlas_rl.envs.atari.assault:AssaultEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-atlantis-v0",
+    "atlas_rl.envs.atari.atlantis:AtlantisEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-gopher-v0",
+    "atlas_rl.envs.atari.gopher:GopherEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-centipede-v0",
+    "atlas_rl.envs.atari.centipede:CentipedeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-defender-v0",
+    "atlas_rl.envs.atari.defender:DefenderEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-seaquest-v0",
+    "atlas_rl.envs.atari.seaquest:SeaquestEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-choppercommand-v0",
+    "atlas_rl.envs.atari.choppercommand:ChopperCommandEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-stargunner-v0",
+    "atlas_rl.envs.atari.stargunner:StarGunnerEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-timepilot-v0",
+    "atlas_rl.envs.atari.timepilot:TimePilotEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-riverraid-v0",
+    "atlas_rl.envs.atari.riverraid:RiverRaidEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-upndown-v0",
+    "atlas_rl.envs.atari.upndown:UpNDownEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-beamrider-v0",
+    "atlas_rl.envs.atari.beamrider:BeamRiderEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-namethisgame-v0",
+    "atlas_rl.envs.atari.namethisgame:NameThisGameEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-yarsrevenge-v0",
+    "atlas_rl.envs.atari.yarsrevenge:YarsRevengeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-alien-v0",
+    "atlas_rl.envs.atari.alien:AlienEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-crazyclimber-v0",
+    "atlas_rl.envs.atari.crazyclimber:CrazyClimberEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-tutankham-v0",
+    "atlas_rl.envs.atari.tutankham:TutankhamEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-kungfumaster-v0",
+    "atlas_rl.envs.atari.kungfumaster:KungFuMasterEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-jamesbond-v0",
+    "atlas_rl.envs.atari.jamesbond:JamesBondEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-roadrunner-v0",
+    "atlas_rl.envs.atari.roadrunner:RoadRunnerEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-krull-v0",
+    "atlas_rl.envs.atari.krull:KrullEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-privateeye-v0",
+    "atlas_rl.envs.atari.privateeye:PrivateEyeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-bowling-v0",
+    "atlas_rl.envs.atari.bowling:BowlingEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-boxing-v0",
+    "atlas_rl.envs.atari.boxing:BoxingEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-tennis-v0",
+    "atlas_rl.envs.atari.tennis:TennisEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-icehockey-v0",
+    "atlas_rl.envs.atari.icehockey:IceHockeyEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-skiing-v0",
+    "atlas_rl.envs.atari.skiing:SkiingEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-enduro-v0",
+    "atlas_rl.envs.atari.enduro:EnduroEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-doubledunk-v0",
+    "atlas_rl.envs.atari.doubledunk:DoubleDunkEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-fishingderby-v0",
+    "atlas_rl.envs.atari.fishingderby:FishingDerbyEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-asterix-v0",
+    "atlas_rl.envs.atari.asterix:AsterixEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-asteroids-v0",
+    "atlas_rl.envs.atari.asteroids:AsteroidsEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-battlezone-v0",
+    "atlas_rl.envs.atari.battlezone:BattleZoneEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-robotank-v0",
+    "atlas_rl.envs.atari.robotank:RobotankEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-zaxxon-v0",
+    "atlas_rl.envs.atari.zaxxon:ZaxxonEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-gravitar-v0",
+    "atlas_rl.envs.atari.gravitar:GravitarEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-solaris-v0",
+    "atlas_rl.envs.atari.solaris:SolarisEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-videopinball-v0",
+    "atlas_rl.envs.atari.videopinball:VideoPinballEnv",
+    max_episode_steps=None,
+)
