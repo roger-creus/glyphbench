@@ -52,3 +52,8 @@ register_env(
     "atlas_rl.envs.minigrid.doorkey:MiniGridDoorKey16x16Env",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-fourrooms-v0",
+    "atlas_rl.envs.minigrid.fourrooms:MiniGridFourRoomsEnv",
+    max_episode_steps=None,
+)
