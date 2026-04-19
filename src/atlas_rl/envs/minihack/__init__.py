@@ -136,3 +136,64 @@ register_env(
     "atlas_rl.envs.minihack.mazewalk:MiniHackMazeWalkMapped45x19Env",
     max_episode_steps=None,
 )
+
+# --- River ---
+register_env(
+    "atlas_rl/minihack-river-v0",
+    "atlas_rl.envs.minihack.river:MiniHackRiverEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-river-narrow-v0",
+    "atlas_rl.envs.minihack.river:MiniHackRiverNarrowEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-river-monster-v0",
+    "atlas_rl.envs.minihack.river:MiniHackRiverMonsterEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-river-lava-v0",
+    "atlas_rl.envs.minihack.river:MiniHackRiverLavaEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-river-monsterlava-v0",
+    "atlas_rl.envs.minihack.river:MiniHackRiverMonsterLavaEnv",
+    max_episode_steps=None,
+)
+
+# --- HideNSeek ---
+register_env(
+    "atlas_rl/minihack-hidenseek-v0",
+    "atlas_rl.envs.minihack.hidenseek:MiniHackHideNSeekEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-hidenseek-mapped-v0",
+    "atlas_rl.envs.minihack.hidenseek:MiniHackHideNSeekMappedEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-hidenseek-lava-v0",
+    "atlas_rl.envs.minihack.hidenseek:MiniHackHideNSeekLavaEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-hidenseek-big-v0",
+    "atlas_rl.envs.minihack.hidenseek:MiniHackHideNSeekBigEnv",
+    max_episode_steps=None,
+)
+
+# --- CorridorBattle ---
+register_env(
+    "atlas_rl/minihack-corridorbattle-v0",
+    "atlas_rl.envs.minihack.corridorbattle:MiniHackCorridorBattleEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-corridorbattle-dark-v0",
+    "atlas_rl.envs.minihack.corridorbattle:MiniHackCorridorBattleDarkEnv",
+    max_episode_steps=None,
+)
