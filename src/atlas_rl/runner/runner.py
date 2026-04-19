@@ -12,6 +12,7 @@ import gymnasium as gym
 from atlas_rl.core.base_env import BaseAsciiEnv
 from atlas_rl.harness.agent import HarnessAgent
 from atlas_rl.providers.base import LLMClient
+from atlas_rl.runner.random_agent import RandomAgent
 from atlas_rl.providers.factory import ClientBuildConfig, build_client
 from atlas_rl.providers.pricing import Pricing
 from atlas_rl.runner.budget import BudgetExceeded, CostTracker
@@ -148,14 +149,20 @@ async def _run_episode(
         episode_seed = _derive_episode_seed(env_id, seed, episode_idx)
         raw_env = gym.make(env_id, max_turns=config.max_turns_per_episode)
         env: BaseAsciiEnv = raw_env.unwrapped  # type: ignore[assignment]
-        client = client_factory()
-        agent = HarnessAgent(
-            env=env,
-            client=client,
-            temperature=config.temperature,
-            max_output_tokens=config.max_output_tokens,
-            model_seed=config.model_seed,
-        )
+
+        if config.provider == "random":
+            agent: HarnessAgent | RandomAgent = RandomAgent(
+                env=env, seed=episode_seed,
+            )
+        else:
+            client = client_factory()
+            agent = HarnessAgent(
+                env=env,
+                client=client,
+                temperature=config.temperature,
+                max_output_tokens=config.max_output_tokens,
+                model_seed=config.model_seed,
+            )
 
         episode_return, length, turn_metrics = await agent.run_episode(
             seed=episode_seed

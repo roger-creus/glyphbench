@@ -1,8 +1,7 @@
 # Random baseline config: uniform random agent on all 5 pilot envs.
 # Used to compute normalized scores (random_mean subtraction).
 run_id: "random-baseline"
-provider: mock
-model_id: "random"
+provider: random
 seeds: [0, 1, 2, 3, 4]
 episodes_per_env: 5
 max_turns_per_episode: 200

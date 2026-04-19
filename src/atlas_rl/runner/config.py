@@ -16,8 +16,8 @@ class HarnessConfig(BaseModel):
 
 class RunConfig(BaseModel):
     run_id: str
-    provider: str                      # "vllm" | "openai" | "anthropic" | "gemini" | "mock"
-    model_id: str
+    provider: str                      # "vllm" | "openai" | "anthropic" | "gemini" | "mock" | "random"
+    model_id: str = "random"
     base_url: str | None = None
     temperature: float = 0.7
     max_output_tokens: int = 2048
@@ -37,6 +37,8 @@ class RunConfig(BaseModel):
     def _check(self) -> RunConfig:
         if self.provider == "vllm" and not self.base_url:
             raise ValueError("vllm provider requires base_url")
+        if self.provider == "random" and self.budget_usd is not None:
+            raise ValueError("random provider does not use a budget")
         if self.episodes_per_env <= 0:
             raise ValueError("episodes_per_env must be > 0")
         if self.concurrency <= 0:
