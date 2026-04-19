@@ -149,7 +149,7 @@ class MiniHackBase(BaseAsciiEnv):
 
     def _is_walkable(self, x: int, y: int) -> bool:
         t = self._terrain_at(x, y)
-        return t in (".", ">", "^", "+", "}", "~")
+        return t in (".", ">", "^", "+", "}", "~", "{")
 
     def _creature_at(self, x: int, y: int) -> Creature | None:
         for c in self._creatures:
@@ -382,6 +382,8 @@ class MiniHackBase(BaseAsciiEnv):
                     symbols["~"] = "water"
                 elif ch == "+":
                     symbols["+"] = "door"
+                elif ch == "{":
+                    symbols["{"] = "sink"
 
         # Floor items
         for (ix, iy), items in self._floor_items.items():

@@ -197,3 +197,75 @@ register_env(
     "atlas_rl.envs.minihack.corridorbattle:MiniHackCorridorBattleDarkEnv",
     max_episode_steps=None,
 )
+
+# --- Skill: Eat ---
+register_env(
+    "atlas_rl/minihack-eat-v0",
+    "atlas_rl.envs.minihack.skill_eat:MiniHackEatEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-eat-distract-v0",
+    "atlas_rl.envs.minihack.skill_eat:MiniHackEatDistractEnv",
+    max_episode_steps=None,
+)
+
+# --- Skill: Pray ---
+register_env(
+    "atlas_rl/minihack-pray-v0",
+    "atlas_rl.envs.minihack.skill_pray:MiniHackPrayEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-pray-distract-v0",
+    "atlas_rl.envs.minihack.skill_pray:MiniHackPrayDistractEnv",
+    max_episode_steps=None,
+)
+
+# --- Skill: Sink ---
+register_env(
+    "atlas_rl/minihack-sink-v0",
+    "atlas_rl.envs.minihack.skill_sink:MiniHackSinkEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-sink-distract-v0",
+    "atlas_rl.envs.minihack.skill_sink:MiniHackSinkDistractEnv",
+    max_episode_steps=None,
+)
+
+# --- Skill: Read ---
+register_env(
+    "atlas_rl/minihack-read-v0",
+    "atlas_rl.envs.minihack.skill_read:MiniHackReadEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-read-distract-v0",
+    "atlas_rl.envs.minihack.skill_read:MiniHackReadDistractEnv",
+    max_episode_steps=None,
+)
+
+# --- Skill: Quaff ---
+register_env(
+    "atlas_rl/minihack-quaff-v0",
+    "atlas_rl.envs.minihack.skill_quaff:MiniHackQuaffEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-quaff-distract-v0",
+    "atlas_rl.envs.minihack.skill_quaff:MiniHackQuaffDistractEnv",
+    max_episode_steps=None,
+)
+
+# --- Skill: Wield ---
+register_env(
+    "atlas_rl/minihack-wield-v0",
+    "atlas_rl.envs.minihack.skill_wield:MiniHackWieldEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-wield-distract-v0",
+    "atlas_rl.envs.minihack.skill_wield:MiniHackWieldDistractEnv",
+    max_episode_steps=None,
+)
