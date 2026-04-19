@@ -122,3 +122,13 @@ register_env(
     "atlas_rl.envs.minigrid.lockedroom:MiniGridBlockedUnlockPickupEnv",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/minigrid-distshift1-v0",
+    "atlas_rl.envs.minigrid.distshift:MiniGridDistShift1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minigrid-distshift2-v0",
+    "atlas_rl.envs.minigrid.distshift:MiniGridDistShift2Env",
+    max_episode_steps=None,
+)
