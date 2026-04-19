@@ -7,3 +7,53 @@ register_env(
     "atlas_rl.envs.atari.pong:PongEnv",
     max_episode_steps=None,
 )
+register_env(
+    "atlas_rl/atari-montezumarevenge-v0",
+    "atlas_rl.envs.atari.montezumarevenge:MontezumaRevengeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-venture-v0",
+    "atlas_rl.envs.atari.venture:VentureEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-kangaroo-v0",
+    "atlas_rl.envs.atari.kangaroo:KangarooEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-pitfall-v0",
+    "atlas_rl.envs.atari.pitfall:PitfallEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-frostbite-v0",
+    "atlas_rl.envs.atari.frostbite:FrostbiteEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-mspacman-v0",
+    "atlas_rl.envs.atari.mspacman:MsPacManEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-berzerk-v0",
+    "atlas_rl.envs.atari.berzerk:BerzerkEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-wizardofwor-v0",
+    "atlas_rl.envs.atari.wizardofwor:WizardOfWorEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-bankheist-v0",
+    "atlas_rl.envs.atari.bankheist:BankHeistEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/atari-amidar-v0",
+    "atlas_rl.envs.atari.amidar:AmidarEnv",
+    max_episode_steps=None,
+)
