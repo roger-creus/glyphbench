@@ -313,3 +313,42 @@ register_env(
     "atlas_rl.envs.minihack.skill_lavacross:MiniHackLavaCrossRingInvEnv",
     max_episode_steps=None,
 )
+
+# --- Boxoban ---
+register_env(
+    "atlas_rl/minihack-boxoban-medium-v0",
+    "atlas_rl.envs.minihack.boxoban:MiniHackBoxobanMediumEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-boxoban-hard-v0",
+    "atlas_rl.envs.minihack.boxoban:MiniHackBoxobanHardEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-boxoban-unfiltered-v0",
+    "atlas_rl.envs.minihack.boxoban:MiniHackBoxobanUnfilteredEnv",
+    max_episode_steps=None,
+)
+
+# --- Memento ---
+register_env(
+    "atlas_rl/minihack-memento-short-v0",
+    "atlas_rl.envs.minihack.memento:MiniHackMementoShortEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-memento-hard-v0",
+    "atlas_rl.envs.minihack.memento:MiniHackMementoHardEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-memento-f2-v0",
+    "atlas_rl.envs.minihack.memento:MiniHackMementoF2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "atlas_rl/minihack-memento-f4-v0",
+    "atlas_rl.envs.minihack.memento:MiniHackMementoF4Env",
+    max_episode_steps=None,
+)
