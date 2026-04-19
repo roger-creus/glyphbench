@@ -1,0 +1,20 @@
+{# src/atlas_rl/harness/system_prompts/atari-pong-v0.j2 #}
+{% extends "_base.j2" %}
+
+{% block physics_section %}
+PHYSICS
+The ball moves with integer velocity (vx, vy). Starting speed is |vx|=1.
+Every 6 paddle hits, |vx| increases by 1 (max 2). The ball bounces off the
+top and bottom walls (vy flips). On paddle hit, vx flips and vy is set based
+on where the ball hits the paddle (-1 for top, 0 for center, +1 for bottom).
+
+The HUD shows the ball's exact position and velocity each turn. Use this to
+predict where the ball will arrive and position your paddle accordingly.
+
+SERVE
+Press FIRE (or UP_FIRE/DOWN_FIRE) to serve. Until you serve, the ball stays
+at center and your paddle can still move with UP/DOWN.
+
+OPPONENT
+The AI opponent tracks the ball 70% of the time and stays still 30%.
+{% endblock %}
