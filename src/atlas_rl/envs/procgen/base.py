@@ -49,6 +49,15 @@ class ProcgenBase(BaseAsciiEnv):
     action_spec: ActionSpec  # must be set by subclass
     noop_action_name: str = "NOOP"
 
+    _DIR_CHARS: dict[tuple[int, int], str] = {
+        (1, 0): ">", (-1, 0): "<",
+        (0, -1): "^", (0, 1): "v", (0, 0): "@",
+    }
+    _DIR_NAMES: dict[tuple[int, int], str] = {
+        (1, 0): "right", (-1, 0): "left",
+        (0, -1): "up", (0, 1): "down", (0, 0): "none",
+    }
+
     def __init__(self, max_turns: int = 512) -> None:
         super().__init__(max_turns=max_turns)
         self._world: list[list[str]] = []
@@ -56,6 +65,7 @@ class ProcgenBase(BaseAsciiEnv):
         self._world_h: int = 0
         self._agent_x: int = 0
         self._agent_y: int = 0
+        self._agent_dir: tuple[int, int] = (0, 0)
         self._entities: list[Entity] = []
         self._score: float = 0.0
         self._message: str = ""
@@ -101,6 +111,7 @@ class ProcgenBase(BaseAsciiEnv):
         self._message = ""
         self._jump_step = -1
         self._on_ground = True
+        self._agent_dir = (0, 0)
         self._entity_terminated = False
         self._generate_level(seed)
         return self._render_current_observation()
@@ -180,6 +191,8 @@ class ProcgenBase(BaseAsciiEnv):
 
     def _try_move(self, dx: int, dy: int) -> bool:
         """Try to move agent. Returns True if successful."""
+        if dx != 0 or dy != 0:
+            self._agent_dir = (dx, dy)
         nx, ny = self._agent_x + dx, self._agent_y + dy
         if not self._is_solid(nx, ny):
             self._agent_x = nx
@@ -249,16 +262,22 @@ class ProcgenBase(BaseAsciiEnv):
                 if e.char not in symbols:
                     symbols[e.char] = e.etype
 
-        # Render agent
+        # Render agent with directional char
         arx, ary = self._agent_x - vx0, self._agent_y - vy0
+        pch = self._DIR_CHARS.get(self._agent_dir, "@")
+        dir_name = self._DIR_NAMES.get(self._agent_dir, "none")
         if 0 <= arx < actual_w and 0 <= ary < actual_h:
-            render[ary][arx] = "@"
-        symbols["@"] = "you"
+            render[ary][arx] = pch
+        symbols[pch] = f"you (facing {dir_name})"
+
+        on_ground = getattr(self, '_on_ground', True)
+        jump_info = "grounded" if on_ground else "airborne"
 
         hud = (
             f"Score: {self._score:.0f}    "
             f"Turn: {self._turn}    "
-            f"Pos: ({self._agent_x},{self._agent_y})"
+            f"Pos: ({self._agent_x},{self._agent_y})    "
+            f"State: {jump_info}"
         )
 
         return GridObservation(

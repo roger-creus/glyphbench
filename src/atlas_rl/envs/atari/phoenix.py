@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -110,8 +111,10 @@ class PhoenixEnv(AtariBase):
 
         if action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT" and self._player_x < self._WIDTH - 2:
             self._player_x += 1
+            self._player_dir = (1, 0)
         elif action_name == "FIRE" and len(self._bullets) < 2:
             b = self._add_entity(
                 "bullet", "!", self._player_x, self._player_y - 1,
@@ -295,6 +298,23 @@ class PhoenixEnv(AtariBase):
             "(": "shield aura", ")": "shield aura",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        birds = sum(1 for b in self._birds if b.alive)
+        shield = (
+            str(self._shield_timer)
+            if self._shield_timer > 0 else "OFF"
+        )
+        extra = (
+            f"Wave: {self._level} ({self._wave_type})  "
+            f"Birds: {birds}  Shield: {shield}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

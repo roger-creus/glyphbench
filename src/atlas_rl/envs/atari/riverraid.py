@@ -111,8 +111,10 @@ class RiverRaidEnv(AtariBase):
         # Move player
         if action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT" and self._player_x < self._WIDTH - 2:
             self._player_x += 1
+            self._player_dir = (1, 0)
         elif action_name == "UP":
             self._scroll_speed = min(3, self._scroll_speed + 1)
         elif action_name == "DOWN":
@@ -263,13 +265,19 @@ class RiverRaidEnv(AtariBase):
                 self._set_cell(b.x, b.y, "!")
 
     def _render_current_observation(self) -> Any:
-        """Override to add fuel to HUD."""
+        """Override to add fuel and enemy count to HUD."""
         from atlas_rl.core.observation import GridObservation as GO
 
         obs = super()._render_current_observation()
+        enemies = sum(
+            1 for o in self._obstacles
+            if o.alive and o.etype in ("ship", "heli")
+        )
         hud = (
             f"Score: {self._score}    Lives: {self._lives}"
-            f"    Level: {self._level}    Fuel: {self._fuel}"
+            f"    Level: {self._level}    "
+            f"Fuel: {self._fuel}\n"
+            f"Enemies: {enemies}"
         )
         return GO(
             grid=obs.grid, legend=obs.legend,

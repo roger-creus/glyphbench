@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 _BOSS_MAX_HP = 10
@@ -131,18 +132,22 @@ class BossFightEnv(ProcgenBase):
 
         # Movement (constrain to arena)
         if action_name == "LEFT":
+            self._agent_dir = (-1, 0)
             nx = self._agent_x - 1
             if nx >= 0:
                 self._agent_x = nx
         elif action_name == "RIGHT":
+            self._agent_dir = (1, 0)
             nx = self._agent_x + 1
             if nx < self.GRID_W:
                 self._agent_x = nx
         elif action_name == "UP":
+            self._agent_dir = (0, -1)
             ny = self._agent_y - 1
             if ny >= 0:
                 self._agent_y = ny
         elif action_name == "DOWN":
+            self._agent_dir = (0, 1)
             ny = self._agent_y + 1
             if ny < self.GRID_H:
                 self._agent_y = ny
@@ -190,19 +195,30 @@ class BossFightEnv(ProcgenBase):
         info["hits_on_boss"] = self._hits_on_boss
         return reward, terminated, info
 
-    def _render_current_observation(self) -> Any:
-        """Override to render the boss character on the grid."""
-        # Place boss in the world temporarily for rendering
+    def _render_current_observation(self) -> GridObservation:
+        """Override to render boss and add boss state to HUD."""
         if self._boss_hp > 0:
             boss_entity = self._add_entity(
                 "boss_render", "B", self._boss_x, self._boss_y,
             )
             obs = super()._render_current_observation()
             boss_entity.alive = False
-            self._entities = [e for e in self._entities if e.alive]
+            self._entities = [
+                e for e in self._entities if e.alive
+            ]
         else:
             obs = super()._render_current_observation()
-        return obs
+        phase = self._boss_phase()
+        extra = (
+            f"Boss: HP={self._boss_hp}/{_BOSS_MAX_HP}"
+            f"  pos=({self._boss_x},{self._boss_y})"
+            f"  phase={phase}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

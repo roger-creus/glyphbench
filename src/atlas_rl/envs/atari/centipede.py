@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -106,18 +107,22 @@ class CentipedeEnv(AtariBase):
             and self._player_y > self._PLAYER_ZONE_TOP
         ):
             self._player_y -= 1
+            self._player_dir = (0, -1)
         elif (
             action_name == "DOWN"
             and self._player_y < self._HEIGHT - 2
         ):
             self._player_y += 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif (
             action_name == "RIGHT"
             and self._player_x < self._WIDTH - 2
         ):
             self._player_x += 1
+            self._player_dir = (1, 0)
         elif action_name == "FIRE" and len(self._bullets) < 1:
             b = self._add_entity(
                 "bullet", "!", self._player_x,
@@ -287,6 +292,19 @@ class CentipedeEnv(AtariBase):
             "M": "mushroom", "X": "spider",
             "!": "your bullet", " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        segs = sum(1 for s in self._segments if s.alive)
+        mush = len(self._mushrooms)
+        extra = (
+            f"Segments: {segs}  Mushrooms: {mush}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

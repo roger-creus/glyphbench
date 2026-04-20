@@ -24,7 +24,7 @@ def test_random_action_sequence_no_crash(actions: list[int], seed: int) -> None:
         assert isinstance(obs, str)
         assert len(obs) > 0
         assert isinstance(reward, float)
-        assert reward in (0.0, 1.0)
+        assert reward >= 0.0  # can be >1 if multiple achievements unlock
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in grid_lines]

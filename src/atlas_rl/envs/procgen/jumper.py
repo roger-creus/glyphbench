@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 
@@ -111,12 +112,15 @@ class JumperEnv(ProcgenBase):
             self._try_move(1, 0)
         elif action_name == "JUMP":
             self._start_jump()
+            self._agent_dir = (0, -1)
         elif action_name == "JUMP_LEFT":
             self._start_jump()
             self._try_move(-1, 0)
+            self._agent_dir = (-1, 0)
         elif action_name == "JUMP_RIGHT":
             self._start_jump()
             self._try_move(1, 0)
+            self._agent_dir = (1, 0)
 
         self._process_jump()
 
@@ -162,6 +166,17 @@ class JumperEnv(ProcgenBase):
             else:
                 e.x = nx
         return 0.0
+
+    # ------------------------------------------------------------------
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        state = "grounded" if self._on_ground else "airborne"
+        extra = f"State: {state}  Goal: reach right end"
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     # ------------------------------------------------------------------
     def _symbol_meaning(self, ch: str) -> str:

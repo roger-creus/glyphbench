@@ -39,6 +39,7 @@ class AtariBase(BaseAsciiEnv):
         self._grid_h: int = 0
         self._player_x: int = 0
         self._player_y: int = 0
+        self._player_dir: tuple[int, int] = (0, 0)
         self._score: int = 0
         self._lives: int = 3
         self._level: int = 1
@@ -101,6 +102,7 @@ class AtariBase(BaseAsciiEnv):
         self._game_over = False
         self._entities = []
         self._message = ""
+        self._player_dir = (0, 0)
         self._generate_level(seed)
         return self._render_current_observation()
 
@@ -126,6 +128,15 @@ class AtariBase(BaseAsciiEnv):
         info["level"] = self._level
         return self._render_current_observation(), reward, terminated, False, info
 
+    _DIR_CHARS: dict[tuple[int, int], str] = {
+        (1, 0): ">", (-1, 0): "<",
+        (0, -1): "^", (0, 1): "v", (0, 0): "@",
+    }
+    _DIR_NAMES: dict[tuple[int, int], str] = {
+        (1, 0): "right", (-1, 0): "left",
+        (0, -1): "up", (0, 1): "down", (0, 0): "none",
+    }
+
     def _render_current_observation(self) -> GridObservation:
         render = [row[:] for row in self._grid]
         symbols: dict[str, str] = {}
@@ -139,10 +150,23 @@ class AtariBase(BaseAsciiEnv):
                 render[e.y][e.x] = e.char
                 if e.char not in symbols:
                     symbols[e.char] = e.etype
-        if 0 <= self._player_x < self._grid_w and 0 <= self._player_y < self._grid_h:
-            render[self._player_y][self._player_x] = "@"
-        symbols["@"] = "you"
-        hud = f"Score: {self._score}    Lives: {self._lives}    Level: {self._level}"
+        if (
+            0 <= self._player_x < self._grid_w
+            and 0 <= self._player_y < self._grid_h
+        ):
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[self._player_y][self._player_x] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
+        hud = (
+            f"Score: {self._score}    "
+            f"Lives: {self._lives}    "
+            f"Level: {self._level}"
+        )
         return GridObservation(
             grid=grid_to_string(render),
             legend=build_legend(symbols),

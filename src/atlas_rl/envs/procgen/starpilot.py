@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 
@@ -97,18 +98,22 @@ class StarPilotEnv(ProcgenBase):
 
         # Movement -- constrain to left portion
         if action_name == "LEFT":
+            self._agent_dir = (-1, 0)
             nx = self._agent_x - 1
             if nx >= 0:
                 self._agent_x = nx
         elif action_name == "RIGHT":
+            self._agent_dir = (1, 0)
             nx = self._agent_x + 1
             if nx < self.GRID_W:
                 self._agent_x = nx
         elif action_name == "UP":
+            self._agent_dir = (0, -1)
             ny = self._agent_y - 1
             if ny >= 0:
                 self._agent_y = ny
         elif action_name == "DOWN":
+            self._agent_dir = (0, 1)
             ny = self._agent_y + 1
             if ny < self.GRID_H:
                 self._agent_y = ny
@@ -159,6 +164,22 @@ class StarPilotEnv(ProcgenBase):
         info["enemies_killed"] = self._enemies_killed
         info["powerups_collected"] = self._powerups_collected
         return reward, terminated, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        alive = sum(
+            1 for e in self._entities
+            if e.alive and e.etype == "enemy"
+        )
+        extra = (
+            f"Enemies: {alive}"
+            f"  Kills: {self._enemies_killed}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

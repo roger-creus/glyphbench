@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -109,12 +110,16 @@ class StarGunnerEnv(AtariBase):
         # Move player
         if action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT" and self._player_x < self._WIDTH // 2:
             self._player_x += 1
+            self._player_dir = (1, 0)
         elif action_name == "UP" and self._player_y > 1:
             self._player_y -= 1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN" and self._player_y < self._HEIGHT - 2:
             self._player_y += 1
+            self._player_dir = (0, 1)
 
         # Fire
         if action_name == "FIRE" and len(self._bullets) < self._MAX_BULLETS:
@@ -255,6 +260,19 @@ class StarGunnerEnv(AtariBase):
             "<": "enemy bullet",
             " ": "space",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = (
+            f"Kills: {self._enemies_killed}"
+            f"/{self._wave_target}  "
+            f"Wave: {self._level}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

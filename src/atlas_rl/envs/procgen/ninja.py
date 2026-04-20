@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 
@@ -99,15 +100,19 @@ class NinjaEnv(ProcgenBase):
         if action_name == "LEFT":
             self._try_move(-1, 0)
             self._facing = -1
+            self._agent_dir = (-1, 0)
         elif action_name == "RIGHT":
             self._try_move(1, 0)
             self._facing = 1
+            self._agent_dir = (1, 0)
         elif action_name == "JUMP":
             self._start_jump()
+            self._agent_dir = (0, -1)
         elif action_name == "JUMP_RIGHT":
             self._start_jump()
             self._try_move(1, 0)
             self._facing = 1
+            self._agent_dir = (1, 0)
         elif action_name == "THROW":
             self._add_entity(
                 "shuriken", "-", self._agent_x + self._facing, self._agent_y,
@@ -191,6 +196,24 @@ class NinjaEnv(ProcgenBase):
             "@": "you",
         }
         return m.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        facing = "right" if self._facing == 1 else "left"
+        enemies = sum(
+            1 for e in self._entities
+            if e.alive and e.etype == "enemy"
+        )
+        extra = (
+            f"Facing: {facing}"
+            f"  Kills: {self._enemies_killed}"
+            f"  Enemies: {enemies}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

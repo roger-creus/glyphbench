@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -285,6 +286,31 @@ class MsPacManEnv(AtariBase):
             nx = 0
         ghost.x, ghost.y = nx, ny
         ghost.data["dir"] = chosen
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        pwr = (
+            str(self._frightened_timer)
+            if self._frightened_timer > 0 else "OFF"
+        )
+        ghosts = []
+        for e in self._entities:
+            if e.etype == "ghost" and e.alive:
+                st = e.data.get("state", "chase")
+                ghosts.append(
+                    f"{e.data['color']}={st}"
+                )
+        glist = ",".join(ghosts) if ghosts else "none"
+        extra = (
+            f"Pellets: {self._pellet_count}"
+            f"  Power: {pwr}"
+            f"  Ghosts: {glist}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _advance_entities(self) -> None:
         """Override: ghosts are moved in _game_step, skip default movement."""

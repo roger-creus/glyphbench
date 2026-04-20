@@ -91,9 +91,11 @@ class EnduroEnv(AtariBase):
         if action_name == "LEFT":
             if self._player_lane > 0:
                 self._player_lane -= 1
+                self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             if self._player_lane < self._NUM_LANES - 1:
                 self._player_lane += 1
+                self._player_dir = (1, 0)
         elif action_name == "ACCELERATE":
             self._speed = min(4, self._speed + 1)
         elif action_name == "BRAKE":
@@ -214,14 +216,22 @@ class EnduroEnv(AtariBase):
                     symbols[ch] = self._symbol_meaning(ch)
         r, c = self._player_y, self._player_x
         if 0 <= c < self._grid_w and 0 <= r < self._grid_h:
-            render[r][c] = "@"
-        symbols["@"] = "you"
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[r][c] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
+        target = self._CARS_TARGET * self._day
         hud = (
             f"Score: {self._score}  "
             f"Cars: {self._cars_passed}  "
             f"Speed: {self._speed}  "
             f"Lives: {self._lives}  "
-            f"Day: {self._day}"
+            f"Day: {self._day}\n"
+            f"Target: {target}/day"
         )
         return GridObservation(
             grid=grid_to_string(render),

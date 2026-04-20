@@ -119,13 +119,36 @@ class _DynamicObstaclesBase(MiniGridBase):
         return obj is None or obj.can_overlap or isinstance(obj, Ball)
 
     # ------------------------------------------------------------------
+    # Observation: append obstacle movement directions
+    # ------------------------------------------------------------------
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        _DNAME = {0: "right", 1: "down", 2: "left", 3: "up"}
+        dirs: list[str] = []
+        for i, (ox, oy) in enumerate(
+            self._obstacle_positions
+        ):
+            d = self._obstacle_directions[i]
+            dirs.append(f"({ox},{oy})->{_DNAME[d]}")
+        obstacle_info = "Obstacles: " + ", ".join(dirs)
+        new_hud = obs.hud + "\n" + obstacle_info
+        return GridObservation(
+            grid=obs.grid,
+            legend=obs.legend,
+            hud=new_hud,
+            message=obs.message,
+        )
+
+    # ------------------------------------------------------------------
     # Task description
     # ------------------------------------------------------------------
 
     def _task_description(self) -> str:
         return (
-            f"Navigate a {self._room_size}x{self._room_size} room to the goal (G) "
-            f"while avoiding {self._num_obstacles} moving blue obstacles (O). "
+            f"Navigate a {self._room_size}x{self._room_size} room "
+            f"to the goal while avoiding {self._num_obstacles} "
+            "moving blue balls. "
             "Obstacles move one cell per turn and bounce off walls. "
             "Touching an obstacle ends the episode with zero reward. "
             "Reward = 1 - 0.9 * (steps / max_steps)."

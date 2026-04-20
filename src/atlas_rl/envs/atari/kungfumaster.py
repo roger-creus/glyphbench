@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -126,9 +127,11 @@ class KungFuMasterEnv(AtariBase):
         if action_name == "LEFT":
             if self._player_x > 1:
                 self._player_x -= 1
+                self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             if self._player_x < _W - 2:
                 self._player_x += 1
+                self._player_dir = (1, 0)
         elif action_name == "PUNCH":
             attack = "punch"
         elif action_name == "KICK":
@@ -345,6 +348,22 @@ class KungFuMasterEnv(AtariBase):
             "~": "thrown knife",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        boss_hp = "none"
+        for e in self._entities:
+            if e.etype == "boss" and e.alive:
+                boss_hp = str(e.data.get("hp", 0))
+                break
+        extra = (
+            f"Floor: {self._floor}/5  Boss: {boss_hp}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

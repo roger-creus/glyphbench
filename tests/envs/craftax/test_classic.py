@@ -194,7 +194,8 @@ class TestCraftaxClassic:
         env = self._make_env()
         env.reset(seed=0)
         legend = env.get_observation().legend
-        assert "@" in legend
+        # Player is directional: >, <, ^, or v
+        assert any(c in legend for c in "><^v")
         assert len(legend) > 0
 
     # --- Info extras ---

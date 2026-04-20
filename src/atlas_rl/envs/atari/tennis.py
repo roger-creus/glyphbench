@@ -107,12 +107,16 @@ class TennisEnv(AtariBase):
         nx, ny = self._player_x, self._player_y
         if action_name == "UP":
             ny -= 1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             ny += 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT":
             nx -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             nx += 1
+            self._player_dir = (1, 0)
         if (
             self._COURT_L < nx < self._COURT_R
             and self._NET_Y + 1 < ny < self._COURT_B
@@ -261,13 +265,28 @@ class TennisEnv(AtariBase):
                     symbols[ch] = self._symbol_meaning(ch)
         r, c = self._player_y, self._player_x
         if 0 <= c < self._grid_w and 0 <= r < self._grid_h:
-            render[r][c] = "@"
-        symbols["@"] = "you"
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[r][c] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
         pp = self._fmt_pts(self._player_points)
         op = self._fmt_pts(self._opp_points)
+        bx = int(round(self._ball_x))
+        by = int(round(self._ball_y))
+        bdx = round(self._ball_dx, 1)
+        bdy = round(self._ball_dy, 1)
+        ball = f"Ball: pos=({bx},{by}) vel=({bdx},{bdy})"
+        serve = ""
+        if self._serving:
+            serve = f"  Serving: {self._serve_side}"
         hud = (
             f"You {pp} - {op} Opp | "
             f"Games: {self._player_games}-{self._opp_games}"
+            f"\n{ball}{serve}"
         )
         return GridObservation(
             grid=grid_to_string(render),

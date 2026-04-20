@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -138,6 +139,7 @@ class AmidarEnv(AtariBase):
         # Move player
         if action_name in _DIRS:
             dx, dy = _DIRS[action_name]
+            self._player_dir = (dx, dy)
             nx = self._player_x + dx
             ny = self._player_y + dy
             cell = self._grid_at(nx, ny)
@@ -220,6 +222,18 @@ class AmidarEnv(AtariBase):
                             return
                 # Reverse
                 enemy.data["dir"] = (-dx, -dy)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = (
+            f"Painted: {self._painted_segments}"
+            f"/{self._total_segments}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _advance_entities(self) -> None:
         """Override: entities are moved in _game_step."""

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 
@@ -94,6 +95,8 @@ class MinerEnv(ProcgenBase):
     # ------------------------------------------------------------------
     def _try_move(self, dx: int, dy: int) -> bool:
         """Override: agent digs through dirt and collects diamonds."""
+        if dx != 0 or dy != 0:
+            self._agent_dir = (dx, dy)
         nx, ny = self._agent_x + dx, self._agent_y + dy
         ch = self._world_at(nx, ny)
 
@@ -160,6 +163,19 @@ class MinerEnv(ProcgenBase):
                     if below == ".":
                         self._set_cell(x, y, ".")
                         self._set_cell(x, y + 1, "R")
+
+    # ------------------------------------------------------------------
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = (
+            f"Diamonds: {self._diamonds_collected}"
+            f"/{self._total_diamonds}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     # ------------------------------------------------------------------
     def _symbol_meaning(self, ch: str) -> str:

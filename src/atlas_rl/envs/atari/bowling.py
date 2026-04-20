@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -220,6 +221,21 @@ class BowlingEnv(AtariBase):
             "o": "ball",
             " ": "lane",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        f = min(self._frame + 1, self._total_frames)
+        r = self._roll_in_frame + 1
+        standing = sum(self._pins)
+        extra = (
+            f"Frame: {f}/10  Roll: {r}"
+            f"  Pins: {standing}/10"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

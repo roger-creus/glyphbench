@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -117,9 +118,11 @@ class RoadRunnerEnv(AtariBase):
         if action_name == "LEFT":
             if self._player_x > 1:
                 self._player_x -= 1
+                self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             if self._player_x < _W - 2:
                 self._player_x += 1
+                self._player_dir = (1, 0)
         elif action_name == "JUMP":
             if not self._jumping:
                 self._jumping = True
@@ -269,6 +272,22 @@ class RoadRunnerEnv(AtariBase):
             "W": "Coyote",
             " ": "sky",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        seeds = sum(
+            1 for e in self._entities
+            if e.etype == "seed" and e.alive
+        )
+        coyote_state = "stunned" if self._coyote_stun > 0 else "chasing"
+        extra = (
+            f"Seeds: {seeds}  Coyote: {coyote_state}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

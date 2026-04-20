@@ -10,6 +10,8 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.ascii_primitives import build_legend, grid_to_string
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -80,7 +82,7 @@ class BreakoutEnv(AtariBase):
             y = self._BRICK_START_Y + row
             for x in range(self._BRICK_START_X, self._BRICK_END_X):
                 self._bricks.add((x, y))
-                self._set_cell(x, y, "=")
+                self._set_cell(x, y, "#")
 
         # Paddle in center
         self._paddle_x = self._WIDTH // 2 - self._PADDLE_WIDTH // 2
@@ -115,8 +117,10 @@ class BreakoutEnv(AtariBase):
         # Move paddle
         if action_name == "LEFT" and self._paddle_x > 1:
             self._paddle_x -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT" and self._paddle_x + self._PADDLE_WIDTH < self._WIDTH - 1:
             self._paddle_x += 1
+            self._player_dir = (1, 0)
 
         # Keep player position in sync with paddle
         self._player_x = self._paddle_x + self._PADDLE_WIDTH // 2
@@ -223,7 +227,7 @@ class BreakoutEnv(AtariBase):
 
         # Draw bricks
         for bx, by in self._bricks:
-            self._set_cell(bx, by, "=")
+            self._set_cell(bx, by, "#")
 
         # Draw paddle
         for x in range(self._PADDLE_WIDTH):
@@ -244,10 +248,46 @@ class BreakoutEnv(AtariBase):
             "-": "wall (top/bottom)",
             "|": "wall (side)",
             "+": "corner",
-            "=": "brick / paddle",
+            "#": "brick",
+            "=": "paddle",
             "*": "ball",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        dx, dy = self._ball_dx, self._ball_dy
+        if dx > 0:
+            dirname = "right" if dy == 0 else (
+                "up-right" if dy < 0 else "down-right"
+            )
+        elif dx < 0:
+            dirname = "left" if dy == 0 else (
+                "up-left" if dy < 0 else "down-left"
+            )
+        else:
+            dirname = "up" if dy < 0 else (
+                "down" if dy > 0 else "stopped"
+            )
+        total = self._BRICK_ROWS * (
+            self._BRICK_END_X - self._BRICK_START_X
+        )
+        remaining = len(self._bricks)
+        ball = (
+            f"Ball: pos=({self._ball_x},{self._ball_y})"
+            f" vel=({dx},{dy}) dir={dirname}"
+        )
+        paddle = (
+            f"Paddle: x={self._paddle_x}"
+            f" width={self._PADDLE_WIDTH}"
+        )
+        bricks = f"Bricks: {remaining}/{total}"
+        extra = f"{ball}    {paddle}    {bricks}"
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

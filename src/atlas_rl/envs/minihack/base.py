@@ -199,7 +199,12 @@ class MiniHackBase(BaseAsciiEnv):
                 # Attack monster
                 dmg = max(1, int(self.rng.integers(1, 5)))
                 monster.hp -= dmg
-                self._message = f"You hit the {monster.ctype.name}!"
+                self._message = (
+                    f"You hit the {monster.ctype.name}! "
+                    f"(-{dmg} HP, "
+                    f"{monster.hp}/{monster.ctype.max_hp} "
+                    f"remaining)"
+                )
                 if monster.hp <= 0:
                     self._message += f" The {monster.ctype.name} dies."
                     self._creatures = [c for c in self._creatures if c.hp > 0]
@@ -441,12 +446,42 @@ class MiniHackBase(BaseAsciiEnv):
 
         legend = build_legend(symbols)
 
-        dark_note = "  Vision: limited (dark room)" if self._dark else ""
-        inv_note = f"  Inv: {len(self._inventory)}" if self._inventory else ""
-        hud = (
-            f"Dlvl: 1    HP: {self._player_hp}/{self._player_max_hp}    "
-            f"Turn: {self._turn}    Pos: ({px},{py}){dark_note}{inv_note}"
+        dark_note = (
+            "  Vision: limited (dark room)"
+            if self._dark
+            else ""
         )
+        if self._inventory:
+            inv_names = [item.name for item in self._inventory]
+            inv_str = ", ".join(inv_names)
+        else:
+            inv_str = "(empty)"
+        wield_str = (
+            self._wielding.name if self._wielding else "fists"
+        )
+        hud = (
+            f"Dlvl: 1    "
+            f"HP: {self._player_hp}/{self._player_max_hp}    "
+            f"Turn: {self._turn}    "
+            f"Pos: ({px},{py}){dark_note}    "
+            f"Wielding: {wield_str}    "
+            f"Inv: {inv_str}"
+        )
+
+        # Show nearby monster HP
+        nearby: list[str] = []
+        for creature in self._creatures:
+            if creature.hp > 0:
+                dx = abs(creature.x - px)
+                dy = abs(creature.y - py)
+                if dx <= 5 and dy <= 5:
+                    nearby.append(
+                        f"{creature.ctype.name} "
+                        f"({creature.hp}/"
+                        f"{creature.ctype.max_hp} HP)"
+                    )
+        if nearby:
+            hud += "\nNearby: " + ", ".join(nearby)
 
         return GridObservation(
             grid=grid_to_string(render),

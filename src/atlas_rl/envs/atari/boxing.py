@@ -86,12 +86,16 @@ class BoxingEnv(AtariBase):
         nx, ny = self._player_x, self._player_y
         if action_name == "UP":
             ny -= 1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             ny += 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT":
             nx -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             nx += 1
+            self._player_dir = (1, 0)
 
         if self._in_ring(nx, ny) and (
             nx != self._opp_x or ny != self._opp_y
@@ -215,8 +219,14 @@ class BoxingEnv(AtariBase):
         r = self._player_y
         c = self._player_x
         if 0 <= c < self._grid_w and 0 <= r < self._grid_h:
-            render[r][c] = "@"
-        symbols["@"] = "you"
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[r][c] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
         hud = (
             f"Your punches: {self._score}  "
             f"Opp punches: {self._opp_score}  "

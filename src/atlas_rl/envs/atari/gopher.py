@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -92,11 +93,13 @@ class GopherEnv(AtariBase):
 
         if action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif (
             action_name == "RIGHT"
             and self._player_x < self._WIDTH - 2
         ):
             self._player_x += 1
+            self._player_dir = (1, 0)
         elif action_name == "FILL":
             # Fill hole below player
             hole_pos = (self._player_x, self._SURFACE_Y)
@@ -228,6 +231,18 @@ class GopherEnv(AtariBase):
             "^": "carrot", "G": "gopher",
             "O": "hole", " ": "sky",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = (
+            f"Carrots: {len(self._carrots)}  "
+            f"Holes: {len(self._holes)}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

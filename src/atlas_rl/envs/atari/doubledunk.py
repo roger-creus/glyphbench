@@ -96,12 +96,16 @@ class DoubleDunkEnv(AtariBase):
         nx, ny = self._player_x, self._player_y
         if action_name == "UP":
             ny -= 1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             ny += 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT":
             nx -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             nx += 1
+            self._player_dir = (1, 0)
         if self._on_court(nx, ny):
             self._player_x, self._player_y = nx, ny
 
@@ -221,45 +225,30 @@ class DoubleDunkEnv(AtariBase):
             self._set_cell(self._COURT_L, y, "|")
             self._set_cell(self._COURT_R, y, "|")
 
-        # Hoops
-        hx = self._WIDTH // 2
+        # Hoops and half court
+        hx, mid = self._WIDTH // 2, self._HEIGHT // 2
         self._set_cell(hx, self._HOOP_Y, "H")
         self._set_cell(hx, self._OPP_HOOP_Y, "H")
-
-        # Half court line
-        mid = self._HEIGHT // 2
         for x in range(self._COURT_L + 1, self._COURT_R):
             self._set_cell(x, mid, ".")
-
-        # Three-point arc (simplified)
+        # Three-point arcs
         for x in range(hx - 4, hx + 5):
             if self._COURT_L < x < self._COURT_R:
-                self._set_cell(
-                    x, self._HOOP_Y + self._THREE_LINE, "~"
-                )
-                y2 = self._OPP_HOOP_Y - self._THREE_LINE
-                self._set_cell(x, y2, "~")
-
-        # Ball
+                self._set_cell(x, self._HOOP_Y + self._THREE_LINE, "~")
+                self._set_cell(x, self._OPP_HOOP_Y - self._THREE_LINE, "~")
+        # Ball and opponent
         if self._ball_flying:
-            bx = int(round(self._ball_x))
-            by = int(round(self._ball_y))
+            bx, by = int(round(self._ball_x)), int(round(self._ball_y))
             if self._on_court(bx, by):
                 self._set_cell(bx, by, "o")
-
-        # Opponent
         self._set_cell(self._opp_x, self._opp_y, "V")
 
     def _advance_entities(self) -> None:
         pass
 
     def _render_current_observation(self, **kw: Any):  # type: ignore[override]
-        from atlas_rl.core.ascii_primitives import (
-            build_legend,
-            grid_to_string,
-        )
+        from atlas_rl.core.ascii_primitives import build_legend, grid_to_string
         from atlas_rl.core.observation import GridObservation
-
         render = [row[:] for row in self._grid]
         symbols: dict[str, str] = {}
         for y in range(self._grid_h):
@@ -269,18 +258,35 @@ class DoubleDunkEnv(AtariBase):
                     symbols[ch] = self._symbol_meaning(ch)
         r, c = self._player_y, self._player_x
         if 0 <= c < self._grid_w and 0 <= r < self._grid_h:
-            render[r][c] = "@"
-        symbols["@"] = "you"
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[r][c] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
+        q = min(self._quarter, 4)
+        if self._has_ball:
+            ball_state = "held by you"
+        elif self._ball_flying:
+            bx = int(round(self._ball_x))
+            by = int(round(self._ball_y))
+            bdx = round(self._ball_dx, 1)
+            bdy = round(self._ball_dy, 1)
+            ball_state = (
+                f"in flight pos=({bx},{by})"
+                f" vel=({bdx},{bdy})"
+            )
+        else:
+            ball_state = "held by opponent"
         hud = (
-            f"You {self._score} - "
-            f"{self._opp_score} Opp | "
-            f"Q{min(self._quarter, 4)}"
+            f"You {self._score} - {self._opp_score} Opp"
+            f" | Q{q}\nBall: {ball_state}"
         )
         return GridObservation(
-            grid=grid_to_string(render),
-            legend=build_legend(symbols),
-            hud=hud,
-            message=self._message,
+            grid=grid_to_string(render), legend=build_legend(symbols),
+            hud=hud, message=self._message,
         )
 
     def _symbol_meaning(self, ch: str) -> str:

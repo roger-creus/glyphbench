@@ -37,6 +37,17 @@ class _EatBase(MiniHackBase):
                 obs = self._render_current_observation()
         return obs, reward, terminated, truncated, info
 
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = f"Hunger: {self._hunger}"
+        new_hud = obs.hud + "    " + extra
+        return GridObservation(
+            grid=obs.grid,
+            legend=obs.legend,
+            hud=new_hud,
+            message=obs.message,
+        )
+
     def _task_description(self) -> str:
         return (
             "You are starving! Find food (%) on the floor, pick it up with PICKUP, "

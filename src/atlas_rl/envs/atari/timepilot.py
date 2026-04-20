@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -118,15 +119,19 @@ class TimePilotEnv(AtariBase):
         if action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
             self._facing_dx, self._facing_dy = -1, 0
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT" and self._player_x < self._WIDTH - 2:
             self._player_x += 1
             self._facing_dx, self._facing_dy = 1, 0
+            self._player_dir = (1, 0)
         elif action_name == "UP" and self._player_y > 1:
             self._player_y -= 1
             self._facing_dx, self._facing_dy = 0, -1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN" and self._player_y < self._HEIGHT - 2:
             self._player_y += 1
             self._facing_dx, self._facing_dy = 0, 1
+            self._player_dir = (0, 1)
 
         # Fire
         if action_name == "FIRE" and len(self._bullets) < self._MAX_BULLETS:
@@ -278,6 +283,29 @@ class TimePilotEnv(AtariBase):
             "*": "your bullet",
             " ": "sky",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        fdx = self._facing_dx
+        fdy = self._facing_dy
+        dname = self._DIR_NAMES.get(
+            (fdx, fdy), "none"
+        )
+        boss_hp = "none"
+        if (
+            self._boss is not None
+            and self._boss.alive
+        ):
+            boss_hp = str(self._boss.data.get("hp", 0))
+        extra = (
+            f"Facing: {dname}  "
+            f"Kills: {self._kills}/10  Boss: {boss_hp}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

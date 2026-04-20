@@ -17,25 +17,17 @@ from .base import AtariBase, AtariEntity
 class FishingDerbyEnv(AtariBase):
     """Fishing Derby: catch fish from a lake.
 
-    20x16 grid. Player and AI each have a fishing line.
-    Move hook to catch fish, reel them in.
+    20x16 grid. Move hook to catch fish, reel them in.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, REEL
     Reward: +1 per fish caught
     """
 
     action_spec = ActionSpec(
-        names=(
-            "NOOP", "UP", "DOWN", "LEFT",
-            "RIGHT", "REEL",
-        ),
+        names=("NOOP", "UP", "DOWN", "LEFT", "RIGHT", "REEL"),
         descriptions=(
-            "do nothing",
-            "move hook up",
-            "move hook down",
-            "move hook left",
-            "move hook right",
-            "reel in the line",
+            "do nothing", "move hook up", "move hook down",
+            "move hook left", "move hook right", "reel in the line",
         ),
     )
 
@@ -49,60 +41,37 @@ class FishingDerbyEnv(AtariBase):
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
-        self._hook_x: int = 0
-        self._hook_y: int = 0
-        self._opp_hook_x: int = 0
-        self._opp_hook_y: int = 0
+        self._hook_x = self._hook_y = 0
+        self._opp_hook_x = self._opp_hook_y = 0
         self._fish: list[AtariEntity] = []
         self._hooked_fish: AtariEntity | None = None
         self._opp_hooked: AtariEntity | None = None
-        self._opp_score: int = 0
-        self._timer: int = 0
-        self._reeling: bool = False
+        self._opp_score = self._timer = 0
 
     def env_id(self) -> str:
         return "atlas_rl/atari-fishingderby-v0"
+
+    def _spawn_fish(self) -> None:
+        rng = self.rng
+        fx = int(rng.integers(2, self._WIDTH - 2))
+        fy = int(rng.integers(self._WATER_TOP + 1, self._WATER_BOT))
+        dx = 1 if rng.random() < 0.5 else -1
+        fish = self._add_entity("fish", "F", fx, fy, dx=dx)
+        fish.data["speed_timer"] = 0
+        self._fish.append(fish)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
         self._entities = []
         self._fish = []
-        self._hooked_fish = None
-        self._opp_hooked = None
-        self._opp_score = 0
-        self._timer = 0
-        self._reeling = False
+        self._hooked_fish = self._opp_hooked = None
+        self._opp_score = self._timer = 0
         self._lives = 99
-
-        # Player on left pier
-        self._player_x = 3
-        self._player_y = self._PIER_Y
-        self._hook_x = 5
-        self._hook_y = self._WATER_TOP + 2
-
-        # Opponent on right pier
-        self._opp_hook_x = 14
-        self._opp_hook_y = self._WATER_TOP + 2
-
-        # Spawn fish
-        rng = self.rng
+        self._player_x, self._player_y = 3, self._PIER_Y
+        self._hook_x, self._hook_y = 5, self._WATER_TOP + 2
+        self._opp_hook_x, self._opp_hook_y = 14, self._WATER_TOP + 2
         for _i in range(self._MAX_FISH):
-            fx = int(
-                rng.integers(2, self._WIDTH - 2)
-            )
-            fy = int(
-                rng.integers(
-                    self._WATER_TOP + 1,
-                    self._WATER_BOT,
-                )
-            )
-            dx = 1 if rng.random() < 0.5 else -1
-            fish = self._add_entity(
-                "fish", "F", fx, fy, dx=dx
-            )
-            fish.data["speed_timer"] = 0
-            self._fish.append(fish)
-
+            self._spawn_fish()
         self._redraw()
 
     def _game_step(
@@ -111,39 +80,32 @@ class FishingDerbyEnv(AtariBase):
         reward = 0.0
         info: dict[str, Any] = {}
         self._timer += 1
-
+        # Clear stale hooks
+        if self._hooked_fish and not self._hooked_fish.alive:
+            self._hooked_fish = None
+        if self._opp_hooked and not self._opp_hooked.alive:
+            self._opp_hooked = None
         # Move hook
         if self._hooked_fish is None:
-            if action_name == "UP":
-                ny = self._hook_y - 1
-                if ny >= self._WATER_TOP:
-                    self._hook_y = ny
-            elif action_name == "DOWN":
-                ny = self._hook_y + 1
-                if ny < self._WATER_BOT:
-                    self._hook_y = ny
-            elif action_name == "LEFT":
-                nx = self._hook_x - 1
-                if nx >= 1:
-                    self._hook_x = nx
-            elif action_name == "RIGHT":
-                nx = self._hook_x + 1
-                if nx < self._WIDTH - 1:
-                    self._hook_x = nx
-
+            if action_name == "UP" and self._hook_y > self._WATER_TOP:
+                self._hook_y -= 1
+                self._player_dir = (0, -1)
+            elif action_name == "DOWN" and self._hook_y < self._WATER_BOT - 1:
+                self._hook_y += 1
+                self._player_dir = (0, 1)
+            elif action_name == "LEFT" and self._hook_x > 1:
+                self._hook_x -= 1
+                self._player_dir = (-1, 0)
+            elif action_name == "RIGHT" and self._hook_x < self._WIDTH - 2:
+                self._hook_x += 1
+                self._player_dir = (1, 0)
         # Check if hook catches a fish
         if self._hooked_fish is None:
             for fish in self._fish:
-                if not fish.alive:
-                    continue
-                if (
-                    fish.x == self._hook_x
-                    and fish.y == self._hook_y
-                ):
+                if fish.alive and fish.x == self._hook_x and fish.y == self._hook_y:
                     self._hooked_fish = fish
                     self._message = "Fish on the hook!"
                     break
-
         # Reel in
         if action_name == "REEL" and self._hooked_fish:
             self._hook_y -= 1
@@ -151,14 +113,15 @@ class FishingDerbyEnv(AtariBase):
             self._hooked_fish.y = self._hook_y
             if self._hook_y <= self._WATER_TOP:
                 self._hooked_fish.alive = False
-                self._fish.remove(self._hooked_fish)
+                if self._hooked_fish in self._fish:
+                    self._fish.remove(self._hooked_fish)
                 self._hooked_fish = None
                 self._on_point_scored(1)
                 reward = 1.0
                 self._message = "Caught a fish! +1"
                 self._hook_y = self._WATER_TOP + 2
-                self._maybe_spawn_fish()
-
+                if len(self._fish) < self._MAX_FISH:
+                    self._spawn_fish()
         # Move fish
         for fish in self._fish:
             if not fish.alive or fish is self._hooked_fish:
@@ -167,68 +130,34 @@ class FishingDerbyEnv(AtariBase):
             if fish.data["speed_timer"] >= 3:
                 fish.data["speed_timer"] = 0
                 fish.x += fish.dx
-                if (
-                    fish.x <= 1
-                    or fish.x >= self._WIDTH - 2
-                ):
+                if fish.x <= 1 or fish.x >= self._WIDTH - 2:
                     fish.dx = -fish.dx
                     fish.x += fish.dx
-
-        # Opponent AI
         self._opponent_ai()
-
         # Time check
-        terminated = False
-        if self._timer >= self._GAME_TIME:
-            terminated = True
+        terminated = self._timer >= self._GAME_TIME
+        if terminated:
             if self._score > self._opp_score:
                 self._message = "You win!"
             elif self._opp_score > self._score:
                 self._message = "Opponent wins!"
             else:
                 self._message = "Tie!"
-
         info["opp_score"] = self._opp_score
         info["time_left"] = self._GAME_TIME - self._timer
         self._redraw()
         return reward, terminated, info
 
-    def _maybe_spawn_fish(self) -> None:
-        if len(self._fish) < self._MAX_FISH:
-            rng = self.rng
-            fx = int(rng.integers(2, self._WIDTH - 2))
-            fy = int(
-                rng.integers(
-                    self._WATER_TOP + 1,
-                    self._WATER_BOT,
-                )
-            )
-            dx = 1 if rng.random() < 0.5 else -1
-            fish = self._add_entity(
-                "fish", "F", fx, fy, dx=dx
-            )
-            fish.data["speed_timer"] = 0
-            self._fish.append(fish)
-
     def _opponent_ai(self) -> None:
         rng = self.rng
-        # Opponent tries to catch fish
         if self._opp_hooked is None:
-            # Find nearest fish
-            best = None
-            best_dist = 999
+            best, best_dist = None, 999
             for fish in self._fish:
-                if not fish.alive:
+                if not fish.alive or fish is self._hooked_fish:
                     continue
-                if fish is self._hooked_fish:
-                    continue
-                d = (
-                    abs(fish.x - self._opp_hook_x)
-                    + abs(fish.y - self._opp_hook_y)
-                )
+                d = abs(fish.x - self._opp_hook_x) + abs(fish.y - self._opp_hook_y)
                 if d < best_dist:
-                    best_dist = d
-                    best = fish
+                    best_dist, best = d, fish
             if best and rng.random() < 0.5:
                 if self._opp_hook_x < best.x:
                     self._opp_hook_x += 1
@@ -238,20 +167,13 @@ class FishingDerbyEnv(AtariBase):
                     self._opp_hook_y += 1
                 elif self._opp_hook_y > best.y:
                     self._opp_hook_y -= 1
-            # Check catch
             for fish in self._fish:
-                if not fish.alive:
+                if not fish.alive or fish is self._hooked_fish:
                     continue
-                if fish is self._hooked_fish:
-                    continue
-                if (
-                    fish.x == self._opp_hook_x
-                    and fish.y == self._opp_hook_y
-                ):
+                if fish.x == self._opp_hook_x and fish.y == self._opp_hook_y:
                     self._opp_hooked = fish
                     break
         else:
-            # Reel in
             self._opp_hook_y -= 1
             self._opp_hooked.x = self._opp_hook_x
             self._opp_hooked.y = self._opp_hook_y
@@ -262,51 +184,25 @@ class FishingDerbyEnv(AtariBase):
                 self._opp_hooked = None
                 self._opp_score += 1
                 self._opp_hook_y = self._WATER_TOP + 2
-                self._maybe_spawn_fish()
+                if len(self._fish) < self._MAX_FISH:
+                    self._spawn_fish()
 
     def _redraw(self) -> None:
         for y in range(self._HEIGHT):
             for x in range(self._WIDTH):
                 self._set_cell(x, y, " ")
-
-        # Sky
-        for y in range(self._PIER_Y):
-            for x in range(self._WIDTH):
-                self._set_cell(x, y, " ")
-
-        # Pier
         for x in range(self._WIDTH):
             self._set_cell(x, self._PIER_Y, "=")
-
-        # Water surface
-        for x in range(self._WIDTH):
             self._set_cell(x, self._WATER_TOP, "~")
-
-        # Water
-        for y in range(
-            self._WATER_TOP + 1, self._WATER_BOT + 1
-        ):
+            self._set_cell(x, self._WATER_BOT, "-")
+        for y in range(self._WATER_TOP + 1, self._WATER_BOT):
             for x in range(self._WIDTH):
                 self._set_cell(x, y, ".")
-
-        # Bottom
-        for x in range(self._WIDTH):
-            self._set_cell(x, self._WATER_BOT, "-")
-
-        # Player hook and line
         self._set_cell(self._hook_x, self._hook_y, "J")
         for y in range(self._PIER_Y + 1, self._hook_y):
             self._set_cell(self._hook_x, y, ":")
-
-        # Opponent hook
-        self._set_cell(
-            self._opp_hook_x, self._opp_hook_y, "j"
-        )
-
-        # Opponent position on pier
+        self._set_cell(self._opp_hook_x, self._opp_hook_y, "j")
         self._set_cell(16, self._PIER_Y - 1, "V")
-
-        # Fish
         for fish in self._fish:
             if fish.alive:
                 self._set_cell(fish.x, fish.y, "F")
@@ -315,12 +211,8 @@ class FishingDerbyEnv(AtariBase):
         pass
 
     def _render_current_observation(self, **kw: Any):  # type: ignore[override]
-        from atlas_rl.core.ascii_primitives import (
-            build_legend,
-            grid_to_string,
-        )
+        from atlas_rl.core.ascii_primitives import build_legend, grid_to_string
         from atlas_rl.core.observation import GridObservation
-
         render = [row[:] for row in self._grid]
         symbols: dict[str, str] = {}
         for y in range(self._grid_h):
@@ -330,33 +222,26 @@ class FishingDerbyEnv(AtariBase):
                     symbols[ch] = self._symbol_meaning(ch)
         r, c = self._player_y, self._player_x
         if 0 <= c < self._grid_w and 0 <= r < self._grid_h:
-            render[r][c] = "@"
-        symbols["@"] = "you"
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[r][c] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
         left = self._GAME_TIME - self._timer
-        hud = (
-            f"You: {self._score}  "
-            f"Opp: {self._opp_score}  "
-            f"Time: {left}"
-        )
+        hud = f"You: {self._score}  Opp: {self._opp_score}  Time: {left}"
         return GridObservation(
-            grid=grid_to_string(render),
-            legend=build_legend(symbols),
-            hud=hud,
-            message=self._message,
+            grid=grid_to_string(render), legend=build_legend(symbols),
+            hud=hud, message=self._message,
         )
 
     def _symbol_meaning(self, ch: str) -> str:
         return {
-            "=": "pier",
-            "~": "water surface",
-            ".": "water",
-            "-": "lake bottom",
-            "J": "your hook",
-            "j": "opponent hook",
-            ":": "fishing line",
-            "F": "fish",
-            "V": "opponent",
-            " ": "sky",
+            "=": "pier", "~": "water surface", ".": "water",
+            "-": "lake bottom", "J": "your hook", "j": "opponent hook",
+            ":": "fishing line", "F": "fish", "V": "opponent", " ": "sky",
         }.get(ch, ch)
 
     def _task_description(self) -> str:

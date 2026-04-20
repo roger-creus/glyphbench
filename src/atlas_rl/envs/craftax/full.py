@@ -103,6 +103,18 @@ _MANA_REGEN_INTERVAL = 20
 _PLANT_RIPEN_STEPS = 20
 _SAPLING_DROP_CHANCE = 0.3
 
+# Directional player characters
+_DIR_CHARS: dict[tuple[int, int], str] = {
+    (1, 0): ">", (-1, 0): "<", (0, -1): "^", (0, 1): "v",
+}
+_DIR_NAMES: dict[tuple[int, int], str] = {
+    (1, 0): "right", (-1, 0): "left",
+    (0, -1): "up", (0, 1): "down",
+}
+
+# Spell names ordered by learn index
+_SPELL_NAMES = ("fireball", "iceball", "heal")
+
 # ----------------------------------------------------------------
 # World sizes
 # ----------------------------------------------------------------
@@ -275,7 +287,12 @@ class CraftaxFullEnv(BaseAsciiEnv):
             "- Mana: max 10, regen 1/20 steps. Used for spells.\n\n"
             "COMBAT\n"
             "DO facing mob attacks. Dmg = 1 + weapon bonus "
-            "(+enchant). Armor reduces incoming damage.\n\n"
+            "(+enchant). Armor reduces incoming damage.\n"
+            "WEAPON DAMAGE: wood sword +1, stone sword +2, "
+            "iron sword +3, diamond sword +4.\n"
+            "ARMOR DEFENSE: wood armor 1, stone armor 2, "
+            "iron armor 3, diamond armor 4.\n"
+            "Enchant adds +2 weapon dmg or +1 armor def.\n\n"
             "MAGIC\n"
             "MAKE_SPELL_SCROLL (1 wood+1 coal+1 iron, "
             "table+furnace) to learn spells. "
@@ -2000,11 +2017,18 @@ class CraftaxFullEnv(BaseAsciiEnv):
         fsize = self._floor_size()
         cur_grid = self._current_grid()
 
+        # Directional player char
+        facing_ch = _DIR_CHARS.get(self._facing, "@")
+        facing_name = _DIR_NAMES.get(self._facing, "right")
+
         mob_chars: dict[tuple[int, int], str] = {}
+        visible_mobs: list[Mob] = []
         for mob in self._mobs:
             if mob["floor"] == self._current_floor:
                 if mob["is_boss"]:
-                    mob_chars[(mob["x"], mob["y"])] = TILE_BOSS
+                    mob_chars[(mob["x"], mob["y"])] = (
+                        TILE_BOSS
+                    )
                 elif mob["type"] in _MOB_TILES:
                     mob_chars[(mob["x"], mob["y"])] = (
                         _MOB_TILES[mob["type"]]
@@ -2019,8 +2043,8 @@ class CraftaxFullEnv(BaseAsciiEnv):
                     world_x == self._agent_x
                     and world_y == self._agent_y
                 ):
-                    row.append(TILE_AGENT)
-                    symbols_seen.add(TILE_AGENT)
+                    row.append(facing_ch)
+                    symbols_seen.add(facing_ch)
                 elif (world_x, world_y) in mob_chars:
                     if self._is_visible(world_x, world_y):
                         c = mob_chars[(world_x, world_y)]
@@ -2042,6 +2066,15 @@ class CraftaxFullEnv(BaseAsciiEnv):
                     row.append(" ")
             grid.append(row)
 
+        # Collect visible mobs for HUD
+        for mob in self._mobs:
+            if mob["floor"] != self._current_floor:
+                continue
+            dx = mob["x"] - self._agent_x
+            dy = mob["y"] - self._agent_y
+            if abs(dx) <= half_w and abs(dy) <= half_h:
+                visible_mobs.append(mob)
+
         # Inventory string
         inv_parts: list[str] = []
         for item, count in sorted(self._inventory.items()):
@@ -2051,22 +2084,34 @@ class CraftaxFullEnv(BaseAsciiEnv):
             ", ".join(inv_parts) if inv_parts else "(empty)"
         )
 
-        # Best weapon/armor
+        # Best weapon/armor with numeric values
         best_wpn = "none"
+        best_wpn_bonus = 0
         for w in reversed(list(_WEAPON_BONUS.keys())):
             if self._inventory.get(w, 0) > 0:
                 best_wpn = w.replace("_", " ")
+                best_wpn_bonus = _WEAPON_BONUS[w]
                 break
-        if self._weapon_enchanted:
-            best_wpn += " [enchanted]"
+        if best_wpn != "none":
+            wpn_str = f"{best_wpn} (+{best_wpn_bonus} dmg)"
+            if self._weapon_enchanted:
+                wpn_str += " [enchanted +2]"
+        else:
+            wpn_str = "none"
 
         best_arm = "none"
+        best_arm_def = 0
         for a in reversed(list(_ARMOR_DEFENSE.keys())):
             if self._inventory.get(a, 0) > 0:
                 best_arm = a.replace("_", " ")
+                best_arm_def = _ARMOR_DEFENSE[a]
                 break
-        if self._armor_enchanted:
-            best_arm += " [enchanted]"
+        if best_arm != "none":
+            arm_str = f"{best_arm} (def {best_arm_def})"
+            if self._armor_enchanted:
+                arm_str += " [enchanted +1]"
+        else:
+            arm_str = "none"
 
         floor_str = (
             "Surface" if self._current_floor == 0
@@ -2080,24 +2125,124 @@ class CraftaxFullEnv(BaseAsciiEnv):
             else "none"
         )
 
+        # Day/night cycle position
+        cycle_pos = self._day_counter % _CYCLE_LENGTH
+        if self._day_night == "day":
+            phase_step = cycle_pos
+            phase_len = _DAY_LENGTH
+        else:
+            phase_step = cycle_pos - _DAY_LENGTH
+            phase_len = _NIGHT_LENGTH
+        time_str = (
+            f"{self._day_night} "
+            f"(step {phase_step}/{phase_len})"
+        )
+
+        # Survival drain countdowns
+        food_drain = (
+            _FOOD_DRAIN_INTERVAL
+            - (self._day_counter % _FOOD_DRAIN_INTERVAL)
+        )
+        water_drain = (
+            _WATER_DRAIN_INTERVAL
+            - (self._day_counter % _WATER_DRAIN_INTERVAL)
+        )
+        energy_drain = (
+            _ENERGY_DRAIN_INTERVAL
+            - (self._day_counter % _ENERGY_DRAIN_INTERVAL)
+        )
+
+        # Nearby mobs info
+        mob_parts: list[str] = []
+        for m in visible_mobs:
+            mob_parts.append(
+                f"{m['type']} ({m['hp']}/{m['max_hp']} HP)"
+            )
+        mob_str = (
+            ", ".join(mob_parts) if mob_parts else "none"
+        )
+
+        # Boss info for visible bosses
+        boss_parts: list[str] = []
+        for m in visible_mobs:
+            if m["is_boss"]:
+                bdef = _BOSS_DEFS.get(m["floor"])
+                if bdef:
+                    boss_parts.append(
+                        f"{bdef['name'].title()} "
+                        f"(HP: {m['hp']}/{m['max_hp']}"
+                        f", Dmg: {bdef['damage']})"
+                    )
+
+        # Spells learned
+        learned = min(self._spells_learned, len(_SPELL_NAMES))
+        if learned > 0:
+            names = ", ".join(_SPELL_NAMES[:learned])
+            spells_str = f"{names} ({learned}/3)"
+        else:
+            spells_str = "none (0/3)"
+
+        # Active potion effects
+        effects: list[str] = []
+        if self._fire_resist_turns > 0:
+            effects.append(
+                f"fire_resist ({self._fire_resist_turns} turns)"
+            )
+        if self._speed_turns > 0:
+            effects.append(
+                f"speed ({self._speed_turns} turns)"
+            )
+        effects_str = (
+            ", ".join(effects) if effects else "none"
+        )
+
+        # Achievement names
+        ach_names = sorted(self._achievements_unlocked)
+        ach_name_str = (
+            ", ".join(ach_names) if ach_names else "(none)"
+        )
+
+        # Growing saplings in viewport
+        grow_parts: list[str] = []
+        for (px, py), remaining in self._plants.items():
+            pdx = px - self._agent_x
+            pdy = py - self._agent_y
+            if abs(pdx) <= half_w and abs(pdy) <= half_h:
+                grow_parts.append(
+                    f"sapling at ({px},{py})"
+                    f" - {remaining} steps left"
+                )
+
         hud = (
             f"HP: {self._hp}/{self._max_hp}  "
             f"Food: {self._food}/{_MAX_FOOD}  "
             f"Water: {self._water}/{_MAX_WATER}  "
             f"Energy: {self._energy}/{_MAX_ENERGY}  "
             f"Mana: {self._mana}/{_MAX_MANA}\n"
+            f"Facing: {facing_name}  "
             f"Floor: {floor_str}  "
-            f"Time: {self._day_night}  "
+            f"Time: {time_str}  "
             f"Step: {self._turn}\n"
-            f"Weapon: {best_wpn}  Armor: {best_arm}\n"
+            f"Next drain: food in {food_drain}, "
+            f"water in {water_drain}, "
+            f"energy in {energy_drain}\n"
+            f"Weapon: {wpn_str}  Armor: {arm_str}\n"
+            f"Spells: {spells_str}\n"
+            f"Effects: {effects_str}\n"
             f"Potions: {potions_str}\n"
+            f"Nearby mobs: {mob_str}\n"
             f"Inventory: {inv_str}\n"
-            f"Achievements: {ach_count}/{total_ach}"
+            f"Achievements: {ach_name_str} "
+            f"({ach_count}/{total_ach})"
         )
+        if boss_parts:
+            hud += "\nBoss: " + "; ".join(boss_parts)
+        if grow_parts:
+            hud += "\nGrowing: " + "; ".join(grow_parts)
 
-        # Legend
-        symbol_meanings: dict[str, str] = {
-            TILE_AGENT: "you",
+        # Legend -- tile meanings (without player)
+        agent_legend = f"you (facing {facing_name})"
+        tile_meanings: dict[str, str] = {
             TILE_GRASS: "grass",
             TILE_TREE: "tree (chop for wood)",
             TILE_STONE: "stone (mine with pickaxe)",
@@ -2128,8 +2273,18 @@ class CraftaxFullEnv(BaseAsciiEnv):
         }
         legend_entries: dict[str, str] = {}
         for sym in symbols_seen:
-            if sym in symbol_meanings:
-                legend_entries[sym] = symbol_meanings[sym]
+            if sym == facing_ch:
+                # Player char; combine with tile meaning if
+                # the same symbol is also a tile
+                base = tile_meanings.get(sym)
+                if base:
+                    legend_entries[sym] = (
+                        f"{agent_legend} / {base}"
+                    )
+                else:
+                    legend_entries[sym] = agent_legend
+            elif sym in tile_meanings:
+                legend_entries[sym] = tile_meanings[sym]
         legend = build_legend(legend_entries)
 
         return GridObservation(

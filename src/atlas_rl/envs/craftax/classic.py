@@ -106,6 +106,15 @@ _SAPLING_DROP_CHANCE = 0.3
 # Steps for sapling to become ripe
 _PLANT_RIPEN_STEPS = 20
 
+# Directional player characters
+_DIR_CHARS: dict[tuple[int, int], str] = {
+    (1, 0): ">", (-1, 0): "<", (0, -1): "^", (0, 1): "v",
+}
+_DIR_NAMES: dict[tuple[int, int], str] = {
+    (1, 0): "right", (-1, 0): "left",
+    (0, -1): "up", (0, 1): "down",
+}
+
 
 class Mob(TypedDict):
     """Mob state dictionary."""
@@ -1039,19 +1048,29 @@ class CraftaxClassicEnv(BaseAsciiEnv):
         grid: list[list[str]] = []
         symbols_seen: set[str] = set()
 
+        # Directional player char
+        facing_ch = _DIR_CHARS.get(self._facing, "@")
+        facing_name = _DIR_NAMES.get(self._facing, "right")
+
         # Pre-compute mob positions in visible range
         mob_chars: dict[tuple[int, int], str] = {}
+        visible_mobs: list[Mob] = []
         for mob in self._mobs:
-            mob_chars[(mob["x"], mob["y"])] = _MOB_TILES[mob["type"]]
+            mob_chars[(mob["x"], mob["y"])] = (
+                _MOB_TILES[mob["type"]]
+            )
 
         for wy in range(VIEW_HEIGHT):
             row: list[str] = []
             for wx in range(VIEW_WIDTH):
                 world_x = self._agent_x - half_w + wx
                 world_y = self._agent_y - half_h + wy
-                if world_x == self._agent_x and world_y == self._agent_y:
-                    row.append(TILE_AGENT)
-                    symbols_seen.add(TILE_AGENT)
+                if (
+                    world_x == self._agent_x
+                    and world_y == self._agent_y
+                ):
+                    row.append(facing_ch)
+                    symbols_seen.add(facing_ch)
                 elif (world_x, world_y) in mob_chars:
                     char = mob_chars[(world_x, world_y)]
                     row.append(char)
@@ -1067,39 +1086,105 @@ class CraftaxClassicEnv(BaseAsciiEnv):
                     row.append(" ")
             grid.append(row)
 
+        # Collect visible mobs for HUD
+        for mob in self._mobs:
+            dx = mob["x"] - self._agent_x
+            dy = mob["y"] - self._agent_y
+            if abs(dx) <= half_w and abs(dy) <= half_h:
+                visible_mobs.append(mob)
+
         # Build inventory string
         inv_parts: list[str] = []
         for item, count in sorted(self._inventory.items()):
             if count > 0:
                 inv_parts.append(f"{item} x{count}")
-        inv_str = ", ".join(inv_parts) if inv_parts else "(empty)"
+        inv_str = (
+            ", ".join(inv_parts) if inv_parts else "(empty)"
+        )
 
         # Achievements
         ach_names = sorted(self._achievements_unlocked)
-        ach_str = ", ".join(ach_names) if ach_names else "(none)"
+        ach_str = (
+            ", ".join(ach_names) if ach_names else "(none)"
+        )
         ach_count = len(self._achievements_unlocked)
 
-        hud = (
-            f"HP: {self._hp}/{self._max_hp}   "
-            f"Food: {self._food}/{_MAX_FOOD}   "
-            f"Water: {self._water}/{_MAX_WATER}   "
-            f"Energy: {self._energy}/{_MAX_ENERGY}   "
-            f"Time: {self._day_night}   "
-            f"Step: {self._turn}\n"
-            f"Inventory: {inv_str}\n"
-            f"Achievements: {ach_str} ({ach_count}/{len(self._ALL_ACHIEVEMENTS)})"
+        # Day/night cycle position
+        cycle_pos = self._day_counter % _CYCLE_LENGTH
+        if self._day_night == "day":
+            phase_step = cycle_pos
+            phase_len = _DAY_LENGTH
+        else:
+            phase_step = cycle_pos - _DAY_LENGTH
+            phase_len = _NIGHT_LENGTH
+        time_str = (
+            f"{self._day_night} "
+            f"(step {phase_step}/{phase_len})"
         )
 
+        # Survival drain countdowns
+        food_drain = (
+            _FOOD_DRAIN_INTERVAL
+            - (self._day_counter % _FOOD_DRAIN_INTERVAL)
+        )
+        water_drain = (
+            _WATER_DRAIN_INTERVAL
+            - (self._day_counter % _WATER_DRAIN_INTERVAL)
+        )
+        energy_drain = (
+            _ENERGY_DRAIN_INTERVAL
+            - (self._day_counter % _ENERGY_DRAIN_INTERVAL)
+        )
+
+        # Nearby mobs info
+        mob_parts: list[str] = []
+        for m in visible_mobs:
+            mob_parts.append(
+                f"{m['type']} ({m['hp']}/{m['max_hp']} HP)"
+            )
+        mob_str = ", ".join(mob_parts) if mob_parts else "none"
+
+        # Growing saplings in viewport
+        grow_parts: list[str] = []
+        for (px, py), remaining in self._plants.items():
+            dx = px - self._agent_x
+            dy = py - self._agent_y
+            if abs(dx) <= half_w and abs(dy) <= half_h:
+                # Coords relative to viewport
+                grow_parts.append(
+                    f"sapling at ({px},{py})"
+                    f" - {remaining} steps left"
+                )
+
+        hud = (
+            f"HP: {self._hp}/{self._max_hp}  "
+            f"Food: {self._food}/{_MAX_FOOD}  "
+            f"Water: {self._water}/{_MAX_WATER}  "
+            f"Energy: {self._energy}/{_MAX_ENERGY}\n"
+            f"Facing: {facing_name}  "
+            f"Time: {time_str}  "
+            f"Step: {self._turn}\n"
+            f"Next drain: food in {food_drain}, "
+            f"water in {water_drain}, "
+            f"energy in {energy_drain}\n"
+            f"Nearby mobs: {mob_str}\n"
+            f"Inventory: {inv_str}\n"
+            f"Achievements: {ach_str} "
+            f"({ach_count}/{len(self._ALL_ACHIEVEMENTS)})"
+        )
+        if grow_parts:
+            hud += "\nGrowing: " + "; ".join(grow_parts)
+
         # Build legend from symbols actually seen
-        symbol_meanings: dict[str, str] = {
-            TILE_AGENT: "you",
+        agent_legend = f"you (facing {facing_name})"
+        tile_meanings: dict[str, str] = {
             TILE_GRASS: "grass",
             TILE_TREE: "tree (chop with DO for wood)",
             TILE_STONE: "stone (mine with wood pickaxe)",
             TILE_COAL: "coal ore (mine with stone pickaxe)",
             TILE_IRON: "iron ore (mine with stone pickaxe)",
             TILE_DIAMOND: "diamond (mine with iron pickaxe)",
-            TILE_WATER: "water (impassable, DRINK_WATER to drink)",
+            TILE_WATER: "water (impassable, DRINK_WATER)",
             TILE_LAVA: "lava (impassable, deadly)",
             TILE_SAND: "sand",
             TILE_TABLE: "crafting table",
@@ -1107,15 +1192,23 @@ class CraftaxClassicEnv(BaseAsciiEnv):
             TILE_PLACED_STONE: "placed stone",
             TILE_PLANT: "plant",
             TILE_SAPLING: "sapling (growing)",
-            TILE_RIPE_PLANT: "ripe plant (EAT_PLANT to eat)",
+            TILE_RIPE_PLANT: "ripe plant (EAT_PLANT)",
             TILE_ZOMBIE: "zombie (hostile)",
             TILE_SKELETON: "skeleton (hostile)",
             TILE_COW: "cow (passive, drops food)",
         }
         legend_entries: dict[str, str] = {}
         for sym in symbols_seen:
-            if sym in symbol_meanings:
-                legend_entries[sym] = symbol_meanings[sym]
+            if sym == facing_ch:
+                base = tile_meanings.get(sym)
+                if base:
+                    legend_entries[sym] = (
+                        f"{agent_legend} / {base}"
+                    )
+                else:
+                    legend_entries[sym] = agent_legend
+            elif sym in tile_meanings:
+                legend_entries[sym] = tile_meanings[sym]
         legend = build_legend(legend_entries)
 
         return GridObservation(

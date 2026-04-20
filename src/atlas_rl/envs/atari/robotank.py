@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -111,15 +112,19 @@ class RobotankEnv(AtariBase):
             if action_name == "LEFT":
                 nx -= 1
                 self._fire_dx, self._fire_dy = -1, 0
+                self._player_dir = (-1, 0)
             elif action_name == "RIGHT":
                 nx += 1
                 self._fire_dx, self._fire_dy = 1, 0
+                self._player_dir = (1, 0)
             elif action_name == "UP":
                 ny -= 1
                 self._fire_dx, self._fire_dy = 0, -1
+                self._player_dir = (0, -1)
             elif action_name == "DOWN":
                 ny += 1
                 self._fire_dx, self._fire_dy = 0, 1
+                self._player_dir = (0, 1)
         elif action_name in ("LEFT", "RIGHT", "UP", "DOWN"):
             self._message = "Treads damaged!"
         if (
@@ -278,6 +283,25 @@ class RobotankEnv(AtariBase):
             "T": "enemy tank (50pts)", "*": "your bullet",
             "o": "enemy bullet", " ": "ground",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+
+        def _st(name: str) -> str:
+            return "ok" if self._sensors[name] else "DMG"
+
+        sensors = (
+            f"Sensors: radar={_st('radar')}"
+            f" cannon={_st('cannon')}"
+            f" treads={_st('treads')}"
+            f" video={_st('video')}"
+        )
+        extra = f"{sensors}  Kills: {self._kills}"
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

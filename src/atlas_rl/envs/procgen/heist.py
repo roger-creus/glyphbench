@@ -12,6 +12,7 @@ from collections import deque
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 # Key/door color pairs: (key_char, door_char, color_name)
@@ -238,6 +239,26 @@ class HeistEnv(ProcgenBase):
 
         info["keys_held"] = list(self._keys_held)
         return reward, terminated, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        color_names = {"r": "red", "b": "blue", "y": "yellow"}
+        if self._keys_held:
+            held = ", ".join(
+                color_names.get(k, k)
+                for k in sorted(self._keys_held)
+            )
+        else:
+            held = "none"
+        extra = (
+            f"Keys: {held}"
+            f"  Goal: ({self._goal_x},{self._goal_y})"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

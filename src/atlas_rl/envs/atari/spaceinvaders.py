@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -123,8 +124,10 @@ class SpaceInvadersEnv(AtariBase):
 
         if wants_left and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif wants_right and self._player_x < self._WIDTH - 2:
             self._player_x += 1
+            self._player_dir = (1, 0)
 
         # Fire bullet (max 1 on screen)
         if wants_fire and len(self._bullets) == 0:
@@ -342,6 +345,24 @@ class SpaceInvadersEnv(AtariBase):
             "?": "mystery ship (100pts)",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        alive = sum(
+            1 for row in self._aliens
+            for a in row if a is not None and a.alive
+        )
+        d = "right" if self._alien_dir == 1 else "left"
+        extra = (
+            f"Aliens: {alive}  "
+            f"Formation dir: {d}  "
+            f"Wave: {self._level}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

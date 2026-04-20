@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -41,7 +42,7 @@ class AsteroidsEnv(AtariBase):
     _HEIGHT = 20
     _DIRS = ((0, -1), (1, -1), (1, 0), (1, 1),
              (0, 1), (-1, 1), (-1, 0), (-1, -1))
-    _DIR_CHARS = ("^", "/", ">", "\\", "v", "/", "<", "\\")
+    _FACING_CHARS = ("^", "/", ">", "\\", "v", "/", "<", "\\")
     _INIT_ASTEROIDS = 4
 
     def __init__(self, max_turns: int = 10000) -> None:
@@ -105,6 +106,14 @@ class AsteroidsEnv(AtariBase):
             self._facing = (self._facing - 1) % 8
         elif action_name == "RIGHT":
             self._facing = (self._facing + 1) % 8
+
+        # Update player_dir from facing
+        fdx, fdy = self._DIRS[self._facing]
+        # Map 8-dir to 4-dir for player char
+        if abs(fdx) >= abs(fdy):
+            self._player_dir = (1 if fdx > 0 else -1, 0) if fdx != 0 else (0, 0)
+        else:
+            self._player_dir = (0, 1 if fdy > 0 else -1) if fdy != 0 else (0, 0)
 
         # Thrust
         if action_name == "THRUST":
@@ -231,10 +240,27 @@ class AsteroidsEnv(AtariBase):
             if b.alive:
                 self._set_cell(b.x, b.y, "!")
 
+    _FACING_NAMES = (
+        "up", "up-right", "right", "down-right",
+        "down", "down-left", "left", "up-left",
+    )
+
     def _render_current_observation(self, **kw: Any):  # type: ignore[override]
-        # Override to show ship direction char
         obs = super()._render_current_observation()
-        return obs
+        direction = self._FACING_NAMES[self._facing]
+        n_ast = len([
+            a for a in self._asteroids if a.alive
+        ])
+        extra = (
+            f"Ship facing: {direction}"
+            f"  Ship vel: ({self._ship_dx},{self._ship_dy})"
+            f"  Asteroids: {n_ast}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _advance_entities(self) -> None:
         self._entities = [e for e in self._entities if e.alive]

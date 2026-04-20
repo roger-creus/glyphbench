@@ -49,9 +49,10 @@ class MiniGridUnlockEnv(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            "Two rooms separated by a locked door. Find the yellow key (K), "
-            "pick it up with PICKUP, face the locked door (D) and TOGGLE to "
-            "unlock it, then navigate to the goal (G). "
+            "Two rooms separated by a locked door. Find the "
+            "yellow key, pick it up with PICKUP, face the "
+            "locked yellow door and TOGGLE to unlock it, "
+            "then navigate to the goal. "
             "Reward = 1 - 0.9 * (steps / max_steps)."
         )
 
@@ -102,8 +103,9 @@ class MiniGridUnlockPickupEnv(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            "Two rooms separated by a locked door. Find the yellow key (K), "
-            "unlock the door (D), then pick up the green box (B) in the other "
-            "room and reach the goal (G). "
+            "Two rooms separated by a locked door. Find the "
+            "yellow key, unlock the yellow door, then pick "
+            "up the green box in the other room and reach "
+            "the goal. "
             "Reward = 1 - 0.9 * (steps / max_steps)."
         )

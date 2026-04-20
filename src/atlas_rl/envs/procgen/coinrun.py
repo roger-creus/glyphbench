@@ -57,12 +57,22 @@ class CoinRunEnv(BaseAsciiEnv):
     _GROUND_ROW = 9  # ground level (rows 9, 10, 11 are ground by default)
     _GROUND_DEPTH = 3  # rows of ground
 
+    _DIR_CHARS: dict[tuple[int, int], str] = {
+        (1, 0): ">", (-1, 0): "<",
+        (0, -1): "^", (0, 1): "v", (0, 0): "@",
+    }
+    _DIR_NAMES: dict[tuple[int, int], str] = {
+        (1, 0): "right", (-1, 0): "left",
+        (0, -1): "up", (0, 1): "down", (0, 0): "none",
+    }
+
     def __init__(self, max_turns: int = 512) -> None:
         super().__init__(max_turns=max_turns)
         self._level_data: list[list[str]] = []
         self._level_width: int = 0
         self._agent_x: int = 0
         self._agent_y: int = 0
+        self._agent_dir: tuple[int, int] = (0, 0)
         self._on_ground: bool = True
         self._jump_step: int = -1  # -1 = not jumping, 0..len(arc)-1 = in arc
         self._coin_x: int = 0
@@ -198,6 +208,7 @@ class CoinRunEnv(BaseAsciiEnv):
         self._generate_level()
         self._agent_x = 2
         self._agent_y = self._ground_y - 1  # on top of ground
+        self._agent_dir = (0, 0)
         self._on_ground = True
         self._jump_step = -1
         self._camera_x = 0
@@ -223,10 +234,14 @@ class CoinRunEnv(BaseAsciiEnv):
         dx = 0
         if name in ("LEFT",):
             dx = -1
+            self._agent_dir = (-1, 0)
         elif name in ("RIGHT", "JUMP_RIGHT"):
             dx = 1
+            self._agent_dir = (1, 0)
 
         # --- 2. Initiate jump ---
+        if name in ("JUMP",) and self._on_ground:
+            self._agent_dir = (0, -1)
         if name in ("JUMP", "JUMP_RIGHT") and self._on_ground:
             self._jump_step = 0
             self._on_ground = False
@@ -365,30 +380,39 @@ class CoinRunEnv(BaseAsciiEnv):
 
     def _render_current_observation(self) -> GridObservation:
         # Build 20x12 window
+        pch = self._DIR_CHARS.get(self._agent_dir, "@")
+        dir_name = self._DIR_NAMES.get(
+            self._agent_dir, "none"
+        )
         grid: list[list[str]] = []
         for wy in range(VIEW_HEIGHT):
             row: list[str] = []
             for wx in range(VIEW_WIDTH):
                 world_x = self._camera_x + wx
                 world_y = wy
-                if world_x == self._agent_x and world_y == self._agent_y and self._alive:
-                    row.append(CELL_AGENT)
+                if (
+                    world_x == self._agent_x
+                    and world_y == self._agent_y
+                    and self._alive
+                ):
+                    row.append(pch)
                 else:
                     row.append(self._get_cell(world_x, world_y))
             grid.append(row)
 
         on_ground_str = "yes" if self._on_ground else "no"
         alive_str = "yes" if self._alive else "no"
+        state = "grounded" if self._on_ground else "airborne"
         hud = (
             f"Level seed: {self._level_seed}    "
             f"Step: {self._turn} / {self.max_turns}    "
             f"Vel: ({self._vel_x:+d}, {self._vel_y:+d})    "
-            f"On ground: {on_ground_str}    "
+            f"State: {state}    "
             f"Alive: {alive_str}"
         )
 
         legend = build_legend({
-            "@": "you",
+            pch: f"you (facing {dir_name})",
             "=": "ground",
             "#": "platform",
             "P": "pit (deadly)",

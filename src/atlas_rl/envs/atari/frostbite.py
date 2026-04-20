@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -133,12 +134,16 @@ class FrostbiteEnv(AtariBase):
 
         if action_name == "LEFT":
             dx = -1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             dx = 1
+            self._player_dir = (1, 0)
         elif action_name == "UP":
             dy = -2  # jump up to previous row
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             dy = 2  # jump down to next row
+            self._player_dir = (0, 1)
 
         # Move horizontally
         new_x = self._player_x + dx
@@ -287,6 +292,39 @@ class FrostbiteEnv(AtariBase):
             "O": "igloo section",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        # Determine floe direction for the row the player is on
+        floe_dir = "N/A"
+        if self._on_floe and self._current_floe is not None:
+            d = self._current_floe.dx
+            floe_dir = "right" if d > 0 else (
+                "left" if d < 0 else "stopped"
+            )
+        elif self._floe_rows:
+            # Show the nearest row's direction
+            for row in self._floe_rows:
+                for floe in row:
+                    if floe.alive:
+                        d = floe.dx
+                        floe_dir = "right" if d > 0 else (
+                            "left" if d < 0 else "stopped"
+                        )
+                        break
+                if floe_dir != "N/A":
+                    break
+        extra = (
+            f"Temp: {self._temperature}"
+            f"  Igloo: {self._igloo_built}"
+            f"/{self._IGLOO_SECTIONS}"
+            f"  Floe dir: {floe_dir}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

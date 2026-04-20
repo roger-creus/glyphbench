@@ -93,6 +93,23 @@ class _MementoBase(MiniHackBase):
         return obs, reward, terminated, truncated, info
 
     # ------------------------------------------------------------------
+    # Observation: show current floor in HUD
+    # ------------------------------------------------------------------
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        floor_info = (
+            f"Floor: {self._current_floor}/{self._num_floors}"
+        )
+        new_hud = obs.hud + "    " + floor_info
+        return GridObservation(
+            grid=obs.grid,
+            legend=obs.legend,
+            hud=new_hud,
+            message=obs.message,
+        )
+
+    # ------------------------------------------------------------------
     # Task description
     # ------------------------------------------------------------------
 

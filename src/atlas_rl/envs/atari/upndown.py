@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -107,10 +108,12 @@ class UpNDownEnv(AtariBase):
             nx = self._player_x - 2
             if nx >= self._ROAD_LEFT + 1:
                 self._player_x = nx
+                self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             nx = self._player_x + 2
             if nx <= self._ROAD_RIGHT - 1:
                 self._player_x = nx
+                self._player_dir = (1, 0)
         elif action_name == "UP":
             self._scroll_speed = min(3, self._scroll_speed + 1)
         elif action_name == "DOWN":
@@ -239,6 +242,18 @@ class UpNDownEnv(AtariBase):
             "^": "jump arc",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        state = "airborne" if self._jumping else "grounded"
+        extra = (
+            f"Jump: {state}  Distance: {self._distance}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

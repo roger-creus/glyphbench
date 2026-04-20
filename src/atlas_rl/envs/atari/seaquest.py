@@ -141,17 +141,21 @@ class SeaquestEnv(AtariBase):
         # Player movement
         if action_name == "UP" and self._player_y > self._SURFACE_Y:
             self._player_y -= 1
+            self._player_dir = (0, -1)
         elif (
             action_name == "DOWN"
             and self._player_y < self._SEABED_Y - 1
         ):
             self._player_y += 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT":
             self._facing = -1
+            self._player_dir = (-1, 0)
             if self._player_x > 1:
                 self._player_x -= 1
         elif action_name == "RIGHT":
             self._facing = 1
+            self._player_dir = (1, 0)
             if self._player_x < self._WIDTH - 2:
                 self._player_x += 1
         elif (
@@ -342,13 +346,21 @@ class SeaquestEnv(AtariBase):
                     symbols[e.char] = e.etype
         px, py = self._player_x, self._player_y
         if 0 <= px < self._grid_w and 0 <= py < self._grid_h:
-            render[py][px] = "@"
-        symbols["@"] = "you (submarine)"
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[py][px] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
+        facing = "right" if self._facing == 1 else "left"
         hud = (
             f"Score: {self._score}    Lives: {self._lives}"
             f"    Level: {self._level}"
             f"    O2: {self._oxygen}%"
-            f"    Divers: {self._carried}/4"
+            f"    Divers: {self._carried}/4\n"
+            f"Facing: {facing}"
         )
         return GridObservation(
             grid=grid_to_string(render),

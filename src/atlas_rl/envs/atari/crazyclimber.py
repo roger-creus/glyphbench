@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -114,12 +115,16 @@ class CrazyClimberEnv(AtariBase):
         dx, dy = 0, 0
         if action_name == "UP":
             dy = -1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             dy = 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT":
             dx = -1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             dx = 1
+            self._player_dir = (1, 0)
 
         # Calculate building coords
         bld_y = self._scroll_offset + self._player_y
@@ -240,6 +245,22 @@ class CrazyClimberEnv(AtariBase):
             "-": "border",
             " ": "climbable surface",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        falling = sum(
+            1 for e in self._entities
+            if e.etype == "falling" and e.alive
+        )
+        extra = (
+            f"Height: {self._height_reached}  "
+            f"Danger: {falling}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

@@ -162,6 +162,14 @@ class Door(WorldObject):
         self.can_overlap = self.is_open
         self.can_pickup = False
 
+    def legend_name(self) -> str:
+        state = (
+            "locked "
+            if self.is_locked
+            else ("open " if self.is_open else "")
+        )
+        return f"{state}door ({self.color})"
+
     def toggle(self, carrying: WorldObject | None) -> bool:
         """Toggle the door. Returns True if state changed."""
         if self.is_locked:

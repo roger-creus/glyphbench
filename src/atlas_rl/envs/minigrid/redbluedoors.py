@@ -53,8 +53,10 @@ class _RedBlueDoorsBase(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            "Two rooms separated by a wall with a red door (D) and a blue door (D). "
-            "Toggle a door open and pass through to reach the goal (G) in the other room. "
+            "Two rooms separated by a wall with a red door "
+            "and a blue door. "
+            "Toggle a door open and pass through to reach "
+            "the goal in the other room. "
             "Reward = 1 - 0.9 * (steps / max_steps)."
         )
 

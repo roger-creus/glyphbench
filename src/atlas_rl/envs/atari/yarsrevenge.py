@@ -104,12 +104,16 @@ class YarsRevengeEnv(AtariBase):
         # Move player
         if action_name == "UP" and self._player_y > 1:
             self._player_y -= 1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN" and self._player_y < self._HEIGHT - 2:
             self._player_y += 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT" and self._player_x < self._WIDTH - 2:
             self._player_x += 1
+            self._player_dir = (1, 0)
 
         # Eat shield cells (player touches them)
         pos = (self._player_x, self._player_y)

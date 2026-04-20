@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 
@@ -122,18 +123,22 @@ class CaveFlyerEnv(ProcgenBase):
 
         # Movement
         if action_name == "LEFT":
+            self._agent_dir = (-1, 0)
             nx = self._agent_x - 1
             if not self._is_solid(nx, self._agent_y):
                 self._agent_x = nx
         elif action_name == "RIGHT":
+            self._agent_dir = (1, 0)
             nx = self._agent_x + 1
             if not self._is_solid(nx, self._agent_y):
                 self._agent_x = nx
         elif action_name == "UP":
+            self._agent_dir = (0, -1)
             ny = self._agent_y - 1
             if not self._is_solid(self._agent_x, ny):
                 self._agent_y = ny
         elif action_name == "DOWN":
+            self._agent_dir = (0, 1)
             ny = self._agent_y + 1
             if not self._is_solid(self._agent_x, ny):
                 self._agent_y = ny
@@ -186,6 +191,22 @@ class CaveFlyerEnv(ProcgenBase):
 
         info["enemies_killed"] = self._enemies_killed
         return reward, terminated, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        alive = sum(
+            1 for e in self._entities
+            if e.alive and e.etype == "enemy"
+        )
+        extra = (
+            f"Enemies: {alive}"
+            f"  Exit: ({self._exit_x},{self._exit_y})"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

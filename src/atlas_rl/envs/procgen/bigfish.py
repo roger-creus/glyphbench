@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 _WATER = "~"
@@ -131,6 +132,9 @@ class BigFishEnv(ProcgenBase):
         elif action_name == "DOWN":
             dy = 1
 
+        if dx != 0 or dy != 0:
+            self._agent_dir = (dx, dy)
+
         nx = self._agent_x + dx
         ny = self._agent_y + dy
         if 0 <= nx < self.GRID_W and 0 <= ny < self.GRID_H:
@@ -165,6 +169,20 @@ class BigFishEnv(ProcgenBase):
         info["agent_size"] = self._agent_size
         info["fish_eaten"] = self._fish_eaten
         return reward, terminated, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        sz = self._agent_size
+        extra = (
+            f"Size: {sz}  Edible: size<={sz}"
+            f"  Deadly: size>{sz}"
+            f"  Eaten: {self._fish_eaten}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

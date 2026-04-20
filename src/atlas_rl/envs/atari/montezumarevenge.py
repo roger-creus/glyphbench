@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -180,8 +181,10 @@ class MontezumaRevengeEnv(AtariBase):
 
         if action_name == "LEFT":
             dx = -1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             dx = 1
+            self._player_dir = (1, 0)
         elif action_name == "UP":
             if self._on_ladder:
                 dy = -1
@@ -339,6 +342,23 @@ class MontezumaRevengeEnv(AtariBase):
             "G": "green key",
             "Y": "yellow key",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        keys = ",".join(sorted(self._keys)) if self._keys else "none"
+        jump_state = "jumping" if self._jumping else (
+            "on ladder" if self._on_ladder else "grounded"
+        )
+        extra = (
+            f"Room: ({self._room_x},{self._room_y})"
+            f"  Keys: {keys}"
+            f"  Jump: {jump_state}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

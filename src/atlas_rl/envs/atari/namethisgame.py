@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -125,8 +126,10 @@ class NameThisGameEnv(AtariBase):
         # Move player
         if action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT" and self._player_x < self._WIDTH - 2:
             self._player_x += 1
+            self._player_dir = (1, 0)
 
         # Fire downward
         if action_name == "FIRE" and len(self._bullets) < self._MAX_BULLETS:
@@ -259,6 +262,20 @@ class NameThisGameEnv(AtariBase):
             "!": "your bullet",
             " ": "air",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        alive_fish = sum(1 for f in self._fish if f.alive)
+        extra = (
+            f"Kills: {self._kills}"
+            f"/{self._wave_target}  "
+            f"Fish: {alive_fish}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

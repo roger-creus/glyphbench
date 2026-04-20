@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -112,12 +113,14 @@ class BeamRiderEnv(AtariBase):
         if action_name == "LEFT" and self._player_beam > 0:
             self._player_beam -= 1
             self._player_x = self._beam_positions[self._player_beam]
+            self._player_dir = (-1, 0)
         elif (
             action_name == "RIGHT"
             and self._player_beam < self._NUM_BEAMS - 1
         ):
             self._player_beam += 1
             self._player_x = self._beam_positions[self._player_beam]
+            self._player_dir = (1, 0)
 
         # Fire
         if action_name == "FIRE" and len(self._bullets) < self._MAX_BULLETS:
@@ -218,6 +221,19 @@ class BeamRiderEnv(AtariBase):
             "!": "your torpedo",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = (
+            f"Kills: {self._kills}/12  "
+            f"Sector: {self._level}  "
+            f"Beam: {self._player_beam}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

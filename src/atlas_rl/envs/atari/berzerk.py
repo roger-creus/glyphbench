@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -153,21 +154,26 @@ class BerzerkEnv(AtariBase):
         elif action_name in _DIRS:
             move_dir = _DIRS[action_name]
             self._facing = move_dir
+            self._player_dir = move_dir
         elif action_name == "UP_FIRE":
             move_dir = _DIRS["UP"]
             self._facing = move_dir
+            self._player_dir = move_dir
             fire = True
         elif action_name == "DOWN_FIRE":
             move_dir = _DIRS["DOWN"]
             self._facing = move_dir
+            self._player_dir = move_dir
             fire = True
         elif action_name == "LEFT_FIRE":
             move_dir = _DIRS["LEFT"]
             self._facing = move_dir
+            self._player_dir = move_dir
             fire = True
         elif action_name == "RIGHT_FIRE":
             move_dir = _DIRS["RIGHT"]
             self._facing = move_dir
+            self._player_dir = move_dir
             fire = True
 
         # Move player
@@ -319,6 +325,22 @@ class BerzerkEnv(AtariBase):
         info["robots_alive"] = robots_alive
         info["robots_killed"] = self._robots_killed
         return reward, self._game_over, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        dname = self._DIR_NAMES.get(self._facing, "none")
+        robots = sum(
+            1 for e in self._entities
+            if e.etype == "robot" and e.alive
+        )
+        extra = (
+            f"Facing: {dname}  Robots: {robots}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _advance_entities(self) -> None:
         """Override: entities are moved in _game_step."""

@@ -74,6 +74,20 @@ class _LavaCrossBase(MiniHackBase):
 
         return obs, reward, terminated, truncated, info
 
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        if self._levitating_turns > 0:
+            lev = f"Levitating: {self._levitating_turns} turns"
+        else:
+            lev = "Levitating: no"
+        new_hud = obs.hud + "    " + lev
+        return GridObservation(
+            grid=obs.grid,
+            legend=obs.legend,
+            hud=new_hud,
+            message=obs.message,
+        )
+
     def _task_description(self) -> str:
         return (
             "A lava pit (}) blocks your path to the stairs (>). "

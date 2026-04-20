@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -102,10 +103,12 @@ class FreewayEnv(AtariBase):
             new_y = self._player_y - 1
             if new_y >= self._GOAL_Y:
                 self._player_y = new_y
+                self._player_dir = (0, -1)
         elif action_name == "DOWN":
             new_y = self._player_y + 1
             if new_y <= self._PLAYER_START_Y:
                 self._player_y = new_y
+                self._player_dir = (0, 1)
 
         # Move cars
         for lane in self._lanes:
@@ -168,6 +171,20 @@ class FreewayEnv(AtariBase):
             "C": "car",
             " ": "road",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        dirs: list[str] = []
+        for lane in self._lanes:
+            if lane:
+                d = lane[0].dx
+                dirs.append(">" if d == 1 else "<")
+        extra = f"Lane car dirs: {' '.join(dirs)}"
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

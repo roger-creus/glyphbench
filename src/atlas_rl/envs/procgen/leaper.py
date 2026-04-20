@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 _GRASS = ","
@@ -186,7 +187,7 @@ class LeaperEnv(ProcgenBase):
         terminated = False
         info: dict[str, Any] = {}
 
-        # Movement (don't use _try_move because water/road aren't solid)
+        # Movement (don't use _try_move; water/road aren't solid)
         dx, dy = 0, 0
         if action_name == "LEFT":
             dx = -1
@@ -196,6 +197,9 @@ class LeaperEnv(ProcgenBase):
             dy = -1
         elif action_name == "DOWN":
             dy = 1
+
+        if dx != 0 or dy != 0:
+            self._agent_dir = (dx, dy)
 
         nx = self._agent_x + dx
         ny = self._agent_y + dy
@@ -228,6 +232,32 @@ class LeaperEnv(ProcgenBase):
                 self._message = "Fell in the water!"
 
         return reward, terminated, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        # Build compact lane info (bottom to top)
+        parts: list[str] = []
+        for row_y in range(self.GRID_H - 1, -1, -1):
+            lt = self._lane_types[row_y]
+            d = self._lane_dirs[row_y]
+            if lt == "safe":
+                parts.append("safe")
+            elif lt == "goal":
+                parts.append("GOAL")
+            elif lt == "road":
+                arr = "->" if d == 1 else "<-"
+                parts.append(f"road{arr}")
+            elif lt == "water":
+                arr = "->" if d == 1 else "<-"
+                parts.append(f"water{arr}")
+        lane_str = "Lanes(bot->top): " + " | ".join(parts)
+        on_log = "yes" if self._on_log else "no"
+        extra = f"OnLog: {on_log}\n{lane_str}"
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

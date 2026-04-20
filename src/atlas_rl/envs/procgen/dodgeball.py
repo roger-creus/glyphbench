@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 
@@ -162,6 +163,31 @@ class DodgeballEnv(ProcgenBase):
         info["enemies_killed"] = self._enemies_killed
         info["level"] = self._level
         return reward, terminated, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        dirs = {
+            (1, 0): "right", (-1, 0): "left",
+            (0, -1): "up", (0, 1): "down",
+        }
+        facing = dirs.get(
+            (self._facing_dx, self._facing_dy), "up"
+        )
+        enemies = sum(
+            1 for e in self._entities
+            if e.alive and e.etype == "enemy"
+        )
+        extra = (
+            f"Facing: {facing}"
+            f"  Enemies: {enemies}"
+            f"  Wave: {self._level}"
+            f"  Kills: {self._enemies_killed}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

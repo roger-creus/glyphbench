@@ -94,10 +94,12 @@ class SkiingEnv(AtariBase):
             nx = self._player_x - 1
             if nx >= 1:
                 self._player_x = nx
+                self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             nx = self._player_x + 1
             if nx < self._WIDTH - 1:
                 self._player_x = nx
+                self._player_dir = (1, 0)
 
         # Scroll down (skier moves downhill)
         self._scroll_y += 1
@@ -196,8 +198,14 @@ class SkiingEnv(AtariBase):
                     symbols[ch] = self._symbol_meaning(ch)
         r, c = self._player_y, self._player_x
         if 0 <= c < self._grid_w and 0 <= r < self._grid_h:
-            render[r][c] = "@"
-        symbols["@"] = "you (skier)"
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[r][c] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
         hud = (
             f"Score: {self._score}  "
             f"Gates: {self._gates_passed}/{self._total_gates}  "

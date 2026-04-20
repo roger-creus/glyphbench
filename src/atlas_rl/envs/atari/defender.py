@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -112,15 +113,19 @@ class DefenderEnv(AtariBase):
             speed = 3
         elif action_name == "LEFT":
             self._facing = -1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             self._facing = 1
+            self._player_dir = (1, 0)
         elif action_name == "UP" and self._player_y > 1:
             self._player_y -= 1
+            self._player_dir = (0, -1)
         elif (
             action_name == "DOWN"
             and self._player_y < self._GROUND_Y - 1
         ):
             self._player_y += 1
+            self._player_dir = (0, 1)
         elif action_name == "FIRE" and len(self._lasers) < 2:
             lx = self._world_x + self._facing
             laser = self._add_entity(
@@ -312,6 +317,23 @@ class DefenderEnv(AtariBase):
             "A": "alien", "H": "humanoid",
             "~": "laser", " ": "sky",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        facing = "right" if self._facing > 0 else "left"
+        n_humans = sum(
+            1 for h in self._humanoids if h.alive
+        )
+        extra = (
+            f"Facing: {facing}"
+            f"  World pos: {self._world_x}"
+            f"  Humanoids: {n_humans}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

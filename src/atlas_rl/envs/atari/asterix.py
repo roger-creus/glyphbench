@@ -89,10 +89,12 @@ class AsterixEnv(AtariBase):
             ny = self._player_y - 1
             if ny >= self._LANE_START:
                 self._player_y = ny
+                self._player_dir = (0, -1)
         elif action_name == "DOWN":
             ny = self._player_y + 1
             if ny < self._LANE_START + self._NUM_LANES:
                 self._player_y = ny
+                self._player_dir = (0, 1)
 
         # Spawn food and enemies
         if self._step_counter % self._spawn_rate == 0:

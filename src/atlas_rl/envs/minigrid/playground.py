@@ -82,8 +82,9 @@ class MiniGridPlaygroundEnv(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            "A large 16x16 room filled with various objects: keys (K), balls (O), "
-            "boxes (B), doors (D/d), and walls (#). Explore freely and find the "
-            "goal (G). You can pick up keys and balls, open doors, and drop items. "
+            "A large 16x16 room filled with various objects: "
+            "keys, balls, boxes, doors, and walls. Explore "
+            "freely and find the goal. You can pick up keys "
+            "and balls, open doors, and drop items. "
             "Reward = 1 - 0.9 * (steps / max_steps)."
         )

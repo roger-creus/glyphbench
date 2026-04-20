@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 
@@ -89,14 +90,17 @@ class PlunderEnv(ProcgenBase):
 
         # Movement (horizontal + forward)
         if action_name == "LEFT":
+            self._agent_dir = (-1, 0)
             nx = self._agent_x - 1
             if nx >= 0:
                 self._agent_x = nx
         elif action_name == "RIGHT":
+            self._agent_dir = (1, 0)
             nx = self._agent_x + 1
             if nx < self.GRID_W:
                 self._agent_x = nx
         elif action_name == "UP":
+            self._agent_dir = (0, -1)
             ny = self._agent_y - 1
             if ny >= 0:
                 self._agent_y = ny
@@ -146,6 +150,27 @@ class PlunderEnv(ProcgenBase):
         info["pirates_sunk"] = self._pirates_sunk
         info["civilians_hit"] = self._civilians_hit
         return reward, terminated, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        pirates = sum(
+            1 for e in self._entities
+            if e.alive and e.etype == "pirate"
+        )
+        civilians = sum(
+            1 for e in self._entities
+            if e.alive and e.etype == "civilian"
+        )
+        extra = (
+            f"Pirates sunk: {self._pirates_sunk}"
+            f"  Civilians hit: {self._civilians_hit}"
+            f"  Nearby: {pirates}P {civilians}c"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

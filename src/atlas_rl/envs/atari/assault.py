@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -96,11 +97,13 @@ class AssaultEnv(AtariBase):
 
         if action_name == "LEFT" and self._player_x > 1:
             self._player_x -= 1
+            self._player_dir = (-1, 0)
         elif (
             action_name == "RIGHT"
             and self._player_x < self._WIDTH - 2
         ):
             self._player_x += 1
+            self._player_dir = (1, 0)
         elif action_name == "FIRE" and len(self._bullets) < 2:
             b = self._add_entity(
                 "bullet", "!", self._player_x,
@@ -225,6 +228,18 @@ class AssaultEnv(AtariBase):
             "[": "turret base", "]": "turret base",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        alive = sum(1 for e in self._enemies if e.alive)
+        extra = (
+            f"Enemies: {alive}  Wave: {self._level}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -18,22 +19,18 @@ class ZaxxonEnv(AtariBase):
     """Zaxxon: scrolling shooter with fuel.
 
     20x24 grid. Battlefield scrolls downward. Shoot enemies,
-    dodge walls, and manage fuel. Fuel depletes each step;
-    destroy fuel depots to refuel.
+    dodge walls, manage fuel. Destroy fuel depots to refuel.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +20 per enemy, +10 per fuel depot, +50 boss
+    Reward: +20 per enemy, +10 per fuel depot
     Lives: 3
     """
 
     action_spec = ActionSpec(
         names=("NOOP", "LEFT", "RIGHT", "UP", "DOWN", "FIRE"),
         descriptions=(
-            "do nothing",
-            "move left",
-            "move right",
-            "move up (forward)",
-            "move down (back)",
+            "do nothing", "move left", "move right",
+            "move up (forward)", "move down (back)",
             "fire forward",
         ),
     )
@@ -48,12 +45,16 @@ class ZaxxonEnv(AtariBase):
         self._enemies: list[AtariEntity] = []
         self._bullets: list[AtariEntity] = []
         self._walls: set[tuple[int, int]] = set()
-        self._fuel: int = self._MAX_FUEL
-        self._step_counter: int = 0
-        self._scroll_timer: int = 0
+        self._fuel = self._MAX_FUEL
+        self._step_counter = 0
+        self._scroll_timer = 0
 
     def env_id(self) -> str:
         return "atlas_rl/atari-zaxxon-v0"
+
+    def _reset_pos(self) -> None:
+        self._player_x = self._WIDTH // 2
+        self._player_y = self._HEIGHT - 4
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -64,46 +65,32 @@ class ZaxxonEnv(AtariBase):
         self._step_counter = 0
         self._scroll_timer = 0
         self._fuel = self._MAX_FUEL
-
-        # Borders
         for y in range(self._HEIGHT):
             self._set_cell(0, y, "|")
             self._set_cell(self._WIDTH - 1, y, "|")
         for x in range(self._WIDTH):
             self._set_cell(x, self._HEIGHT - 1, "-")
-
-        # Player near bottom
-        self._player_x = self._WIDTH // 2
-        self._player_y = self._HEIGHT - 4
-
-        # Initial obstacles and enemies in upper half
-        self._spawn_row_content(0, self._HEIGHT // 2)
-
-        self._redraw()
-
-    def _spawn_row_content(
-        self, y_start: int, y_end: int
-    ) -> None:
+        self._reset_pos()
         rng = self.rng
-        for y in range(y_start, y_end):
+        for y in range(1, self._HEIGHT // 2):
             if y <= 0 or y >= self._HEIGHT - 1:
                 continue
             if rng.random() < 0.15:
-                # Wall segment
                 wx = int(rng.integers(2, self._WIDTH - 2))
-                wlen = int(rng.integers(2, 5))
-                for dx in range(wlen):
+                for dx in range(int(rng.integers(2, 5))):
                     px = wx + dx
                     if 0 < px < self._WIDTH - 1:
                         self._walls.add((px, y))
             if rng.random() < 0.2:
                 ex = int(rng.integers(2, self._WIDTH - 2))
                 if (ex, y) not in self._walls:
-                    etype = "fuel" if rng.random() < 0.3 else "enemy"
-                    ch = "F" if etype == "fuel" else "E"
-                    e = self._add_entity(etype, ch, ex, y)
+                    is_fuel = rng.random() < 0.3
+                    ch = "F" if is_fuel else "E"
+                    tp = "fuel" if is_fuel else "enemy"
+                    e = self._add_entity(tp, ch, ex, y)
                     e.data["hp"] = 1
                     self._enemies.append(e)
+        self._redraw()
 
     def _game_step(
         self, action_name: str
@@ -111,52 +98,42 @@ class ZaxxonEnv(AtariBase):
         reward = 0.0
         info: dict[str, Any] = {}
         self._step_counter += 1
-
-        # Burn fuel
         self._fuel -= self._FUEL_BURN
         if self._fuel <= 0:
-            self._fuel = 0
+            self._fuel = self._MAX_FUEL
             self._on_life_lost()
             self._message = "Out of fuel!"
-            self._fuel = self._MAX_FUEL
-            self._player_x = self._WIDTH // 2
-            self._player_y = self._HEIGHT - 4
-
+            self._reset_pos()
         # Move player
         nx, ny = self._player_x, self._player_y
         if action_name == "LEFT":
             nx -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             nx += 1
+            self._player_dir = (1, 0)
         elif action_name == "UP":
             ny -= 1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             ny += 1
-
-        if (
-            0 < nx < self._WIDTH - 1
-            and 0 < ny < self._HEIGHT - 1
-            and (nx, ny) not in self._walls
-        ):
-            self._player_x = nx
-            self._player_y = ny
-
-        # Check wall collision at current pos
+            self._player_dir = (0, 1)
+        if (0 < nx < self._WIDTH - 1
+                and 0 < ny < self._HEIGHT - 1
+                and (nx, ny) not in self._walls):
+            self._player_x, self._player_y = nx, ny
         if (self._player_x, self._player_y) in self._walls:
             self._on_life_lost()
             self._message = "Hit a wall!"
-            self._player_x = self._WIDTH // 2
-            self._player_y = self._HEIGHT - 4
-
+            self._reset_pos()
         # Fire
         if action_name == "FIRE" and len(self._bullets) < 3:
             b = self._add_entity(
-                "bullet", "*", self._player_x,
-                self._player_y - 1,
+                "bullet", "*",
+                self._player_x, self._player_y - 1,
             )
             b.data["bdy"] = -1
             self._bullets.append(b)
-
         # Move bullets
         for b in self._bullets:
             if not b.alive:
@@ -167,8 +144,7 @@ class ZaxxonEnv(AtariBase):
             elif (b.x, b.y) in self._walls:
                 b.alive = False
                 self._walls.discard((b.x, b.y))
-
-        # Bullet-enemy collisions
+        # Bullet-enemy hits
         for b in self._bullets:
             if not b.alive:
                 continue
@@ -188,14 +164,11 @@ class ZaxxonEnv(AtariBase):
                         reward += 20
                         self._message = "Enemy down! +20"
                     break
-
         # Player-enemy collision
         for e in self._enemies:
-            if (
-                e.alive
-                and e.x == self._player_x
-                and e.y == self._player_y
-            ):
+            if not e.alive:
+                continue
+            if e.x == self._player_x and e.y == self._player_y:
                 e.alive = False
                 if e.etype == "fuel":
                     self._fuel = min(
@@ -207,51 +180,37 @@ class ZaxxonEnv(AtariBase):
                 else:
                     self._on_life_lost()
                     self._message = "Hit by enemy!"
-                    self._player_x = self._WIDTH // 2
-                    self._player_y = self._HEIGHT - 4
-
-        # Scroll battlefield down
+                    self._reset_pos()
+        # Scroll
         self._scroll_timer += 1
-        scroll_speed = max(1, 3 - self._level // 2)
-        if self._scroll_timer >= scroll_speed:
+        spd = max(1, 3 - self._level // 2)
+        if self._scroll_timer >= spd:
             self._scroll_timer = 0
             self._scroll_down()
-
-        # Cleanup
         self._bullets = [b for b in self._bullets if b.alive]
         self._enemies = [e for e in self._enemies if e.alive]
-
         self._redraw()
         info["fuel"] = self._fuel
         return reward, self._game_over, info
 
     def _scroll_down(self) -> None:
-        """Scroll everything down by 1 row."""
-        # Move walls down
         new_walls: set[tuple[int, int]] = set()
         for wx, wy in self._walls:
-            nwy = wy + 1
-            if nwy < self._HEIGHT - 1:
-                new_walls.add((wx, nwy))
+            if wy + 1 < self._HEIGHT - 1:
+                new_walls.add((wx, wy + 1))
         self._walls = new_walls
-
-        # Move enemies down
         for e in self._enemies:
             if e.alive:
                 e.y += 1
                 if e.y >= self._HEIGHT - 1:
                     e.alive = False
-
-        # Spawn new content at top
         rng = self.rng
         if rng.random() < 0.3:
             wx = int(rng.integers(2, self._WIDTH - 2))
-            wlen = int(rng.integers(2, 4))
-            for dx in range(wlen):
+            for dx in range(int(rng.integers(2, 4))):
                 px = wx + dx
                 if 0 < px < self._WIDTH - 1:
                     self._walls.add((px, 1))
-
         if rng.random() < 0.25:
             ex = int(rng.integers(2, self._WIDTH - 2))
             if (ex, 1) not in self._walls:
@@ -261,13 +220,10 @@ class ZaxxonEnv(AtariBase):
                 e = self._add_entity(tp, ch, ex, 1)
                 e.data["hp"] = 1
                 self._enemies.append(e)
-
-        # Check if player hit scrolled wall
         if (self._player_x, self._player_y) in self._walls:
             self._on_life_lost()
             self._message = "Crushed by wall!"
-            self._player_x = self._WIDTH // 2
-            self._player_y = self._HEIGHT - 4
+            self._reset_pos()
 
     def _redraw(self) -> None:
         for y in range(1, self._HEIGHT - 1):
@@ -282,33 +238,29 @@ class ZaxxonEnv(AtariBase):
             if b.alive:
                 self._set_cell(b.x, b.y, "*")
 
-    def _render_current_observation(self, **kw):  # type: ignore[override]
-        obs = super()._render_current_observation()
-        fuel_bar = self._fuel * 10 // self._MAX_FUEL
-        fstr = f"Fuel: [{'=' * fuel_bar}{' ' * (10 - fuel_bar)}]"
-        obs = obs._replace(hud=obs.hud + "  " + fstr) if hasattr(
-            obs, '_replace'
-        ) else obs
-        return obs
-
     def _advance_entities(self) -> None:
         self._entities = [e for e in self._entities if e.alive]
 
     def _symbol_meaning(self, ch: str) -> str:
         return {
-            "-": "wall",
-            "|": "wall",
-            "#": "obstacle",
+            "-": "wall", "|": "wall", "#": "obstacle",
             "E": "enemy (20pts)",
             "F": "fuel depot (+30 fuel, 10pts)",
-            "*": "your bullet",
-            " ": "empty",
+            "*": "your bullet", " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = f"Fuel: {self._fuel}"
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (
             "Fly through the scrolling battlefield. "
             "Shoot enemies (E) and collect fuel depots (F). "
-            "Avoid walls (#) and manage your fuel. "
-            "Running out of fuel costs a life."
+            "Avoid walls (#) and manage your fuel."
         )

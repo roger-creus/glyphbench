@@ -134,8 +134,10 @@ class MiniGridBlockedUnlockPickupEnv(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            "Two rooms separated by a locked door. A blue ball (O) blocks access "
-            "to the door. Move the ball out of the way (PICKUP then DROP elsewhere), "
-            "find the yellow key (K), unlock the door (D), then reach the goal (G). "
+            "Two rooms separated by a locked door. A blue "
+            "ball blocks access to the door. Move the ball "
+            "out of the way (PICKUP then DROP elsewhere), "
+            "find the yellow key, unlock the yellow door, "
+            "then reach the goal. "
             "Reward = 1 - 0.9 * (steps / max_steps)."
         )

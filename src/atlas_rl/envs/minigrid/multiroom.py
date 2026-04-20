@@ -47,9 +47,10 @@ class _MultiRoomBase(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            f"Navigate through {self._num_rooms} connected rooms to reach the goal (G). "
-            f"Each room is connected by a door (D). Use TOGGLE to open doors, "
-            f"then walk through. Reward = 1 - 0.9 * (steps / max_steps)."
+            f"Navigate through {self._num_rooms} connected "
+            "rooms to reach the goal. Each room is connected "
+            "by a door. Use TOGGLE to open doors, then walk "
+            "through. Reward = 1 - 0.9 * (steps / max_steps)."
         )
 
 

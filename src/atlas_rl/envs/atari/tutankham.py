@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -173,6 +174,7 @@ class TutankhamEnv(AtariBase):
         if action_name in _DIRS:
             d = _DIRS[action_name]
             self._facing = d
+            self._player_dir = d
             nx = self._player_x + d[0]
             ny = self._player_y + d[1]
             if not self._is_solid(nx, ny):
@@ -303,6 +305,20 @@ class TutankhamEnv(AtariBase):
             "M": "mummy enemy",
             "!": "bullet",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        dname = self._DIR_NAMES.get(self._facing, "none")
+        key = "yes" if self._has_key else "no"
+        extra = (
+            f"Facing: {dname}  Key: {key}  "
+            f"Treasures: {self._treasures_left}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

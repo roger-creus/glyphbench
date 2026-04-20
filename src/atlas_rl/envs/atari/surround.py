@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -89,12 +90,16 @@ class SurroundEnv(AtariBase):
         # Update player direction (no 180-degree turns)
         if action_name == "UP" and self._player_dy != 1:
             self._player_dx, self._player_dy = 0, -1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN" and self._player_dy != -1:
             self._player_dx, self._player_dy = 0, 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT" and self._player_dx != 1:
             self._player_dx, self._player_dy = -1, 0
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT" and self._player_dx != -1:
             self._player_dx, self._player_dy = 1, 0
+            self._player_dir = (1, 0)
         # NOOP: keep current direction
 
         # Move player
@@ -209,6 +214,29 @@ class SurroundEnv(AtariBase):
             "O": "opponent",
             " ": "empty",
         }.get(ch, ch)
+
+    _DIR_MAP = {
+        (0, -1): "up", (0, 1): "down",
+        (-1, 0): "left", (1, 0): "right",
+    }
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        p_dir = self._DIR_MAP.get(
+            (self._player_dx, self._player_dy), "?"
+        )
+        o_dir = self._DIR_MAP.get(
+            (self._opp_dx, self._opp_dy), "?"
+        )
+        extra = (
+            f"Your dir: {p_dir}"
+            f"  Opponent dir: {o_dir}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

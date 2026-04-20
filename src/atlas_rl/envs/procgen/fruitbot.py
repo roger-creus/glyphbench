@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import ProcgenBase
 
 
@@ -89,6 +90,8 @@ class FruitBotEnv(ProcgenBase):
             self._try_move(-1, 0)
         elif action_name == "RIGHT":
             self._try_move(1, 0)
+        elif action_name == "DOWN":
+            self._agent_dir = (0, 1)
 
         # Fall
         fall_dist = 2 if action_name == "DOWN" else 1
@@ -121,6 +124,19 @@ class FruitBotEnv(ProcgenBase):
             return reward, True, {}
 
         return reward, False, {}
+
+    # ------------------------------------------------------------------
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = (
+            f"Fruits: {self._fruits_collected}"
+            f"  Obstacles hit: {self._obstacles_hit}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     # ------------------------------------------------------------------
     def _symbol_meaning(self, ch: str) -> str:

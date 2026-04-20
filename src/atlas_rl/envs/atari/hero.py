@@ -127,12 +127,16 @@ class HeroEnv(AtariBase):
 
         if action_name == "UP":
             dy = -1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             dy = 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT":
             dx = -1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             dx = 1
+            self._player_dir = (1, 0)
         elif action_name == "FIRE":
             # Fire laser ahead or place dynamite
             reward += self._use_fire()

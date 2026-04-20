@@ -47,10 +47,11 @@ class _DoorKeyBase(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            f"Navigate a {self._room_size}x{self._room_size} room divided by a wall. "
-            f"Find the yellow key (K), pick it up with PICKUP, face the locked door (D) "
-            f"and use TOGGLE to unlock it, then navigate to the goal (G). "
-            f"Reward = 1 - 0.9 * (steps / max_steps)."
+            f"Navigate a {self._room_size}x{self._room_size} room "
+            "divided by a wall. Find the yellow key, pick it up "
+            "with PICKUP, face the locked yellow door and use "
+            "TOGGLE to unlock it, then navigate to the goal. "
+            "Reward = 1 - 0.9 * (steps / max_steps)."
         )
 
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -145,8 +146,10 @@ class KangarooEnv(AtariBase):
 
         if action_name == "LEFT":
             dx = -1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             dx = 1
+            self._player_dir = (1, 0)
         elif action_name == "UP":
             if self._on_ladder():
                 dy = -1
@@ -265,6 +268,29 @@ class KangarooEnv(AtariBase):
             "M": "monkey",
             "B": "baby kangaroo",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        state = "airborne" if self._jumping else "grounded"
+        # Determine floor number from player y
+        floor = 0
+        thresholds = [
+            self._HEIGHT - 2,
+            self._HEIGHT - 6,
+            self._HEIGHT - 10,
+            self._HEIGHT - 14,
+            3,
+        ]
+        for i, th in enumerate(thresholds):
+            if self._player_y >= th - 1:
+                floor = i
+                break
+        extra = f"Jump: {state}  Floor: {floor}"
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

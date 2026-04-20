@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -105,15 +106,19 @@ class QbertEnv(AtariBase):
 
         if action_name == "UP_RIGHT":
             new_row -= 1
+            self._player_dir = (1, 0)
             # col stays same (up-right on pyramid)
         elif action_name == "UP_LEFT":
             new_row -= 1
             new_col -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "DOWN_RIGHT":
             new_row += 1
             new_col += 1
+            self._player_dir = (1, 0)
         elif action_name == "DOWN_LEFT":
             new_row += 1
+            self._player_dir = (-1, 0)
             # col stays same (down-left on pyramid)
 
         if action_name != "NOOP":
@@ -219,6 +224,19 @@ class QbertEnv(AtariBase):
             "o": "ball (enemy)",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        colored = sum(
+            1 for v in self._cubes.values() if v
+        )
+        total = len(self._cubes)
+        extra = f"Cubes: {colored}/{total}"
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

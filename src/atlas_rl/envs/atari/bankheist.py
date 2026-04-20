@@ -176,6 +176,7 @@ class BankHeistEnv(AtariBase):
         if action_name in _DIRS:
             move_dir = _DIRS[action_name]
             self._facing = move_dir
+            self._player_dir = move_dir
         elif action_name == "FIRE":
             fire = True
 
@@ -290,13 +291,19 @@ class BankHeistEnv(AtariBase):
                     break
 
     def _render_current_observation(self) -> GridObservation:
-        """Override to include gas in HUD."""
+        """Override to include gas and banks in HUD."""
         obs = super()._render_current_observation()
-        gas_hud = f"    Gas: {self._gas}    Dynamite: {self._dynamite_count}"
+        remaining = self._total_banks - self._banks_robbed
+        extra = (
+            f"Gas: {self._gas}  "
+            f"Dynamite: {self._dynamite_count}\n"
+            f"Banks: {remaining}"
+        )
+        new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid,
             legend=obs.legend,
-            hud=obs.hud + gas_hud,
+            hud=new_hud,
             message=obs.message,
         )
 

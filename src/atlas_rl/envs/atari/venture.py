@@ -140,15 +140,19 @@ class VentureEnv(AtariBase):
         if action_name == "UP":
             dy = -1
             self._facing = "UP"
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             dy = 1
             self._facing = "DOWN"
+            self._player_dir = (0, 1)
         elif action_name == "LEFT":
             dx = -1
             self._facing = "LEFT"
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             dx = 1
             self._facing = "RIGHT"
+            self._player_dir = (1, 0)
         elif action_name == "FIRE":
             if self._arrow_cooldown <= 0:
                 self._fire_arrow()
@@ -277,6 +281,22 @@ class VentureEnv(AtariBase):
             "3": "room 3 entrance",
             "4": "room 4 entrance",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        room = (
+            self._current_room + 1
+            if self._current_room >= 0
+            else 0
+        )
+        extra = (
+            f"Facing: {self._facing}  Room: {room}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

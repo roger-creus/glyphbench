@@ -97,12 +97,16 @@ class IceHockeyEnv(AtariBase):
         nx, ny = self._player_x, self._player_y
         if action_name == "UP":
             ny -= 1
+            self._player_dir = (0, -1)
         elif action_name == "DOWN":
             ny += 1
+            self._player_dir = (0, 1)
         elif action_name == "LEFT":
             nx -= 1
+            self._player_dir = (-1, 0)
         elif action_name == "RIGHT":
             nx += 1
+            self._player_dir = (1, 0)
         if self._in_rink(nx, ny):
             self._player_x, self._player_y = nx, ny
 
@@ -271,10 +275,32 @@ class IceHockeyEnv(AtariBase):
                     symbols[ch] = self._symbol_meaning(ch)
         r, c = self._player_y, self._player_x
         if 0 <= c < self._grid_w and 0 <= r < self._grid_h:
-            render[r][c] = "@"
-        symbols["@"] = "you"
+            pch = self._DIR_CHARS.get(
+                self._player_dir, "@"
+            )
+            render[r][c] = pch
+            dname = self._DIR_NAMES.get(
+                self._player_dir, "none"
+            )
+            symbols[pch] = f"you (facing {dname})"
         p = min(self._period, 3)
-        hud = f"You {self._player_goals} - {self._opp_goals} Opp | Period {p}/3"
+        px = int(round(self._puck_x))
+        py = int(round(self._puck_y))
+        pdx = round(self._puck_dx, 1)
+        pdy = round(self._puck_dy, 1)
+        if self._puck_holder:
+            holder = self._puck_holder
+        else:
+            holder = "loose"
+        puck = (
+            f"Puck: pos=({px},{py})"
+            f" vel=({pdx},{pdy}) holder={holder}"
+        )
+        hud = (
+            f"You {self._player_goals} - "
+            f"{self._opp_goals} Opp | Period {p}/3"
+            f"\n{puck}"
+        )
         return GridObservation(
             grid=grid_to_string(render), legend=build_legend(symbols),
             hud=hud, message=self._message,

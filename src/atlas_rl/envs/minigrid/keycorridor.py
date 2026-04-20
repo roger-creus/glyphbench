@@ -106,10 +106,11 @@ class _KeyCorridorBase(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            f"A corridor with {2 * self._num_rows} rooms branching off. "
-            f"One room has the goal (G) behind a locked yellow door. "
-            f"Find the yellow key (K) in another room, unlock the door, "
-            f"and reach the goal. Reward = 1 - 0.9 * (steps / max_steps)."
+            f"A corridor with {2 * self._num_rows} rooms "
+            "branching off. One room has the goal behind a "
+            "locked yellow door. Find the yellow key in "
+            "another room, unlock the door, and reach the "
+            "goal. Reward = 1 - 0.9 * (steps / max_steps)."
         )
 
 

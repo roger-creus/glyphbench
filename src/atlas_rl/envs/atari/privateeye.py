@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -173,6 +174,7 @@ class PrivateEyeEnv(AtariBase):
         # Movement
         if action_name in _DIRS:
             d = _DIRS[action_name]
+            self._player_dir = d
             nx = self._player_x + d[0]
             ny = self._player_y + d[1]
             # Enter building via door
@@ -334,6 +336,19 @@ class PrivateEyeEnv(AtariBase):
             "V": "criminal",
             " ": "empty",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        extra = (
+            f"Timer: {self._case_timer}"
+            f"  Clues: {self._clues_found}"
+            f"/{self._clues_total}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

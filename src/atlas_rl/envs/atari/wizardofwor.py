@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -158,6 +159,7 @@ class WizardOfWorEnv(AtariBase):
         elif action_name in _DIRS:
             move_dir = _DIRS[action_name]
             self._facing = move_dir
+            self._player_dir = move_dir
 
         # Move player
         if move_dir is not None:
@@ -298,6 +300,22 @@ class WizardOfWorEnv(AtariBase):
 
         # Otherwise move like a fast ghost
         self._move_ghost(wizard)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        dname = self._DIR_NAMES.get(self._facing, "none")
+        enemies = sum(
+            1 for e in self._entities
+            if e.etype in ("ghost", "wizard") and e.alive
+        )
+        extra = (
+            f"Facing: {dname}  Enemies: {enemies}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _advance_entities(self) -> None:
         """Override: entities are moved in _game_step."""

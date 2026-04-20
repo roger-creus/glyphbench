@@ -130,15 +130,24 @@ class _ObstructedMazeBase(MiniGridBase):
         self._place_obj(gx, gy, Goal())
 
     def _task_description(self) -> str:
-        parts = ["Navigate through a maze of rooms to reach the goal (G)."]
+        parts = [
+            "Navigate through a maze of rooms to reach "
+            "the goal."
+        ]
         if self._locked:
             parts.append(
-                "Some doors are locked (D) — find the yellow key (K) to unlock them."
+                "Some doors are locked -- find the yellow "
+                "key to unlock them."
             )
         if self._blocked:
-            parts.append("Balls (O) block some doorways — pick them up and move them.")
+            parts.append(
+                "Balls block some doorways -- pick them up "
+                "and move them."
+            )
         if self._hidden_key:
-            parts.append("The key may be hidden behind a ball.")
+            parts.append(
+                "The key may be hidden behind a ball."
+            )
         parts.append("Reward = 1 - 0.9 * (steps / max_steps).")
         return " ".join(parts)
 

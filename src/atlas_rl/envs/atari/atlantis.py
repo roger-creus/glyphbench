@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -251,6 +252,21 @@ class AtlantisEnv(AtariBase):
             "\\": "bullet (diagonal left)",
             " ": "sky",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        bldgs = len(self._buildings)
+        enemies = sum(
+            1 for f in self._flyers if f.alive
+        )
+        extra = (
+            f"Buildings: {bldgs}  Enemies: {enemies}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

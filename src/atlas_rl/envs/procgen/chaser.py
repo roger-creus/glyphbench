@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 from atlas_rl.envs.procgen.base import Entity, ProcgenBase
 
 _PELLET = "."
@@ -234,6 +235,21 @@ class ChaserEnv(ProcgenBase):
         info["power_timer"] = self._power_timer
         info["enemies_eaten"] = self._enemies_eaten
         return reward, terminated, info
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        if self._power_timer > 0:
+            pwr = f"Power: {self._power_timer} turns"
+        else:
+            pwr = "Power: OFF"
+        extra = (
+            f"{pwr}  Pellets: {self._pellet_count}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (

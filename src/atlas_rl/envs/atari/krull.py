@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from atlas_rl.core.action import ActionSpec
+from atlas_rl.core.observation import GridObservation
 
 from .base import AtariBase
 
@@ -193,6 +194,7 @@ class KrullEnv(AtariBase):
         # Movement
         if action_name in _DIRS:
             d = _DIRS[action_name]
+            self._player_dir = d
             nx = self._player_x + d[0]
             ny = self._player_y + d[1]
             if not self._is_solid(nx, ny):
@@ -413,6 +415,23 @@ class KrullEnv(AtariBase):
             "D": "exit door",
             "+": "glaive (projectile)",
         }.get(ch, ch)
+
+    def _render_current_observation(self) -> GridObservation:
+        obs = super()._render_current_observation()
+        etypes = ("slayer", "creature", "guard")
+        enemies = sum(
+            1 for e in self._entities
+            if e.etype in etypes and e.alive
+        )
+        extra = (
+            f"Stage: {self._stage}/3  "
+            f"Enemies: {enemies}"
+        )
+        new_hud = obs.hud + "\n" + extra
+        return GridObservation(
+            grid=obs.grid, legend=obs.legend,
+            hud=new_hud, message=obs.message,
+        )
 
     def _task_description(self) -> str:
         return (
