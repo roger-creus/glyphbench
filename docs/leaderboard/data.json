@@ -17,6 +17,20 @@
       "n_envs": 2
     },
     {
+      "id": "Qwen_Qwen3-0.6B__history_zeroshot",
+      "model": "Qwen/Qwen3-0.6B",
+      "harness": "history_zeroshot",
+      "score": 0.3740458015267175,
+      "per_suite": {
+        "craftax": 0.3740458015267175
+      },
+      "parse_failure_rate": 0.029038112522686024,
+      "total_input_tokens": 832962,
+      "total_output_tokens": 341302,
+      "total_cost": null,
+      "n_envs": 1
+    },
+    {
       "id": "Qwen_Qwen3-0.6B__markov_cot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "markov_cot",
@@ -65,19 +79,19 @@
       "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "markov_zeroshot",
-      "score": -0.2563382116066514,
+      "score": -0.2662011368280129,
       "per_suite": {
         "minigrid": -0.006398111111111111,
-        "atari": -0.3524953108799003,
+        "atari": -0.40180993698670775,
         "procgen": 0.1783712121212121,
         "craftax": -0.10648799709962788,
         "classics": -0.9946808510638299
       },
-      "parse_failure_rate": 0.00022432285797754684,
-      "total_input_tokens": 108783014,
-      "total_output_tokens": 2077597,
+      "parse_failure_rate": 0.0001901526839619176,
+      "total_input_tokens": 123079628,
+      "total_output_tokens": 2459602,
       "total_cost": null,
-      "n_envs": 137
+      "n_envs": 160
     },
     {
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
@@ -101,19 +115,19 @@
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "markov_zeroshot",
-      "score": -0.0382930363248824,
+      "score": -0.039028750610596685,
       "per_suite": {
-        "minigrid": 0.014346214285714285,
+        "minigrid": 0.010667642857142856,
         "minihack": -0.003125000000000001,
         "procgen": -0.07015111325456155,
         "craftax": -0.09000113851757613,
         "classics": -0.0425341441379886
       },
-      "parse_failure_rate": 0.0004467096642445076,
-      "total_input_tokens": 162339850,
-      "total_output_tokens": 3546533,
+      "parse_failure_rate": 0.00048090714273661477,
+      "total_input_tokens": 163594722,
+      "total_output_tokens": 3731928,
       "total_cost": null,
-      "n_envs": 187
+      "n_envs": 188
     },
     {
       "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-7B__history_cot",
@@ -133,73 +147,73 @@
       "id": "google_gemma-3-12b-it__history_cot",
       "model": "google/gemma-3-12b-it",
       "harness": "history_cot",
-      "score": -0.02429708222811669,
+      "score": -0.0642970822281167,
       "per_suite": {
-        "procgen": -0.02429708222811669
+        "procgen": -0.0642970822281167
       },
-      "parse_failure_rate": 0.000499438132101386,
-      "total_input_tokens": 8869778,
-      "total_output_tokens": 529084,
+      "parse_failure_rate": 0.0013987411329803177,
+      "total_input_tokens": 11640081,
+      "total_output_tokens": 690453,
       "total_cost": null,
-      "n_envs": 8
+      "n_envs": 9
     },
     {
       "id": "google_gemma-3-12b-it__history_zeroshot",
       "model": "google/gemma-3-12b-it",
       "harness": "history_zeroshot",
-      "score": -0.09587636277883055,
+      "score": -0.0852892165285676,
       "per_suite": {
         "minihack": -0.012500000000000002,
-        "classics": -0.17925272555766109
+        "classics": -0.15807843305713518
       },
       "parse_failure_rate": 0.0,
-      "total_input_tokens": 119300848,
-      "total_output_tokens": 1110666,
+      "total_input_tokens": 147772416,
+      "total_output_tokens": 1184021,
       "total_cost": null,
-      "n_envs": 81
+      "n_envs": 86
     },
     {
       "id": "google_gemma-3-12b-it__markov_cot",
       "model": "google/gemma-3-12b-it",
       "harness": "markov_cot",
-      "score": -0.3722153691638124,
+      "score": -0.15147691277587494,
       "per_suite": {
-        "procgen": -0.3722153691638124
+        "procgen": -0.15147691277587494
       },
-      "parse_failure_rate": 0.00021874658208465494,
-      "total_input_tokens": 3851150,
-      "total_output_tokens": 633630,
+      "parse_failure_rate": 0.0004298610116062473,
+      "total_input_tokens": 5870831,
+      "total_output_tokens": 950216,
       "total_cost": null,
-      "n_envs": 8
+      "n_envs": 12
     },
     {
       "id": "google_gemma-3-12b-it__markov_zeroshot",
       "model": "google/gemma-3-12b-it",
       "harness": "markov_zeroshot",
-      "score": -0.014327704657217243,
+      "score": -0.06653192300523322,
       "per_suite": {
         "minihack": -0.021875,
-        "classics": -0.006780409314434488
+        "classics": -0.11118884601046645
       },
-      "parse_failure_rate": 1.803263907672888e-05,
-      "total_input_tokens": 76060881,
-      "total_output_tokens": 1182523,
+      "parse_failure_rate": 0.00886017026044009,
+      "total_input_tokens": 107460446,
+      "total_output_tokens": 1341570,
       "total_cost": null,
-      "n_envs": 83
+      "n_envs": 94
     },
     {
       "id": "google_gemma-3-4b-it__history_cot",
       "model": "google/gemma-3-4b-it",
       "harness": "history_cot",
-      "score": 0.055247749706483454,
+      "score": 0.22774774970648345,
       "per_suite": {
-        "procgen": 0.055247749706483454
+        "procgen": 0.22774774970648345
       },
-      "parse_failure_rate": 0.0017657120785741875,
-      "total_input_tokens": 22012379,
-      "total_output_tokens": 1024954,
+      "parse_failure_rate": 0.001615998384001616,
+      "total_input_tokens": 23019684,
+      "total_output_tokens": 1115487,
       "total_cost": null,
-      "n_envs": 15
+      "n_envs": 16
     },
     {
       "id": "google_gemma-3-4b-it__history_zeroshot",
@@ -220,15 +234,15 @@
       "id": "google_gemma-3-4b-it__markov_cot",
       "model": "google/gemma-3-4b-it",
       "harness": "markov_cot",
-      "score": -0.14144120247568526,
+      "score": -0.08958575182367243,
       "per_suite": {
-        "procgen": -0.14144120247568526
+        "procgen": -0.08958575182367243
       },
-      "parse_failure_rate": 0.0008180871634686895,
-      "total_input_tokens": 5586889,
-      "total_output_tokens": 1026996,
+      "parse_failure_rate": 0.004007494535234725,
+      "total_input_tokens": 8275725,
+      "total_output_tokens": 1446611,
       "total_cost": null,
-      "n_envs": 12
+      "n_envs": 16
     },
     {
       "id": "google_gemma-3-4b-it__markov_zeroshot",
@@ -249,15 +263,15 @@
       "id": "mistralai_Mistral-7B-Instruct-v0.3__history_cot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "history_cot",
-      "score": -0.12493528141351772,
+      "score": -0.1619909347443488,
       "per_suite": {
-        "procgen": -0.12493528141351772
+        "procgen": -0.1619909347443488
       },
-      "parse_failure_rate": 0.061938338172266,
-      "total_input_tokens": 25144186,
-      "total_output_tokens": 1567032,
+      "parse_failure_rate": 0.07178112241789043,
+      "total_input_tokens": 27817036,
+      "total_output_tokens": 1797670,
       "total_cost": null,
-      "n_envs": 13
+      "n_envs": 16
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__history_zeroshot",
@@ -277,15 +291,15 @@
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_cot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "markov_cot",
-      "score": -0.11666666666666668,
+      "score": -0.08204918032786886,
       "per_suite": {
-        "procgen": -0.11666666666666668
+        "procgen": -0.08204918032786886
       },
-      "parse_failure_rate": 0.1275778694353577,
-      "total_input_tokens": 7368030,
-      "total_output_tokens": 1703630,
+      "parse_failure_rate": 0.13509079594953896,
+      "total_input_tokens": 9371571,
+      "total_output_tokens": 2131287,
       "total_cost": null,
-      "n_envs": 12
+      "n_envs": 16
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_zeroshot",
