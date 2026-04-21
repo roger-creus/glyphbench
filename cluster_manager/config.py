@@ -21,7 +21,7 @@ CLUSTERS: dict[str, dict] = {
     "rorqual": {
         "ssh_host": "rorqual-robot",
         "username": "rogercc",
-        "account": "rrg-bengioy-ad",
+        "account": "def-bengioy",
         "scratch": "/scratch/rogercc",
         "code_dir": "/scratch/rogercc/glyphbench",
         "image_path": "/scratch/rogercc/images/glyphbench.sif",
@@ -38,7 +38,7 @@ CLUSTERS: dict[str, dict] = {
     "narval": {
         "ssh_host": "narval-robot",
         "username": "rogercc",
-        "account": "rrg-gberseth",
+        "account": "def-gberseth",
         "scratch": "/scratch/rogercc",
         "code_dir": "/scratch/rogercc/glyphbench",
         "image_path": "/scratch/rogercc/images/glyphbench.sif",
@@ -54,7 +54,7 @@ CLUSTERS: dict[str, dict] = {
     "fir": {
         "ssh_host": "fir-robot",
         "username": "rogercc",
-        "account": "rrg-bengioy-ad",
+        "account": "def-bengioy",
         "scratch": "/scratch/rogercc",
         "code_dir": "/scratch/rogercc/glyphbench",
         "image_path": "/scratch/rogercc/images/glyphbench.sif",
