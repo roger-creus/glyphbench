@@ -42,20 +42,20 @@
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "history_zeroshot",
-      "score": 0.04762489813129011,
+      "score": 0.04595660041049238,
       "per_suite": {
-        "minigrid": 0.07646423076923077,
+        "minigrid": 0.06645444444444444,
         "minihack": -0.005,
         "atari": 0.3193449527646418,
         "procgen": -0.040789473684210494,
         "craftax": 0.0059258157491022395,
         "classics": -0.07019613681102367
       },
-      "parse_failure_rate": 0.000165293809746825,
-      "total_input_tokens": 259967625,
-      "total_output_tokens": 3539949,
+      "parse_failure_rate": 0.0002119083473854117,
+      "total_input_tokens": 264105172,
+      "total_output_tokens": 3813132,
       "total_cost": null,
-      "n_envs": 177
+      "n_envs": 179
     },
     {
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
