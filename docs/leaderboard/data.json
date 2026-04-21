@@ -51,11 +51,11 @@
         "craftax": 0.0059258157491022395,
         "classics": -0.07019613681102367
       },
-      "parse_failure_rate": 0.0001482895724626264,
-      "total_input_tokens": 258184198,
-      "total_output_tokens": 3461201,
+      "parse_failure_rate": 0.000165293809746825,
+      "total_input_tokens": 259967625,
+      "total_output_tokens": 3539949,
       "total_cost": null,
-      "n_envs": 176
+      "n_envs": 177
     },
     {
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
