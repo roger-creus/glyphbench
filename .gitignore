@@ -54,3 +54,7 @@ procgen-master.zip
 
 # Container images
 cluster_manager/*.sif
+
+# Cluster results (pulled from remote, big & ephemeral)
+cluster_manager/results/
+cluster_manager/manifests/
