@@ -8,10 +8,14 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -21,6 +25,9 @@ import numpy as np
 SUITES = ["minigrid", "minihack", "atari", "procgen", "craftax", "classics"]
 
 EPSILON = 1e-6  # Avoid division by zero
+
+# Fraction of a suite a model may miss before we emit a coverage warning.
+COVERAGE_WARN_THRESHOLD = 0.05
 
 
 def env_to_suite(env_id: str) -> str:
@@ -164,6 +171,18 @@ def compute_glyphbench_scores(
                 harness_counts[h] = harness_counts.get(h, 0) + len(envs)
         harness = max(harness_counts, key=harness_counts.get) if harness_counts else "markov_zeroshot"
 
+    # Expected env set = baseline keys (the source of truth for what exists).
+    expected_envs = set(baseline.keys())
+    expected_per_suite: dict[str, set[str]] = {s: set() for s in SUITES}
+    for env_id in expected_envs:
+        s = env_to_suite(env_id)
+        if s in expected_per_suite:
+            expected_per_suite[s].add(env_id)
+
+    # Warn once per env: (a) missing-from-baseline, (b) near-zero baseline.
+    warned_missing_baseline: set[str] = set()
+    warned_near_zero: set[str] = set()
+
     # Compute per-env normalized scores
     per_env_rows: list[dict[str, Any]] = []
     model_suite_scores: dict[str, dict[str, list[float]]] = {}
@@ -175,8 +194,30 @@ def compute_glyphbench_scores(
         model_suite_scores[model_name] = {s: [] for s in SUITES}
 
         for env_id, result in envs.items():
+            # (2) Skip envs not in baseline; warn once per unique env.
+            if env_id not in baseline:
+                if env_id not in warned_missing_baseline:
+                    logger.warning(
+                        "env %s not in random baseline; skipping from scoring "
+                        "(cannot normalize without a reference)",
+                        env_id,
+                    )
+                    warned_missing_baseline.add(env_id)
+                continue
+
+            random_return = baseline[env_id]
+
+            # (3) Near-zero random baseline -> normalization noisy. Log once per env.
+            if abs(random_return) < EPSILON and env_id not in warned_near_zero:
+                logger.info(
+                    "env %s has near-zero random baseline (|r|=%.2e); "
+                    "normalization may be noisy",
+                    env_id,
+                    abs(random_return),
+                )
+                warned_near_zero.add(env_id)
+
             raw_return = result["mean_return"]
-            random_return = baseline.get(env_id, 0.0)
             norm = normalize_return(raw_return, random_return)
             suite = env_to_suite(env_id)
 
@@ -216,12 +257,41 @@ def compute_glyphbench_scores(
         pfr_values = [e.get("parse_failure_rate", 0) for e in envs.values()]
         mean_pfr = float(np.mean(pfr_values)) if pfr_values else 0.0
 
+        # (1) Per-suite coverage vs. expected baseline env set.
+        scored_env_ids = {
+            r["env_id"] for r in per_env_rows if r["model"] == model_name
+        }
+        coverage: dict[str, float] = {}
+        for suite in SUITES:
+            expected = expected_per_suite.get(suite, set())
+            if not expected:
+                # Suite has no envs in baseline -> coverage undefined; report 1.0.
+                coverage[suite] = 1.0
+                continue
+            scored_in_suite = scored_env_ids & expected
+            coverage[suite] = round(len(scored_in_suite) / len(expected), 4)
+
+            missing_count = len(expected) - len(scored_in_suite)
+            if missing_count / len(expected) > COVERAGE_WARN_THRESHOLD:
+                logger.warning(
+                    "model %s missing %d/%d envs in suite %s "
+                    "(coverage=%.2f < %.2f); GlyphBench Score not directly "
+                    "comparable to full-coverage models",
+                    model_name,
+                    missing_count,
+                    len(expected),
+                    suite,
+                    coverage[suite],
+                    1.0 - COVERAGE_WARN_THRESHOLD,
+                )
+
         leaderboard.append({
             "model": model_name,
             "glyphbench_score": round(glyphbench_score, 4),
             "n_envs": sum(suite_iqms[s]["n_envs"] for s in SUITES),
             "mean_parse_failure_rate": round(mean_pfr, 4),
             "per_suite": suite_iqms,
+            "coverage": coverage,
         })
 
     leaderboard.sort(key=lambda x: x["glyphbench_score"], reverse=True)
