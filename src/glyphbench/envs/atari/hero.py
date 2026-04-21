@@ -274,6 +274,43 @@ class HeroEnv(AtariBase):
             "Avoid lava and bats."
         )
 
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari H.E.R.O.\n\n"
+            "TASK\n"
+            "Descend a mine shaft with a helicopter pack and rescue "
+            "a trapped survivor at the bottom. Use dynamite to blow "
+            "up destructible walls and a short-range laser to kill "
+            "bats. Reaching and touching the survivor advances the "
+            "level to a new shaft.\n\n"
+            "BOARD\n"
+            "20x16 mine. Border walls. Solid rock platforms '#' cross "
+            "the shaft every 3 rows with one 2-wide gap each. "
+            "Destructible walls 'X' block parts of rows 3, 6, 9, 12. "
+            "Lava 'tilde' cells appear on the bottom row. Bats 'b' "
+            "patrol horizontally in a 7-cell range. Survivor 'S' "
+            "sits near bottom-center. You are an arrow glyph.\n\n"
+            "MECHANICS\n"
+            "UP flies you 1 cell up; DOWN falls 1 cell; LEFT/RIGHT "
+            "shift 1 cell. You cannot enter rock '#' or destructible "
+            "'X' without clearing the latter first. FIRE: if the "
+            "cell in any 4-adjacent direction contains an 'X' and "
+            "you have dynamite, it blows the wall (uses 1 of 6 "
+            "dynamites) and also zaps any adjacent bat.\n\n"
+            "SCORING\n"
+            "+75 reward per destructible wall cleared with dynamite. "
+            "+50 reward per bat zapped with the laser/dynamite "
+            "blast. +1000 reward for rescuing the survivor.\n\n"
+            "TERMINATION\n"
+            "Three lives. Stepping on lava or touching a bat costs a "
+            "life and respawns you at the top. Episode ends at 0 "
+            "lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, dynamite remaining, and "
+            "survivor status.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
 
 def seed_offset(level: int) -> int:
     """Deterministic offset for level regeneration."""

@@ -3,191 +3,234 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GlyphBench Leaderboard</title>
+<title>GlyphBench — Leaderboard</title>
+<meta name="description" content="A benchmark of 292 text-rendered RL environments for evaluating LLM agents on sequential decision-making.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d0f12;
-    --bg-soft: #141820;
-    --fg: #e6e8ec;
-    --fg-dim: #8a8f99;
-    --accent: #6ee7b7;
-    --accent-dim: #3fa37f;
-    --border: #1f2530;
-    --warn: #fbbf24;
-    --bad: #ef4444;
-    --good: #10b981;
+    --bg: #fbfbf9;
+    --panel: #ffffff;
+    --fg: #17171a;
+    --fg-soft: #3a3a42;
+    --fg-dim: #6e6e76;
+    --rule: #e6e3dc;
+    --rule-soft: #f1eee7;
+    --accent: #0b5d4a;
+    --accent-soft: #e7f4ee;
+    --num: #17171a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
   body {
     font-family: 'Inter', system-ui, sans-serif;
     background: var(--bg);
     color: var(--fg);
-    line-height: 1.5;
-    padding: 0;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "ss01", "cv11";
   }
-  code, .mono { font-family: 'JetBrains Mono', monospace; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 2rem; }
   header {
-    padding: 3rem 2rem 2rem;
-    border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
-  }
-  .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 2rem;
+    border-bottom: 1px solid var(--rule);
+    padding: 4rem 0 2rem;
   }
   h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 2.9rem;
     letter-spacing: -0.02em;
+    line-height: 1.05;
   }
-  h1 .bench { color: var(--accent); }
+  h1 .bench { font-style: italic; font-weight: 400; }
   .tagline {
-    color: var(--fg-dim);
-    font-size: 1.1rem;
-    margin-top: 0.5rem;
-    max-width: 720px;
+    color: var(--fg-soft);
+    font-size: 1.05rem;
+    margin-top: 0.9rem;
+    max-width: 58ch;
   }
   .meta {
     display: flex;
-    gap: 2rem;
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
+    gap: 2.2rem;
+    margin-top: 1.6rem;
+    font-size: 0.85rem;
     color: var(--fg-dim);
     flex-wrap: wrap;
+    letter-spacing: 0.01em;
   }
   .meta strong { color: var(--fg); font-weight: 600; }
   nav {
     display: flex;
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-    border-top: 1px solid var(--border);
-    padding-top: 1rem;
+    gap: 1.8rem;
+    margin-top: 1.8rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule-soft);
+    font-size: 0.88rem;
   }
   nav a {
-    color: var(--fg-dim);
+    color: var(--fg-soft);
     text-decoration: none;
-    font-size: 0.9rem;
     transition: color 0.15s;
+    position: relative;
   }
   nav a:hover { color: var(--accent); }
-  main { padding: 2rem 0 4rem; }
+  nav a[target=_blank]::after { content: " ↗"; color: var(--fg-dim); font-size: 0.8em; }
+
+  main { padding: 3rem 0 5rem; }
+  section + section { margin-top: 3.5rem; }
+  h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.55rem;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.2rem;
+  }
+  h2 small {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: var(--fg-dim);
+    margin-left: 0.6rem;
+    letter-spacing: 0;
+  }
   .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
   }
   .stat-card {
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.1rem 1.2rem;
   }
   .stat-label {
-    font-size: 0.8rem;
+    font-size: 0.73rem;
     color: var(--fg-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.07em;
   }
   .stat-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    margin-top: 0.25rem;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 2rem;
+    font-weight: 600;
+    margin-top: 0.2rem;
+    letter-spacing: -0.01em;
+    color: var(--num);
   }
   .controls {
     display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.8rem;
+    margin-bottom: 1.1rem;
     align-items: center;
     flex-wrap: wrap;
   }
   select, input[type="search"] {
-    background: var(--bg-soft);
+    background: var(--panel);
     color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.48rem 0.7rem;
     font-family: inherit;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
   }
-  input[type="search"] { min-width: 240px; }
+  select:focus, input[type="search"]:focus {
+    outline: none; border-color: var(--accent);
+  }
+  input[type="search"] { min-width: 260px; }
+
   table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
     font-size: 0.9rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
   }
   th, td {
-    padding: 0.75rem 1rem;
+    padding: 0.72rem 1rem;
     text-align: left;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--rule-soft);
   }
+  tbody tr:last-child td { border-bottom: none; }
   th {
-    background: var(--bg);
+    background: #faf8f3;
     font-weight: 600;
     color: var(--fg-dim);
     cursor: pointer;
     user-select: none;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    font-size: 0.7rem;
+    white-space: nowrap;
   }
   th:hover { color: var(--accent); }
-  th.sorted::after {
-    content: ' ↓';
-    color: var(--accent);
-  }
-  th.sorted.asc::after { content: ' ↑'; }
-  tr:hover td { background: rgba(110, 231, 183, 0.05); }
-  td.num { font-family: 'JetBrains Mono', monospace; text-align: right; }
-  td.rank { font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
-  td.model { font-weight: 500; }
+  th.sorted { color: var(--accent); }
+  th.sorted::after { content: " ▾"; font-size: 0.85em; }
+  th.sorted.asc::after { content: " ▴"; }
+  tbody tr { transition: background 0.12s; }
+  tbody tr:hover { background: var(--accent-soft); }
+  td.num { font-family: 'JetBrains Mono', monospace; text-align: right; color: var(--num); }
+  td.rank { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; }
+  td.model { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+  td.harness { color: var(--fg-soft); font-variant-numeric: tabular-nums; }
   .score-bar {
     display: inline-block;
     height: 3px;
     background: var(--accent);
     vertical-align: middle;
-    margin-left: 0.5rem;
-    max-width: 80px;
+    margin-left: 0.6rem;
+    max-width: 70px;
+    opacity: 0.6;
   }
-  footer {
-    padding: 2rem;
-    border-top: 1px solid var(--border);
-    color: var(--fg-dim);
-    font-size: 0.85rem;
-    text-align: center;
-  }
-  footer a { color: var(--accent); text-decoration: none; }
-  .pending {
-    background: var(--bg-soft);
-    border: 1px dashed var(--border);
-    border-radius: 8px;
+  .empty {
+    background: var(--panel);
+    border: 1px dashed var(--rule);
+    border-radius: 6px;
     padding: 3rem 2rem;
     text-align: center;
     color: var(--fg-dim);
   }
-  .pending h2 { color: var(--fg); margin-bottom: 0.5rem; }
-  .suite-breakdown td.num { color: var(--fg-dim); }
+  .empty h3 {
+    color: var(--fg);
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    font-size: 1.25rem;
+  }
+  .details-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  .details-link:hover { text-decoration: underline; }
+
+  footer {
+    padding: 2.5rem 2rem;
+    border-top: 1px solid var(--rule);
+    color: var(--fg-dim);
+    font-size: 0.85rem;
+    text-align: center;
+    background: var(--panel);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  footer .fine { margin-top: 0.5rem; font-size: 0.78rem; max-width: 60ch; margin-left: auto; margin-right: auto; }
 </style>
 </head>
 <body>
 <header>
   <div class="container">
     <h1>Glyph<span class="bench">Bench</span></h1>
-    <p class="tagline">A unified benchmark of 292 text-rendered RL environments for evaluating LLM agents on sequential decision-making.</p>
+    <p class="tagline">A benchmark of 292 text-rendered reinforcement-learning environments for evaluating LLM agents on sequential decision-making, under four harness conditions.</p>
     <div class="meta">
       <span><strong>292</strong> environments</span>
       <span><strong>6</strong> suites</span>
       <span><strong>4</strong> harness modes</span>
-      <span>Last updated: <strong id="last-updated">—</strong></span>
+      <span>Last updated <strong id="last-updated">—</strong></span>
     </div>
     <nav>
       <a href="#leaderboard">Leaderboard</a>
@@ -201,9 +244,10 @@
 </header>
 
 <main class="container">
-  <section id="stats"></section>
+  <section id="summary"><div id="stats"></div></section>
 
   <section id="leaderboard">
+    <h2>Leaderboard <small>Aggregate score across all 292 environments.</small></h2>
     <div class="controls">
       <input type="search" id="search" placeholder="Filter by model…" aria-label="Filter by model name">
       <select id="harness-filter">
@@ -217,32 +261,30 @@
     <div id="table-container"></div>
   </section>
 
-  <section id="per-suite" style="margin-top: 3rem;">
-    <h2 style="margin-bottom: 1rem;">Per-suite breakdown</h2>
+  <section id="per-suite">
+    <h2>Per-suite <small>GlyphBench Score broken down by suite.</small></h2>
     <div id="suite-table-container"></div>
   </section>
 </main>
 
 <footer>
-  <p>GlyphBench is an open benchmark. <a href="https://github.com/roger-creus/glyphbench/blob/main/CONTRIBUTING.md">Contribute a model</a> · <a href="https://github.com/roger-creus/glyphbench">View on GitHub</a></p>
-  <p style="margin-top: 0.5rem;">Scores are random-normalized per environment, then aggregated by per-suite IQM, then averaged across suites (equal weight).</p>
+  <p>
+    GlyphBench is an open benchmark ·
+    <a href="https://github.com/roger-creus/glyphbench/blob/main/CONTRIBUTING.md">Contribute a model</a> ·
+    <a href="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets" target="_blank">Assets on Hugging Face</a>
+  </p>
+  <p class="fine">Scores are normalized per environment against a fixed-seed random baseline, aggregated by per-suite interquartile mean, then averaged across suites with equal weight.</p>
 </footer>
 
 <script>
 async function loadLeaderboard() {
   let data;
   try {
-    const response = await fetch('data.json');
-    data = await response.json();
+    data = await (await fetch('data.json')).json();
   } catch (e) {
-    document.getElementById('table-container').innerHTML = `
-      <div class="pending">
-        <h2>Results coming soon</h2>
-        <p>Experiments are running. This page will update automatically once baselines are in.</p>
-      </div>`;
+    emptyAll();
     return;
   }
-
   document.getElementById('last-updated').textContent = data.generated_at || '—';
   renderStats(data);
   renderLeaderboard(data);
@@ -251,98 +293,95 @@ async function loadLeaderboard() {
   attachFilters(data);
 }
 
+function emptyAll() {
+  document.getElementById('table-container').innerHTML = emptyBlock(
+    'Results coming soon',
+    'Experiments are running. This page updates automatically as runs land.');
+  document.getElementById('suite-table-container').innerHTML = '';
+}
+
+function emptyBlock(title, body) {
+  return `<div class="empty"><h3>${title}</h3><p>${body}</p></div>`;
+}
+
 function renderStats(data) {
-  const el = document.getElementById('stats');
   const n = (data.runs || []).length;
   const uniqueModels = new Set((data.runs || []).map(r => r.model)).size;
-  el.innerHTML = `
+  document.getElementById('stats').innerHTML = `
     <div class="stats">
-      <div class="stat-card"><div class="stat-label">Runs submitted</div><div class="stat-value">${n}</div></div>
-      <div class="stat-card"><div class="stat-label">Unique models</div><div class="stat-value">${uniqueModels}</div></div>
+      <div class="stat-card"><div class="stat-label">Runs</div><div class="stat-value">${n}</div></div>
+      <div class="stat-card"><div class="stat-label">Models</div><div class="stat-value">${uniqueModels}</div></div>
       <div class="stat-card"><div class="stat-label">Environments</div><div class="stat-value">292</div></div>
       <div class="stat-card"><div class="stat-label">Suites</div><div class="stat-value">6</div></div>
-    </div>
-  `;
+    </div>`;
 }
 
 function renderLeaderboard(data) {
   const runs = (data.runs || []).slice().sort((a, b) => b.score - a.score);
   if (runs.length === 0) {
-    document.getElementById('table-container').innerHTML = `
-      <div class="pending">
-        <h2>No runs yet</h2>
-        <p>Experiments running. Results will appear here.</p>
-      </div>`;
+    document.getElementById('table-container').innerHTML = emptyBlock(
+      'No runs yet', 'Experiments running. Results will appear here.');
     return;
   }
   const maxScore = Math.max(...runs.map(r => r.score));
   const rows = runs.map((r, i) => `
-    <tr data-model="${escapeHtml(r.model)}" data-harness="${escapeHtml(r.harness || '')}">
+    <tr data-model="${esc(r.model)}" data-harness="${esc(r.harness || '')}">
       <td class="rank">${i + 1}</td>
-      <td class="model">${escapeHtml(r.model)}</td>
-      <td>${escapeHtml(r.harness || '—')}</td>
-      <td class="num">${r.score.toFixed(3)}<span class="score-bar" style="width: ${Math.max(0, Math.min(100, (r.score / maxScore) * 80))}px;"></span></td>
+      <td class="model">${esc(r.model)}</td>
+      <td class="harness">${esc(r.harness || '—')}</td>
+      <td class="num">${r.score.toFixed(3)}<span class="score-bar" style="width: ${Math.max(0, Math.min(70, (r.score / Math.max(maxScore, 0.01)) * 70))}px;"></span></td>
       <td class="num">${r.parse_failure_rate != null ? (r.parse_failure_rate * 100).toFixed(1) + '%' : '—'}</td>
       <td class="num">${r.total_cost ? '$' + r.total_cost.toFixed(2) : '—'}</td>
-      <td><a href="runs/${encodeURIComponent(r.id)}.html" style="color: var(--accent); text-decoration: none;">details →</a></td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
   document.getElementById('table-container').innerHTML = `
     <table>
       <thead><tr>
         <th data-key="rank">#</th>
         <th data-key="model">Model</th>
         <th data-key="harness">Harness</th>
-        <th data-key="score" class="sorted">GlyphBench Score</th>
+        <th data-key="score" class="sorted">Score</th>
         <th data-key="parse_failure_rate">Parse fails</th>
         <th data-key="total_cost">Cost</th>
-        <th>Details</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-    </table>
-  `;
+    </table>`;
 }
 
 function renderSuiteBreakdown(data) {
   const runs = (data.runs || []);
   if (runs.length === 0) {
-    document.getElementById('suite-table-container').innerHTML = `<div class="pending"><p>Per-suite breakdown appears once runs are posted.</p></div>`;
+    document.getElementById('suite-table-container').innerHTML =
+      `<div class="empty"><p>Per-suite breakdown appears once runs are posted.</p></div>`;
     return;
   }
   const suites = ['minigrid', 'minihack', 'atari', 'procgen', 'craftax', 'classics'];
-  const header = `<tr><th>Model</th>${suites.map(s => `<th>${s}</th>`).join('')}<th>Overall</th></tr>`;
-  const rows = runs
-    .slice().sort((a, b) => b.score - a.score)
-    .map(r => `
+  const header = `<tr><th>Model</th><th>Harness</th>${suites.map(s => `<th>${s}</th>`).join('')}<th>Overall</th></tr>`;
+  const rows = runs.slice().sort((a, b) => b.score - a.score).map(r => `
       <tr>
-        <td class="model">${escapeHtml(r.model)}</td>
+        <td class="model">${esc(r.model)}</td>
+        <td class="harness">${esc(r.harness || '—')}</td>
         ${suites.map(s => `<td class="num">${r.per_suite && r.per_suite[s] != null ? r.per_suite[s].toFixed(3) : '—'}</td>`).join('')}
         <td class="num" style="color: var(--accent); font-weight: 600;">${r.score.toFixed(3)}</td>
-      </tr>
-    `).join('');
-  document.getElementById('suite-table-container').innerHTML = `
-    <table class="suite-breakdown"><thead>${header}</thead><tbody>${rows}</tbody></table>
-  `;
+      </tr>`).join('');
+  document.getElementById('suite-table-container').innerHTML =
+    `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`;
 }
 
 function attachSorting() {
   const ths = document.querySelectorAll('#table-container th');
   ths.forEach(th => {
     th.addEventListener('click', () => {
-      const key = th.dataset.key;
-      if (!key) return;
+      const key = th.dataset.key; if (!key) return;
       const tbody = document.querySelector('#table-container tbody');
       const rows = Array.from(tbody.querySelectorAll('tr'));
       const isAsc = th.classList.contains('sorted') && !th.classList.contains('asc');
       ths.forEach(t => t.classList.remove('sorted', 'asc'));
-      th.classList.add('sorted');
-      if (isAsc) th.classList.add('asc');
+      th.classList.add('sorted'); if (isAsc) th.classList.add('asc');
       const idx = Array.from(th.parentNode.children).indexOf(th);
       rows.sort((a, b) => {
         const av = a.children[idx].textContent.trim();
         const bv = b.children[idx].textContent.trim();
-        const an = parseFloat(av);
-        const bn = parseFloat(bv);
+        const an = parseFloat(av); const bn = parseFloat(bv);
         const cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv);
         return isAsc ? cmp : -cmp;
       });
@@ -353,23 +392,20 @@ function attachSorting() {
 
 function attachFilters(data) {
   const search = document.getElementById('search');
-  const harnessFilter = document.getElementById('harness-filter');
+  const hf = document.getElementById('harness-filter');
   function apply() {
-    const q = search.value.toLowerCase();
-    const h = harnessFilter.value;
+    const q = search.value.toLowerCase(); const h = hf.value;
     document.querySelectorAll('#table-container tbody tr').forEach(row => {
       const model = row.dataset.model.toLowerCase();
       const harness = row.dataset.harness;
-      const matchQ = !q || model.includes(q);
-      const matchH = h === 'all' || harness === h;
-      row.style.display = (matchQ && matchH) ? '' : 'none';
+      row.style.display = ((!q || model.includes(q)) && (h === 'all' || harness === h)) ? '' : 'none';
     });
   }
   search.addEventListener('input', apply);
-  harnessFilter.addEventListener('change', apply);
+  hf.addEventListener('change', apply);
 }
 
-function escapeHtml(s) {
+function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 

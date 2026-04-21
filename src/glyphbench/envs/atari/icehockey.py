@@ -324,3 +324,37 @@ class IceHockeyEnv(AtariBase):
             "Defend your goal from the opponent. "
             "3 periods, most goals wins."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Ice Hockey.\n\n"
+            "TASK\n"
+            "Play 3 periods of 1-on-1 hockey. Carry the puck to the "
+            "opponent goal and SHOOT to score; defend your goal from "
+            "their shots.\n\n"
+            "BOARD\n"
+            "20x24 rink. Boards '-' and '|' enclose the rink. Goal "
+            "zones 'G' span columns 7-12 at top and bottom. Center "
+            "line '.' at row 12. Puck '*'. Opponent 'V' starts near "
+            "top. You start near bottom and appear as an arrow. "
+            "Goal at row 1 is yours to attack; the row 22 goal is "
+            "theirs.\n\n"
+            "MECHANICS\n"
+            "UP / DOWN / LEFT / RIGHT skate 1 cell inside the rink. "
+            "If the puck is loose and within Manhattan distance 1 of "
+            "you, you pick it up; it then travels with you 1 cell "
+            "above your head. SHOOT with the puck launches it upward "
+            "(dy=-2) with dx in {-0.5, 0, 0.5}. Loose puck bounces "
+            "off side boards; entering a goal zone scores. Friction "
+            "reduces puck velocity by 5 percent per step.\n\n"
+            "SCORING\n"
+            "+1 reward per goal you score. -1 reward per goal "
+            "conceded. No per-step or puck-possession rewards.\n\n"
+            "TERMINATION\n"
+            "Three periods of 500 ticks each (1500 total). No lives. "
+            "At end the higher score wins (message only).\n\n"
+            "HUD\n"
+            "Shows your goals, opponent goals, current period, and "
+            "puck pos / vel / holder.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
