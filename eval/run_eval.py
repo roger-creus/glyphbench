@@ -217,7 +217,16 @@ class StepHistory:
                 if in_grid:
                     grid_lines.append(line)
             grid_text = "\n".join(grid_lines) if grid_lines else obs[:200]
-            parts.append(f"[Step {i+1}] Action: {act} | Reward: {rew:+.2f}\n{grid_text}")
+            # Present the causal chain in natural temporal order: the obs the
+            # model saw, then the action it chose from that obs, then the
+            # reward received for that action. Putting action/reward FIRST
+            # (as the earlier rendering did) invites the reader to interpret
+            # the grid as a post-action resulting state, inverting the
+            # causal chain. The stored tuple is (pre_action_obs, action, reward_for_action).
+            parts.append(
+                f"[Step {i+1}] Observed:\n{grid_text}\n"
+                f"Chose action: {act} | Reward received: {rew:+.2f}"
+            )
         return "\n\n".join(parts)
 
 
