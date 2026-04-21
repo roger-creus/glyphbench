@@ -42,38 +42,52 @@
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "history_zeroshot",
-      "score": 0.04595660041049238,
+      "score": 0.04556103824118022,
       "per_suite": {
-        "minigrid": 0.06645444444444444,
+        "minigrid": 0.06408107142857143,
         "minihack": -0.005,
         "atari": 0.3193449527646418,
         "procgen": -0.040789473684210494,
         "craftax": 0.0059258157491022395,
         "classics": -0.07019613681102367
       },
-      "parse_failure_rate": 0.0002119083473854117,
-      "total_input_tokens": 264105172,
-      "total_output_tokens": 3813132,
+      "parse_failure_rate": 0.00021448296200970535,
+      "total_input_tokens": 266032598,
+      "total_output_tokens": 3874237,
       "total_cost": null,
-      "n_envs": 179
+      "n_envs": 180
+    },
+    {
+      "id": "Qwen_Qwen3.5-2B__markov_cot",
+      "model": "Qwen/Qwen3.5-2B",
+      "harness": "markov_cot",
+      "score": 0.2046632124352331,
+      "per_suite": {
+        "atari": 0.2046632124352331
+      },
+      "parse_failure_rate": 0.09631728045325778,
+      "total_input_tokens": 541574,
+      "total_output_tokens": 1616837,
+      "total_cost": null,
+      "n_envs": 1
     },
     {
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "markov_zeroshot",
-      "score": -0.021313102494442668,
+      "score": -0.020278324716664894,
       "per_suite": {
-        "minigrid": 0.0171625,
+        "minigrid": 0.022336388888888885,
         "minihack": -0.014999999999999996,
         "procgen": 0.13457111436950148,
         "craftax": -0.16720898649536184,
         "classics": -0.07609014034635299
       },
-      "parse_failure_rate": 0.0007200151582138571,
-      "total_input_tokens": 163811717,
-      "total_output_tokens": 3819780,
+      "parse_failure_rate": 0.000767862301762282,
+      "total_input_tokens": 178429192,
+      "total_output_tokens": 4684347,
       "total_cost": null,
-      "n_envs": 188
+      "n_envs": 202
     }
   ]
 }
