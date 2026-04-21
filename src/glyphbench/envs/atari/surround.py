@@ -244,3 +244,36 @@ class SurroundEnv(AtariBase):
             "Avoid hitting any wall, your own trail, or the opponent's trail. "
             "You cannot reverse direction."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Surround.\n\n"
+            "TASK\n"
+            "Play a Tron-style light-cycle duel. Each step you "
+            "leave a trail behind you; the last player alive "
+            "wins. Crashing into any trail or a wall ends the "
+            "match.\n\n"
+            "BOARD\n"
+            "20x20 arena. Walls '#' form the border. Your trail "
+            "uses 'crossed-plus' glyph and the opponent's trail "
+            "uses 'x'. Opponent head is 'O'; you are an arrow "
+            "glyph pointing in your current direction.\n\n"
+            "MECHANICS\n"
+            "Movement is continuous: each step you move 1 cell in "
+            "your current direction. A direction action (UP / "
+            "DOWN / LEFT / RIGHT) turns you; NOOP continues "
+            "straight. 180-degree turns are not allowed. Both "
+            "players move simultaneously and each leaves a trail "
+            "on their previous cell. Opponent AI chases you along "
+            "safe directions.\n\n"
+            "SCORING\n"
+            "+1 reward if the opponent crashes before you. -1 "
+            "reward if you crash. 0 reward for a simultaneous "
+            "crash (draw). No per-step reward.\n\n"
+            "TERMINATION\n"
+            "Episode ends the first time either or both players "
+            "hit a wall or trail. No lives system.\n\n"
+            "HUD\n"
+            "Shows your direction and the opponent direction.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

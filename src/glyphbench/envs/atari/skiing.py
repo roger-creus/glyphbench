@@ -234,3 +234,36 @@ class SkiingEnv(AtariBase):
             "[ ] flags. Missing a gate adds a time "
             "penalty. Lower time is better."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Skiing.\n\n"
+            "TASK\n"
+            "Ski downhill through a slalom course of 10 gates, "
+            "passing between the left '[' and right ']' flags. "
+            "Time yourself: lower total time wins.\n\n"
+            "BOARD\n"
+            "20 columns by 24 rows. Snow '.' background, tree 'T' "
+            "at side walls and scattered through the course. Each "
+            "gate '[ ]' spans 5 columns, placed every 6 rows down. "
+            "You are an arrow glyph near the top (row 3). The "
+            "viewport scrolls down as you descend.\n\n"
+            "MECHANICS\n"
+            "You only have lateral controls. LEFT / RIGHT steers "
+            "you 1 column; NOOP continues straight. Every step the "
+            "world scrolls down 1 row (scroll_y += 1). When a "
+            "gate's row reaches your row, you are judged: if your "
+            "column is within the gate [gate.cx-2, gate.cx+2] it is "
+            "'passed', else 'missed' (5-second penalty).\n\n"
+            "SCORING\n"
+            "+1 reward per gate passed. -1 reward per gate missed "
+            "(score is also decreased by 5 penalty per miss). No "
+            "per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Episode ends when you reach the bottom of the course "
+            "(total_gates * 6 + 10 rows scrolled). Final message "
+            "reports the time + penalty total.\n\n"
+            "HUD\n"
+            "Shows score, gates passed / total, and elapsed time.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

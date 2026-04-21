@@ -94,6 +94,45 @@ class MsPacManEnv(AtariBase):
             "frightened (F) and edible. Eating ghosts gives bonus points."
         )
 
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Ms. Pac-Man.\n\n"
+            "TASK\n"
+            "Eat every pellet and power pellet in a classic Pac-Man "
+            "maze without being caught by the four ghosts. Clearing "
+            "all pellets advances the level.\n\n"
+            "BOARD\n"
+            "Fixed 28x24 maze. Walls '#', regular pellets '.' (one "
+            "small dot), power pellets '*' (larger). Empty corridors "
+            "are ' '. A horizontal tunnel wraps at row 11 (left "
+            "edge connects to right edge). Ghost door 'dash' above "
+            "the ghost pen. Ghosts are 'R' (red), 'P' (pink), 'B' "
+            "(blue), 'O' (orange); when frightened they show as 'F'. "
+            "You are an arrow glyph starting at (14, 18).\n\n"
+            "MECHANICS\n"
+            "UP / DOWN / LEFT / RIGHT move 1 cell if not blocked by "
+            "a wall or the ghost door. Tunnel cells wrap. Ghosts "
+            "each step pick the direction (excluding reverse) whose "
+            "next cell is closest to you (or random when frightened "
+            "or scattering). Eating a power pellet sets all ghosts "
+            "to 'frightened' for 20 steps; during that time they "
+            "move randomly and are edible.\n\n"
+            "SCORING\n"
+            "+10 reward per regular pellet. +50 reward per power "
+            "pellet. +200 * combo reward when you eat a frightened "
+            "ghost (combo resets each power pellet). -100 reward "
+            "when a non-frightened ghost catches you. +500 reward "
+            "on level clear.\n\n"
+            "TERMINATION\n"
+            "Three lives. Being caught by a chase-mode ghost costs "
+            "a life and resets positions. Episode ends at 0 lives "
+            "or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, pellets remaining, power-up "
+            "timer, and ghost states.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
     def _symbol_meaning(self, ch: str) -> str:
         return {
             "█": "wall",

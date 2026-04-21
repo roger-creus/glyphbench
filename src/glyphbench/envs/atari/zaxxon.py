@@ -264,3 +264,38 @@ class ZaxxonEnv(AtariBase):
             "Shoot enemies (E) and collect fuel depots (F). "
             "Avoid walls (#) and manage your fuel."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Zaxxon.\n\n"
+            "TASK\n"
+            "Fly through a vertically-scrolling battlefield: shoot "
+            "enemies, grab fuel, and dodge walls. Survive as long "
+            "as possible before running out of fuel or lives.\n\n"
+            "BOARD\n"
+            "20x24 battlefield. Walls '|' on sides and '-' on "
+            "bottom. Wall obstacles '#' scatter in the upper half. "
+            "Enemies 'E' and fuel depots 'F' scattered. Your "
+            "bullets '*'. You are an arrow glyph near the bottom.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT / UP / DOWN move 1 cell (blocked by "
+            "walls / obstacles). FIRE launches a bullet upward "
+            "(max 3 alive). Every max(1, 3 - level/2) steps the "
+            "world scrolls down: walls and enemies shift 1 row "
+            "down. New walls and entities spawn at row 1. Fuel "
+            "decreases 1 per step.\n\n"
+            "SCORING\n"
+            "+20 reward per enemy 'E' destroyed (shoot or touch). "
+            "+10 reward per fuel depot (shoot or touch; also "
+            "refills +30 fuel, capped at 100). No per-step penalty "
+            "beyond the fuel timer.\n\n"
+            "TERMINATION\n"
+            "Three lives. Hitting an obstacle wall, colliding with "
+            "an enemy, being crushed by a scrolling wall, or "
+            "running out of fuel costs a life and respawns at the "
+            "starting position (center, near bottom). Episode ends "
+            "at 0 lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, and fuel remaining.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

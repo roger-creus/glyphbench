@@ -313,3 +313,35 @@ class TimePilotEnv(AtariBase):
             "After 10 kills a boss appears -- destroy it to "
             "advance to the next era."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Time Pilot.\n\n"
+            "TASK\n"
+            "Fly a plane at the center of an arena under attack "
+            "from enemies swarming in from all 4 edges. After 10 "
+            "kills a boss appears; destroying it advances to the "
+            "next era (level).\n\n"
+            "BOARD\n"
+            "20x20 arena with wall border. You start at center as "
+            "an arrow glyph. Enemies 'E' spawn on a random side "
+            "edge. Boss 'B' (HP 3). Your bullets '*'.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT / UP / DOWN move 1 cell and set your "
+            "facing (and firing direction). FIRE launches a bullet "
+            "in facing direction (max 3 alive). Enemies update "
+            "every 3 steps, moving 1 cell toward you each axis "
+            "(8-direction chase). Boss moves every 2 steps. More "
+            "enemies spawn every 8 steps (cap 6).\n\n"
+            "SCORING\n"
+            "+10 reward per enemy shot. +100 reward for "
+            "destroying the boss (level up). No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Three lives. Collision with an enemy or boss costs a "
+            "life and respawns at center. Episode ends at 0 lives "
+            "or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level/era, facing, kills toward "
+            "10 (boss threshold), and boss HP.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

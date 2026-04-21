@@ -280,3 +280,37 @@ class StarGunnerEnv(AtariBase):
             "Dodge enemy fire and collisions. "
             "Destroy all wave targets to advance."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Star Gunner.\n\n"
+            "TASK\n"
+            "Pilot a ship in the left half of the screen and shoot "
+            "enemies flying in from the right. Kill enough enemies "
+            "per wave to clear it and advance the level.\n\n"
+            "BOARD\n"
+            "30x16 starfield bordered by walls. Stars '*' scatter "
+            "for decoration. Three enemy types: 'V' fighter (10 "
+            "pts), 'W' bomber (20 pts), 'X' ace (30 pts, moves "
+            "faster). Your bullets '->', enemy bullets '<-'. You "
+            "are an arrow glyph constrained to x in 1..W/2.\n\n"
+            "MECHANICS\n"
+            "LEFT/RIGHT/UP/DOWN move 1 cell. FIRE launches a "
+            "bullet traveling right with dx=2 (max 4 alive). "
+            "Enemies spawn at x=W-2 on random rows every max(5, "
+            "12-level) steps, moving left every 2 steps; aces "
+            "move dx=-2. Each enemy fires a bullet leftward every "
+            "fire_cd steps (8-20, random).\n\n"
+            "SCORING\n"
+            "+10 per fighter, +20 per bomber, +30 per ace. +50 "
+            "reward when you reach the wave target (8 + 2*level "
+            "kills). No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Three lives. Being hit by an enemy bullet or "
+            "colliding with an enemy costs a life and respawns "
+            "you at (3, mid). Episode ends at 0 lives or after "
+            "max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, wave, kills toward wave target.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

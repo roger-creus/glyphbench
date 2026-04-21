@@ -34,8 +34,9 @@ from config import (
     LOCAL_SIF_PATH,
     PROJECT_ROOT,
 )
-from jobs import generate_all_jobs, print_job_summary
+from jobs import generate_all_jobs, print_job_summary, summarize_availability
 from manifest import load_latest_manifest, save_manifest
+from model_cache import availability_matrix, cluster_has_model
 
 
 def get_env_ids(args: argparse.Namespace) -> list[str]:
@@ -101,6 +102,10 @@ def cmd_submit(args: argparse.Namespace) -> None:
 
     Jobs are split per (model, harness, suite), not per env. --suites filters
     which suites to run; --pilot restricts to a minimal 1-suite smoke test.
+
+    By default, each (model, harness, suite) job is routed only to clusters
+    that already have the model cached. Pass --no-cache-check to fall back
+    to round-robin across every given --clusters entry.
     """
     clusters = args.clusters or CLUSTER_NAMES
 
@@ -118,8 +123,30 @@ def cmd_submit(args: argparse.Namespace) -> None:
         if harnesses is None:
             harnesses = ["markov_zeroshot"]
 
+    cache_map: dict[str, set[str]] | None = None
+    if not args.no_cache_check:
+        print(f"Discovering cached models across {len(clusters)} clusters...")
+        cache_map = availability_matrix(clusters)
+        from config import MODELS as _MODELS
+        if models is None:
+            models = list(_MODELS.keys())
+        # Warn about any model not cached anywhere in the requested cluster set
+        missing = [m for m in models if not any(m in cache_map[c] for c in clusters)]
+        if missing:
+            print(f"  {len(missing)} models not cached on any cluster:")
+            for m in missing:
+                print(f"    - {m}")
+            if args.skip_missing:
+                models = [m for m in models if m not in missing]
+                print(f"  --skip-missing: dropped them, keeping {len(models)} models")
+            else:
+                print("  Pass --skip-missing to drop them, or --no-cache-check to bypass routing.")
+                sys.exit(1)
+        summarize_availability(cache_map, models=models, clusters=clusters)
+
     jobs = generate_all_jobs(
         models=models, harnesses=harnesses, suites=suites, clusters=clusters,
+        cache_map=cache_map,
     )
     print_job_summary(jobs)
 
@@ -206,6 +233,43 @@ def cmd_sync_code(args: argparse.Namespace) -> None:
 
 
 # ===================================================================
+# audit
+# ===================================================================
+def cmd_audit(args: argparse.Namespace) -> None:
+    """Print a snapshot of every cluster: queue depth, cached models, disk free."""
+    clusters = args.clusters or CLUSTER_NAMES
+
+    print("\n# Queue depth")
+    for c in clusters:
+        uname = "rogercc" if c != "mila" else None  # mila: use $(whoami) via ssh
+        if c == "mila":
+            rc_r, r_out, _ = ssh_run(c, "bash -lc 'squeue -u $(whoami) -t R -h | wc -l'")
+            rc_p, p_out, _ = ssh_run(c, "bash -lc 'squeue -u $(whoami) -t PD -h | wc -l'")
+        else:
+            rc_r, r_out, _ = ssh_run(c, f"squeue -u {uname} -t R -h")
+            rc_p, p_out, _ = ssh_run(c, f"squeue -u {uname} -t PD -h")
+        running = int(r_out.strip().split("\n")[0]) if c == "mila" and r_out.strip() else len([l for l in r_out.splitlines() if l.strip()])
+        pending = int(p_out.strip().split("\n")[0]) if c == "mila" and p_out.strip() else len([l for l in p_out.splitlines() if l.strip()])
+        print(f"  {c:<10} R={running:<4} PD={pending}")
+
+    print("\n# Disk free (scratch)")
+    for c in clusters:
+        scratch = CLUSTERS[c]["scratch"]
+        rc, out, _ = ssh_run(c, f"df -h {scratch}")
+        last_line = out.splitlines()[-1] if out.splitlines() else ""
+        parts = last_line.split()
+        if len(parts) >= 4:
+            print(f"  {c:<10} used={parts[2]:<6} avail={parts[3]:<6} ({parts[4]})")
+        else:
+            print(f"  {c:<10} (unknown)")
+
+    print("\n# Model availability")
+    matrix = availability_matrix(clusters)
+    from config import MODELS as _MODELS
+    summarize_availability(matrix, models=list(_MODELS.keys()), clusters=clusters)
+
+
+# ===================================================================
 # wipe-results
 # ===================================================================
 def cmd_wipe_results(args: argparse.Namespace) -> None:
@@ -274,6 +338,10 @@ def main() -> None:
     p.add_argument("--suites", nargs="*")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--pilot", action="store_true", help="Submit a single-suite smoke test")
+    p.add_argument("--no-cache-check", action="store_true",
+                   help="Skip model-cache discovery; route round-robin across all given clusters")
+    p.add_argument("--skip-missing", action="store_true",
+                   help="Silently drop models that are not cached on any cluster (default: error)")
 
     # status
     p = sub.add_parser("status", help="Check job status")
@@ -297,6 +365,10 @@ def main() -> None:
     p.add_argument("--clusters", nargs="*")
     p.add_argument("--yes", action="store_true", help="Required confirmation")
 
+    # audit
+    p = sub.add_parser("audit", help="Per-cluster snapshot: queue, disk, model cache")
+    p.add_argument("--clusters", nargs="*")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -310,6 +382,7 @@ def main() -> None:
         "sync-code": cmd_sync_code,
         "push-sif": cmd_push_sif,
         "wipe-results": cmd_wipe_results,
+        "audit": cmd_audit,
     }[args.command](args)
 
 

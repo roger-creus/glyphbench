@@ -317,3 +317,37 @@ class TennisEnv(AtariBase):
             "Standard scoring: 15-30-40-game. "
             "First to 6 games wins the set."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Tennis.\n\n"
+            "TASK\n"
+            "Top-down tennis with classic scoring: 15/30/40/game, "
+            "win-by-2 after deuce, first to 6 games wins the set.\n\n"
+            "BOARD\n"
+            "20x24 court. Sidelines '|', baselines '-'. Net '#' at "
+            "row 12. Opponent 'V' stays on rows 1-11 (top half). "
+            "You are an arrow glyph constrained to rows 13-21 "
+            "(bottom half). Ball 'o' bounces back and forth.\n\n"
+            "MECHANICS\n"
+            "UP/DOWN/LEFT/RIGHT move 1 cell inside your court "
+            "half. The ball moves per step with float velocity, "
+            "bouncing off sidelines. When the ball comes within 2 "
+            "columns of your position while traveling toward you, "
+            "you hit it: dy flips sign; dx = (ball.x - you.x)*0.5. "
+            "Opponent AI returns similarly. Ball leaving top = you "
+            "score; leaving bottom = opponent scores.\n\n"
+            "SCORING\n"
+            "+1 reward per point you win (ball leaves opponent's "
+            "baseline). -1 reward per point lost. No per-step "
+            "penalty. Winning a game (reach 4 points or win-by-2 "
+            "past 3-3) awards no extra reward but counts toward "
+            "6-game set.\n\n"
+            "TERMINATION\n"
+            "Episode ends when either player reaches 6 games. No "
+            "life system. Max_turns also ends it.\n\n"
+            "HUD\n"
+            "Shows your point/game score, opponent's, ball "
+            "position and velocity, and serving side.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

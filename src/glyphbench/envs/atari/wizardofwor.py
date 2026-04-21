@@ -61,6 +61,44 @@ class WizardOfWorEnv(AtariBase):
             "Navigate the maze corridors and use your bullets (!) wisely."
         )
 
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Wizard of Wor.\n\n"
+            "TASK\n"
+            "Shoot every warrior ghost (and on higher levels, the "
+            "Wizard himself) in a maze. Clearing all enemies "
+            "advances the level.\n\n"
+            "BOARD\n"
+            "20x16 maze. Walls '#' fill everything except 5 "
+            "horizontal corridors at rows 2, 5, 8, 11, 13 plus "
+            "random vertical connectors. Ghosts 'w' patrol the "
+            "corridors. Wizard 'W' appears from level 2 onward "
+            "and can teleport. Bullets '!'. You are an arrow "
+            "glyph.\n\n"
+            "MECHANICS\n"
+            "UP / DOWN / LEFT / RIGHT move 1 cell (walls block, "
+            "side edges tunnel-wrap). FIRE launches a bullet in "
+            "your facing direction; cooldown 3 steps. Bullets "
+            "travel 1 cell per step until hitting a wall or "
+            "enemy. Ghosts patrol (10 percent random turns, else "
+            "continue or reverse at walls). Wizard teleports "
+            "every 10-25 steps to a random corridor cell and "
+            "otherwise moves like a ghost.\n\n"
+            "SCORING\n"
+            "+100 reward per warrior ghost shot. +500 reward for "
+            "killing the Wizard. -100 reward each time you are "
+            "hit by an enemy bullet or collide with an enemy "
+            "(also costs a life).\n\n"
+            "TERMINATION\n"
+            "Three lives. Enemy contact or enemy bullet hit costs "
+            "a life and respawns you at (1, 13). Episode ends at "
+            "0 lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, facing, and enemies "
+            "remaining.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
     def _symbol_meaning(self, ch: str) -> str:
         return {
             "█": "wall",

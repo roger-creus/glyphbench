@@ -261,3 +261,38 @@ class UpNDownEnv(AtariBase):
             "for points. Avoid collisions without jumping. "
             "Stay on the road. Reach checkpoints to advance."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Up'n Down.\n\n"
+            "TASK\n"
+            "Drive on a 3-lane scrolling road. Use JUMP to land on "
+            "cars (score points) or avoid them. Travel far enough "
+            "to reach checkpoints and advance the level.\n\n"
+            "BOARD\n"
+            "12x20 road. Borders '-' top/bottom. Off-road '#' on "
+            "the shoulders; road surface ':' inside. Road edges "
+            "'|' at columns 2 and 9. Lanes centered at columns 3, "
+            "5, 7. Cars in your direction are 'V', oncoming cars "
+            "'A'. You are an arrow glyph at row 16. When "
+            "airborne, a jump arc 'up-arrow' appears above you.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT change lane (step 2 cells). UP "
+            "accelerates (scroll_speed 0-3), DOWN decelerates. "
+            "JUMP lifts you for 3 steps. Every (4 - speed) steps "
+            "the road scrolls: all cars shift down 1 row; "
+            "oncoming cars also move up 2 rows every 2 steps. New "
+            "cars spawn at row 1 ~33 percent of scroll steps.\n\n"
+            "SCORING\n"
+            "+10 reward when you land on a car while airborne. "
+            "+50 reward per checkpoint reached (distance >= 50 + "
+            "10*level). No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Three lives. Colliding with a car without jumping or "
+            "going off-road costs a life and re-centers you in "
+            "lane 1. Episode ends at 0 lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, jump state, distance "
+            "traveled (toward next checkpoint).\n\n"
+            + self.action_spec.render_for_prompt()
+        )

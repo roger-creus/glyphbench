@@ -296,3 +296,38 @@ class RoadRunnerEnv(AtariBase):
             "outrun the Coyote (W). JUMP over obstacles. "
             "Lure Coyote into mines (*) for bonus points."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Road Runner.\n\n"
+            "TASK\n"
+            "Run the Road Runner along a scrolling desert road: "
+            "collect birdseed, dodge rocks, and outpace or stun "
+            "the Coyote. Travel far enough to advance stages.\n\n"
+            "BOARD\n"
+            "30x16 desert. Sky '-' top, ground '=' at row 13, "
+            "road '_' at rows 11-12, desert '.' below. Birdseed "
+            "'o' on the road, rocks '#' scroll toward you with "
+            "dx=-1, mines '*' sit on the road. Coyote 'W' chases "
+            "from the left. You are an arrow glyph.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT shift you 1 cell. JUMP leaps 2 rows up "
+            "for 4 steps (lets you clear rocks). The world scrolls "
+            "every 2 steps (rocks/seeds/mines shift left). Coyote "
+            "moves toward you with 60 percent chance/step; if the "
+            "coyote steps onto a mine, the mine explodes, stunning "
+            "the coyote for 20 steps and pushing it 8 cells back.\n\n"
+            "SCORING\n"
+            "+10 reward per birdseed collected. +50 reward when "
+            "the coyote hits a mine. No per-step penalty. Reaching "
+            "100 + 30*level distance advances the level.\n\n"
+            "TERMINATION\n"
+            "Three lives. Hitting a rock or being caught by the "
+            "coyote (when not stunned) costs a life and respawns "
+            "you at (8, road). Episode ends at 0 lives or after "
+            "max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, seeds on screen, and "
+            "coyote state (chasing or stunned).\n\n"
+            + self.action_spec.render_for_prompt()
+        )

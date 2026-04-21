@@ -212,29 +212,76 @@ def generate_all_jobs(
     suites: list[str] | None = None,
     clusters: list[str] | None = None,
     history_len: int = 5,
+    cache_map: dict[str, set[str]] | None = None,
 ) -> list[dict]:
-    """Generate the full experiment matrix.
+    """Generate the full experiment matrix, routing each (model,harness,suite)
+    job to a cluster that has the model cached.
 
-    Main experiment: 3 models x 4 harnesses x 6 suites = 72 jobs.
-    Distributed round-robin across clusters.
+    If `cache_map` is provided (e.g. from `model_cache.availability_matrix`),
+    jobs are only placed on clusters that already have the model. Among
+    eligible clusters we use a round-robin that is scoped *per model* so that
+    every model's suites are balanced across its eligible clusters.
+
+    If `cache_map` is None, the old behaviour (round-robin across all clusters)
+    is used — in which case callers must pre-verify cache availability.
+
+    Raises:
+        ValueError: if `cache_map` is given and a requested model is not
+            cached on any of the candidate clusters.
     """
     models = models or list(MODELS.keys())
     harnesses = harnesses or HARNESS_MODES
     suites = suites or SUITES
     clusters = clusters or CLUSTER_NAMES
 
-    jobs = []
-    idx = 0
+    jobs: list[dict] = []
+
     for model in models:
+        if cache_map is not None:
+            eligible = [c for c in clusters if model in cache_map.get(c, set())]
+            if not eligible:
+                raise ValueError(
+                    f"Model '{model}' is not cached on any of {clusters}. "
+                    f"Download it first (python3 download_models.py --models {model})."
+                )
+        else:
+            eligible = clusters
+
+        # Per-model round-robin across eligible clusters so each model's
+        # harness×suite jobs are balanced across its candidate clusters.
+        idx = 0
         for harness in harnesses:
             for suite in suites:
-                cluster = clusters[idx % len(clusters)]
+                cluster = eligible[idx % len(eligible)]
                 idx += 1
                 jobs.append(generate_job(
                     model, harness, suite, cluster,
                     history_len=history_len,
                 ))
     return jobs
+
+
+def summarize_availability(
+    cache_map: dict[str, set[str]],
+    models: list[str] | None = None,
+    clusters: list[str] | None = None,
+) -> None:
+    """Pretty-print a model-availability matrix across clusters."""
+    models = models or list(MODELS.keys())
+    clusters = clusters or CLUSTER_NAMES
+    col_w = max(len(m) for m in models) + 2
+    header = "Model".ljust(col_w) + "  " + "  ".join(c[:8].center(8) for c in clusters)
+    print(header)
+    print("-" * len(header))
+    for m in models:
+        row = m.ljust(col_w)
+        for c in clusters:
+            mark = "   ✓   " if m in cache_map.get(c, set()) else "   -   "
+            row += f"  {mark}"
+        print(row)
+    print()
+    cached_counts = {c: len(cache_map.get(c, set()) & set(models)) for c in clusters}
+    print("Cached-per-cluster:", cached_counts)
 
 
 def generate_history_ablation_jobs(

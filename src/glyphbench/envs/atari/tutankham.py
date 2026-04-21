@@ -326,3 +326,38 @@ class TutankhamEnv(AtariBase):
             "find the key (K) to unlock the exit (D). "
             "Shoot snakes (S) and mummies (M) with FIRE."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Tutankham.\n\n"
+            "TASK\n"
+            "Explore a multi-room pyramid, grab treasures, find "
+            "the key, and exit through the door to advance the "
+            "level. Fight snakes and mummies along the way.\n\n"
+            "BOARD\n"
+            "20x16 maze. Walls '#', open floor ' '. Treasures '$', "
+            "key 'K', exit door 'D'. Snakes 'S' and mummies 'M' "
+            "roam the rooms. Your bullets '!'. You are an arrow "
+            "glyph.\n\n"
+            "MECHANICS\n"
+            "UP / DOWN / LEFT / RIGHT move 1 cell (blocked by "
+            "walls) and also set facing direction. FIRE launches "
+            "a bullet in facing direction until it hits a wall or "
+            "an enemy. Enemies move on a 2-5 step timer toward "
+            "you along one axis. Stepping onto the 'K' picks up "
+            "the key. Stepping onto 'D' exits only if you have the "
+            "key.\n\n"
+            "SCORING\n"
+            "+20 reward per treasure '$' collected. +30 reward "
+            "per enemy killed by a bullet. +100 reward for "
+            "exiting through the door with the key (advances "
+            "level). No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Three lives. Contact with a snake or mummy costs a "
+            "life and respawns at (2, 2). Episode ends at 0 "
+            "lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, facing, key status (yes/"
+            "no), and treasures remaining.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

@@ -244,3 +244,37 @@ class QbertEnv(AtariBase):
             "Avoid enemies (snakes and balls). "
             "Don't jump off the edge of the pyramid."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Q*bert.\n\n"
+            "TASK\n"
+            "Hop across every cube of a 7-row isometric pyramid "
+            "(28 cubes total) to color each one; avoid the "
+            "descending enemies. Coloring all 28 cubes clears the "
+            "level.\n\n"
+            "BOARD\n"
+            "15x15 grid displaying the pyramid. Uncolored cubes are "
+            "shown as '.' and colored cubes as '#'. Enemies: snakes "
+            "'s' and balls 'o'. You are an arrow glyph sitting on "
+            "your current cube.\n\n"
+            "MECHANICS\n"
+            "Diagonal hops only: UP_RIGHT / UP_LEFT / DOWN_RIGHT / "
+            "DOWN_LEFT move you between adjacent cubes on the "
+            "pyramid (row +/- 1, col adjusted). A hop to outside the "
+            "pyramid counts as falling off. Enemies spawn from the "
+            "apex every 8 steps and descend randomly along diagonal "
+            "edges one cube at a time.\n\n"
+            "SCORING\n"
+            "+25 reward per cube colored (only the first visit to a "
+            "cube counts). +100 reward when every cube is colored "
+            "(level clear). No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Three lives. Falling off the pyramid or landing on an "
+            "enemy's cube costs a life and respawns at the apex. "
+            "Episode ends at 0 lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, and cubes colored out of "
+            "total 28.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

@@ -303,3 +303,38 @@ class VentureEnv(AtariBase):
             "Explore the dungeon. Enter rooms to find treasures. "
             "Shoot enemies with FIRE. Collect all treasures to advance."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Venture.\n\n"
+            "TASK\n"
+            "Explore a hallway with 4 rooms. Enter each room, "
+            "shoot enemies and grab the treasure inside. Collect "
+            "all 4 treasures to advance to the next level.\n\n"
+            "BOARD\n"
+            "20x16. Walls '#'. From the hallway, enter rooms via "
+            "numbered door tiles ('1', '2', '3', '4') at the 4 "
+            "cardinal positions. Inside a room: treasure '$', "
+            "enemies 'E' (walking), your arrow '*'. Exit a room by "
+            "walking through its bottom row. You are an arrow "
+            "glyph.\n\n"
+            "MECHANICS\n"
+            "UP/DOWN/LEFT/RIGHT move 1 cell and set facing. FIRE "
+            "launches an arrow in facing direction (cooldown 3 "
+            "steps). Stepping onto a door teleports you into the "
+            "room. Enemies patrol with simple axis movement and "
+            "bounce at walls. Each room also has an internal wall.\n\n"
+            "SCORING\n"
+            "+100 reward for collecting a treasure '$' (marks the "
+            "room as cleared). +50 reward per enemy killed by an "
+            "arrow. No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Three lives. Touching an enemy costs a life and "
+            "respawns you at the room exit (if in a room) or "
+            "hallway center. Episode ends at 0 lives or after "
+            "max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, facing, and current room "
+            "number (0 = hallway, 1-4 = rooms).\n\n"
+            + self.action_spec.render_for_prompt()
+        )

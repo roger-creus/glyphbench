@@ -305,3 +305,38 @@ class RiverRaidEnv(AtariBase):
             "Don't crash into banks or enemies. "
             "Running out of fuel ends the game."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari River Raid.\n\n"
+            "TASK\n"
+            "Fly a plane up a vertically-scrolling river, shooting "
+            "down enemy ships and helicopters and collecting fuel "
+            "depots. Survive as long as possible before crashing or "
+            "running out of fuel.\n\n"
+            "BOARD\n"
+            "20x24 viewport. Banks '#' run along the sides (deadly). "
+            "River water 'tilde' in between. Enemies: ships 'S' and "
+            "helicopters 'H'. Fuel depots 'F'. Your bullets '!'. "
+            "You are an arrow glyph near the bottom (row 20).\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT shift 1 cell. UP accelerates the scroll "
+            "(speed 1-3), DOWN decelerates. FIRE launches a bullet "
+            "upward (max 2). Every (4 - speed) steps the river "
+            "scrolls by moving all obstacles down 1 cell; new "
+            "obstacles spawn at row 1. Enemies drift horizontally "
+            "every 3 steps, reversing at the banks. Fuel decreases "
+            "1 per step.\n\n"
+            "SCORING\n"
+            "+10 reward per enemy ship or helicopter destroyed. "
+            "+20 reward per fuel depot (shot or touched); also "
+            "adds +30 fuel (capped at 100). No per-step penalty "
+            "beyond fuel timer.\n\n"
+            "TERMINATION\n"
+            "Three lives. Touching a bank, enemy, or running out "
+            "of fuel costs a life / ends the run. Episode ends at "
+            "0 lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, fuel, and enemy count.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
