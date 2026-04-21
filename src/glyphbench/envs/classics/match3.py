@@ -125,21 +125,16 @@ class Match3Env(BaseAsciiEnv):
         return matched
 
     def _remove_and_score(self, matched: set[tuple[int, int]]) -> int:
-        """Remove matched cells. Returns score for this match group."""
+        """Remove matched cells. Returns count of matched gems (1 pt per gem).
+
+        Simple linear scoring decouples strategy from lucky cascades: a smart
+        player who sets up a 5-match outscores a random swap that happens to
+        trigger a chain.
+        """
         count = len(matched)
         for r, c in matched:
             self._board[r][c] = -1
-
-        # Score: 3=3, 4=8, 5=15, else count*3
-        if count == 3:
-            return 3
-        elif count == 4:
-            return 8
-        elif count == 5:
-            return 15
-        else:
-            # For larger groups or multiple separate matches in one pass
-            return count * 3
+        return count
 
     def _gravity(self) -> None:
         """Drop gems down to fill empty spaces."""
@@ -156,9 +151,16 @@ class Match3Env(BaseAsciiEnv):
                 self._board[r][c] = int(self.rng.integers(_NUM_GEMS))
 
     def _cascade(self) -> int:
-        """Process all matches + gravity cascades. Returns total score."""
-        total_score = 0
+        """Process all matches + gravity cascades. Returns the score for
+        ONLY the initial (player-triggered) match. Subsequent cascades from
+        falling gems still happen mechanically but contribute 0 reward.
+
+        This decouples strategy from luck: random swaps can no longer farm
+        points via accidental long chains.
+        """
+        # First wave: score == count of gems in the player's triggered match.
         chain = 0
+        first_wave_score = 0
         while True:
             matched = self._find_matches()
             if not matched:
@@ -166,10 +168,11 @@ class Match3Env(BaseAsciiEnv):
             chain += 1
             score = self._remove_and_score(matched)
             self._total_matched += len(matched)
-            # Chain bonus: multiply by chain count
-            total_score += score * chain
+            if chain == 1:
+                first_wave_score = score
+            # cascades (chain >= 2) score 0
             self._gravity()
-        return total_score
+        return first_wave_score
 
     def _has_valid_move(self) -> bool:
         """Check if any swap creates a match."""
@@ -292,10 +295,10 @@ class Match3Env(BaseAsciiEnv):
             "Each turn you swap two adjacent gems (horizontal or vertical).\n"
             "The swap only takes effect if it creates a match of 3+ in a row/column.\n"
             "After matches, gems above fall down and new gems fill from the top.\n"
-            "Chain reactions (cascades) score extra (multiplied by chain count).\n\n"
+            "Cascades from falling gems continue the turn but do NOT multiply score.\n\n"
             "SCORING\n"
-            "  3-match = 3 points, 4-match = 8 points, 5-match = 15 points.\n"
-            "  Chains multiply: chain 2 = x2, chain 3 = x3, etc.\n\n"
+            "  1 point per gem matched. 3-match = 3 points, 4-match = 4, 5-match = 5.\n"
+            "  Cascade matches add their gem counts (no multiplier).\n\n"
             "ACTIONS\n"
             f"Actions are named SWAP_<row>_<col>_<DIRECTION> with row,col in [0,{_SIZE - 1}] "
             "and DIRECTION in {UP, DOWN, LEFT, RIGHT}. Swaps out of bounds are NOOP.\n"
