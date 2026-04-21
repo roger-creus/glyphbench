@@ -6,29 +6,31 @@
       "id": "Qwen_Qwen3-0.6B__history_cot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "history_cot",
-      "score": -0.08000000000000002,
+      "score": 0.08810945273631834,
       "per_suite": {
+        "atari": 0.2562189054726367,
         "procgen": -0.08000000000000002
       },
-      "parse_failure_rate": 0.032825322391559206,
-      "total_input_tokens": 764271,
-      "total_output_tokens": 1035453,
+      "parse_failure_rate": 0.0318962495618647,
+      "total_input_tokens": 3254923,
+      "total_output_tokens": 3516312,
       "total_cost": null,
-      "n_envs": 2
+      "n_envs": 3
     },
     {
       "id": "Qwen_Qwen3-0.6B__history_zeroshot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "history_zeroshot",
-      "score": -0.20634920634920637,
+      "score": -0.42932907252377955,
       "per_suite": {
-        "craftax": -0.20634920634920637
+        "craftax": -0.20634920634920637,
+        "classics": -0.6523089386983527
       },
-      "parse_failure_rate": 0.011152416356877323,
-      "total_input_tokens": 2252410,
-      "total_output_tokens": 1246439,
+      "parse_failure_rate": 0.01753453772582359,
+      "total_input_tokens": 3531819,
+      "total_output_tokens": 5791154,
       "total_cost": null,
-      "n_envs": 2
+      "n_envs": 3
     },
     {
       "id": "Qwen_Qwen3-0.6B__markov_cot",
@@ -62,18 +64,19 @@
       "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "history_zeroshot",
-      "score": -0.2060475265415727,
+      "score": -0.16334548391982534,
       "per_suite": {
         "minigrid": -0.011307846153846156,
+        "atari": 0.007462686567164108,
         "procgen": 0.33140151515151517,
         "craftax": -0.15103505790768113,
         "classics": -0.9932487172562787
       },
-      "parse_failure_rate": 0.001358695652173913,
-      "total_input_tokens": 157996299,
-      "total_output_tokens": 1941429,
+      "parse_failure_rate": 0.0014720314033366045,
+      "total_input_tokens": 159901779,
+      "total_output_tokens": 2074496,
       "total_cost": null,
-      "n_envs": 106
+      "n_envs": 107
     },
     {
       "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
@@ -144,62 +147,76 @@
       "n_envs": 1
     },
     {
+      "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-7B__markov_cot",
+      "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+      "harness": "markov_cot",
+      "score": -0.24,
+      "per_suite": {
+        "procgen": -0.24
+      },
+      "parse_failure_rate": 0.07772795216741404,
+      "total_input_tokens": 344718,
+      "total_output_tokens": 1673391,
+      "total_cost": null,
+      "n_envs": 1
+    },
+    {
       "id": "google_gemma-3-12b-it__history_cot",
       "model": "google/gemma-3-12b-it",
       "harness": "history_cot",
-      "score": 0.03000000000000001,
+      "score": 0.0742857142857143,
       "per_suite": {
-        "procgen": 0.03000000000000001
+        "procgen": 0.0742857142857143
       },
-      "parse_failure_rate": 0.00105318588730911,
-      "total_input_tokens": 15451749,
-      "total_output_tokens": 905710,
+      "parse_failure_rate": 0.0009212344541685859,
+      "total_input_tokens": 18320196,
+      "total_output_tokens": 1039746,
       "total_cost": null,
-      "n_envs": 12
+      "n_envs": 14
     },
     {
       "id": "google_gemma-3-12b-it__history_zeroshot",
       "model": "google/gemma-3-12b-it",
       "harness": "history_zeroshot",
-      "score": -0.03304551119445361,
+      "score": -0.041981870567375894,
       "per_suite": {
         "minihack": -0.012500000000000002,
-        "classics": -0.05359102238890722
+        "classics": -0.07146374113475179
       },
-      "parse_failure_rate": 0.0,
-      "total_input_tokens": 150417950,
-      "total_output_tokens": 1197265,
+      "parse_failure_rate": 1.6137751849789805e-05,
+      "total_input_tokens": 171007558,
+      "total_output_tokens": 1369087,
       "total_cost": null,
-      "n_envs": 87
+      "n_envs": 96
     },
     {
       "id": "google_gemma-3-12b-it__markov_cot",
       "model": "google/gemma-3-12b-it",
       "harness": "markov_cot",
-      "score": -0.1610397543059296,
+      "score": -0.0656622889026715,
       "per_suite": {
-        "procgen": -0.1610397543059296
+        "procgen": -0.0656622889026715
       },
-      "parse_failure_rate": 0.0005294506949040371,
-      "total_input_tokens": 6522647,
-      "total_output_tokens": 1059502,
+      "parse_failure_rate": 0.00041854138327927174,
+      "total_input_tokens": 8261039,
+      "total_output_tokens": 1305382,
       "total_cost": null,
-      "n_envs": 13
+      "n_envs": 16
     },
     {
       "id": "google_gemma-3-12b-it__markov_zeroshot",
       "model": "google/gemma-3-12b-it",
       "harness": "markov_zeroshot",
-      "score": -0.03347415674603175,
+      "score": -0.03376679616724739,
       "per_suite": {
         "minihack": -0.021875,
-        "classics": -0.0450733134920635
+        "classics": -0.045658592334494784
       },
-      "parse_failure_rate": 0.0077376769054804525,
-      "total_input_tokens": 132200519,
-      "total_output_tokens": 1505056,
+      "parse_failure_rate": 0.007629076086956522,
+      "total_input_tokens": 133154603,
+      "total_output_tokens": 1519997,
       "total_cost": null,
-      "n_envs": 111
+      "n_envs": 113
     },
     {
       "id": "google_gemma-3-4b-it__history_cot",
