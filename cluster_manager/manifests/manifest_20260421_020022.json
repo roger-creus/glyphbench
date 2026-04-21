@@ -1,0 +1,17 @@
+{
+  "timestamp": "20260421_020022",
+  "total_jobs": 1,
+  "submitted": 1,
+  "jobs": [
+    {
+      "model": "Qwen/Qwen3-0.6B",
+      "harness": "markov_zeroshot",
+      "suite": "minigrid",
+      "cluster": "mila",
+      "job_name": "gb-qwen3-06b-markovze-minigrid",
+      "gres": "gpu:a6000:1",
+      "script": "#!/bin/bash\n\n#SBATCH --ntasks=1\n#SBATCH --cpus-per-task=8\n#SBATCH --gres=gpu:a6000:1\n#SBATCH --partition=lab-real\n#SBATCH --nodelist=cn-j001\n#SBATCH --mem=48G\n#SBATCH --time=3:59:59\n#SBATCH --job-name=gb-qwen3-06b-markovze-minigrid\n#SBATCH --output=/network/scratch/r/roger.creus-castanyer/glyphbench_runs/logs/slurm-gb-qwen3-06b-markovze-minigrid-%j.out\n#SBATCH --error=/network/scratch/r/roger.creus-castanyer/glyphbench_runs/logs/slurm-gb-qwen3-06b-markovze-minigrid-%j.err\n\nmodule load singularity\n\nexport TORCHINDUCTOR_CACHE_DIR=\"$SLURM_TMPDIR/torch_cache\"\nexport VLLM_COMPILE_CACHE_DIR=\"$SLURM_TMPDIR/vllm_compile_cache\"\nexport PYTHONUNBUFFERED=1\nexport HF_HOME=/network/scratch/r/roger.creus-castanyer/hub\nexport TRANSFORMERS_CACHE=/network/scratch/r/roger.creus-castanyer/hub\nexport HUGGINGFACE_HUB_CACHE=/network/scratch/r/roger.creus-castanyer/hub\n\necho \"=== GlyphBench Eval: $SLURM_JOB_ID on $SLURM_NODELIST ===\"\necho \"Model: Qwen/Qwen3-0.6B | Harness: markov_zeroshot | Suite: minigrid | Started: $(date)\"\n\nSIF=/network/scratch/r/roger.creus-castanyer/images/glyphbench.sif\n\nmkdir -p /network/scratch/r/roger.creus-castanyer/glyphbench_runs\n\nsingularity exec --nv \\\n    --bind /network/scratch/r/roger.creus-castanyer/glyphbench:/src \\\n    --bind /network/scratch/r/roger.creus-castanyer/glyphbench_runs:/results \\\n    --bind /network/scratch/r/roger.creus-castanyer/hub:/hf_cache \\\n    --env HF_HOME=/hf_cache \\\n    --env TRANSFORMERS_CACHE=/hf_cache/hub \\\n    --env HUGGINGFACE_HUB_CACHE=/hf_cache/hub \\\n    --env HF_HUB_OFFLINE=1 \\\n    --env TRANSFORMERS_OFFLINE=1 \\\n    --env VLLM_NO_USAGE_STATS=1 \\\n    --env TORCHINDUCTOR_CACHE_DIR=/tmp/torch_cache \\\n    --env VLLM_COMPILE_CACHE_DIR=/tmp/vllm_compile_cache \\\n    --env PYTHONPATH=/src/src \\\n    --env CUDA_MODULE_LOADING=LAZY \\\n    --env CUDA_VISIBLE_DEVICES=0 \\\n    --env PYTHONUNBUFFERED=1 \\\n    --env VLLM_WORKER_MULTIPROC_METHOD=spawn \\\n    --workdir /src \\\n    $SIF \\\n    python3 /src/eval/run_eval.py \\\n        --model Qwen/Qwen3-0.6B \\\n        --harness markov_zeroshot \\\n        --history-len 5 \\\n        --episodes 10 \\\n        --max-turns 200 \\\n        --batch-size 10 \\\n        --max-new-tokens 16384 \\\n        --max-model-len 32768 \\\n        --gpu-memory-utilization 0.9 \\\n        --enforce-eager \\\n        --dtype bfloat16 \\\n        --temperature 0.7 \\\n        --tensor-parallel-size 1 \\\n        --suites minigrid \\\n        --output /results/\n\n_exit=$?\necho \"=== Finished: $(date), exit=$_exit ===\"\nexit $_exit\n",
+      "job_id": "9318382"
+    }
+  ]
+}

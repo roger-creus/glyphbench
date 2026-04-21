@@ -206,6 +206,39 @@ def cmd_sync_code(args: argparse.Namespace) -> None:
 
 
 # ===================================================================
+# wipe-results
+# ===================================================================
+def cmd_wipe_results(args: argparse.Namespace) -> None:
+    """Wipe the contents of every cluster's output_dir.
+
+    Uses `rsync --delete` from an empty local directory — compatible with
+    restricted robot nodes that don't allow `rm`.
+    """
+    import tempfile
+
+    clusters = args.clusters or CLUSTER_NAMES
+    if not args.yes:
+        print("Refusing to wipe without --yes. Pass --yes to proceed.")
+        sys.exit(1)
+    with tempfile.TemporaryDirectory() as empty_dir:
+        for c in clusters:
+            output_dir = CLUSTERS[c]["output_dir"]
+            host = CLUSTERS[c]["ssh_host"]
+            print(f"  [{c}] wiping {output_dir}")
+            import subprocess
+            subprocess.run(
+                ["rsync", "-a", "--delete",
+                 "-e", "ssh -o ConnectTimeout=15",
+                 empty_dir + "/", f"{host}:{output_dir}/"],
+                check=False,
+                timeout=300,
+            )
+            # Recreate log subdir (cleaned by the wipe)
+            ssh_run(c, f"mkdir -p {CLUSTERS[c]['log_dir']}")
+    print("Done.")
+
+
+# ===================================================================
 # push-sif
 # ===================================================================
 def cmd_push_sif(args: argparse.Namespace) -> None:
@@ -259,6 +292,11 @@ def main() -> None:
     p = sub.add_parser("push-sif", help="Push SIF to clusters")
     p.add_argument("--clusters", nargs="*")
 
+    # wipe-results
+    p = sub.add_parser("wipe-results", help="Delete all output_dir contents on clusters")
+    p.add_argument("--clusters", nargs="*")
+    p.add_argument("--yes", action="store_true", help="Required confirmation")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -271,6 +309,7 @@ def main() -> None:
         "pull": cmd_pull,
         "sync-code": cmd_sync_code,
         "push-sif": cmd_push_sif,
+        "wipe-results": cmd_wipe_results,
     }[args.command](args)
 
 
