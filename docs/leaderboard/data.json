@@ -39,6 +39,20 @@
       "n_envs": 113
     },
     {
+      "id": "Qwen_Qwen3.5-2B__history_cot",
+      "model": "Qwen/Qwen3.5-2B",
+      "harness": "history_cot",
+      "score": 0.25,
+      "per_suite": {
+        "craftax": 0.25
+      },
+      "parse_failure_rate": 0.1358288770053476,
+      "total_input_tokens": 1485819,
+      "total_output_tokens": 1726582,
+      "total_cost": null,
+      "n_envs": 1
+    },
+    {
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "history_zeroshot",
