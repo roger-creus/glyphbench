@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.atari.berzerk import BerzerkEnv
+from glyphbench.envs.atari.berzerk import BerzerkEnv
 
 
 class TestBerzerk:
@@ -19,7 +19,7 @@ class TestBerzerk:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-berzerk-v0"
+        assert env.env_id() == "glyphbench/atari-berzerk-v0"
 
     def test_reset_determinism(self):
         e1 = self._make_env()
@@ -63,7 +63,7 @@ class TestBerzerk:
         env.reset(seed=0)
         # Place a robot right next to player, in line of fire
         env._entities = [e for e in env._entities if e.etype != "robot"]
-        from atlas_rl.envs.atari.berzerk import _ROBOT_CHAR
+        from glyphbench.envs.atari.berzerk import _ROBOT_CHAR
         robot = env._add_entity("robot", _ROBOT_CHAR, env._player_x + 2, env._player_y)
         robot.data["shoot_timer"] = 999  # Prevent robot from shooting
         env._total_robots = 1
@@ -86,7 +86,7 @@ class TestBerzerk:
         initial_lives = env._lives
         # Place robot on player
         env._entities = [e for e in env._entities if e.etype != "robot"]
-        from atlas_rl.envs.atari.berzerk import _ROBOT_CHAR
+        from glyphbench.envs.atari.berzerk import _ROBOT_CHAR
         robot = env._add_entity("robot", _ROBOT_CHAR, env._player_x, env._player_y)
         robot.data["shoot_timer"] = 999
         env._total_robots = 1

@@ -1,6 +1,6 @@
 """Tests for MiniHack creature types."""
 
-from atlas_rl.envs.minihack.creatures import KOBOLD, Creature
+from glyphbench.envs.minihack.creatures import KOBOLD, Creature
 
 
 class TestCreatures:

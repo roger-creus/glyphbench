@@ -1,4 +1,4 @@
-from atlas_rl.runner.dashboard import Dashboard, NullDashboard
+from glyphbench.runner.dashboard import Dashboard, NullDashboard
 
 
 def test_null_dashboard_methods_noop():

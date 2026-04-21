@@ -5,11 +5,11 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 REDBLUEDOORS_VARIANTS = [
-    "atlas_rl/minigrid-redbluedoors-6x6-v0",
-    "atlas_rl/minigrid-redbluedoors-8x8-v0",
+    "glyphbench/minigrid-redbluedoors-6x6-v0",
+    "glyphbench/minigrid-redbluedoors-8x8-v0",
 ]
 
 
@@ -37,7 +37,7 @@ class TestRedBlueDoors:
 
     @pytest.mark.parametrize("env_id", REDBLUEDOORS_VARIANTS)
     def test_has_two_door_colors_in_legend(self, env_id: str) -> None:
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
         env = gym.make(env_id, max_turns=100)
         env.reset(seed=0)

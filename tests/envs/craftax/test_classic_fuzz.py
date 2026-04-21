@@ -3,7 +3,7 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from atlas_rl.envs.craftax.classic import CraftaxClassicEnv
+from glyphbench.envs.craftax.classic import CraftaxClassicEnv
 
 
 @given(

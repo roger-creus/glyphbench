@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.skill_lavacross import (
+from glyphbench.envs.minihack.skill_lavacross import (
     MiniHackLavaCrossFullEnv,
     MiniHackLavaCrossLevitateEnv,
     MiniHackLavaCrossPotionInvEnv,
@@ -18,10 +18,10 @@ LAVACROSS_CLASSES = [
     MiniHackLavaCrossRingInvEnv,
 ]
 LAVACROSS_IDS = [
-    "atlas_rl/minihack-lavacross-full-v0",
-    "atlas_rl/minihack-lavacross-levitate-v0",
-    "atlas_rl/minihack-lavacross-levitate-potion-inv-v0",
-    "atlas_rl/minihack-lavacross-levitate-ring-inv-v0",
+    "glyphbench/minihack-lavacross-full-v0",
+    "glyphbench/minihack-lavacross-levitate-v0",
+    "glyphbench/minihack-lavacross-levitate-potion-inv-v0",
+    "glyphbench/minihack-lavacross-levitate-ring-inv-v0",
 ]
 
 
@@ -68,7 +68,7 @@ class TestLavaCrossEnvs:
             1
             for y in range(env._grid_h)
             for x in range(env._grid_w)
-            if env._grid[y][x] == "}"
+            if env._grid[y][x] == "♨"
         )
         assert lava_count > 0, "LavaCross should have lava tiles"
 
@@ -191,6 +191,6 @@ class TestLavaCrossEnvs:
             1
             for y in range(env._grid_h)
             for x in range(env._grid_w)
-            if env._grid[y][x] == "}"
+            if env._grid[y][x] == "♨"
         )
         assert lava_count > 0, "Lava tiles should be restored after stepping"

@@ -1,6 +1,6 @@
 """Unit tests for Atari Breakout env."""
 
-from atlas_rl.envs.atari.breakout import BreakoutEnv
+from glyphbench.envs.atari.breakout import BreakoutEnv
 
 
 class TestBreakout:
@@ -23,7 +23,7 @@ class TestBreakout:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-breakout-v0"
+        assert env.env_id() == "glyphbench/atari-breakout-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

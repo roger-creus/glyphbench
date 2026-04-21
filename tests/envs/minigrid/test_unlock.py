@@ -5,11 +5,11 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 UNLOCK_VARIANTS = [
-    "atlas_rl/minigrid-unlock-v0",
-    "atlas_rl/minigrid-unlockpickup-v0",
+    "glyphbench/minigrid-unlock-v0",
+    "glyphbench/minigrid-unlockpickup-v0",
 ]
 
 
@@ -36,12 +36,12 @@ class TestUnlock:
         assert "door" in obs
 
     def test_unlock_has_goal(self) -> None:
-        env = gym.make("atlas_rl/minigrid-unlock-v0", max_turns=200)
+        env = gym.make("glyphbench/minigrid-unlock-v0", max_turns=200)
         obs, _ = env.reset(seed=0)
         assert "G" in obs
 
     def test_unlockpickup_has_box(self) -> None:
-        env = gym.make("atlas_rl/minigrid-unlockpickup-v0", max_turns=200)
+        env = gym.make("glyphbench/minigrid-unlockpickup-v0", max_turns=200)
         obs, _ = env.reset(seed=0)
         assert "box" in obs
 

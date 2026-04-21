@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.atari.bankheist import BankHeistEnv
+from glyphbench.envs.atari.bankheist import BankHeistEnv
 
 
 class TestBankHeist:
@@ -19,7 +19,7 @@ class TestBankHeist:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-bankheist-v0"
+        assert env.env_id() == "glyphbench/atari-bankheist-v0"
 
     def test_reset_determinism(self):
         e1 = self._make_env()

@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from atlas_rl.core.action import ActionSpec
-from atlas_rl.envs.atari.base import AtariBase, AtariEntity
+from glyphbench.core.action import ActionSpec
+from glyphbench.envs.atari.base import AtariBase, AtariEntity
 
 
 class TestGame(AtariBase):
@@ -24,7 +24,7 @@ class TestGame(AtariBase):
     )
 
     def env_id(self) -> str:
-        return "atlas_rl/test-game-v0"
+        return "glyphbench/test-game-v0"
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(10, 8)
@@ -82,7 +82,7 @@ class TestAtariBaseInit:
 
     def test_env_id(self) -> None:
         env = make_env()
-        assert env.env_id() == "atlas_rl/test-game-v0"
+        assert env.env_id() == "glyphbench/test-game-v0"
 
 
 class TestAtariBaseGrid:
@@ -103,8 +103,8 @@ class TestAtariBaseGrid:
     def test_set_cell_and_grid_at(self) -> None:
         env = make_env()
         env.reset(seed=0)
-        env._set_cell(3, 4, "#")
-        assert env._grid_at(3, 4) == "#"
+        env._set_cell(3, 4, "\u2588")
+        assert env._grid_at(3, 4) == "\u2588"
 
     def test_set_cell_out_of_bounds_noop(self) -> None:
         env = make_env()
@@ -116,14 +116,14 @@ class TestAtariBaseGrid:
     def test_grid_at_out_of_bounds_returns_hash(self) -> None:
         env = make_env()
         env.reset(seed=0)
-        assert env._grid_at(-1, 0) == "#"
-        assert env._grid_at(0, -1) == "#"
-        assert env._grid_at(100, 0) == "#"
+        assert env._grid_at(-1, 0) == "\u2588"
+        assert env._grid_at(0, -1) == "\u2588"
+        assert env._grid_at(100, 0) == "\u2588"
 
     def test_is_solid_wall_chars(self) -> None:
         env = make_env()
         env.reset(seed=0)
-        env._set_cell(0, 0, "#")
+        env._set_cell(0, 0, "█")
         assert env._is_solid(0, 0) is True
         env._set_cell(1, 0, " ")
         assert env._is_solid(1, 0) is False

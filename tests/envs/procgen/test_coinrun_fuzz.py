@@ -3,7 +3,7 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from atlas_rl.envs.procgen.coinrun import CoinRunEnv
+from glyphbench.envs.procgen.coinrun import CoinRunEnv
 
 
 @given(

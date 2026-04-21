@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.atari.pong import PongEnv
+from glyphbench.envs.atari.pong import PongEnv
 
 
 class TestPong:
@@ -25,7 +25,7 @@ class TestPong:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-pong-v0"
+        assert env.env_id() == "glyphbench/atari-pong-v0"
 
     # --- Spec 10.1: test_reset_determinism ---
     def test_reset_determinism(self):

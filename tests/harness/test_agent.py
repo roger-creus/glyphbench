@@ -1,8 +1,8 @@
 import pytest
 
-from atlas_rl.envs.dummy.env import DummyEnv
-from atlas_rl.harness.agent import HarnessAgent
-from atlas_rl.harness.mock_client import MockLLMClient, ScriptedResponse
+from glyphbench.envs.dummy.env import DummyEnv
+from glyphbench.harness.agent import HarnessAgent
+from glyphbench.harness.mock_client import MockLLMClient, ScriptedResponse
 
 
 @pytest.mark.asyncio

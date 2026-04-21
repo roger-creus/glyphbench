@@ -1,6 +1,6 @@
-from atlas_rl.core.observation import GridObservation
-from atlas_rl.harness.prompt_builder import build_user_prompt
-from atlas_rl.harness.state import EpisodeState, Subgoal
+from glyphbench.core.observation import GridObservation
+from glyphbench.harness.prompt_builder import build_user_prompt
+from glyphbench.harness.state import EpisodeState, Subgoal
 
 
 def _fresh_obs() -> GridObservation:

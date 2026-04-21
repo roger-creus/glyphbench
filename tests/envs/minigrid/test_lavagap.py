@@ -5,12 +5,12 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 LAVAGAP_VARIANTS = [
-    "atlas_rl/minigrid-lavagap-s5-v0",
-    "atlas_rl/minigrid-lavagap-s6-v0",
-    "atlas_rl/minigrid-lavagap-s7-v0",
+    "glyphbench/minigrid-lavagap-s5-v0",
+    "glyphbench/minigrid-lavagap-s6-v0",
+    "glyphbench/minigrid-lavagap-s7-v0",
 ]
 
 

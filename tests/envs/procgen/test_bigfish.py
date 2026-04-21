@@ -1,6 +1,6 @@
 """Unit tests for Procgen BigFish env."""
 
-from atlas_rl.envs.procgen.bigfish import BigFishEnv
+from glyphbench.envs.procgen.bigfish import BigFishEnv
 
 
 class TestBigFish:
@@ -13,7 +13,7 @@ class TestBigFish:
         assert env.action_spec.names == ("NOOP", "LEFT", "RIGHT", "UP", "DOWN")
 
     def test_env_id(self):
-        assert self._make().env_id() == "atlas_rl/procgen-bigfish-v0"
+        assert self._make().env_id() == "glyphbench/procgen-bigfish-v0"
 
     def test_reset_determinism(self):
         e1, e2 = self._make(), self._make()

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Curses-based random-agent viewer for any atlas_rl environment.
+"""Curses-based random-agent viewer for any glyphbench environment.
 
 Renders the grid with colors, a side panel for HUD/legend, and a bottom bar
 for messages and reward tracking.
 
 Usage:
-    uv run python scripts/play_curses.py atlas_rl/craftax-classic-v0
-    uv run python scripts/play_curses.py atlas_rl/minigrid-doorkey-5x5-v0 --seed 42
-    uv run python scripts/play_curses.py atlas_rl/atari-pong-v0 --delay 0.05
+    uv run python scripts/play_curses.py glyphbench/craftax-classic-v0
+    uv run python scripts/play_curses.py glyphbench/minigrid-doorkey-5x5-v0 --seed 42
+    uv run python scripts/play_curses.py glyphbench/atari-pong-v0 --delay 0.05
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import time
 import gymnasium as gym
 import numpy as np
 
-import atlas_rl  # noqa: F401 — trigger env registration
+import glyphbench  # noqa: F401 — trigger env registration
 from terminal_colors import char_attr, init_colors
 
 
@@ -106,7 +106,7 @@ def _draw_hbar(win: curses.window, y: int, x: int, width: int) -> None:
 
 def main(stdscr: curses.window) -> None:
     parser = argparse.ArgumentParser(
-        description="Curses random-agent viewer for atlas_rl envs"
+        description="Curses random-agent viewer for glyphbench envs"
     )
     parser.add_argument("env_id", help="Gym env ID")
     parser.add_argument("--seed", type=int, default=0)

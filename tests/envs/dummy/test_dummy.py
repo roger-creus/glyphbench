@@ -1,11 +1,11 @@
 import pytest
 
-from atlas_rl.envs.dummy.env import DummyEnv
+from glyphbench.envs.dummy.env import DummyEnv
 
 
 def test_dummy_env_id():
     env = DummyEnv()
-    assert env.env_id() == "atlas_rl/__dummy-v0"
+    assert env.env_id() == "glyphbench/__dummy-v0"
 
 
 def test_dummy_env_action_space_has_five_actions():

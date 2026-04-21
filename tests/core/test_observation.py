@@ -1,6 +1,6 @@
 import contextlib
 
-from atlas_rl.core.observation import GridObservation
+from glyphbench.core.observation import GridObservation
 
 
 def test_grid_observation_holds_all_four_string_fields():

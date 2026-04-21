@@ -1,6 +1,6 @@
 """Unit tests for Procgen Maze env."""
 
-from atlas_rl.envs.procgen.maze import MazeEnv
+from glyphbench.envs.procgen.maze import MazeEnv
 
 
 class TestMaze:
@@ -13,7 +13,7 @@ class TestMaze:
         assert env.action_spec.names == ("NOOP", "LEFT", "RIGHT", "UP", "DOWN")
 
     def test_env_id(self):
-        assert self._make().env_id() == "atlas_rl/procgen-maze-v0"
+        assert self._make().env_id() == "glyphbench/procgen-maze-v0"
 
     def test_reset_determinism(self):
         e1, e2 = self._make(), self._make()

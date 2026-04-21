@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.corridorbattle import (
+from glyphbench.envs.minihack.corridorbattle import (
     MiniHackCorridorBattleDarkEnv,
     MiniHackCorridorBattleEnv,
 )
@@ -14,8 +14,8 @@ CORRIDORBATTLE_CLASSES = [
     MiniHackCorridorBattleDarkEnv,
 ]
 CORRIDORBATTLE_IDS = [
-    "atlas_rl/minihack-corridorbattle-v0",
-    "atlas_rl/minihack-corridorbattle-dark-v0",
+    "glyphbench/minihack-corridorbattle-v0",
+    "glyphbench/minihack-corridorbattle-dark-v0",
 ]
 
 
@@ -72,7 +72,7 @@ class TestCorridorBattleEnvs:
         for x in range(1, env._grid_w - 1):
             cell = env._grid[corridor_y][x]
             # corridor cells should be floor, stairs, or have a creature
-            assert cell in (".", ">") or env._creature_at(x, corridor_y) is not None
+            assert cell in ("·", "⇣") or env._creature_at(x, corridor_y) is not None
 
     @pytest.mark.parametrize("cls", CORRIDORBATTLE_CLASSES)
     def test_random_rollout(self, cls: type) -> None:

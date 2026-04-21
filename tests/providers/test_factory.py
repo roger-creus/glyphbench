@@ -1,7 +1,7 @@
 import pytest
 
-from atlas_rl.providers.factory import ClientBuildConfig, build_client
-from atlas_rl.providers.pricing import Pricing
+from glyphbench.providers.factory import ClientBuildConfig, build_client
+from glyphbench.providers.pricing import Pricing
 
 
 @pytest.fixture

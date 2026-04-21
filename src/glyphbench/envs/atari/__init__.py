@@ -1,0 +1,289 @@
+"""Atari suite. Importing this module registers all Atari envs with gym."""
+
+from glyphbench.core.registry import register_env
+
+register_env(
+    "glyphbench/atari-pong-v0",
+    "glyphbench.envs.atari.pong:PongEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-montezumarevenge-v0",
+    "glyphbench.envs.atari.montezumarevenge:MontezumaRevengeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-venture-v0",
+    "glyphbench.envs.atari.venture:VentureEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-kangaroo-v0",
+    "glyphbench.envs.atari.kangaroo:KangarooEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-pitfall-v0",
+    "glyphbench.envs.atari.pitfall:PitfallEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-frostbite-v0",
+    "glyphbench.envs.atari.frostbite:FrostbiteEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-mspacman-v0",
+    "glyphbench.envs.atari.mspacman:MsPacManEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-berzerk-v0",
+    "glyphbench.envs.atari.berzerk:BerzerkEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-wizardofwor-v0",
+    "glyphbench.envs.atari.wizardofwor:WizardOfWorEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-bankheist-v0",
+    "glyphbench.envs.atari.bankheist:BankHeistEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-amidar-v0",
+    "glyphbench.envs.atari.amidar:AmidarEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-qbert-v0",
+    "glyphbench.envs.atari.qbert:QbertEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-breakout-v0",
+    "glyphbench.envs.atari.breakout:BreakoutEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-spaceinvaders-v0",
+    "glyphbench.envs.atari.spaceinvaders:SpaceInvadersEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-hero-v0",
+    "glyphbench.envs.atari.hero:HeroEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-freeway-v0",
+    "glyphbench.envs.atari.freeway:FreewayEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-surround-v0",
+    "glyphbench.envs.atari.surround:SurroundEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-phoenix-v0",
+    "glyphbench.envs.atari.phoenix:PhoenixEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-demonattack-v0",
+    "glyphbench.envs.atari.demonattack:DemonAttackEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-assault-v0",
+    "glyphbench.envs.atari.assault:AssaultEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-atlantis-v0",
+    "glyphbench.envs.atari.atlantis:AtlantisEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-gopher-v0",
+    "glyphbench.envs.atari.gopher:GopherEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-centipede-v0",
+    "glyphbench.envs.atari.centipede:CentipedeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-defender-v0",
+    "glyphbench.envs.atari.defender:DefenderEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-seaquest-v0",
+    "glyphbench.envs.atari.seaquest:SeaquestEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-choppercommand-v0",
+    "glyphbench.envs.atari.choppercommand:ChopperCommandEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-stargunner-v0",
+    "glyphbench.envs.atari.stargunner:StarGunnerEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-timepilot-v0",
+    "glyphbench.envs.atari.timepilot:TimePilotEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-riverraid-v0",
+    "glyphbench.envs.atari.riverraid:RiverRaidEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-upndown-v0",
+    "glyphbench.envs.atari.upndown:UpNDownEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-beamrider-v0",
+    "glyphbench.envs.atari.beamrider:BeamRiderEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-namethisgame-v0",
+    "glyphbench.envs.atari.namethisgame:NameThisGameEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-yarsrevenge-v0",
+    "glyphbench.envs.atari.yarsrevenge:YarsRevengeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-alien-v0",
+    "glyphbench.envs.atari.alien:AlienEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-crazyclimber-v0",
+    "glyphbench.envs.atari.crazyclimber:CrazyClimberEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-tutankham-v0",
+    "glyphbench.envs.atari.tutankham:TutankhamEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-kungfumaster-v0",
+    "glyphbench.envs.atari.kungfumaster:KungFuMasterEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-jamesbond-v0",
+    "glyphbench.envs.atari.jamesbond:JamesBondEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-roadrunner-v0",
+    "glyphbench.envs.atari.roadrunner:RoadRunnerEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-krull-v0",
+    "glyphbench.envs.atari.krull:KrullEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-privateeye-v0",
+    "glyphbench.envs.atari.privateeye:PrivateEyeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-bowling-v0",
+    "glyphbench.envs.atari.bowling:BowlingEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-boxing-v0",
+    "glyphbench.envs.atari.boxing:BoxingEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-tennis-v0",
+    "glyphbench.envs.atari.tennis:TennisEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-icehockey-v0",
+    "glyphbench.envs.atari.icehockey:IceHockeyEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-skiing-v0",
+    "glyphbench.envs.atari.skiing:SkiingEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-enduro-v0",
+    "glyphbench.envs.atari.enduro:EnduroEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-doubledunk-v0",
+    "glyphbench.envs.atari.doubledunk:DoubleDunkEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-fishingderby-v0",
+    "glyphbench.envs.atari.fishingderby:FishingDerbyEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-asterix-v0",
+    "glyphbench.envs.atari.asterix:AsterixEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-asteroids-v0",
+    "glyphbench.envs.atari.asteroids:AsteroidsEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-battlezone-v0",
+    "glyphbench.envs.atari.battlezone:BattleZoneEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-robotank-v0",
+    "glyphbench.envs.atari.robotank:RobotankEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-zaxxon-v0",
+    "glyphbench.envs.atari.zaxxon:ZaxxonEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-gravitar-v0",
+    "glyphbench.envs.atari.gravitar:GravitarEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-solaris-v0",
+    "glyphbench.envs.atari.solaris:SolarisEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/atari-videopinball-v0",
+    "glyphbench.envs.atari.videopinball:VideoPinballEnv",
+    max_episode_steps=None,
+)

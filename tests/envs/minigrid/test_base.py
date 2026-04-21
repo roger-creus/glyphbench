@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from atlas_rl.envs.minigrid.objects import Door, Goal, Key
+from glyphbench.envs.minigrid.objects import Door, Goal, Key
 
 
 class TestMiniGridBase:
     def _make_env(self, width: int = 7, height: int = 7, max_turns: int = 100):
-        from atlas_rl.envs.minigrid.base import MiniGridBase
+        from glyphbench.envs.minigrid.base import MiniGridBase
 
         class TestEnv(MiniGridBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-minigrid-v0"
+                return "glyphbench/test-minigrid-v0"
 
             def _generate_grid(self, seed: int) -> None:
                 self._init_grid(width, height)
@@ -81,8 +81,8 @@ class TestMiniGridBase:
         env.reset(seed=0)
         obs = env.get_observation()
         rendered = obs.render()
-        assert ">" in rendered
-        assert "G" in rendered
+        assert "→" in rendered
+        assert "★" in rendered
 
     def test_hud_contains_facing_and_position(self) -> None:
         env = self._make_env()
@@ -116,11 +116,11 @@ class TestMiniGridBase:
         assert info.get("goal_reached") is True
 
     def test_pickup_and_drop(self) -> None:
-        from atlas_rl.envs.minigrid.base import MiniGridBase
+        from glyphbench.envs.minigrid.base import MiniGridBase
 
         class PickupEnv(MiniGridBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-pickup-v0"
+                return "glyphbench/test-pickup-v0"
 
             def _generate_grid(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -145,11 +145,11 @@ class TestMiniGridBase:
         assert env._get_obj(2, 1) is not None  # back on grid
 
     def test_toggle_door(self) -> None:
-        from atlas_rl.envs.minigrid.base import MiniGridBase
+        from glyphbench.envs.minigrid.base import MiniGridBase
 
         class DoorEnv(MiniGridBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-door-v0"
+                return "glyphbench/test-door-v0"
 
             def _generate_grid(self, seed: int) -> None:
                 self._init_grid(7, 7)

@@ -3,7 +3,7 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from atlas_rl.envs.atari.pong import PongEnv
+from glyphbench.envs.atari.pong import PongEnv
 
 
 @given(

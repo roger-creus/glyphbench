@@ -1,6 +1,6 @@
 """Unit tests for Atari Q*bert env."""
 
-from atlas_rl.envs.atari.qbert import QbertEnv
+from glyphbench.envs.atari.qbert import QbertEnv
 
 
 class TestQbert:
@@ -22,7 +22,7 @@ class TestQbert:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-qbert-v0"
+        assert env.env_id() == "glyphbench/atari-qbert-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

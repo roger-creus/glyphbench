@@ -1,4 +1,4 @@
-from atlas_rl.core.metrics import TurnMetrics
+from glyphbench.core.metrics import TurnMetrics
 
 
 def test_turn_metrics_required_fields():

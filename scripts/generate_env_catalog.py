@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Generate environment catalog from the registry."""
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 import gymnasium as gym
 
 
 def main() -> None:
     envs = sorted(
         eid for eid in gym.registry
-        if isinstance(eid, str) and eid.startswith("atlas_rl/")
+        if isinstance(eid, str) and eid.startswith("glyphbench/")
     )
 
     suites: dict[str, list[str]] = {}

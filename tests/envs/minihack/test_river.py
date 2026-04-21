@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.river import (
+from glyphbench.envs.minihack.river import (
     MiniHackRiverEnv,
     MiniHackRiverLavaEnv,
     MiniHackRiverMonsterEnv,
@@ -20,11 +20,11 @@ RIVER_CLASSES = [
     MiniHackRiverMonsterLavaEnv,
 ]
 RIVER_IDS = [
-    "atlas_rl/minihack-river-v0",
-    "atlas_rl/minihack-river-narrow-v0",
-    "atlas_rl/minihack-river-monster-v0",
-    "atlas_rl/minihack-river-lava-v0",
-    "atlas_rl/minihack-river-monsterlava-v0",
+    "glyphbench/minihack-river-v0",
+    "glyphbench/minihack-river-narrow-v0",
+    "glyphbench/minihack-river-monster-v0",
+    "glyphbench/minihack-river-lava-v0",
+    "glyphbench/minihack-river-monsterlava-v0",
 ]
 
 
@@ -50,7 +50,7 @@ class TestRiverEnvs:
         env = cls()
         obs_str, _ = env.reset(seed=0)
         assert "@" in obs_str
-        assert ">" in obs_str
+        assert "⇣" in obs_str
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
         assert "[HUD]" in obs_str
@@ -73,7 +73,7 @@ class TestRiverEnvs:
         river_y = h // 2
         river_row = env._grid[river_y]
         # At least some tiles should be river or stepping stones
-        river_chars = {"~", "}", "."}
+        river_chars = {"≈", "♨", "·"}
         inner = river_row[1:-1]
         assert all(c in river_chars for c in inner)
 
@@ -110,14 +110,14 @@ class TestRiverEnvs:
         env.reset(seed=0)
         river_y = env._grid_h // 2
         river_row = env._grid[river_y][1:-1]
-        assert "}" in river_row, "Lava river should contain } tiles"
+        assert "♨" in river_row, "Lava river should contain ♨ tiles"
 
     def test_water_uses_water_tiles(self) -> None:
         env = MiniHackRiverEnv()
         env.reset(seed=0)
         river_y = env._grid_h // 2
         river_row = env._grid[river_y][1:-1]
-        assert "~" in river_row, "Water river should contain ~ tiles"
+        assert "≈" in river_row, "Water river should contain ≈ tiles"
 
     def test_monster_variant_has_creatures(self) -> None:
         env = MiniHackRiverMonsterEnv()

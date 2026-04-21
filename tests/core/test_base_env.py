@@ -1,8 +1,8 @@
 import pytest
 
-from atlas_rl.core.action import ActionSpec
-from atlas_rl.core.base_env import BaseAsciiEnv
-from atlas_rl.core.observation import GridObservation
+from glyphbench.core.action import ActionSpec
+from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.observation import GridObservation
 
 
 class _TinyEnv(BaseAsciiEnv):
@@ -11,7 +11,7 @@ class _TinyEnv(BaseAsciiEnv):
     action_spec = ActionSpec(names=("NOOP", "TICK"), descriptions=("", ""))
 
     def env_id(self) -> str:
-        return "atlas_rl/__tiny-v0"
+        return "glyphbench/__tiny-v0"
 
     def system_prompt(self) -> str:
         return "You are testing BaseAsciiEnv. Do anything."
@@ -52,7 +52,7 @@ def test_reset_returns_rendered_string_and_info_with_turn_zero():
     assert "counter=0" in obs
     assert info["turn"] == 0
     assert info["seed"] == 42
-    assert info["env_id"] == "atlas_rl/__tiny-v0"
+    assert info["env_id"] == "glyphbench/__tiny-v0"
 
 
 def test_reset_determinism_same_seed_same_initial_obs():

@@ -1,6 +1,6 @@
 """Suite-level conformance test for all registered MiniGrid environments.
 
-Iterates over every env matching atlas_rl/minigrid-* and validates the contract.
+Iterates over every env matching glyphbench/minigrid-* and validates the contract.
 """
 
 from __future__ import annotations
@@ -8,15 +8,15 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 
 def _minigrid_env_ids() -> list[str]:
-    """Collect all registered atlas_rl/minigrid-* env IDs."""
+    """Collect all registered glyphbench/minigrid-* env IDs."""
     return sorted(
         eid
         for eid in gym.registry
-        if isinstance(eid, str) and eid.startswith("atlas_rl/minigrid-")
+        if isinstance(eid, str) and eid.startswith("glyphbench/minigrid-")
     )
 
 
@@ -42,7 +42,7 @@ class TestMiniGridSuiteConformance:
 
     def test_action_space_is_7(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=10)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
         assert unwrapped.action_spec.n == 7
 
@@ -64,7 +64,7 @@ class TestMiniGridSuiteConformance:
 
     def test_system_prompt_exists(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=10)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
         prompt = unwrapped.system_prompt()
         assert isinstance(prompt, str)

@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.minigrid.empty import MiniGridEmpty5x5Env
+from glyphbench.envs.minigrid.empty import MiniGridEmpty5x5Env
 
 
 class TestMiniGridEmpty5x5:
@@ -31,7 +31,7 @@ class TestMiniGridEmpty5x5:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/minigrid-empty-5x5-v0"
+        assert env.env_id() == "glyphbench/minigrid-empty-5x5-v0"
 
     # --- Spec 10.1: test_reset_determinism ---
     def test_reset_determinism(self):
@@ -96,8 +96,8 @@ class TestMiniGridEmpty5x5:
         obs_str, info = env.reset(seed=0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
-        # 7x7 grid: row 1 (index 1), col 1 should have '>'
-        assert grid_lines[1][1] == ">", f"Expected '>' at (1,1), got '{grid_lines[1][1]}'"
+        # 7x7 grid: row 1 (index 1), col 1 should have '→'
+        assert grid_lines[1][1] == "→", f"Expected '→' at (1,1), got '{grid_lines[1][1]}'"
 
     # --- Spec 8.1: Goal at (5,5) ---
     def test_goal_position(self):
@@ -105,8 +105,8 @@ class TestMiniGridEmpty5x5:
         env.reset(seed=0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
-        # Row 5, col 5 should have 'G'
-        assert grid_lines[5][5] == "G", f"Expected 'G' at (5,5), got '{grid_lines[5][5]}'"
+        # Row 5, col 5 should have '★'
+        assert grid_lines[5][5] == "★", f"Expected '★' at (5,5), got '{grid_lines[5][5]}'"
 
     # --- Spec 8.1 test: Move forward 4 times from start -> end up at (5,1) on the grid ---
     # Agent starts at interior (1,1) facing right. 4 forwards = interior pos (5,1) i.e. grid (5,1)
@@ -122,7 +122,7 @@ class TestMiniGridEmpty5x5:
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         # Agent should be at grid col 5, row 1 (interior pos 4,0)
-        assert grid_lines[1][5] == ">", f"Expected '>' at grid (5,1), got '{grid_lines[1][5]}'"
+        assert grid_lines[1][5] == "→", f"Expected '→' at grid (5,1), got '{grid_lines[1][5]}'"
 
     # --- Spec 8.1: Turn-right -> turn-right -> facing = LEFT ---
     def test_turn_right_twice_faces_left(self):
@@ -134,7 +134,7 @@ class TestMiniGridEmpty5x5:
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         # Agent should still be at (1,1) but facing left
-        assert grid_lines[1][1] == "<", f"Expected '<' at (1,1), got '{grid_lines[1][1]}'"
+        assert grid_lines[1][1] == "←", f"Expected '←' at (1,1), got '{grid_lines[1][1]}'"
 
     # --- Spec 8.1: Reach goal in optimal path (8 steps) ---
     # From interior (0,0) facing right:
@@ -240,7 +240,7 @@ class TestMiniGridEmpty5x5:
         env.step(fwd)  # Try to move into wall -- should stay at (1,1)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
-        assert grid_lines[1][1] == "^", "Expected '^' at (1,1) after wall bump"
+        assert grid_lines[1][1] == "↑", "Expected '↑' at (1,1) after wall bump"
 
     # --- Spec 8.1: HUD format ---
     def test_hud_format(self):
@@ -256,8 +256,8 @@ class TestMiniGridEmpty5x5:
         env = self._make_env()
         env.reset(seed=0)
         grid_obs = env.get_observation()
-        assert ">" in grid_obs.legend or "agent" in grid_obs.legend.lower()
-        assert "G" in grid_obs.legend
+        assert "→" in grid_obs.legend or "agent" in grid_obs.legend.lower()
+        assert "★" in grid_obs.legend
         assert "goal" in grid_obs.legend.lower()
 
     # --- Spec: system_prompt ---
@@ -289,7 +289,7 @@ class TestMiniGridEmpty5x5:
         env.reset(seed=0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
-        assert grid_lines[1][1] == ">"
+        assert grid_lines[1][1] == "→"
 
     # --- Spec: requires explicit seed ---
     def test_reset_requires_seed(self):

@@ -5,13 +5,13 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 DOORKEY_VARIANTS = [
-    "atlas_rl/minigrid-doorkey-5x5-v0",
-    "atlas_rl/minigrid-doorkey-6x6-v0",
-    "atlas_rl/minigrid-doorkey-8x8-v0",
-    "atlas_rl/minigrid-doorkey-16x16-v0",
+    "glyphbench/minigrid-doorkey-5x5-v0",
+    "glyphbench/minigrid-doorkey-6x6-v0",
+    "glyphbench/minigrid-doorkey-8x8-v0",
+    "glyphbench/minigrid-doorkey-16x16-v0",
 ]
 
 
@@ -46,12 +46,12 @@ class TestDoorKey:
 
     def test_pickup_key_mechanics(self) -> None:
         """Test that picking up the key works in the smallest variant."""
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
-        env = gym.make("atlas_rl/minigrid-doorkey-5x5-v0", max_turns=200)
+        env = gym.make("glyphbench/minigrid-doorkey-5x5-v0", max_turns=200)
         env.reset(seed=0)
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        from atlas_rl.envs.minigrid.base import MiniGridBase
+        from glyphbench.envs.minigrid.base import MiniGridBase
 
         assert isinstance(unwrapped, MiniGridBase)
         # Agent should be able to pick up key eventually through random play

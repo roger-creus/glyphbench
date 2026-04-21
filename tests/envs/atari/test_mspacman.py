@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.atari.mspacman import MsPacManEnv
+from glyphbench.envs.atari.mspacman import MsPacManEnv
 
 
 class TestMsPacMan:
@@ -19,7 +19,7 @@ class TestMsPacMan:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-mspacman-v0"
+        assert env.env_id() == "glyphbench/atari-mspacman-v0"
 
     def test_reset_determinism(self):
         e1 = self._make_env()
@@ -115,7 +115,7 @@ class TestMsPacMan:
         env.reset(seed=0)
         assert env._score == 0
         # Manually eat a pellet
-        env._set_cell(env._player_x + 1, env._player_y, ".")
+        env._set_cell(env._player_x + 1, env._player_y, "·")
         # Make sure pellet count reflects it
         env._pellet_count += 1
         right = env.action_spec.index_of("RIGHT")

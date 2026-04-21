@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.boxoban import (
+from glyphbench.envs.minihack.boxoban import (
     MiniHackBoxobanHardEnv,
     MiniHackBoxobanMediumEnv,
     MiniHackBoxobanUnfilteredEnv,
@@ -16,9 +16,9 @@ BOXOBAN_CLASSES = [
     MiniHackBoxobanUnfilteredEnv,
 ]
 BOXOBAN_IDS = [
-    "atlas_rl/minihack-boxoban-medium-v0",
-    "atlas_rl/minihack-boxoban-hard-v0",
-    "atlas_rl/minihack-boxoban-unfiltered-v0",
+    "glyphbench/minihack-boxoban-medium-v0",
+    "glyphbench/minihack-boxoban-hard-v0",
+    "glyphbench/minihack-boxoban-unfiltered-v0",
 ]
 
 
@@ -87,8 +87,8 @@ class TestBoxobanEnvs:
         env._box_positions = [(3, s // 2)]
         env._target_positions = [(4, s // 2)]
         # Ensure cells are walkable
-        env._grid[s // 2][3] = "."
-        env._grid[s // 2][4] = "."
+        env._grid[s // 2][3] = "·"
+        env._grid[s // 2][4] = "·"
 
         move_e = env.action_spec.index_of("MOVE_E")
         _, _, terminated, _, info = env.step(move_e)
@@ -112,7 +112,7 @@ class TestBoxobanEnvs:
         env._player_pos = (s - 3, 1)
         env._box_positions = [(s - 2, 1)]  # next to right border wall
         env._target_positions = [(1, 1)]
-        env._grid[1][s - 2] = "."
+        env._grid[1][s - 2] = "·"
 
         old_box = env._box_positions[0]
         move_e = env.action_spec.index_of("MOVE_E")
@@ -130,8 +130,8 @@ class TestBoxobanEnvs:
         env._player_pos = (1, s // 2)
         env._box_positions = [(2, s // 2), (3, s // 2)]
         env._target_positions = [(s - 2, 1), (s - 2, 2)]
-        env._grid[s // 2][2] = "."
-        env._grid[s // 2][3] = "."
+        env._grid[s // 2][2] = "·"
+        env._grid[s // 2][3] = "·"
 
         old_boxes = list(env._box_positions)
         move_e = env.action_spec.index_of("MOVE_E")
@@ -191,8 +191,8 @@ class TestBoxobanEnvs:
         env._player_pos = (2, s // 2)
         env._box_positions = [(3, s // 2)]
         env._target_positions = [(4, s // 2)]
-        env._grid[s // 2][3] = "."
-        env._grid[s // 2][4] = "."
+        env._grid[s // 2][3] = "·"
+        env._grid[s // 2][4] = "·"
 
         move_e = env.action_spec.index_of("MOVE_E")
         _, reward, terminated, _, _ = env.step(move_e)

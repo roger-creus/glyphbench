@@ -1,6 +1,6 @@
 """Unit tests for Procgen Heist env."""
 
-from atlas_rl.envs.procgen.heist import HeistEnv
+from glyphbench.envs.procgen.heist import HeistEnv
 
 
 class TestHeist:
@@ -13,7 +13,7 @@ class TestHeist:
         assert env.action_spec.names == ("NOOP", "LEFT", "RIGHT", "UP", "DOWN")
 
     def test_env_id(self):
-        assert self._make().env_id() == "atlas_rl/procgen-heist-v0"
+        assert self._make().env_id() == "glyphbench/procgen-heist-v0"
 
     def test_reset_determinism(self):
         e1, e2 = self._make(), self._make()
@@ -63,7 +63,7 @@ class TestHeist:
                     env._agent_y = y
                     noop = env.action_spec.index_of("NOOP")
                     env.step(noop)
-                    assert env._world_at(x, y) == "."
+                    assert env._world_at(x, y) == "·"
                     return
         # If no key found, that's fine (rare seed)
 

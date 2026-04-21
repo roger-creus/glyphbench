@@ -5,11 +5,11 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 DISTSHIFT_VARIANTS = [
-    "atlas_rl/minigrid-distshift1-v0",
-    "atlas_rl/minigrid-distshift2-v0",
+    "glyphbench/minigrid-distshift1-v0",
+    "glyphbench/minigrid-distshift2-v0",
 ]
 
 

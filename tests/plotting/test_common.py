@@ -52,7 +52,7 @@ def _create_fake_run(tmp_path: Path, run_id: str, env_ids: list[str]) -> Path:
 
 class TestLoadRun:
     def test_load_run_returns_dict(self, tmp_path: Path) -> None:
-        from atlas_rl.plotting.common import load_run
+        from glyphbench.plotting.common import load_run
         run_dir = _create_fake_run(tmp_path, "run1", ["env-a"])
         result = load_run(str(run_dir))
         assert isinstance(result, dict)
@@ -62,20 +62,20 @@ class TestLoadRun:
         assert isinstance(result["turns"], pd.DataFrame)
 
     def test_load_run_summary_shape(self, tmp_path: Path) -> None:
-        from atlas_rl.plotting.common import load_run
+        from glyphbench.plotting.common import load_run
         run_dir = _create_fake_run(tmp_path, "run1", ["env-a", "env-b"])
         result = load_run(str(run_dir))
         assert len(result["summary"]) == 4  # 2 envs * 2 seeds
 
     def test_load_run_missing_dir_raises(self) -> None:
-        from atlas_rl.plotting.common import load_run
+        from glyphbench.plotting.common import load_run
         with pytest.raises(FileNotFoundError):
             load_run("/nonexistent/path")
 
 
 class TestLoadRuns:
     def test_load_runs_concatenates(self, tmp_path: Path) -> None:
-        from atlas_rl.plotting.common import load_runs
+        from glyphbench.plotting.common import load_runs
         _create_fake_run(tmp_path, "run1", ["env-a"])
         _create_fake_run(tmp_path, "run2", ["env-a"])
         result = load_runs([str(tmp_path / "run1"), str(tmp_path / "run2")])
@@ -84,7 +84,7 @@ class TestLoadRuns:
         assert len(result) == 4  # 2 runs * 1 env * 2 seeds
 
     def test_load_runs_empty_list(self) -> None:
-        from atlas_rl.plotting.common import load_runs
+        from glyphbench.plotting.common import load_runs
         result = load_runs([])
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 0
@@ -92,7 +92,7 @@ class TestLoadRuns:
 
 class TestComputeNormalizedScores:
     def test_normalized_scores_basic(self) -> None:
-        from atlas_rl.plotting.common import compute_normalized_scores
+        from glyphbench.plotting.common import compute_normalized_scores
         summary = pd.DataFrame({
             "env_id": ["env-a", "env-a", "env-b", "env-b"],
             "episode_return": [1.0, 2.0, 3.0, 4.0],
@@ -105,7 +105,7 @@ class TestComputeNormalizedScores:
         assert "normalized_return" in result.columns
 
     def test_normalized_scores_with_expert(self) -> None:
-        from atlas_rl.plotting.common import compute_normalized_scores
+        from glyphbench.plotting.common import compute_normalized_scores
         summary = pd.DataFrame({
             "env_id": ["env-a", "env-a"],
             "episode_return": [5.0, 10.0],

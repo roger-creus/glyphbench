@@ -2,10 +2,10 @@
 
 ## Adding a New Environment
 
-1. Create a new file in `src/atlas_rl/envs/<suite>/<env_name>.py`
+1. Create a new file in `src/glyphbench/envs/<suite>/<env_name>.py`
 2. Extend the suite's base class (e.g., `MiniGridBase`, `MiniHackBase`, `ProcgenBase`, `AtariBase`)
 3. Implement required methods: `env_id()`, `_generate_grid/level(seed)`, game step logic
-4. Register in `src/atlas_rl/envs/<suite>/__init__.py`
+4. Register in `src/glyphbench/envs/<suite>/__init__.py`
 5. Add tests in `tests/envs/<suite>/test_<env_name>.py`
 6. Add a system prompt template if using Jinja2 templates
 
@@ -20,7 +20,7 @@ Every environment must pass:
 
 ## Adding a New LLM Provider
 
-1. Create `src/atlas_rl/providers/<provider>_client.py`
+1. Create `src/glyphbench/providers/<provider>_client.py`
 2. Implement the `LLMClient` protocol (see `providers/base.py`)
 3. Add to `providers/factory.py`
 4. Add pricing to `pricing.yaml`
@@ -38,5 +38,5 @@ Every environment must pass:
 uv run pytest                    # full suite
 uv run pytest tests/envs/minigrid/ -v  # single suite
 uv run ruff check src/           # lint
-uv run mypy src/atlas_rl/        # type check
+uv run mypy src/glyphbench/        # type check
 ```

@@ -1,6 +1,6 @@
 import pytest
 
-from atlas_rl.core.action import ActionSpec
+from glyphbench.core.action import ActionSpec
 
 
 def test_action_spec_n_equals_number_of_names():

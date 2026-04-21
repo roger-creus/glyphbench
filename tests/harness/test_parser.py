@@ -1,7 +1,7 @@
 import pytest
 
-from atlas_rl.core.action import ActionSpec
-from atlas_rl.harness.parser import (
+from glyphbench.core.action import ActionSpec
+from glyphbench.harness.parser import (
     MAX_REPAIR_RETRIES,
     extract_json,
     parse_harness_output,

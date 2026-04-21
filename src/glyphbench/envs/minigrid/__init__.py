@@ -1,0 +1,359 @@
+"""MiniGrid suite. Importing this module registers all MiniGrid envs with gym."""
+
+from glyphbench.core.registry import register_env
+
+register_env(
+    "glyphbench/minigrid-empty-5x5-v0",
+    "glyphbench.envs.minigrid.empty:MiniGridEmpty5x5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-empty-6x6-v0",
+    "glyphbench.envs.minigrid.empty:MiniGridEmpty6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-empty-8x8-v0",
+    "glyphbench.envs.minigrid.empty:MiniGridEmpty8x8Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-empty-16x16-v0",
+    "glyphbench.envs.minigrid.empty:MiniGridEmpty16x16Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-empty-random-5x5-v0",
+    "glyphbench.envs.minigrid.empty:MiniGridEmptyRandom5x5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-empty-random-6x6-v0",
+    "glyphbench.envs.minigrid.empty:MiniGridEmptyRandom6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-doorkey-5x5-v0",
+    "glyphbench.envs.minigrid.doorkey:MiniGridDoorKey5x5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-doorkey-6x6-v0",
+    "glyphbench.envs.minigrid.doorkey:MiniGridDoorKey6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-doorkey-8x8-v0",
+    "glyphbench.envs.minigrid.doorkey:MiniGridDoorKey8x8Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-doorkey-16x16-v0",
+    "glyphbench.envs.minigrid.doorkey:MiniGridDoorKey16x16Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-fourrooms-v0",
+    "glyphbench.envs.minigrid.fourrooms:MiniGridFourRoomsEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-multiroom-n2-s4-v0",
+    "glyphbench.envs.minigrid.multiroom:MiniGridMultiRoomN2S4Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-multiroom-n4-s5-v0",
+    "glyphbench.envs.minigrid.multiroom:MiniGridMultiRoomN4S5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-multiroom-n6-v0",
+    "glyphbench.envs.minigrid.multiroom:MiniGridMultiRoomN6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-unlock-v0",
+    "glyphbench.envs.minigrid.unlock:MiniGridUnlockEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-unlockpickup-v0",
+    "glyphbench.envs.minigrid.unlock:MiniGridUnlockPickupEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-keycorridor-s3r1-v0",
+    "glyphbench.envs.minigrid.keycorridor:MiniGridKeyCorridorS3R1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-keycorridor-s3r2-v0",
+    "glyphbench.envs.minigrid.keycorridor:MiniGridKeyCorridorS3R2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-keycorridor-s3r3-v0",
+    "glyphbench.envs.minigrid.keycorridor:MiniGridKeyCorridorS3R3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-keycorridor-s4r3-v0",
+    "glyphbench.envs.minigrid.keycorridor:MiniGridKeyCorridorS4R3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-keycorridor-s5r3-v0",
+    "glyphbench.envs.minigrid.keycorridor:MiniGridKeyCorridorS5R3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-keycorridor-s6r3-v0",
+    "glyphbench.envs.minigrid.keycorridor:MiniGridKeyCorridorS6R3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-lockedroom-v0",
+    "glyphbench.envs.minigrid.lockedroom:MiniGridLockedRoomEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-blockedunlockpickup-v0",
+    "glyphbench.envs.minigrid.lockedroom:MiniGridBlockedUnlockPickupEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-distshift1-v0",
+    "glyphbench.envs.minigrid.distshift:MiniGridDistShift1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-distshift2-v0",
+    "glyphbench.envs.minigrid.distshift:MiniGridDistShift2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-lavagap-s5-v0",
+    "glyphbench.envs.minigrid.lavagap:MiniGridLavaGapS5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-lavagap-s6-v0",
+    "glyphbench.envs.minigrid.lavagap:MiniGridLavaGapS6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-lavagap-s7-v0",
+    "glyphbench.envs.minigrid.lavagap:MiniGridLavaGapS7Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-crossing-n1-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridCrossingN1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-crossing-n2-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridCrossingN2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-crossing-n3-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridCrossingN3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-crossing-n1-safe-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridCrossingN1SafeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-crossing-n2-safe-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridCrossingN2SafeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-crossing-n3-safe-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridCrossingN3SafeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-simplecrossing-n1-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridSimpleCrossingN1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-simplecrossing-n2-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridSimpleCrossingN2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-simplecrossing-n3-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridSimpleCrossingN3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-simplecrossing-easy-n1-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridSimpleCrossingEasyN1Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-simplecrossing-easy-n2-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridSimpleCrossingEasyN2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-simplecrossing-easy-n3-v0",
+    "glyphbench.envs.minigrid.crossing:MiniGridSimpleCrossingEasyN3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-dynamic-obstacles-5x5-v0",
+    "glyphbench.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles5x5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-dynamic-obstacles-6x6-v0",
+    "glyphbench.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-dynamic-obstacles-8x8-v0",
+    "glyphbench.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles8x8Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-dynamic-obstacles-16x16-v0",
+    "glyphbench.envs.minigrid.dynamic_obstacles:MiniGridDynamicObstacles16x16Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-gotodoor-5x5-v0",
+    "glyphbench.envs.minigrid.goto:MiniGridGoToDoor5x5Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-gotodoor-6x6-v0",
+    "glyphbench.envs.minigrid.goto:MiniGridGoToDoor6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-gotodoor-8x8-v0",
+    "glyphbench.envs.minigrid.goto:MiniGridGoToDoor8x8Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-gotoobject-6x6-n2-v0",
+    "glyphbench.envs.minigrid.goto:MiniGridGoToObject6x6N2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-fetch-5x5-n2-v0",
+    "glyphbench.envs.minigrid.fetch:MiniGridFetch5x5N2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-fetch-6x6-n2-v0",
+    "glyphbench.envs.minigrid.fetch:MiniGridFetch6x6N2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-fetch-8x8-n3-v0",
+    "glyphbench.envs.minigrid.fetch:MiniGridFetch8x8N3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-putnear-6x6-n2-v0",
+    "glyphbench.envs.minigrid.fetch:MiniGridPutNear6x6N2Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-putnear-8x8-n3-v0",
+    "glyphbench.envs.minigrid.fetch:MiniGridPutNear8x8N3Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-redbluedoors-6x6-v0",
+    "glyphbench.envs.minigrid.redbluedoors:MiniGridRedBlueDoors6x6Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-redbluedoors-8x8-v0",
+    "glyphbench.envs.minigrid.redbluedoors:MiniGridRedBlueDoors8x8Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-1dl-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMaze1DlEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-1dlh-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMaze1DlhEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-1dlhb-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMaze1DlhbEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-2dl-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMaze2DlEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-2dlh-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMaze2DlhEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-2dlhb-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMaze2DlhbEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-1q-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMaze1QEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-2q-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMaze2QEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-obstructedmaze-full-v0",
+    "glyphbench.envs.minigrid.obstructedmaze:MiniGridObstructedMazeFullEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-memory-s7-v0",
+    "glyphbench.envs.minigrid.memory:MiniGridMemoryS7Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-memory-s9-v0",
+    "glyphbench.envs.minigrid.memory:MiniGridMemoryS9Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-memory-s11-v0",
+    "glyphbench.envs.minigrid.memory:MiniGridMemoryS11Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-memory-s13-v0",
+    "glyphbench.envs.minigrid.memory:MiniGridMemoryS13Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-memory-s17-v0",
+    "glyphbench.envs.minigrid.memory:MiniGridMemoryS17Env",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/minigrid-playground-v0",
+    "glyphbench.envs.minigrid.playground:MiniGridPlaygroundEnv",
+    max_episode_steps=None,
+)

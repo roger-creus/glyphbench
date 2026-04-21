@@ -5,21 +5,21 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 SKILL_ENVS = [
-    "atlas_rl/minihack-eat-v0",
-    "atlas_rl/minihack-eat-distract-v0",
-    "atlas_rl/minihack-pray-v0",
-    "atlas_rl/minihack-pray-distract-v0",
-    "atlas_rl/minihack-sink-v0",
-    "atlas_rl/minihack-sink-distract-v0",
-    "atlas_rl/minihack-read-v0",
-    "atlas_rl/minihack-read-distract-v0",
-    "atlas_rl/minihack-quaff-v0",
-    "atlas_rl/minihack-quaff-distract-v0",
-    "atlas_rl/minihack-wield-v0",
-    "atlas_rl/minihack-wield-distract-v0",
+    "glyphbench/minihack-eat-v0",
+    "glyphbench/minihack-eat-distract-v0",
+    "glyphbench/minihack-pray-v0",
+    "glyphbench/minihack-pray-distract-v0",
+    "glyphbench/minihack-sink-v0",
+    "glyphbench/minihack-sink-distract-v0",
+    "glyphbench/minihack-read-v0",
+    "glyphbench/minihack-read-distract-v0",
+    "glyphbench/minihack-quaff-v0",
+    "glyphbench/minihack-quaff-distract-v0",
+    "glyphbench/minihack-wield-v0",
+    "glyphbench/minihack-wield-distract-v0",
 ]
 
 
@@ -71,7 +71,7 @@ class TestEatSpecific:
     """Eat-specific mechanics."""
 
     def test_starvation_kills(self) -> None:
-        env = gym.make("atlas_rl/minihack-eat-v0", max_turns=200)
+        env = gym.make("glyphbench/minihack-eat-v0", max_turns=200)
         env.reset(seed=0)
         # Wait until starvation (hunger starts at 20)
         for _ in range(25):
@@ -83,12 +83,12 @@ class TestEatSpecific:
         pytest.fail("Agent did not starve within 25 turns")
 
     def test_eating_restores_hunger(self) -> None:
-        env = gym.make("atlas_rl/minihack-eat-v0", max_turns=200)
+        env = gym.make("glyphbench/minihack-eat-v0", max_turns=200)
         env.reset(seed=0)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        from atlas_rl.envs.minihack.skill_eat import _EatBase
+        from glyphbench.envs.minihack.skill_eat import _EatBase
 
         assert isinstance(unwrapped, _EatBase)
         # Navigate to food at (3,3) from (1,1): move E twice then S twice
@@ -114,12 +114,12 @@ class TestPraySpecific:
     """Pray-specific mechanics."""
 
     def test_pray_heals(self) -> None:
-        env = gym.make("atlas_rl/minihack-pray-v0", max_turns=50)
+        env = gym.make("glyphbench/minihack-pray-v0", max_turns=50)
         env.reset(seed=0)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        from atlas_rl.envs.minihack.skill_pray import _PrayBase
+        from glyphbench.envs.minihack.skill_pray import _PrayBase
 
         assert isinstance(unwrapped, _PrayBase)
         assert unwrapped._player_hp == 3  # starts low
@@ -132,12 +132,12 @@ class TestReadSpecific:
     """Read-specific mechanics."""
 
     def test_read_teleport_to_stairs(self) -> None:
-        env = gym.make("atlas_rl/minihack-read-v0", max_turns=50)
+        env = gym.make("glyphbench/minihack-read-v0", max_turns=50)
         env.reset(seed=0)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        from atlas_rl.envs.minihack.skill_read import _ReadBase
+        from glyphbench.envs.minihack.skill_read import _ReadBase
 
         assert isinstance(unwrapped, _ReadBase)
         # Navigate to scroll at (2,2) from (1,1): move E then S
@@ -162,12 +162,12 @@ class TestQuaffSpecific:
     """Quaff-specific mechanics."""
 
     def test_quaff_heals(self) -> None:
-        env = gym.make("atlas_rl/minihack-quaff-v0", max_turns=50)
+        env = gym.make("glyphbench/minihack-quaff-v0", max_turns=50)
         env.reset(seed=0)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        from atlas_rl.envs.minihack.skill_quaff import _QuaffBase
+        from glyphbench.envs.minihack.skill_quaff import _QuaffBase
 
         assert isinstance(unwrapped, _QuaffBase)
         assert unwrapped._player_hp == 3
@@ -192,12 +192,12 @@ class TestWieldSpecific:
     """Wield-specific mechanics."""
 
     def test_wield_equips_weapon(self) -> None:
-        env = gym.make("atlas_rl/minihack-wield-v0", max_turns=50)
+        env = gym.make("glyphbench/minihack-wield-v0", max_turns=50)
         env.reset(seed=0)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        from atlas_rl.envs.minihack.skill_wield import _WieldBase
+        from glyphbench.envs.minihack.skill_wield import _WieldBase
 
         assert isinstance(unwrapped, _WieldBase)
         # Weapon at (2,1), player at (1,1): move E
@@ -218,17 +218,17 @@ class TestSinkSpecific:
     """Sink-specific mechanics."""
 
     def test_sink_terrain_visible(self) -> None:
-        env = gym.make("atlas_rl/minihack-sink-v0", max_turns=50)
+        env = gym.make("glyphbench/minihack-sink-v0", max_turns=50)
         obs, _ = env.reset(seed=0)
         assert "{" in obs
 
     def test_sink_walkable(self) -> None:
-        env = gym.make("atlas_rl/minihack-sink-v0", max_turns=50)
+        env = gym.make("glyphbench/minihack-sink-v0", max_turns=50)
         env.reset(seed=0)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        from atlas_rl.envs.minihack.skill_sink import _SinkBase
+        from glyphbench.envs.minihack.skill_sink import _SinkBase
 
         assert isinstance(unwrapped, _SinkBase)
         # Navigate to sink at (3,3)
@@ -252,10 +252,10 @@ class TestDistractVariants:
     def test_distract_has_extra_items(self, env_id: str) -> None:
         env = gym.make(env_id, max_turns=50)
         env.reset(seed=0)
-        from atlas_rl.core.base_env import BaseAsciiEnv
+        from glyphbench.core.base_env import BaseAsciiEnv
 
         unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
-        from atlas_rl.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.base import MiniHackBase
 
         assert isinstance(unwrapped, MiniHackBase)
         # Distract variants should have at least 2 floor item positions

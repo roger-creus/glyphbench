@@ -1,6 +1,6 @@
 """Unit tests for Atari Venture env."""
 
-from atlas_rl.envs.atari.venture import VentureEnv
+from glyphbench.envs.atari.venture import VentureEnv
 
 
 class TestVenture:
@@ -22,7 +22,7 @@ class TestVenture:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-venture-v0"
+        assert env.env_id() == "glyphbench/atari-venture-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

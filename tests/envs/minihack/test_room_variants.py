@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.room import (
+from glyphbench.envs.minihack.room import (
     MiniHackRoom5x5Env,
     MiniHackRoom15x15Env,
     MiniHackRoomDark5x5Env,
@@ -21,18 +21,18 @@ from atlas_rl.envs.minihack.room import (
 
 # (class, expected_env_id, grid_size, has_monsters, has_traps, is_dark)
 VARIANTS = [
-    (MiniHackRoom5x5Env, "atlas_rl/minihack-room-5x5-v0", 7, False, False, False),
-    (MiniHackRoom15x15Env, "atlas_rl/minihack-room-15x15-v0", 17, False, False, False),
-    (MiniHackRoomRandom5x5Env, "atlas_rl/minihack-room-random-5x5-v0", 7, False, False, False),
-    (MiniHackRoomRandom15x15Env, "atlas_rl/minihack-room-random-15x15-v0", 17, False, False, False),
-    (MiniHackRoomDark5x5Env, "atlas_rl/minihack-room-dark-5x5-v0", 7, False, False, True),
-    (MiniHackRoomDark15x15Env, "atlas_rl/minihack-room-dark-15x15-v0", 17, False, False, True),
-    (MiniHackRoomMonster5x5Env, "atlas_rl/minihack-room-monster-5x5-v0", 7, True, False, False),
-    (MiniHackRoomMonster15x15Env, "atlas_rl/minihack-room-monster-15x15-v0", 17, True, False, False),
-    (MiniHackRoomTrap5x5Env, "atlas_rl/minihack-room-trap-5x5-v0", 7, False, True, False),
-    (MiniHackRoomTrap15x15Env, "atlas_rl/minihack-room-trap-15x15-v0", 17, False, True, False),
-    (MiniHackRoomUltimate5x5Env, "atlas_rl/minihack-room-ultimate-5x5-v0", 7, True, True, True),
-    (MiniHackRoomUltimate15x15Env, "atlas_rl/minihack-room-ultimate-15x15-v0", 17, True, True, True),
+    (MiniHackRoom5x5Env, "glyphbench/minihack-room-5x5-v0", 7, False, False, False),
+    (MiniHackRoom15x15Env, "glyphbench/minihack-room-15x15-v0", 17, False, False, False),
+    (MiniHackRoomRandom5x5Env, "glyphbench/minihack-room-random-5x5-v0", 7, False, False, False),
+    (MiniHackRoomRandom15x15Env, "glyphbench/minihack-room-random-15x15-v0", 17, False, False, False),
+    (MiniHackRoomDark5x5Env, "glyphbench/minihack-room-dark-5x5-v0", 7, False, False, True),
+    (MiniHackRoomDark15x15Env, "glyphbench/minihack-room-dark-15x15-v0", 17, False, False, True),
+    (MiniHackRoomMonster5x5Env, "glyphbench/minihack-room-monster-5x5-v0", 7, True, False, False),
+    (MiniHackRoomMonster15x15Env, "glyphbench/minihack-room-monster-15x15-v0", 17, True, False, False),
+    (MiniHackRoomTrap5x5Env, "glyphbench/minihack-room-trap-5x5-v0", 7, False, True, False),
+    (MiniHackRoomTrap15x15Env, "glyphbench/minihack-room-trap-15x15-v0", 17, False, True, False),
+    (MiniHackRoomUltimate5x5Env, "glyphbench/minihack-room-ultimate-5x5-v0", 7, True, True, True),
+    (MiniHackRoomUltimate15x15Env, "glyphbench/minihack-room-ultimate-15x15-v0", 17, True, True, True),
 ]
 
 VARIANT_IDS = [v[1].split("/")[1] for v in VARIANTS]
@@ -106,7 +106,7 @@ class TestRoomVariants:
         assert "@" in grid_obs.grid
         # In dark rooms the goal may be outside the vision radius
         if not is_dark:
-            assert ">" in grid_obs.grid
+            assert "⇣" in grid_obs.grid
         # But the goal must exist on the internal grid regardless
         assert env._goal_pos is not None
 
@@ -184,7 +184,7 @@ class TestRoomTrapSpecific:
         env = cls(max_turns=50)
         env.reset(seed=0)
         grid_obs = env.get_observation()
-        assert "^" in grid_obs.grid
+        assert "△" in grid_obs.grid
 
     @pytest.mark.parametrize(
         "cls,min_n,max_n",
@@ -201,7 +201,7 @@ class TestRoomTrapSpecific:
             env = cls(max_turns=50)
             env.reset(seed=seed)
             grid_obs = env.get_observation()
-            n_traps = grid_obs.grid.count("^")
+            n_traps = grid_obs.grid.count("△")
             counts.add(n_traps)
         assert all(min_n <= c <= max_n for c in counts)
 
@@ -253,6 +253,6 @@ class TestRoomUltimateSpecific:
             1
             for row in env._grid
             for cell in row
-            if cell == "^"
+            if cell == "△"
         )
         assert trap_count > 0

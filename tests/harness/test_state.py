@@ -1,4 +1,4 @@
-from atlas_rl.harness.state import EpisodeState, Subgoal
+from glyphbench.harness.state import EpisodeState, Subgoal
 
 
 def test_fresh_state_has_empty_fields():

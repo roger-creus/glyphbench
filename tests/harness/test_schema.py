@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from atlas_rl.harness.schema import HarnessOutput
+from glyphbench.harness.schema import HarnessOutput
 
 
 def test_minimal_valid_output_only_action_required():

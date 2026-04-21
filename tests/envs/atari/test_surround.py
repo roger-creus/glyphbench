@@ -1,6 +1,6 @@
 """Unit tests for Atari Surround env."""
 
-from atlas_rl.envs.atari.surround import SurroundEnv
+from glyphbench.envs.atari.surround import SurroundEnv
 
 
 class TestSurround:
@@ -24,7 +24,7 @@ class TestSurround:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-surround-v0"
+        assert env.env_id() == "glyphbench/atari-surround-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

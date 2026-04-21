@@ -3,7 +3,7 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from atlas_rl.envs.minigrid.empty import MiniGridEmpty5x5Env
+from glyphbench.envs.minigrid.empty import MiniGridEmpty5x5Env
 
 
 @given(

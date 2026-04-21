@@ -1,6 +1,6 @@
 import pytest
 
-from atlas_rl.harness.mock_client import MockLLMClient, ScriptedResponse
+from glyphbench.harness.mock_client import MockLLMClient, ScriptedResponse
 
 
 @pytest.mark.asyncio

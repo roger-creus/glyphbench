@@ -1,6 +1,6 @@
 import pytest
 
-from atlas_rl.runner.budget import BudgetExceeded, CostTracker
+from glyphbench.runner.budget import BudgetExceeded, CostTracker
 
 
 def test_no_cap_never_exceeds():

@@ -1,9 +1,23 @@
 [project]
-name = "atlas_rl"
-version = "0.0.1"
-description = "Unified ASCII reimplementation of RL benchmarks for LLM evaluation"
+name = "glyphbench"
+version = "0.1.0"
+description = "GlyphBench: A unified benchmark of 210 text-rendered RL environments for evaluating LLM agents on sequential decision-making"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
+authors = [
+    { name = "Roger Creus Castanyer" },
+]
+keywords = ["reinforcement-learning", "llm", "benchmark", "ascii", "evaluation", "gymnasium"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "gymnasium>=1.0",
     "numpy>=2.0",
@@ -11,23 +25,45 @@ dependencies = [
     "pyyaml>=6.0",
     "jinja2>=3.1",
     "rich>=13.9",
+]
+
+[project.urls]
+Homepage = "https://github.com/roger-creus/glyphbench"
+Repository = "https://github.com/roger-creus/glyphbench"
+Issues = "https://github.com/roger-creus/glyphbench/issues"
+
+[project.optional-dependencies]
+# LLM provider clients (pick what you need)
+providers = [
     "httpx>=0.27",
     "openai>=1.50",
     "anthropic>=0.40",
     "google-genai>=0.3",
+]
+# Eval infrastructure (vLLM offline inference)
+eval = [
+    "vllm>=0.8",
+    "torch>=2.4",
+]
+# Analysis and plotting
+analysis = [
     "pyarrow>=17.0",
     "pandas>=2.2",
+    "matplotlib>=3.9",
+    "seaborn>=0.13",
+    "jupyter>=1.0",
 ]
-
-[project.optional-dependencies]
+# Development
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
     "hypothesis>=6.112",
     "ruff>=0.7",
     "mypy>=1.12",
-    "matplotlib>=3.9",
-    "seaborn>=0.13",
+]
+# Everything
+all = [
+    "glyphbench[providers,analysis,dev]",
 ]
 
 [build-system]
@@ -35,7 +71,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/atlas_rl"]
+packages = ["src/glyphbench"]
 
 [tool.uv]
 managed = true
@@ -52,7 +88,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM"]
-ignore = ["E501"]  # line length enforced by formatter
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -69,5 +105,7 @@ module = [
     "google",
     "google.genai",
     "google.genai.*",
+    "vllm",
+    "vllm.*",
 ]
 ignore_missing_imports = true

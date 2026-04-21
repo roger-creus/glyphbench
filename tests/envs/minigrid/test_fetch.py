@@ -5,17 +5,17 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 FETCH_VARIANTS = [
-    "atlas_rl/minigrid-fetch-5x5-n2-v0",
-    "atlas_rl/minigrid-fetch-6x6-n2-v0",
-    "atlas_rl/minigrid-fetch-8x8-n3-v0",
+    "glyphbench/minigrid-fetch-5x5-n2-v0",
+    "glyphbench/minigrid-fetch-6x6-n2-v0",
+    "glyphbench/minigrid-fetch-8x8-n3-v0",
 ]
 
 PUTNEAR_VARIANTS = [
-    "atlas_rl/minigrid-putnear-6x6-n2-v0",
-    "atlas_rl/minigrid-putnear-8x8-n3-v0",
+    "glyphbench/minigrid-putnear-6x6-n2-v0",
+    "glyphbench/minigrid-putnear-8x8-n3-v0",
 ]
 
 ALL_VARIANTS = FETCH_VARIANTS + PUTNEAR_VARIANTS

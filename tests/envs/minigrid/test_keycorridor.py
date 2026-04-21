@@ -5,15 +5,15 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 KEYCORRIDOR_VARIANTS = [
-    "atlas_rl/minigrid-keycorridor-s3r1-v0",
-    "atlas_rl/minigrid-keycorridor-s3r2-v0",
-    "atlas_rl/minigrid-keycorridor-s3r3-v0",
-    "atlas_rl/minigrid-keycorridor-s4r3-v0",
-    "atlas_rl/minigrid-keycorridor-s5r3-v0",
-    "atlas_rl/minigrid-keycorridor-s6r3-v0",
+    "glyphbench/minigrid-keycorridor-s3r1-v0",
+    "glyphbench/minigrid-keycorridor-s3r2-v0",
+    "glyphbench/minigrid-keycorridor-s3r3-v0",
+    "glyphbench/minigrid-keycorridor-s4r3-v0",
+    "glyphbench/minigrid-keycorridor-s5r3-v0",
+    "glyphbench/minigrid-keycorridor-s6r3-v0",
 ]
 
 

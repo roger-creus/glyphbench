@@ -3,7 +3,7 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from atlas_rl.envs.minihack.room import MiniHackRoom5x5Env
+from glyphbench.envs.minihack.room import MiniHackRoom5x5Env
 
 
 @given(

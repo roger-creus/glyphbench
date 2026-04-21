@@ -1,5 +1,5 @@
-from atlas_rl.core.action import ActionSpec
-from atlas_rl.harness.templating import render_system_prompt
+from glyphbench.core.action import ActionSpec
+from glyphbench.harness.templating import render_system_prompt
 
 
 def test_render_dummy_env_template_mentions_actions():

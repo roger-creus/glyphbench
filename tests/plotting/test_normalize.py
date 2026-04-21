@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.plotting.normalize import (
+from glyphbench.plotting.normalize import (
     REFERENCES,
     benchmark_aggregate,
     normalized_score,
@@ -11,20 +11,20 @@ from atlas_rl.plotting.normalize import (
 
 class TestNormalizedScore:
     def test_known_env(self) -> None:
-        score = normalized_score("atlas_rl/atari-pong-v0", 14.6)
+        score = normalized_score("glyphbench/atari-pong-v0", 14.6)
         assert score is not None
         assert abs(score - 1.0) < 0.01  # expert return = normalized 1.0
 
     def test_random_return(self) -> None:
-        score = normalized_score("atlas_rl/atari-pong-v0", -20.7)
+        score = normalized_score("glyphbench/atari-pong-v0", -20.7)
         assert score is not None
         assert abs(score) < 0.01  # random return = normalized 0.0
 
     def test_unknown_env(self) -> None:
-        assert normalized_score("atlas_rl/nonexistent-v0", 5.0) is None
+        assert normalized_score("glyphbench/nonexistent-v0", 5.0) is None
 
     def test_above_expert(self) -> None:
-        score = normalized_score("atlas_rl/atari-freeway-v0", 35.0)
+        score = normalized_score("glyphbench/atari-freeway-v0", 35.0)
         assert score is not None
         assert score > 1.0  # above expert
 

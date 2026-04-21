@@ -10,11 +10,11 @@ max_turns_per_episode: 100
 concurrency: 2
 budget_usd: null
 envs:
-  - atlas_rl/minigrid-empty-5x5-v0
-  - atlas_rl/minihack-room-5x5-v0
-  - atlas_rl/procgen-coinrun-v0
-  - atlas_rl/atari-pong-v0
-  - atlas_rl/craftax-classic-v0
+  - glyphbench/minigrid-empty-5x5-v0
+  - glyphbench/minihack-room-5x5-v0
+  - glyphbench/procgen-coinrun-v0
+  - glyphbench/atari-pong-v0
+  - glyphbench/craftax-classic-v0
 harness:
   retry_malformed_n: 3
   recent_actions_window: 5

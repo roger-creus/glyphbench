@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.procgen.coinrun import CoinRunEnv
+from glyphbench.envs.procgen.coinrun import CoinRunEnv
 
 
 class TestCoinRun:
@@ -25,7 +25,7 @@ class TestCoinRun:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/procgen-coinrun-v0"
+        assert env.env_id() == "glyphbench/procgen-coinrun-v0"
 
     # --- Spec 10.1: test_reset_determinism ---
     def test_reset_determinism(self):

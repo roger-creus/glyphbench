@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Play any atlas_rl env with random actions, printing each step to the terminal.
+"""Play any glyphbench env with random actions, printing each step to the terminal.
 
 Usage:
-    uv run python scripts/play_random.py atlas_rl/craftax-classic-v0
-    uv run python scripts/play_random.py atlas_rl/minigrid-doorkey-5x5-v0 --seed 42 --steps 50
-    uv run python scripts/play_random.py atlas_rl/minihack-eat-v0 --delay 0.3
+    uv run python scripts/play_random.py glyphbench/craftax-classic-v0
+    uv run python scripts/play_random.py glyphbench/minigrid-doorkey-5x5-v0 --seed 42 --steps 50
+    uv run python scripts/play_random.py glyphbench/minihack-eat-v0 --delay 0.3
 """
 
 from __future__ import annotations
@@ -15,12 +15,12 @@ import time
 import gymnasium as gym
 import numpy as np
 
-import atlas_rl  # noqa: F401 — trigger env registration
+import glyphbench  # noqa: F401 — trigger env registration
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Random-agent viewer for atlas_rl envs")
-    parser.add_argument("env_id", help="Gym env ID, e.g. atlas_rl/craftax-classic-v0")
+    parser = argparse.ArgumentParser(description="Random-agent viewer for glyphbench envs")
+    parser.add_argument("env_id", help="Gym env ID, e.g. glyphbench/craftax-classic-v0")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--steps", type=int, default=200, help="Max steps to run")
     parser.add_argument("--max-turns", type=int, default=500, help="Env max_turns")

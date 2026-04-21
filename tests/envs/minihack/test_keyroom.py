@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.keyroom import (
+from glyphbench.envs.minihack.keyroom import (
     MiniHackKeyRoomDarkS5Env,
     MiniHackKeyRoomDarkS15Env,
     MiniHackKeyRoomS5Env,
@@ -18,10 +18,10 @@ KEYROOM_CLASSES = [
     MiniHackKeyRoomDarkS15Env,
 ]
 KEYROOM_IDS = [
-    "atlas_rl/minihack-keyroom-s5-v0",
-    "atlas_rl/minihack-keyroom-s15-v0",
-    "atlas_rl/minihack-keyroom-dark-s5-v0",
-    "atlas_rl/minihack-keyroom-dark-s15-v0",
+    "glyphbench/minihack-keyroom-s5-v0",
+    "glyphbench/minihack-keyroom-s15-v0",
+    "glyphbench/minihack-keyroom-dark-s5-v0",
+    "glyphbench/minihack-keyroom-dark-s15-v0",
 ]
 
 
@@ -61,13 +61,13 @@ class TestKeyRoomEnvs:
 
     @pytest.mark.parametrize("cls", KEYROOM_CLASSES)
     def test_door_exists_in_grid(self, cls: type) -> None:
-        """Grid should contain a door (+) at reset."""
+        """Grid should contain a door (⊞) at reset."""
         env = cls()
         env.reset(seed=0)
         # Door might not be visible in dark variants from starting pos,
         # so check the internal grid directly
         flat = "".join("".join(row) for row in env._grid)
-        assert "+" in flat, "Grid should contain a door (+)"
+        assert "⊞" in flat, "Grid should contain a door (⊞)"
 
     def test_door_opens_on_move_into(self) -> None:
         """Moving into the door should open it."""
@@ -78,7 +78,7 @@ class TestKeyRoomEnvs:
         door_pos = None
         for y in range(env._grid_h):
             for x in range(env._grid_w):
-                if env._grid[y][x] == "+":
+                if env._grid[y][x] == "⊞":
                     door_pos = (x, y)
                     break
             if door_pos:
@@ -95,11 +95,11 @@ class TestKeyRoomEnvs:
             if terminated or truncated:
                 break
             # Check if door was opened
-            if env._grid[door_pos[1]][door_pos[0]] == ".":
+            if env._grid[door_pos[1]][door_pos[0]] == "·":
                 break
 
         # Door should be opened (changed to floor)
-        assert env._grid[door_pos[1]][door_pos[0]] == ".", "Door should be opened"
+        assert env._grid[door_pos[1]][door_pos[0]] == "·", "Door should be opened"
 
     def test_can_reach_goal_through_door(self) -> None:
         """Agent should be able to reach stairs by going east through the door."""

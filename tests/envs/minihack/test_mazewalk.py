@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.mazewalk import (
+from glyphbench.envs.minihack.mazewalk import (
     MiniHackMazeWalk9x9Env,
     MiniHackMazeWalk15x15Env,
     MiniHackMazeWalk45x19Env,
@@ -26,14 +26,14 @@ MAPPED_CLASSES = [
 ALL_CLASSES = DARK_CLASSES + MAPPED_CLASSES
 
 DARK_IDS = [
-    "atlas_rl/minihack-mazewalk-9x9-v0",
-    "atlas_rl/minihack-mazewalk-15x15-v0",
-    "atlas_rl/minihack-mazewalk-45x19-v0",
+    "glyphbench/minihack-mazewalk-9x9-v0",
+    "glyphbench/minihack-mazewalk-15x15-v0",
+    "glyphbench/minihack-mazewalk-45x19-v0",
 ]
 MAPPED_IDS = [
-    "atlas_rl/minihack-mazewalk-mapped-9x9-v0",
-    "atlas_rl/minihack-mazewalk-mapped-15x15-v0",
-    "atlas_rl/minihack-mazewalk-mapped-45x19-v0",
+    "glyphbench/minihack-mazewalk-mapped-9x9-v0",
+    "glyphbench/minihack-mazewalk-mapped-15x15-v0",
+    "glyphbench/minihack-mazewalk-mapped-45x19-v0",
 ]
 ALL_IDS = DARK_IDS + MAPPED_IDS
 
@@ -72,12 +72,12 @@ class TestMazeWalkEnvs:
 
     @pytest.mark.parametrize("cls", ALL_CLASSES)
     def test_maze_has_walls_and_floor(self, cls: type) -> None:
-        """Maze should have both walls (#) and floor (.) cells."""
+        """Maze should have both walls (█) and floor (·) cells."""
         env = cls()
         env.reset(seed=0)
         flat = "".join("".join(row) for row in env._grid)
-        assert "#" in flat, "Maze should have wall cells"
-        assert "." in flat or ">" in flat, "Maze should have floor/goal cells"
+        assert "█" in flat, "Maze should have wall cells"
+        assert "·" in flat or "⇣" in flat, "Maze should have floor/goal cells"
 
     @pytest.mark.parametrize("cls", ALL_CLASSES)
     def test_player_at_1_1(self, cls: type) -> None:
@@ -91,7 +91,7 @@ class TestMazeWalkEnvs:
         env.reset(seed=0)
         assert env._goal_pos is not None
         gx, gy = env._goal_pos
-        assert env._grid[gy][gx] == ">"
+        assert env._grid[gy][gx] == "⇣"
 
     @pytest.mark.parametrize("cls", DARK_CLASSES)
     def test_dark_variant_is_dark(self, cls: type) -> None:

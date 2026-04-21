@@ -1,6 +1,6 @@
 import pytest
 
-from atlas_rl.providers.base import (
+from glyphbench.providers.base import (
     LLMClient,
     LLMResponse,
     ProviderError,

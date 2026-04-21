@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.skill_wod import (
+from glyphbench.envs.minihack.skill_wod import (
     MiniHackWoDEasyEnv,
     MiniHackWoDHardEnv,
     MiniHackWoDMediumEnv,
@@ -18,10 +18,10 @@ WOD_CLASSES = [
     MiniHackWoDProEnv,
 ]
 WOD_IDS = [
-    "atlas_rl/minihack-wod-easy-v0",
-    "atlas_rl/minihack-wod-medium-v0",
-    "atlas_rl/minihack-wod-hard-v0",
-    "atlas_rl/minihack-wod-pro-v0",
+    "glyphbench/minihack-wod-easy-v0",
+    "glyphbench/minihack-wod-medium-v0",
+    "glyphbench/minihack-wod-hard-v0",
+    "glyphbench/minihack-wod-pro-v0",
 ]
 
 
@@ -140,7 +140,7 @@ class TestWoDEnvs:
         env.reset(seed=0)
 
         # Give player the wand directly for deterministic test
-        from atlas_rl.envs.minihack.items import WAND_DEATH
+        from glyphbench.envs.minihack.items import WAND_DEATH
 
         env._inventory.append(WAND_DEATH)
         initial_monsters = len(env._creatures)
@@ -157,7 +157,7 @@ class TestWoDEnvs:
         env = MiniHackWoDEasyEnv(max_turns=200)
         env.reset(seed=0)
 
-        from atlas_rl.envs.minihack.items import WAND_FIRE
+        from glyphbench.envs.minihack.items import WAND_FIRE
 
         env._inventory.append(WAND_FIRE)
         initial_monsters = len(env._creatures)

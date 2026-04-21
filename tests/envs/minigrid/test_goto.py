@@ -5,13 +5,13 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 GOTO_VARIANTS = [
-    "atlas_rl/minigrid-gotodoor-5x5-v0",
-    "atlas_rl/minigrid-gotodoor-6x6-v0",
-    "atlas_rl/minigrid-gotodoor-8x8-v0",
-    "atlas_rl/minigrid-gotoobject-6x6-n2-v0",
+    "glyphbench/minigrid-gotodoor-5x5-v0",
+    "glyphbench/minigrid-gotodoor-6x6-v0",
+    "glyphbench/minigrid-gotodoor-8x8-v0",
+    "glyphbench/minigrid-gotoobject-6x6-n2-v0",
 ]
 
 

@@ -1,7 +1,7 @@
 import pytest
 
-from atlas_rl.envs.dummy.env import DummyEnv
-from atlas_rl.runner.random_agent import RandomAgent
+from glyphbench.envs.dummy.env import DummyEnv
+from glyphbench.runner.random_agent import RandomAgent
 
 
 @pytest.mark.asyncio

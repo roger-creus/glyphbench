@@ -1,0 +1,16 @@
+{# src/glyphbench/harness/system_prompts/minigrid-empty-5x5-v0.j2 #}
+{% extends "_base.j2" %}
+
+{% block physics_section %}
+MOVEMENT
+You move relative to your facing direction. MOVE_FORWARD advances one cell in the
+direction you face. TURN_LEFT and TURN_RIGHT rotate you 90 degrees counter-clockwise
+and clockwise respectively. Bumping into a wall does nothing (you stay in place).
+
+PICKUP, DROP, TOGGLE, and DONE are no-ops in this environment.
+
+OPTIMAL STRATEGY HINT
+The shortest path from the top-left to the bottom-right of a 5x5 room requires
+moving forward to the far wall, turning, and moving forward again. Minimize turns
+and wasted steps to maximize your reward.
+{% endblock %}

@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from atlas_rl.providers.base import ProviderRateLimit, ProviderTransient
-from atlas_rl.providers.retries import with_retries
+from glyphbench.providers.base import ProviderRateLimit, ProviderTransient
+from glyphbench.providers.retries import with_retries
 
 
 @pytest.mark.asyncio

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.corridor import (
+from glyphbench.envs.minihack.corridor import (
     MiniHackCorridorR2Env,
     MiniHackCorridorR3Env,
     MiniHackCorridorR5Env,
@@ -12,9 +12,9 @@ from atlas_rl.envs.minihack.corridor import (
 
 CORRIDOR_CLASSES = [MiniHackCorridorR2Env, MiniHackCorridorR3Env, MiniHackCorridorR5Env]
 CORRIDOR_IDS = [
-    "atlas_rl/minihack-corridor-r2-v0",
-    "atlas_rl/minihack-corridor-r3-v0",
-    "atlas_rl/minihack-corridor-r5-v0",
+    "glyphbench/minihack-corridor-r2-v0",
+    "glyphbench/minihack-corridor-r3-v0",
+    "glyphbench/minihack-corridor-r5-v0",
 ]
 
 
@@ -40,7 +40,7 @@ class TestCorridorEnvs:
         env = cls()
         obs_str, _ = env.reset(seed=0)
         assert "@" in obs_str
-        assert ">" in obs_str
+        assert "⇣" in obs_str
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
         assert "[HUD]" in obs_str

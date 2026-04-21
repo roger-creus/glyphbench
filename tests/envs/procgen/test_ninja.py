@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.procgen.ninja import NinjaEnv
+from glyphbench.envs.procgen.ninja import NinjaEnv
 
 
 class TestNinja:
@@ -19,7 +19,7 @@ class TestNinja:
 
     def test_env_id(self) -> None:
         env = self._make()
-        assert env.env_id() == "atlas_rl/procgen-ninja-v0"
+        assert env.env_id() == "glyphbench/procgen-ninja-v0"
 
     def test_reset_determinism(self) -> None:
         e1, e2 = self._make(), self._make()
@@ -112,7 +112,7 @@ class TestNinja:
         throw = env.action_spec.index_of("THROW")
         env.step(throw)
         # Wall should be broken
-        assert env._world_at(bx, by) == "."
+        assert env._world_at(bx, by) == "·"
 
     def test_enemy_kills_player(self) -> None:
         """Touching an enemy terminates."""

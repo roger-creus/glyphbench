@@ -1,6 +1,6 @@
 """Unit tests for Procgen Leaper env."""
 
-from atlas_rl.envs.procgen.leaper import LeaperEnv
+from glyphbench.envs.procgen.leaper import LeaperEnv
 
 
 class TestLeaper:
@@ -13,7 +13,7 @@ class TestLeaper:
         assert env.action_spec.names == ("NOOP", "LEFT", "RIGHT", "UP", "DOWN")
 
     def test_env_id(self):
-        assert self._make().env_id() == "atlas_rl/procgen-leaper-v0"
+        assert self._make().env_id() == "glyphbench/procgen-leaper-v0"
 
     def test_reset_determinism(self):
         e1, e2 = self._make(), self._make()

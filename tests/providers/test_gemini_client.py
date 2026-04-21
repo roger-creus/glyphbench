@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from atlas_rl.providers.gemini_client import GeminiClient
-from atlas_rl.providers.pricing import ModelRates, Pricing
+from glyphbench.providers.gemini_client import GeminiClient
+from glyphbench.providers.pricing import ModelRates, Pricing
 
 
 def _pricing() -> Pricing:

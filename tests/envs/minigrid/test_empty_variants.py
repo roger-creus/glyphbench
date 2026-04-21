@@ -5,17 +5,17 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 EMPTY_VARIANTS = [
-    ("atlas_rl/minigrid-empty-6x6-v0", 8, 8),
-    ("atlas_rl/minigrid-empty-8x8-v0", 10, 10),
-    ("atlas_rl/minigrid-empty-16x16-v0", 18, 18),
+    ("glyphbench/minigrid-empty-6x6-v0", 8, 8),
+    ("glyphbench/minigrid-empty-8x8-v0", 10, 10),
+    ("glyphbench/minigrid-empty-16x16-v0", 18, 18),
 ]
 
 RANDOM_VARIANTS = [
-    "atlas_rl/minigrid-empty-random-5x5-v0",
-    "atlas_rl/minigrid-empty-random-6x6-v0",
+    "glyphbench/minigrid-empty-random-5x5-v0",
+    "glyphbench/minigrid-empty-random-6x6-v0",
 ]
 
 

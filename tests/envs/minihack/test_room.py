@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.minihack.room import MiniHackRoom5x5Env
+from glyphbench.envs.minihack.room import MiniHackRoom5x5Env
 
 
 class TestMiniHackRoom5x5:
@@ -33,7 +33,7 @@ class TestMiniHackRoom5x5:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/minihack-room-5x5-v0"
+        assert env.env_id() == "glyphbench/minihack-room-5x5-v0"
 
     # --- Spec 10.1: test_reset_determinism ---
     def test_reset_determinism(self):
@@ -64,8 +64,8 @@ class TestMiniHackRoom5x5:
         # We just check they exist and are within bounds
         grid_obs = env.get_observation()
         grid_str = grid_obs.grid
-        assert "@" in grid_str, "Agent '@' must be in the grid"
-        assert ">" in grid_str, "Goal '>' must be in the grid"
+        assert "@" in grid_str, "Agent '☺' must be in the grid"
+        assert "⇣" in grid_str, "Goal '⇣' must be in the grid"
 
     # --- Spec 8.2: Random start and goal positions ---
     def test_different_seeds_different_positions(self):
@@ -250,8 +250,8 @@ class TestMiniHackRoom5x5:
         env.reset(seed=0)
         legend = env.get_observation().legend
         assert "@" in legend
-        assert ">" in legend
-        assert "." in legend
+        assert "⇣" in legend
+        assert "·" in legend
 
     # --- Info extras ---
     def test_info_extras(self):

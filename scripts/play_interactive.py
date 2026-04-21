@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Interactive curses-based player for any atlas_rl environment.
+"""Interactive curses-based player for any glyphbench environment.
 
 Play any environment with keyboard controls. The action menu shows
 numbered actions; press the corresponding number key to act.
 
 Usage:
-    uv run python scripts/play_interactive.py atlas_rl/craftax-classic-v0
-    uv run python scripts/play_interactive.py atlas_rl/minigrid-doorkey-5x5-v0 --seed 42
+    uv run python scripts/play_interactive.py glyphbench/craftax-classic-v0
+    uv run python scripts/play_interactive.py glyphbench/minigrid-doorkey-5x5-v0 --seed 42
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import curses
 
 import gymnasium as gym
 
-import atlas_rl  # noqa: F401 — trigger env registration
+import glyphbench  # noqa: F401 — trigger env registration
 from terminal_colors import char_attr, init_colors
 
 
@@ -128,7 +128,7 @@ _KEY_TO_ACTION: dict[int, str] = {
 
 def main(stdscr: curses.window) -> None:
     parser = argparse.ArgumentParser(
-        description="Interactive player for atlas_rl envs"
+        description="Interactive player for glyphbench envs"
     )
     parser.add_argument("env_id", help="Gym env ID")
     parser.add_argument("--seed", type=int, default=0)

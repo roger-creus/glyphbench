@@ -1,6 +1,6 @@
 """Unit tests for Atari Kangaroo env."""
 
-from atlas_rl.envs.atari.kangaroo import KangarooEnv
+from glyphbench.envs.atari.kangaroo import KangarooEnv
 
 
 class TestKangaroo:
@@ -22,7 +22,7 @@ class TestKangaroo:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-kangaroo-v0"
+        assert env.env_id() == "glyphbench/atari-kangaroo-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

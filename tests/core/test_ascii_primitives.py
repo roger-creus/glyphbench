@@ -1,6 +1,6 @@
 import pytest
 
-from atlas_rl.core.ascii_primitives import (
+from glyphbench.core.ascii_primitives import (
     build_legend,
     draw_box,
     grid_to_string,
@@ -11,7 +11,7 @@ from atlas_rl.core.ascii_primitives import (
 
 def test_make_empty_grid_default_fill_dot():
     g = make_empty_grid(3, 2)
-    assert g == [[".", ".", "."], [".", ".", "."]]
+    assert g == [["\u00b7", "\u00b7", "\u00b7"], ["\u00b7", "\u00b7", "\u00b7"]]
 
 
 def test_make_empty_grid_custom_fill():
@@ -51,8 +51,8 @@ def test_draw_box_outline():
     # Top row: + - - - +
     assert lines[0] == "+---+"
     assert lines[-1] == "+---+"
-    assert lines[1] == "|...|"
-    assert lines[2] == "|...|"
+    assert lines[1] == "|\u00b7\u00b7\u00b7|"
+    assert lines[2] == "|\u00b7\u00b7\u00b7|"
 
 
 def test_draw_box_minimal_2x2():
@@ -65,7 +65,7 @@ def test_draw_box_minimal_2x2():
 def test_draw_box_custom_chars():
     g = make_empty_grid(4, 3)
     draw_box(g, 0, 0, 3, 2, horizontal="=", vertical=":", corner="*")
-    assert grid_to_string(g) == "*==*\n:..:\n*==*"
+    assert grid_to_string(g) == "*==*\n:\u00b7\u00b7:\n*==*"
 
 
 def test_draw_box_interior_unchanged():

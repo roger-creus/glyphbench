@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from atlas_rl.envs.minihack.memento import (
+from glyphbench.envs.minihack.memento import (
     MiniHackMementoF2Env,
     MiniHackMementoF4Env,
     MiniHackMementoHardEnv,
@@ -18,10 +18,10 @@ MEMENTO_CLASSES = [
     MiniHackMementoF4Env,
 ]
 MEMENTO_IDS = [
-    "atlas_rl/minihack-memento-short-v0",
-    "atlas_rl/minihack-memento-hard-v0",
-    "atlas_rl/minihack-memento-f2-v0",
-    "atlas_rl/minihack-memento-f4-v0",
+    "glyphbench/minihack-memento-short-v0",
+    "glyphbench/minihack-memento-hard-v0",
+    "glyphbench/minihack-memento-f2-v0",
+    "glyphbench/minihack-memento-f4-v0",
 ]
 
 
@@ -47,7 +47,7 @@ class TestMementoEnvs:
         env = cls()
         obs_str, _ = env.reset(seed=0)
         assert "@" in obs_str
-        assert ">" in obs_str
+        assert "⇣" in obs_str
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
         assert "[HUD]" in obs_str

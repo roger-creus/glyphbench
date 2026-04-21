@@ -1,9 +1,9 @@
 import httpx
 import pytest
 
-from atlas_rl.providers.base import LLMResponse, ProviderInvalidRequest, ProviderRateLimit
-from atlas_rl.providers.pricing import ModelRates, Pricing
-from atlas_rl.providers.vllm_client import VllmClient
+from glyphbench.providers.base import LLMResponse, ProviderInvalidRequest, ProviderRateLimit
+from glyphbench.providers.pricing import ModelRates, Pricing
+from glyphbench.providers.vllm_client import VllmClient
 
 
 def _pricing_stub() -> Pricing:

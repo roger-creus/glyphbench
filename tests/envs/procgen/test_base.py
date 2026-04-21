@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from atlas_rl.core.action import ActionSpec
+from glyphbench.core.action import ActionSpec
 
 
 class TestProcgenBase:
     def _make_env(
         self, width: int = 40, height: int = 12, max_turns: int = 100, gravity: bool = False
     ):  # type: ignore[return]
-        from atlas_rl.envs.procgen.base import ProcgenBase
+        from glyphbench.envs.procgen.base import ProcgenBase
 
         class TestGame(ProcgenBase):
             action_spec = ActionSpec(
@@ -24,7 +24,7 @@ class TestProcgenBase:
             )
 
             def env_id(self) -> str:
-                return "atlas_rl/test-procgen-v0"
+                return "glyphbench/test-procgen-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_world(width, height)
@@ -33,7 +33,7 @@ class TestProcgenBase:
                 # Ground
                 for x in range(width):
                     for y in range(height - 2, height):
-                        self._set_cell(x, y, "=")
+                        self._set_cell(x, y, "▬")
                 # Goal
                 self._set_cell(width - 3, height - 3, "C")
 
@@ -50,7 +50,7 @@ class TestProcgenBase:
                 if self._world_at(self._agent_x, self._agent_y) == "C":
                     reward = 10.0
                     terminated = True
-                    self._set_cell(self._agent_x, self._agent_y, ".")
+                    self._set_cell(self._agent_x, self._agent_y, "·")
                 return reward, terminated, {}
 
         return TestGame(max_turns=max_turns)

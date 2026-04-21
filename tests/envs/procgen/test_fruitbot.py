@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.procgen.fruitbot import FruitBotEnv
+from glyphbench.envs.procgen.fruitbot import FruitBotEnv
 
 
 class TestFruitBot:
@@ -19,7 +19,7 @@ class TestFruitBot:
 
     def test_env_id(self) -> None:
         env = self._make()
-        assert env.env_id() == "atlas_rl/procgen-fruitbot-v0"
+        assert env.env_id() == "glyphbench/procgen-fruitbot-v0"
 
     def test_reset_determinism(self) -> None:
         e1, e2 = self._make(), self._make()

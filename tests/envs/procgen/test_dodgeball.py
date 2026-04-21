@@ -1,6 +1,6 @@
 """Unit tests for Procgen Dodgeball env."""
 
-from atlas_rl.envs.procgen.dodgeball import DodgeballEnv
+from glyphbench.envs.procgen.dodgeball import DodgeballEnv
 
 
 class TestDodgeball:
@@ -13,7 +13,7 @@ class TestDodgeball:
         assert "THROW" in env.action_spec.names
 
     def test_env_id(self):
-        assert self._make().env_id() == "atlas_rl/procgen-dodgeball-v0"
+        assert self._make().env_id() == "glyphbench/procgen-dodgeball-v0"
 
     def test_reset_determinism(self):
         e1, e2 = self._make(), self._make()

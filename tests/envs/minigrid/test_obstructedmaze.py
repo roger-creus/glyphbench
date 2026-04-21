@@ -5,18 +5,18 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 OBSTRUCTEDMAZE_VARIANTS = [
-    "atlas_rl/minigrid-obstructedmaze-1dl-v0",
-    "atlas_rl/minigrid-obstructedmaze-1dlh-v0",
-    "atlas_rl/minigrid-obstructedmaze-1dlhb-v0",
-    "atlas_rl/minigrid-obstructedmaze-2dl-v0",
-    "atlas_rl/minigrid-obstructedmaze-2dlh-v0",
-    "atlas_rl/minigrid-obstructedmaze-2dlhb-v0",
-    "atlas_rl/minigrid-obstructedmaze-1q-v0",
-    "atlas_rl/minigrid-obstructedmaze-2q-v0",
-    "atlas_rl/minigrid-obstructedmaze-full-v0",
+    "glyphbench/minigrid-obstructedmaze-1dl-v0",
+    "glyphbench/minigrid-obstructedmaze-1dlh-v0",
+    "glyphbench/minigrid-obstructedmaze-1dlhb-v0",
+    "glyphbench/minigrid-obstructedmaze-2dl-v0",
+    "glyphbench/minigrid-obstructedmaze-2dlh-v0",
+    "glyphbench/minigrid-obstructedmaze-2dlhb-v0",
+    "glyphbench/minigrid-obstructedmaze-1q-v0",
+    "glyphbench/minigrid-obstructedmaze-2q-v0",
+    "glyphbench/minigrid-obstructedmaze-full-v0",
 ]
 
 

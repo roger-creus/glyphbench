@@ -1,6 +1,6 @@
 """Unit tests for Atari Montezuma's Revenge env."""
 
-from atlas_rl.envs.atari.montezumarevenge import MontezumaRevengeEnv
+from glyphbench.envs.atari.montezumarevenge import MontezumaRevengeEnv
 
 
 class TestMontezumaRevenge:
@@ -24,7 +24,7 @@ class TestMontezumaRevenge:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-montezumarevenge-v0"
+        assert env.env_id() == "glyphbench/atari-montezumarevenge-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

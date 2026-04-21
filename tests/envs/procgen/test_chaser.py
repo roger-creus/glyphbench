@@ -1,6 +1,6 @@
 """Unit tests for Procgen Chaser env."""
 
-from atlas_rl.envs.procgen.chaser import ChaserEnv
+from glyphbench.envs.procgen.chaser import ChaserEnv
 
 
 class TestChaser:
@@ -13,7 +13,7 @@ class TestChaser:
         assert env.action_spec.names == ("NOOP", "LEFT", "RIGHT", "UP", "DOWN")
 
     def test_env_id(self):
-        assert self._make().env_id() == "atlas_rl/procgen-chaser-v0"
+        assert self._make().env_id() == "glyphbench/procgen-chaser-v0"
 
     def test_reset_determinism(self):
         e1, e2 = self._make(), self._make()

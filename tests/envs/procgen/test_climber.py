@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.procgen.climber import ClimberEnv
+from glyphbench.envs.procgen.climber import ClimberEnv
 
 
 class TestClimber:
@@ -19,7 +19,7 @@ class TestClimber:
 
     def test_env_id(self) -> None:
         env = self._make()
-        assert env.env_id() == "atlas_rl/procgen-climber-v0"
+        assert env.env_id() == "glyphbench/procgen-climber-v0"
 
     def test_reset_determinism(self) -> None:
         e1, e2 = self._make(), self._make()

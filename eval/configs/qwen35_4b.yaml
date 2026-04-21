@@ -1,0 +1,16 @@
+# GlyphBench evaluation config
+# Usage: uv run python eval/run_eval.py --config eval/configs/qwen35_4b.yaml
+
+model: Qwen/Qwen3.5-4B
+harness: markov_zeroshot
+history_len: 5
+episodes: 10
+max_turns: 200
+batch_size: 10
+temperature: 0.7
+max_new_tokens: 16384
+max_model_len: 32768
+gpu_memory_utilization: 0.9
+dtype: bfloat16
+enforce_eager: true
+output: results/

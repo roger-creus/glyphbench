@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from atlas_rl.providers.pricing import Pricing
+from glyphbench.providers.pricing import Pricing
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.atari.amidar import AmidarEnv
+from glyphbench.envs.atari.amidar import AmidarEnv
 
 
 class TestAmidar:
@@ -19,7 +19,7 @@ class TestAmidar:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-amidar-v0"
+        assert env.env_id() == "glyphbench/atari-amidar-v0"
 
     def test_reset_determinism(self):
         e1 = self._make_env()
@@ -75,7 +75,7 @@ class TestAmidar:
         env = self._make_env()
         env.reset(seed=0)
         # Place unpainted segment next to player
-        env._set_cell(env._player_x + 1, env._player_y, ".")
+        env._set_cell(env._player_x + 1, env._player_y, "\u00b7")
         right = env.action_spec.index_of("RIGHT")
         _, reward, _, _, _ = env.step(right)
         assert reward >= 10.0

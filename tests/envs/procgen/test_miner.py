@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.procgen.miner import MinerEnv
+from glyphbench.envs.procgen.miner import MinerEnv
 
 
 class TestMiner:
@@ -19,7 +19,7 @@ class TestMiner:
 
     def test_env_id(self) -> None:
         env = self._make()
-        assert env.env_id() == "atlas_rl/procgen-miner-v0"
+        assert env.env_id() == "glyphbench/procgen-miner-v0"
 
     def test_reset_determinism(self) -> None:
         e1, e2 = self._make(), self._make()
@@ -102,13 +102,13 @@ class TestMiner:
         # Set up a clean column: clear everything above to avoid cascading
         bx, by = 5, 8
         for cy in range(1, by):
-            env._set_cell(bx, cy, ".")
+            env._set_cell(bx, cy, "·")
         env._set_cell(bx, by, "R")
-        env._set_cell(bx, by + 1, ".")
+        env._set_cell(bx, by + 1, "·")
         noop = env.action_spec.index_of("NOOP")
         env.step(noop)
         assert env._world_at(bx, by + 1) == "R"
-        assert env._world_at(bx, by) == "."
+        assert env._world_at(bx, by) == "·"
 
     def test_boulder_crush_kills(self) -> None:
         """Boulder falling on agent kills them."""
@@ -119,9 +119,9 @@ class TestMiner:
         env._agent_y = 8
         # Clear column above agent to prevent cascading interference
         for cy in range(1, 8):
-            env._set_cell(5, cy, ".")
+            env._set_cell(5, cy, "·")
         env._set_cell(5, 7, "R")
-        env._set_cell(5, 8, ".")  # agent position
+        env._set_cell(5, 8, "·")  # agent position
         noop = env.action_spec.index_of("NOOP")
         env.step(noop)
         # Boulder should fall onto agent position (5,8) causing death
@@ -137,7 +137,7 @@ class TestMiner:
                 if env._world_at(x, y) == "G":
                     env._agent_x = x - 1
                     env._agent_y = y
-                    env._set_cell(x - 1, y, ".")  # clear path
+                    env._set_cell(x - 1, y, "·")  # clear path
                     right = env.action_spec.index_of("RIGHT")
                     _, reward, terminated, _, _ = env.step(right)
                     assert reward >= 10.0

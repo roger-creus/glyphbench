@@ -1,6 +1,6 @@
 """Unit tests for Atari H.E.R.O. env."""
 
-from atlas_rl.envs.atari.hero import HeroEnv
+from glyphbench.envs.atari.hero import HeroEnv
 
 
 class TestHero:
@@ -23,7 +23,7 @@ class TestHero:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-hero-v0"
+        assert env.env_id() == "glyphbench/atari-hero-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

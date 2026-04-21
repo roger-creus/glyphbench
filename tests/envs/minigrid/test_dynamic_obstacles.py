@@ -5,13 +5,13 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 DYNAMIC_VARIANTS = [
-    "atlas_rl/minigrid-dynamic-obstacles-5x5-v0",
-    "atlas_rl/minigrid-dynamic-obstacles-6x6-v0",
-    "atlas_rl/minigrid-dynamic-obstacles-8x8-v0",
-    "atlas_rl/minigrid-dynamic-obstacles-16x16-v0",
+    "glyphbench/minigrid-dynamic-obstacles-5x5-v0",
+    "glyphbench/minigrid-dynamic-obstacles-6x6-v0",
+    "glyphbench/minigrid-dynamic-obstacles-8x8-v0",
+    "glyphbench/minigrid-dynamic-obstacles-16x16-v0",
 ]
 
 
@@ -46,7 +46,7 @@ class TestDynamicObstacles:
     @pytest.mark.parametrize("env_id", DYNAMIC_VARIANTS)
     def test_obstacles_move(self, env_id: str) -> None:
         """Obstacles should change position after stepping."""
-        from atlas_rl.envs.minigrid.dynamic_obstacles import _DynamicObstaclesBase
+        from glyphbench.envs.minigrid.dynamic_obstacles import _DynamicObstaclesBase
 
         env = gym.make(env_id, max_turns=200)
         # Try a few seeds to find one where obstacles visibly move
@@ -87,13 +87,13 @@ class TestDynamicObstacles:
 
     def test_collision_terminates(self) -> None:
         """If an obstacle moves onto the agent, episode terminates with 0 reward."""
-        from atlas_rl.envs.minigrid.dynamic_obstacles import (
+        from glyphbench.envs.minigrid.dynamic_obstacles import (
             MiniGridDynamicObstacles5x5Env,
         )
 
         env_inner = MiniGridDynamicObstacles5x5Env(max_turns=500)
         env = gym.make(
-            "atlas_rl/minigrid-dynamic-obstacles-5x5-v0", max_turns=500
+            "glyphbench/minigrid-dynamic-obstacles-5x5-v0", max_turns=500
         )
         # Run many seeds until we get a collision
         found_collision = False

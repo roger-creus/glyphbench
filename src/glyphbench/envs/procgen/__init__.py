@@ -1,0 +1,84 @@
+"""Procgen suite. Importing this module registers all Procgen envs with gym."""
+
+from glyphbench.core.registry import register_env
+
+register_env(
+    "glyphbench/procgen-coinrun-v0",
+    "glyphbench.envs.procgen.coinrun:CoinRunEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-maze-v0",
+    "glyphbench.envs.procgen.maze:MazeEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-heist-v0",
+    "glyphbench.envs.procgen.heist:HeistEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-leaper-v0",
+    "glyphbench.envs.procgen.leaper:LeaperEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-chaser-v0",
+    "glyphbench.envs.procgen.chaser:ChaserEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-bigfish-v0",
+    "glyphbench.envs.procgen.bigfish:BigFishEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-climber-v0",
+    "glyphbench.envs.procgen.climber:ClimberEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-jumper-v0",
+    "glyphbench.envs.procgen.jumper:JumperEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-ninja-v0",
+    "glyphbench.envs.procgen.ninja:NinjaEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-fruitbot-v0",
+    "glyphbench.envs.procgen.fruitbot:FruitBotEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-miner-v0",
+    "glyphbench.envs.procgen.miner:MinerEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-dodgeball-v0",
+    "glyphbench.envs.procgen.dodgeball:DodgeballEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-caveflyer-v0",
+    "glyphbench.envs.procgen.caveflyer:CaveFlyerEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-starpilot-v0",
+    "glyphbench.envs.procgen.starpilot:StarPilotEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-plunder-v0",
+    "glyphbench.envs.procgen.plunder:PlunderEnv",
+    max_episode_steps=None,
+)
+register_env(
+    "glyphbench/procgen-bossfight-v0",
+    "glyphbench.envs.procgen.bossfight:BossFightEnv",
+    max_episode_steps=None,
+)

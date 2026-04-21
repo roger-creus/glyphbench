@@ -1,6 +1,6 @@
 """Unit tests for Atari Space Invaders env."""
 
-from atlas_rl.envs.atari.spaceinvaders import SpaceInvadersEnv
+from glyphbench.envs.atari.spaceinvaders import SpaceInvadersEnv
 
 
 class TestSpaceInvaders:
@@ -22,7 +22,7 @@ class TestSpaceInvaders:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-spaceinvaders-v0"
+        assert env.env_id() == "glyphbench/atari-spaceinvaders-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

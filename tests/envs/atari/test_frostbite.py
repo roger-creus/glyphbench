@@ -1,6 +1,6 @@
 """Unit tests for Atari Frostbite env."""
 
-from atlas_rl.envs.atari.frostbite import FrostbiteEnv
+from glyphbench.envs.atari.frostbite import FrostbiteEnv
 
 
 class TestFrostbite:
@@ -22,7 +22,7 @@ class TestFrostbite:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-frostbite-v0"
+        assert env.env_id() == "glyphbench/atari-frostbite-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

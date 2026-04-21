@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from atlas_rl.providers.anthropic_client import AnthropicClient
-from atlas_rl.providers.base import ProviderInvalidRequest, ProviderRateLimit
-from atlas_rl.providers.pricing import ModelRates, Pricing
+from glyphbench.providers.anthropic_client import AnthropicClient
+from glyphbench.providers.base import ProviderInvalidRequest, ProviderRateLimit
+from glyphbench.providers.pricing import ModelRates, Pricing
 
 
 def _pricing() -> Pricing:

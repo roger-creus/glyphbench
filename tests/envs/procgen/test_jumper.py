@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.procgen.jumper import JumperEnv
+from glyphbench.envs.procgen.jumper import JumperEnv
 
 
 class TestJumper:
@@ -19,7 +19,7 @@ class TestJumper:
 
     def test_env_id(self) -> None:
         env = self._make()
-        assert env.env_id() == "atlas_rl/procgen-jumper-v0"
+        assert env.env_id() == "glyphbench/procgen-jumper-v0"
 
     def test_reset_determinism(self) -> None:
         e1, e2 = self._make(), self._make()

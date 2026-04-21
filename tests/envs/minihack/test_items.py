@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from atlas_rl.envs.minihack.items import (
+from glyphbench.envs.minihack.items import (
     APPLE,
     CORPSE,
     DAGGER,

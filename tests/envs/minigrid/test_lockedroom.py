@@ -5,11 +5,11 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 LOCKED_VARIANTS = [
-    "atlas_rl/minigrid-lockedroom-v0",
-    "atlas_rl/minigrid-blockedunlockpickup-v0",
+    "glyphbench/minigrid-lockedroom-v0",
+    "glyphbench/minigrid-blockedunlockpickup-v0",
 ]
 
 
@@ -36,12 +36,12 @@ class TestLockedRoom:
         assert "door" in obs
 
     def test_lockedroom_has_goal(self) -> None:
-        env = gym.make("atlas_rl/minigrid-lockedroom-v0", max_turns=300)
+        env = gym.make("glyphbench/minigrid-lockedroom-v0", max_turns=300)
         obs, _ = env.reset(seed=0)
         assert "G" in obs
 
     def test_blockedunlockpickup_has_ball(self) -> None:
-        env = gym.make("atlas_rl/minigrid-blockedunlockpickup-v0", max_turns=300)
+        env = gym.make("glyphbench/minigrid-blockedunlockpickup-v0", max_turns=300)
         obs, _ = env.reset(seed=0)
         assert "ball" in obs  # ball in legend
 

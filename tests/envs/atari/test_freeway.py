@@ -1,6 +1,6 @@
 """Unit tests for Atari Freeway env."""
 
-from atlas_rl.envs.atari.freeway import FreewayEnv
+from glyphbench.envs.atari.freeway import FreewayEnv
 
 
 class TestFreeway:
@@ -22,7 +22,7 @@ class TestFreeway:
 
     def test_env_id(self) -> None:
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-freeway-v0"
+        assert env.env_id() == "glyphbench/atari-freeway-v0"
 
     def test_reset_determinism(self) -> None:
         e1 = self._make_env()

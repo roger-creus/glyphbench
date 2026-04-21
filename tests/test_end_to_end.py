@@ -14,16 +14,16 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import pytest
 
-from atlas_rl.harness.mock_client import MockLLMClient
-from atlas_rl.runner.config import RunConfig
-from atlas_rl.runner.runner import run_benchmark
+from glyphbench.harness.mock_client import MockLLMClient
+from glyphbench.runner.config import RunConfig
+from glyphbench.runner.runner import run_benchmark
 
 PILOT_ENV_IDS = [
-    "atlas_rl/minigrid-empty-5x5-v0",
-    "atlas_rl/minihack-room-5x5-v0",
-    "atlas_rl/procgen-coinrun-v0",
-    "atlas_rl/atari-pong-v0",
-    "atlas_rl/craftax-classic-v0",
+    "glyphbench/minigrid-empty-5x5-v0",
+    "glyphbench/minihack-room-5x5-v0",
+    "glyphbench/procgen-coinrun-v0",
+    "glyphbench/atari-pong-v0",
+    "glyphbench/craftax-classic-v0",
 ]
 
 SEEDS = [0, 1]
@@ -53,7 +53,7 @@ def gate_config(tmp_path: Path) -> RunConfig:
 @pytest.mark.asyncio
 async def test_foundation_gate(gate_config: RunConfig, tmp_path: Path) -> None:
     """The hard gate test for Stage 0 completion."""
-    import atlas_rl  # noqa: F401 -- trigger env registration
+    import glyphbench  # noqa: F401 -- trigger env registration
 
     mock_response = json.dumps({"action": "MOVE_FORWARD"})
 
@@ -113,7 +113,7 @@ async def test_foundation_gate(gate_config: RunConfig, tmp_path: Path) -> None:
     assert (summary_df["total_dollar_cost"] == 0.0).all()
 
     # Normalized scoring should be computable
-    from atlas_rl.plotting.common import compute_normalized_scores
+    from glyphbench.plotting.common import compute_normalized_scores
     normalized = compute_normalized_scores(summary_df, summary_df)
     assert "normalized_return" in normalized.columns
     assert normalized["normalized_return"].notna().all()

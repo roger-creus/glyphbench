@@ -2,8 +2,8 @@ import json
 
 import pandas as pd
 
-from atlas_rl.core.metrics import TurnMetrics
-from atlas_rl.runner.storage import EpisodeRecord, RunStorage
+from glyphbench.core.metrics import TurnMetrics
+from glyphbench.runner.storage import EpisodeRecord, RunStorage
 
 
 def _metric(i: int) -> TurnMetrics:
@@ -23,7 +23,7 @@ def _metric(i: int) -> TurnMetrics:
 def test_storage_writes_turns_parquet(tmp_path):
     storage = RunStorage(base_dir=tmp_path, run_id="unit-test")
     episode = EpisodeRecord(
-        env_id="atlas_rl/__dummy-v0",
+        env_id="glyphbench/__dummy-v0",
         seed=0,
         episode_idx=0,
         episode_return=1.0,
@@ -46,7 +46,7 @@ def test_storage_writes_summary_parquet(tmp_path):
     for seed in [0, 1]:
         storage.record_episode(
             EpisodeRecord(
-                env_id="atlas_rl/__dummy-v0",
+                env_id="glyphbench/__dummy-v0",
                 seed=seed,
                 episode_idx=0,
                 episode_return=float(seed),
@@ -70,7 +70,7 @@ def test_storage_writes_jsonl_trajectory_when_enabled(tmp_path):
     )
     storage.record_episode(
         EpisodeRecord(
-            env_id="atlas_rl/__dummy-v0",
+            env_id="glyphbench/__dummy-v0",
             seed=0,
             episode_idx=0,
             episode_return=1.0,
@@ -85,7 +85,7 @@ def test_storage_writes_jsonl_trajectory_when_enabled(tmp_path):
         tmp_path
         / "traj-test"
         / "trajectories"
-        / "atlas_rl__dummy-v0"
+        / "glyphbench__dummy-v0"
         / "seed_0"
         / "episode_0.jsonl"
     )

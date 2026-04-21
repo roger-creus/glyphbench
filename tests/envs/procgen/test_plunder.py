@@ -1,6 +1,6 @@
 """Unit tests for Procgen Plunder env."""
 
-from atlas_rl.envs.procgen.plunder import PlunderEnv
+from glyphbench.envs.procgen.plunder import PlunderEnv
 
 
 class TestPlunder:
@@ -13,7 +13,7 @@ class TestPlunder:
         assert "FIRE" in env.action_spec.names
 
     def test_env_id(self):
-        assert self._make().env_id() == "atlas_rl/procgen-plunder-v0"
+        assert self._make().env_id() == "glyphbench/procgen-plunder-v0"
 
     def test_reset_determinism(self):
         e1, e2 = self._make(), self._make()

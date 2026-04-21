@@ -5,12 +5,12 @@ from __future__ import annotations
 import gymnasium as gym
 import pytest
 
-import atlas_rl  # noqa: F401
+import glyphbench  # noqa: F401
 
 MULTIROOM_VARIANTS = [
-    "atlas_rl/minigrid-multiroom-n2-s4-v0",
-    "atlas_rl/minigrid-multiroom-n4-s5-v0",
-    "atlas_rl/minigrid-multiroom-n6-v0",
+    "glyphbench/minigrid-multiroom-n2-s4-v0",
+    "glyphbench/minigrid-multiroom-n4-s5-v0",
+    "glyphbench/minigrid-multiroom-n6-v0",
 ]
 
 

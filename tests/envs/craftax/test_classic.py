@@ -2,19 +2,20 @@
 
 import pytest
 
-from atlas_rl.envs.craftax.classic import (
+from glyphbench.envs.craftax.classic import (
     CraftaxClassicEnv,
     _MAX_ENERGY,
     _MAX_FOOD,
     _MAX_WATER,
     _PLANT_RIPEN_STEPS,
 )
-from atlas_rl.envs.craftax.base import (
+from glyphbench.envs.craftax.base import (
     TILE_GRASS,
     TILE_PLACED_STONE,
     TILE_RIPE_PLANT,
     TILE_SAPLING,
     TILE_TABLE,
+    TILE_TREE,
     TILE_WATER,
 )
 
@@ -47,7 +48,7 @@ class TestCraftaxClassic:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/craftax-classic-v0"
+        assert env.env_id() == "glyphbench/craftax-classic-v0"
 
     # --- Determinism ---
     def test_reset_determinism(self):
@@ -111,7 +112,7 @@ class TestCraftaxClassic:
         # Place a tree next to agent and face it
         ax, ay = env._agent_x, env._agent_y
         if ax + 1 < env._WORLD_SIZE:
-            env._world[ay][ax + 1] = "T"
+            env._world[ay][ax + 1] = TILE_TREE
         env._facing = (1, 0)
         do_action = env.action_spec.index_of("DO")
         _, reward, _, _, info = env.step(do_action)
@@ -145,7 +146,7 @@ class TestCraftaxClassic:
         env._inventory["wood"] = 0
         ax, ay = env._agent_x, env._agent_y
         if ax + 1 < env._WORLD_SIZE:
-            env._world[ay][ax + 1] = "T"
+            env._world[ay][ax + 1] = TILE_TREE
         env._facing = (1, 0)
         do_action = env.action_spec.index_of("DO")
         _, reward, _, _, _ = env.step(do_action)
@@ -194,8 +195,8 @@ class TestCraftaxClassic:
         env = self._make_env()
         env.reset(seed=0)
         legend = env.get_observation().legend
-        # Player is directional: >, <, ^, or v
-        assert any(c in legend for c in "><^v")
+        # Player is directional: →, ←, ↑, or ↓
+        assert any(c in legend for c in "→←↑↓")
         assert len(legend) > 0
 
     # --- Info extras ---
@@ -655,7 +656,7 @@ class TestCraftaxClassic:
             env._facing = (1, 0)
             fx, fy = ax + 1, ay
             if 0 <= fx < env._WORLD_SIZE:
-                env._world[fy][fx] = "T"
+                env._world[fy][fx] = TILE_TREE
                 env.step(do_action)
                 if env._inventory.get("sapling", 0) > 0:
                     saplings_found = True

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from atlas_rl.envs.minihack.creatures import KOBOLD
+from glyphbench.envs.minihack.creatures import KOBOLD
 
 
 class TestMiniHackBase:
@@ -14,11 +14,11 @@ class TestMiniHackBase:
         dark: bool = False,
         monsters: bool = False,
     ):  # type: ignore[no-untyped-def]
-        from atlas_rl.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.base import MiniHackBase
 
         class TestEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-minihack-v0"
+                return "glyphbench/test-minihack-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(width, height)
@@ -79,12 +79,12 @@ class TestMiniHackBase:
         assert "MOVE_N" in prompt
 
     def test_pickup_item(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import FOOD_RATION
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import FOOD_RATION
 
         class ItemEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-items-v0"
+                return "glyphbench/test-items-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -100,12 +100,12 @@ class TestMiniHackBase:
         assert env._inventory[0].name == "food ration"
 
     def test_eat_food(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import FOOD_RATION
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import FOOD_RATION
 
         class EatEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-eat-v0"
+                return "glyphbench/test-eat-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -120,12 +120,12 @@ class TestMiniHackBase:
         assert len(env._inventory) == 0  # food consumed
 
     def test_drop_item(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import SWORD
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import SWORD
 
         class DropEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-drop-v0"
+                return "glyphbench/test-drop-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -142,12 +142,12 @@ class TestMiniHackBase:
         assert (1, 1) in env._floor_items
 
     def test_wield_weapon(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import SWORD
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import SWORD
 
         class WieldEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-wield-v0"
+                return "glyphbench/test-wield-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -165,12 +165,12 @@ class TestMiniHackBase:
         assert len(env._inventory) == 1
 
     def test_read_scroll(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import SCROLL_LIGHT
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import SCROLL_LIGHT
 
         class ReadEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-read-v0"
+                return "glyphbench/test-read-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -185,12 +185,12 @@ class TestMiniHackBase:
         assert len(env._inventory) == 0  # scroll consumed
 
     def test_quaff_potion(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import POTION_HEALING
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import POTION_HEALING
 
         class QuaffEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-quaff-v0"
+                return "glyphbench/test-quaff-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -205,12 +205,12 @@ class TestMiniHackBase:
         assert len(env._inventory) == 0  # potion consumed
 
     def test_zap_wand(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import WAND_DEATH
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import WAND_DEATH
 
         class ZapEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-zap-v0"
+                return "glyphbench/test-zap-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -232,12 +232,12 @@ class TestMiniHackBase:
         assert "pray" in obs.message.lower()
 
     def test_floor_item_rendered(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import FOOD_RATION
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import FOOD_RATION
 
         class RenderEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-render-item-v0"
+                return "glyphbench/test-render-item-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)
@@ -251,12 +251,12 @@ class TestMiniHackBase:
         assert "%" in obs.grid
 
     def test_inventory_clears_on_reset(self) -> None:
-        from atlas_rl.envs.minihack.base import MiniHackBase
-        from atlas_rl.envs.minihack.items import FOOD_RATION
+        from glyphbench.envs.minihack.base import MiniHackBase
+        from glyphbench.envs.minihack.items import FOOD_RATION
 
         class ResetEnv(MiniHackBase):
             def env_id(self) -> str:
-                return "atlas_rl/test-reset-inv-v0"
+                return "glyphbench/test-reset-inv-v0"
 
             def _generate_level(self, seed: int) -> None:
                 self._init_grid(7, 7)

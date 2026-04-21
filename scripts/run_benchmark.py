@@ -15,12 +15,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from atlas_rl.runner.config import RunConfig  # noqa: E402
-from atlas_rl.runner.runner import run_benchmark  # noqa: E402
+from glyphbench.runner.config import RunConfig  # noqa: E402
+from glyphbench.runner.runner import run_benchmark  # noqa: E402
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run an atlas_rl benchmark")
+    parser = argparse.ArgumentParser(description="Run an glyphbench benchmark")
     parser.add_argument("config_path", type=Path, help="Path to YAML run config")
     args = parser.parse_args()
     if not args.config_path.exists():

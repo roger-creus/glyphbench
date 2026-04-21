@@ -2,7 +2,7 @@
 
 import pytest
 
-from atlas_rl.envs.atari.wizardofwor import WizardOfWorEnv
+from glyphbench.envs.atari.wizardofwor import WizardOfWorEnv
 
 
 class TestWizardOfWor:
@@ -19,7 +19,7 @@ class TestWizardOfWor:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "atlas_rl/atari-wizardofwor-v0"
+        assert env.env_id() == "glyphbench/atari-wizardofwor-v0"
 
     def test_reset_determinism(self):
         e1 = self._make_env()
@@ -66,7 +66,7 @@ class TestWizardOfWor:
         # player_x+2 on the fire step. Collision is checked before ghosts
         # move, so place ghost at player_x+2.
         env._entities = [e for e in env._entities if e.etype not in ("ghost", "wizard")]
-        from atlas_rl.envs.atari.wizardofwor import _GHOST_CHAR
+        from glyphbench.envs.atari.wizardofwor import _GHOST_CHAR
         env._set_cell(env._player_x + 1, env._player_y, " ")
         env._set_cell(env._player_x + 2, env._player_y, " ")
         ghost = env._add_entity("ghost", _GHOST_CHAR, env._player_x + 2, env._player_y)
@@ -84,7 +84,7 @@ class TestWizardOfWor:
         initial_lives = env._lives
         # Place ghost on player
         env._entities = [e for e in env._entities if e.etype not in ("ghost", "wizard")]
-        from atlas_rl.envs.atari.wizardofwor import _GHOST_CHAR
+        from glyphbench.envs.atari.wizardofwor import _GHOST_CHAR
         ghost = env._add_entity("ghost", _GHOST_CHAR, env._player_x, env._player_y)
         ghost.data["dir"] = (0, 0)
         ghost.data["patrol_row"] = env._player_y
