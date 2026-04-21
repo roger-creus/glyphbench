@@ -6,19 +6,19 @@
       "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "history_zeroshot",
-      "score": -0.27551196398132394,
+      "score": -0.23923681713611286,
       "per_suite": {
-        "minigrid": -0.002055862068965517,
-        "atari": 0.5155440414507771,
-        "procgen": -0.7054651162790697,
+        "minigrid": -0.0031193939393939396,
+        "atari": -0.02748180873180875,
+        "procgen": 0.020000000000000018,
         "craftax": -0.19273800607747843,
         "classics": -0.9928448769318833
       },
-      "parse_failure_rate": 0.0011499590879939848,
-      "total_input_tokens": 150364063,
-      "total_output_tokens": 1871791,
+      "parse_failure_rate": 0.0014560224964849243,
+      "total_input_tokens": 177303374,
+      "total_output_tokens": 2481077,
       "total_cost": null,
-      "n_envs": 101
+      "n_envs": 117
     },
     {
       "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
@@ -42,37 +42,37 @@
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "history_zeroshot",
-      "score": 0.058308259673877406,
+      "score": 0.059966176340544075,
       "per_suite": {
-        "minigrid": 0.04146666666666667,
+        "minigrid": 0.049756249999999995,
         "minihack": -0.005,
         "atari": 0.3193449527646418,
         "craftax": 0.0059258157491022395,
         "classics": -0.07019613681102367
       },
-      "parse_failure_rate": 9.104789119076635e-05,
-      "total_input_tokens": 171293139,
-      "total_output_tokens": 2130138,
+      "parse_failure_rate": 0.00012855992584122174,
+      "total_input_tokens": 176407172,
+      "total_output_tokens": 2337983,
       "total_cost": null,
-      "n_envs": 120
+      "n_envs": 126
     },
     {
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "markov_zeroshot",
-      "score": -0.008428294802134981,
+      "score": -0.01942829480213498,
       "per_suite": {
         "minigrid": 0.026586538461538464,
         "minihack": -0.014999999999999996,
         "procgen": 0.13457111436950148,
         "craftax": -0.16720898649536184,
-        "classics": -0.021090140346352995
+        "classics": -0.07609014034635299
       },
-      "parse_failure_rate": 0.0006373944034975896,
-      "total_input_tokens": 155675379,
-      "total_output_tokens": 3003162,
+      "parse_failure_rate": 0.0006593551506626519,
+      "total_input_tokens": 157953242,
+      "total_output_tokens": 3318125,
       "total_cost": null,
-      "n_envs": 180
+      "n_envs": 183
     }
   ]
 }
