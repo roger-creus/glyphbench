@@ -46,11 +46,15 @@ class _DoorKeyBase(MiniGridBase):
         self._place_obj(goal_x, goal_y, Goal())
 
     def _task_description(self) -> str:
+        goal = Goal().render_char()
+        yellow_key = Key(color="yellow").render_char()
+        # Locked door renders with the closed-door glyph.
+        yellow_door = Door(color="yellow", is_locked=True).render_char()
         return (
             f"Navigate a {self._room_size}x{self._room_size} room "
-            "divided by a wall. Find the yellow key, pick it up "
-            "with PICKUP, face the locked yellow door and use "
-            "TOGGLE to unlock it, then navigate to the goal. "
+            f"divided by a wall. Find the yellow key ({yellow_key}), pick it up "
+            f"with PICKUP, face the locked yellow door ({yellow_door}) and use "
+            f"TOGGLE to unlock it, then navigate to the goal ({goal}). "
             "Reward = 1 - 0.9 * (steps / max_steps)."
         )
 

@@ -37,9 +37,11 @@ class _LavaGapBase(MiniGridBase):
         self._place_obj(gx, gy, Goal())
 
     def _task_description(self) -> str:
+        lava = Lava().render_char()
+        goal = Goal().render_char()
         return (
-            f"A wall of lava (L) blocks your path in a {self._room_size}x{self._room_size} room. "
-            f"Find the one gap in the lava wall and cross to reach the goal (G). "
+            f"A wall of lava ({lava}) blocks your path in a {self._room_size}x{self._room_size} room. "
+            f"Find the one gap in the lava wall and cross to reach the goal ({goal}). "
             f"Stepping on lava ends the episode with zero reward. "
             f"Reward = 1 - 0.9 * (steps / max_steps)."
         )

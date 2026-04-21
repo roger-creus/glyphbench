@@ -72,9 +72,11 @@ class MiniGridLockedRoomEnv(MiniGridBase):
         self._place_agent(ax, ay, DIR_RIGHT)
 
     def _task_description(self) -> str:
+        goal = Goal().render_char()
+        yellow_key = Key(color="yellow").render_char()
         return (
-            "Three rooms in a row. The goal (G) is behind a locked yellow door "
-            "in one side room. The yellow key (K) is in the other side room "
+            f"Three rooms in a row. The goal ({goal}) is behind a locked yellow door "
+            f"in one side room. The yellow key ({yellow_key}) is in the other side room "
             "(accessible through an unlocked green door). Navigate to the key, "
             "pick it up, unlock the yellow door, and reach the goal. "
             "Reward = 1 - 0.9 * (steps / max_steps)."

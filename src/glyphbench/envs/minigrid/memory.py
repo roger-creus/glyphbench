@@ -49,9 +49,10 @@ class _MemoryBase(MiniGridBase):
         self._place_obj(s - 2, corridor_y, Goal())
 
     def _task_description(self) -> str:
+        goal = Goal().render_char()
         return (
             f"A long corridor with a {self._memory_object_desc} near the start. "
-            f"Navigate east through the corridor to reach the goal (G) at the far "
+            f"Navigate east through the corridor to reach the goal ({goal}) at the far "
             f"end. Remember the object you saw — it may be relevant later. "
             f"Reward = 1 - 0.9 * (steps / max_steps)."
         )

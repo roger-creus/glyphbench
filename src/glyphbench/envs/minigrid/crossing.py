@@ -44,15 +44,18 @@ class _CrossingBase(MiniGridBase):
         self._place_obj(size // 2, 1, Goal())
 
     def _task_description(self) -> str:
-        obs_name = {"lava": "lava (L)", "water": "water (~)", "wall": "walls (#)"}.get(
-            self._obstacle_type, self._obstacle_type
-        )
+        obs_name = {
+            "lava": f"lava ({Lava().render_char()})",
+            "water": f"water ({Water().render_char()})",
+            "wall": f"walls ({Wall().render_char()})",
+        }.get(self._obstacle_type, self._obstacle_type)
         danger = ""
         if self._obstacle_type == "lava":
             danger = " Stepping on lava ends the episode with zero reward."
+        goal = Goal().render_char()
         return (
             f"Navigate upward through {self._num_strips} horizontal strip(s) of "
-            f"{obs_name} to reach the goal (G) at the top. Each strip has one gap "
+            f"{obs_name} to reach the goal ({goal}) at the top. Each strip has one gap "
             f"you can pass through.{danger} "
             f"Reward = 1 - 0.9 * (steps / max_steps)."
         )

@@ -35,9 +35,11 @@ class _DistShiftBase(MiniGridBase):
         self._place_obj(gx, gy, Goal())
 
     def _task_description(self) -> str:
+        lava = Lava().render_char()
+        goal = Goal().render_char()
         return (
-            "A strip of lava (L) cuts across the grid. Find the gap in the lava "
-            "and cross to reach the goal (G). Stepping on lava ends the episode "
+            f"A strip of lava ({lava}) cuts across the grid. Find the gap in the lava "
+            f"and cross to reach the goal ({goal}). Stepping on lava ends the episode "
             "with zero reward. Reward = 1 - 0.9 * (steps / max_steps) on reaching goal."
         )
 
