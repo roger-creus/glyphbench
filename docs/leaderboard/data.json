@@ -1,5 +1,50 @@
 {
   "generated_at": "2026-04-21",
   "schema_version": 1,
-  "runs": []
+  "runs": [
+    {
+      "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
+      "model": "Qwen/Qwen3.5-0.8B",
+      "harness": "history_zeroshot",
+      "score": -0.40786407766990296,
+      "per_suite": {
+        "procgen": -0.40786407766990296
+      },
+      "parse_failure_rate": 0.0002886836027713626,
+      "total_input_tokens": 2451070,
+      "total_output_tokens": 34449,
+      "total_cost": null,
+      "n_envs": 3
+    },
+    {
+      "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
+      "model": "Qwen/Qwen3.5-0.8B",
+      "harness": "markov_zeroshot",
+      "score": -0.05906953019104164,
+      "per_suite": {
+        "minigrid": -0.082666,
+        "procgen": 0.08,
+        "craftax": -0.17454259057312493
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 15167431,
+      "total_output_tokens": 272682,
+      "total_cost": null,
+      "n_envs": 20
+    },
+    {
+      "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
+      "model": "Qwen/Qwen3.5-2B",
+      "harness": "markov_zeroshot",
+      "score": -0.13787798408488067,
+      "per_suite": {
+        "procgen": -0.13787798408488067
+      },
+      "parse_failure_rate": 0.010523798134417603,
+      "total_input_tokens": 3802609,
+      "total_output_tokens": 83802,
+      "total_cost": null,
+      "n_envs": 8
+    }
+  ]
 }
