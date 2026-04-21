@@ -20,15 +20,15 @@
       "id": "Qwen_Qwen3-0.6B__history_zeroshot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "history_zeroshot",
-      "score": 0.3740458015267175,
+      "score": -0.20634920634920637,
       "per_suite": {
-        "craftax": 0.3740458015267175
+        "craftax": -0.20634920634920637
       },
-      "parse_failure_rate": 0.029038112522686024,
-      "total_input_tokens": 832962,
-      "total_output_tokens": 341302,
+      "parse_failure_rate": 0.011152416356877323,
+      "total_input_tokens": 2252410,
+      "total_output_tokens": 1246439,
       "total_cost": null,
-      "n_envs": 1
+      "n_envs": 2
     },
     {
       "id": "Qwen_Qwen3-0.6B__markov_cot",
@@ -48,15 +48,15 @@
       "id": "Qwen_Qwen3-0.6B__markov_zeroshot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "markov_zeroshot",
-      "score": 0.27862595419847325,
+      "score": -0.8015873015873016,
       "per_suite": {
-        "craftax": 0.27862595419847325
+        "craftax": -0.8015873015873016
       },
-      "parse_failure_rate": 0.006289308176100629,
-      "total_input_tokens": 1367510,
-      "total_output_tokens": 415699,
+      "parse_failure_rate": 0.0021513788382554275,
+      "total_input_tokens": 4383077,
+      "total_output_tokens": 2407883,
       "total_cost": null,
-      "n_envs": 1
+      "n_envs": 3
     },
     {
       "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
@@ -147,59 +147,59 @@
       "id": "google_gemma-3-12b-it__history_cot",
       "model": "google/gemma-3-12b-it",
       "harness": "history_cot",
-      "score": -0.0642970822281167,
+      "score": 0.03000000000000001,
       "per_suite": {
-        "procgen": -0.0642970822281167
+        "procgen": 0.03000000000000001
       },
-      "parse_failure_rate": 0.0013987411329803177,
-      "total_input_tokens": 11640081,
-      "total_output_tokens": 690453,
+      "parse_failure_rate": 0.00105318588730911,
+      "total_input_tokens": 15451749,
+      "total_output_tokens": 905710,
       "total_cost": null,
-      "n_envs": 9
+      "n_envs": 12
     },
     {
       "id": "google_gemma-3-12b-it__history_zeroshot",
       "model": "google/gemma-3-12b-it",
       "harness": "history_zeroshot",
-      "score": -0.0852892165285676,
+      "score": -0.03304551119445361,
       "per_suite": {
         "minihack": -0.012500000000000002,
-        "classics": -0.15807843305713518
+        "classics": -0.05359102238890722
       },
       "parse_failure_rate": 0.0,
-      "total_input_tokens": 147772416,
-      "total_output_tokens": 1184021,
+      "total_input_tokens": 150417950,
+      "total_output_tokens": 1197265,
       "total_cost": null,
-      "n_envs": 86
+      "n_envs": 87
     },
     {
       "id": "google_gemma-3-12b-it__markov_cot",
       "model": "google/gemma-3-12b-it",
       "harness": "markov_cot",
-      "score": -0.15147691277587494,
+      "score": -0.1610397543059296,
       "per_suite": {
-        "procgen": -0.15147691277587494
+        "procgen": -0.1610397543059296
       },
-      "parse_failure_rate": 0.0004298610116062473,
-      "total_input_tokens": 5870831,
-      "total_output_tokens": 950216,
+      "parse_failure_rate": 0.0005294506949040371,
+      "total_input_tokens": 6522647,
+      "total_output_tokens": 1059502,
       "total_cost": null,
-      "n_envs": 12
+      "n_envs": 13
     },
     {
       "id": "google_gemma-3-12b-it__markov_zeroshot",
       "model": "google/gemma-3-12b-it",
       "harness": "markov_zeroshot",
-      "score": -0.06653192300523322,
+      "score": -0.03347415674603175,
       "per_suite": {
         "minihack": -0.021875,
-        "classics": -0.11118884601046645
+        "classics": -0.0450733134920635
       },
-      "parse_failure_rate": 0.00886017026044009,
-      "total_input_tokens": 107460446,
-      "total_output_tokens": 1341570,
+      "parse_failure_rate": 0.0077376769054804525,
+      "total_input_tokens": 132200519,
+      "total_output_tokens": 1505056,
       "total_cost": null,
-      "n_envs": 94
+      "n_envs": 111
     },
     {
       "id": "google_gemma-3-4b-it__history_cot",
@@ -277,15 +277,16 @@
       "id": "mistralai_Mistral-7B-Instruct-v0.3__history_zeroshot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "history_zeroshot",
-      "score": -0.3335590628722205,
+      "score": -0.024063647243578668,
       "per_suite": {
-        "classics": -0.3335590628722205
+        "minihack": 0.0,
+        "classics": -0.048127294487157336
       },
-      "parse_failure_rate": 0.0036259541984732823,
-      "total_input_tokens": 13792543,
-      "total_output_tokens": 447197,
+      "parse_failure_rate": 0.015214105793450882,
+      "total_input_tokens": 19040408,
+      "total_output_tokens": 1921675,
       "total_cost": null,
-      "n_envs": 5
+      "n_envs": 9
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_cot",
