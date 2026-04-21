@@ -21,16 +21,16 @@
       "id": "Qwen_Qwen3-0.6B__history_zeroshot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "history_zeroshot",
-      "score": -0.42932907252377955,
+      "score": -0.3452075243611355,
       "per_suite": {
-        "craftax": -0.20634920634920637,
+        "craftax": -0.03810611002391827,
         "classics": -0.6523089386983527
       },
-      "parse_failure_rate": 0.01753453772582359,
-      "total_input_tokens": 3531819,
-      "total_output_tokens": 5791154,
+      "parse_failure_rate": 0.09420541290770298,
+      "total_input_tokens": 5699695,
+      "total_output_tokens": 7684098,
       "total_cost": null,
-      "n_envs": 3
+      "n_envs": 4
     },
     {
       "id": "Qwen_Qwen3-0.6B__markov_cot",
@@ -50,17 +50,45 @@
       "id": "Qwen_Qwen3-0.6B__markov_zeroshot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "markov_zeroshot",
-      "score": -0.31953508666646663,
+      "score": -0.2711850866664666,
       "per_suite": {
-        "minigrid": 0.0,
+        "minigrid": 0.14504999999999998,
         "craftax": -0.7569444444444444,
         "classics": -0.20166081555495546
       },
-      "parse_failure_rate": 0.003365429559689633,
-      "total_input_tokens": 8763859,
-      "total_output_tokens": 14402210,
+      "parse_failure_rate": 0.0034942528735632185,
+      "total_input_tokens": 8856961,
+      "total_output_tokens": 14892915,
       "total_cost": null,
-      "n_envs": 6
+      "n_envs": 8
+    },
+    {
+      "id": "Qwen_Qwen3-14B__history_cot",
+      "model": "Qwen/Qwen3-14B",
+      "harness": "history_cot",
+      "score": 0.96,
+      "per_suite": {
+        "procgen": 0.96
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 1483653,
+      "total_output_tokens": 2017118,
+      "total_cost": null,
+      "n_envs": 1
+    },
+    {
+      "id": "Qwen_Qwen3-8B__history_cot",
+      "model": "Qwen/Qwen3-8B",
+      "harness": "history_cot",
+      "score": 1.26,
+      "per_suite": {
+        "procgen": 1.26
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 1670251,
+      "total_output_tokens": 3096764,
+      "total_cost": null,
+      "n_envs": 1
     },
     {
       "id": "Qwen_Qwen3-8B__markov_cot",
@@ -134,20 +162,34 @@
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "markov_zeroshot",
-      "score": 0.03134079205809667,
+      "score": -0.07825858860189337,
       "per_suite": {
-        "minigrid": 0.013259133333333332,
+        "minigrid": 0.021427277777777774,
         "minihack": -0.003125000000000001,
-        "atari": 0.380597014925373,
+        "atari": -0.2851674134790117,
         "procgen": -0.07015111325456155,
         "craftax": -0.09000113851757613,
         "classics": -0.0425341441379886
       },
-      "parse_failure_rate": 0.0005604988439711343,
-      "total_input_tokens": 166989383,
-      "total_output_tokens": 4176506,
+      "parse_failure_rate": 0.0006133131245483866,
+      "total_input_tokens": 185379808,
+      "total_output_tokens": 4692938,
       "total_cost": null,
-      "n_envs": 191
+      "n_envs": 216
+    },
+    {
+      "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-1.5B__history_zeroshot",
+      "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+      "harness": "history_zeroshot",
+      "score": -0.10305343511450382,
+      "per_suite": {
+        "craftax": -0.10305343511450382
+      },
+      "parse_failure_rate": 0.1272264631043257,
+      "total_input_tokens": 588359,
+      "total_output_tokens": 789524,
+      "total_cost": null,
+      "n_envs": 1
     },
     {
       "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-7B__history_cot",
@@ -185,26 +227,26 @@
       "per_suite": {
         "procgen": 0.2678688524590164
       },
-      "parse_failure_rate": 0.0016801680168016802,
-      "total_input_tokens": 21049825,
-      "total_output_tokens": 1157846,
+      "parse_failure_rate": 0.0015992689056431345,
+      "total_input_tokens": 21530771,
+      "total_output_tokens": 1201839,
       "total_cost": null,
-      "n_envs": 15
+      "n_envs": 16
     },
     {
       "id": "google_gemma-3-12b-it__history_zeroshot",
       "model": "google/gemma-3-12b-it",
       "harness": "history_zeroshot",
-      "score": -0.032743995859213254,
+      "score": -0.030224476190476194,
       "per_suite": {
         "minihack": -0.012500000000000002,
-        "classics": -0.052987991718426504
+        "classics": -0.047948952380952384
       },
-      "parse_failure_rate": 1.4570144317279463e-05,
-      "total_input_tokens": 189425148,
-      "total_output_tokens": 1484721,
+      "parse_failure_rate": 1.4177660260727172e-05,
+      "total_input_tokens": 195537166,
+      "total_output_tokens": 1512533,
       "total_cost": null,
-      "n_envs": 109
+      "n_envs": 113
     },
     {
       "id": "google_gemma-3-12b-it__markov_cot",
@@ -316,11 +358,11 @@
         "minihack": 0.0,
         "classics": 0.04791513700856178
       },
-      "parse_failure_rate": 0.012254136746799876,
-      "total_input_tokens": 22818298,
-      "total_output_tokens": 2252073,
+      "parse_failure_rate": 0.014245206589251958,
+      "total_input_tokens": 24879712,
+      "total_output_tokens": 2599542,
       "total_cost": null,
-      "n_envs": 13
+      "n_envs": 14
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_cot",
@@ -340,16 +382,16 @@
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_zeroshot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "markov_zeroshot",
-      "score": -0.02238996678202171,
+      "score": -0.06108620005004102,
       "per_suite": {
         "minihack": -0.029375000000000002,
-        "classics": -0.015404933564043419
+        "classics": -0.09279740010008204
       },
-      "parse_failure_rate": 6.160923317041113e-05,
-      "total_input_tokens": 76467073,
-      "total_output_tokens": 1354818,
+      "parse_failure_rate": 0.0009860345313317503,
+      "total_input_tokens": 78653958,
+      "total_output_tokens": 2423804,
       "total_cost": null,
-      "n_envs": 80
+      "n_envs": 81
     }
   ]
 }
