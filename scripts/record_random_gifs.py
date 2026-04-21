@@ -28,16 +28,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from replay_trajectory import export_gif  # noqa: E402
 
 
-def rollout_random(env_id: str, steps: int, seed: int) -> list[dict]:
-    """Run a random agent for `steps` steps and return a list of step dicts
-    matching the trajectory JSONL schema consumed by replay_trajectory.py."""
-    env = gym.make(env_id, max_turns=steps)
+def rollout_random(env_id: str, seed: int, steps: int | None = None) -> list[dict]:
+    """Run a random agent and return a list of step dicts matching the
+    trajectory JSONL schema consumed by replay_trajectory.py.
+
+    If `steps` is None, the env's own natural `max_turns` governs episode
+    length — this matches how `eval/random_baseline.py` measures scores,
+    so the rendered GIF reflects the same rollout distribution as the
+    scoring baseline. Pass an explicit `steps` only for short demo clips.
+    """
+    env = gym.make(env_id) if steps is None else gym.make(env_id, max_turns=steps)
     obs, info = env.reset(seed=seed)
     action_names = env.unwrapped.action_spec.names
 
     trajectory: list[dict] = []
     cum_reward = 0.0
-    for turn in range(1, steps + 1):
+    turn = 0
+    while True:
+        turn += 1
         action = env.action_space.sample()
         new_obs, reward, terminated, truncated, _ = env.step(int(action))
         cum_reward += float(reward)
@@ -66,7 +74,8 @@ def safe_slug(env_id: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--steps", type=int, default=30, help="Max steps per env")
+    parser.add_argument("--steps", type=int, default=None,
+                        help="Override env's natural max_turns (default: None = use env's own budget)")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output", type=Path, default=Path("docs/leaderboard/gifs"),
                         help="Output dir for GIFs (one per env)")
@@ -101,7 +110,7 @@ def main() -> None:
             continue
 
         try:
-            traj = rollout_random(env_id, args.steps, args.seed)
+            traj = rollout_random(env_id, args.seed, steps=args.steps)
 
             if args.save_trajectories:
                 out = args.save_trajectories / f"{slug}__seed{args.seed}.jsonl"

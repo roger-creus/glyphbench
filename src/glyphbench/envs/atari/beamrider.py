@@ -241,3 +241,36 @@ class BeamRiderEnv(AtariBase):
             "to destroy enemies descending on beams. "
             "Clear 12 enemies to complete the sector."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Beam Rider.\n\n"
+            "TASK\n"
+            "Pilot a ship at the bottom of 9 vertical beams and shoot "
+            "descending enemies. Clear 12 enemies to finish the sector.\n\n"
+            "BOARD\n"
+            "20x20 field with wall borders. Nine evenly spaced vertical "
+            "beams drawn as ':' run from row 1 to row 18. Your ship is "
+            "an arrow that sits at row 18 on one of the 9 beam columns. "
+            "Enemies are 'V', 'W', or 'X' (type 1/2/3). Your torpedoes "
+            "are '!'.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT teleport you one beam over (you cannot be "
+            "between beams). FIRE launches a torpedo straight up from "
+            "your beam; at most 2 torpedoes alive at once. Enemies spawn "
+            "at row 1 on a random beam and descend 1 row every max(2, "
+            "4 - level/2) steps. The spawn cooldown is max(4, 10 - "
+            "level). Up to 6 enemies alive at once.\n\n"
+            "SCORING\n"
+            "+10 reward for each enemy shot. +50 reward bonus when you "
+            "reach 12 kills (sector clear), which also advances to the "
+            "next sector and resets the kill counter.\n\n"
+            "TERMINATION\n"
+            "Three lives. An enemy that reaches row 18 on your beam "
+            "kills you (lose 1 life). Episode ends at 0 lives or after "
+            "max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, sector, kills toward 12, and current "
+            "beam index.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

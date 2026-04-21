@@ -193,3 +193,38 @@ class FreewayEnv(AtariBase):
             "Avoid cars or you'll be sent back to the start. "
             "Each successful crossing scores +1."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Freeway.\n\n"
+            "TASK\n"
+            "Guide a chicken from the bottom of a 10-lane highway to "
+            "the top without being hit by cars. Each crossing scores "
+            "a point; the episode is time-limited, not terminating, "
+            "so accumulate as many crossings as possible.\n\n"
+            "BOARD\n"
+            "20 columns by 16 rows. Borders '-' at top (row 0) and "
+            "bottom (row 15). Goal 'safe zone' row '.' at row 1; "
+            "start safe zone at row 14. Car lanes fill rows 2-13. "
+            "Cars 'C' in each lane alternate direction (even lanes "
+            "move right, odd lanes left) with variable speeds (1-3 "
+            "cells per few steps). You appear as an arrow glyph.\n\n"
+            "MECHANICS\n"
+            "UP / DOWN move the chicken 1 row per step (clamped "
+            "between rows 1 and 14). Cars advance each step on a "
+            "per-lane speed timer and wrap around horizontally. "
+            "Colliding with a car (same cell) teleports you back to "
+            "the start safe zone; no life lost. Reaching row 1 "
+            "awards a crossing and resets you at row 14.\n\n"
+            "SCORING\n"
+            "+1 reward for each successful crossing (reach row <= 1). "
+            "No penalty for being hit by a car (only the setback). "
+            "No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Episode never terminates from game logic; it ends only "
+            "when max_turns steps are reached (time limit).\n\n"
+            "HUD\n"
+            "Shows score, lives (unused here), and per-lane car "
+            "direction arrows.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

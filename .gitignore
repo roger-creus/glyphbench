@@ -58,3 +58,7 @@ cluster_manager/*.sif
 # Cluster results (pulled from remote, big & ephemeral)
 cluster_manager/results/
 cluster_manager/manifests/
+
+# GIFs live on Hugging Face (anon-paper-submission/glyphbench-assets), not in git
+docs/leaderboard/gifs/
+

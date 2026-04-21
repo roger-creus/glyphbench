@@ -109,3 +109,8 @@ module = [
     "vllm.*",
 ]
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "huggingface-hub>=1.11.0",
+]

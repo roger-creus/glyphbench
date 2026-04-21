@@ -1564,6 +1564,11 @@ providers = [
     { name = "openai" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "huggingface-hub" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'providers'", specifier = ">=0.40" },
@@ -1591,6 +1596,9 @@ requires-dist = [
     { name = "vllm", marker = "extra == 'eval'", specifier = ">=0.8" },
 ]
 provides-extras = ["providers", "eval", "analysis", "dev", "all"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "huggingface-hub", specifier = ">=1.11.0" }]
 
 [[package]]
 name = "google-auth"

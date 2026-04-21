@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlyphBench — Random Rollout Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --bg-soft: #141820;
+    --fg: #e6e8ec;
+    --fg-dim: #8a8f99;
+    --accent: #6ee7b7;
+    --border: #1f2530;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.5;
+  }
+  header {
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
+  h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+  h1 .bench { color: var(--accent); }
+  .tagline { color: var(--fg-dim); margin-top: 0.25rem; max-width: 720px; font-size: 0.95rem; }
+  nav { display: flex; gap: 1.5rem; margin-top: 1rem; }
+  nav a { color: var(--fg-dim); text-decoration: none; font-size: 0.9rem; }
+  nav a:hover { color: var(--accent); }
+  .controls {
+    display: flex; gap: 1rem; margin: 1.5rem 0 1rem; flex-wrap: wrap;
+  }
+  select, input[type="search"] {
+    background: var(--bg-soft); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.5rem 0.75rem; font-family: inherit; font-size: 0.9rem;
+  }
+  input[type="search"] { min-width: 280px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+  .card {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    background: #000;
+    display: block;
+  }
+  .card-body {
+    padding: 0.6rem 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--fg);
+    word-break: break-all;
+  }
+  .card-body .suite {
+    color: var(--accent); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem;
+    margin-right: 0.4rem;
+  }
+  footer { padding: 2rem; border-top: 1px solid var(--border); color: var(--fg-dim); font-size: 0.85rem; text-align: center; }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <h1>Glyph<span class="bench">Bench</span> — Random Rollout Gallery</h1>
+    <p class="tagline">Random-agent rollouts for all 292 environments. Each GIF is one episode seeded with 42, played to natural termination (env's own `max_turns`). Served from Hugging Face Datasets.</p>
+    <nav>
+      <a href="index.html">← Leaderboard</a>
+      <a href="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets" target="_blank">HF dataset</a>
+      <a href="https://github.com/roger-creus/glyphbench" target="_blank">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <div class="controls">
+    <input type="search" id="search" placeholder="Filter by env id…" aria-label="Filter by env id">
+    <select id="suite-filter">
+      <option value="all">All suites</option>
+      <option value="minigrid">minigrid</option>
+      <option value="minihack">minihack</option>
+      <option value="atari">atari</option>
+      <option value="procgen">procgen</option>
+      <option value="craftax">craftax</option>
+      <option value="classics">classics</option>
+    </select>
+    <span id="count" style="color: var(--fg-dim); font-size: 0.9rem; align-self: center;"></span>
+  </div>
+  <div id="grid" class="grid"></div>
+</main>
+
+<footer>
+  Assets hosted on <a href="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets" target="_blank">Hugging Face</a>.
+</footer>
+
+<script>
+const HF_BASE = "https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs";
+
+async function loadManifest() {
+  // gifs_manifest.json is a simple list of {env_id, slug} entries.
+  let manifest;
+  try {
+    const response = await fetch('gifs_manifest.json');
+    manifest = await response.json();
+  } catch (e) {
+    document.getElementById('grid').innerHTML =
+      '<p style="color: var(--fg-dim); grid-column: 1 / -1;">No manifest yet. Run scripts/upload_assets.py.</p>';
+    return;
+  }
+  const suiteOf = eid => eid.split('/')[1].split('-')[0];
+  const cards = manifest.map(m => ({
+    env_id: m.env_id,
+    slug: m.slug,
+    suite: suiteOf(m.env_id),
+    url: `${HF_BASE}/${m.slug}.gif`,
+  }));
+  render(cards);
+  attachFilters(cards);
+}
+
+function render(cards) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = cards.map(c => `
+    <a class="card" href="${c.url}" target="_blank" data-env="${c.env_id}" data-suite="${c.suite}">
+      <img loading="lazy" src="${c.url}" alt="${c.env_id}">
+      <div class="card-body">
+        <span class="suite">${c.suite}</span>${c.env_id.split('/')[1].replace(c.suite + '-', '').replace(/-v0$/,'')}
+      </div>
+    </a>
+  `).join('');
+  document.getElementById('count').textContent = `${cards.length} envs`;
+}
+
+function attachFilters(cards) {
+  const search = document.getElementById('search');
+  const suiteFilter = document.getElementById('suite-filter');
+  function apply() {
+    const q = search.value.toLowerCase();
+    const s = suiteFilter.value;
+    const filtered = cards.filter(c => {
+      const matchQ = !q || c.env_id.toLowerCase().includes(q);
+      const matchS = s === 'all' || c.suite === s;
+      return matchQ && matchS;
+    });
+    render(filtered);
+  }
+  search.addEventListener('input', apply);
+  suiteFilter.addEventListener('change', apply);
+}
+
+loadManifest();
+</script>
+</body>
+</html>

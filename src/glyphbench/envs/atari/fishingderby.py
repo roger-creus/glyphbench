@@ -251,3 +251,38 @@ class FishingDerbyEnv(AtariBase):
             "then REEL to pull it up. "
             "Catch more fish than your opponent."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Fishing Derby.\n\n"
+            "TASK\n"
+            "Compete with an AI angler to catch more fish from a lake "
+            "in 500 ticks. Your rod is on the left pier, opponent on "
+            "the right.\n\n"
+            "BOARD\n"
+            "20x16 scene. Pier '=' at row 3. Water surface '~' at row "
+            "4, water fills rows 5-13 with '.' background, lake bottom "
+            "'-' at row 14. Your hook 'J' starts at (5, 6); opponent "
+            "hook 'j' at (14, 6). Fishing line ':' connects pier to "
+            "hook. Fish 'F' swim in water. Opponent glyph 'V' sits on "
+            "the pier. You control the hook's position.\n\n"
+            "MECHANICS\n"
+            "When no fish is on your hook: UP/DOWN/LEFT/RIGHT move "
+            "the hook 1 cell (constrained to the water). If the hook "
+            "shares a cell with a fish, that fish is hooked. When "
+            "hooked, movement is frozen; only REEL does anything: "
+            "REEL raises the hook by 1 row; when the hook reaches the "
+            "water surface, the fish is landed. Fish drift "
+            "horizontally every 3 steps and bounce off walls. Up to "
+            "6 fish on the lake; a new one spawns after a catch.\n\n"
+            "SCORING\n"
+            "+1 reward per fish you reel out. Opponent catches "
+            "increment their score (no reward to you). No per-step "
+            "penalty.\n\n"
+            "TERMINATION\n"
+            "Episode ends after 500 ticks. Final message reports "
+            "win / loss / tie.\n\n"
+            "HUD\n"
+            "Shows your score, opponent score, and time remaining.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

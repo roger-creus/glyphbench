@@ -247,3 +247,37 @@ class AssaultEnv(AtariBase):
             "Shoot leaders for bonus points. "
             "New waves spawn continuously."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Assault.\n\n"
+            "TASK\n"
+            "Hold the ground: operate a mobile turret along the bottom "
+            "of the screen and shoot down formations of alien attackers "
+            "before they reach you.\n\n"
+            "BOARD\n"
+            "20x20 field with wall borders ('-', '|'). Your turret is "
+            "at row 18, with base markers '[' and ']' drawn in "
+            "adjacent cells; you appear as an arrow glyph. A formation "
+            "leader 'A' spawns near row 2 with two wingmen 'a' at row "
+            "3 offset +/-2 columns. Your bullets are '!', enemy "
+            "bullets are a down-arrow glyph.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT move the turret 1 cell. FIRE launches a "
+            "bullet straight up (max 2 player bullets alive). Formation "
+            "moves together every 3 steps: horizontal bounce at walls "
+            "with a 1-row drop. Every 5 steps a random alive enemy "
+            "drops a bullet straight down (max 3 enemy bullets). "
+            "Formations respawn when cleared or every 30 steps; "
+            "clearing a formation advances the wave level.\n\n"
+            "SCORING\n"
+            "+25 reward for shooting a formation leader ('A'). +10 "
+            "reward for a wingman ('a'). No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Three lives. Being hit by an enemy bullet or an enemy "
+            "reaching your row costs one life and respawns you at "
+            "center column. Episode ends at 0 lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, wave/level, alive enemy count.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

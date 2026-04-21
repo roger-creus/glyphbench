@@ -248,3 +248,36 @@ class DemonAttackEnv(AtariBase):
             "Higher-tier demons split when hit. "
             "Clear all demons to advance."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Demon Attack.\n\n"
+            "TASK\n"
+            "Destroy every demon that descends from the top of the "
+            "screen. On higher levels a demon may split into a small "
+            "demon when hit. Clear all demons to advance.\n\n"
+            "BOARD\n"
+            "20x20 arena with walls ('-', '|'). You are on row 18 and "
+            "move horizontally. Demons 'D' start near rows 2-6 across "
+            "columns; split demons are 'd'. Your bullets are '!', "
+            "enemy bullets are down-arrows.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT move you 1 cell along row 18. FIRE launches "
+            "an upward bullet from your row (only 1 alive at a time). "
+            "Demons move every 2 steps, bouncing off side walls and "
+            "stepping down one row on each bounce. Enemies fire "
+            "downward every 6 steps from a random alive demon (max 3 "
+            "enemy bullets). A demon with tier > 0 survives the first "
+            "hit but drops to a smaller 'd' and spawns one offspring.\n\n"
+            "SCORING\n"
+            "+10 reward for destroying a full demon. +5 reward for "
+            "the first hit on a splitting demon (the split child can "
+            "still be shot for another +10). No per-step penalty.\n\n"
+            "TERMINATION\n"
+            "Three lives. Being hit by an enemy bullet, or a demon "
+            "reaching your row, costs a life. Episode ends at 0 "
+            "lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, wave/level, and demons alive.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

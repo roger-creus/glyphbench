@@ -70,6 +70,42 @@ class BerzerkEnv(AtariBase):
             "Fire bullets (!) to destroy robots."
         )
 
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Berzerk.\n\n"
+            "TASK\n"
+            "Survive a series of rooms filled with shooting robots. "
+            "Destroy all robots or escape through the exit door to "
+            "advance to the next room.\n\n"
+            "BOARD\n"
+            "20x16 room. Border and random interior walls are '#' and "
+            "are lethal on contact. The exit door 'D' is in the right "
+            "wall at a random row. Robots are 'r'. Bullets (yours or "
+            "theirs) are '!'. You spawn at (2, 13) bottom-left and are "
+            "an arrow glyph showing facing direction.\n\n"
+            "MECHANICS\n"
+            "Each step you pick one of: NOOP, FIRE, a move direction, or "
+            "a move+FIRE combo. Moves change facing and move 1 cell; "
+            "FIRE emits a bullet in facing direction traveling 1 cell "
+            "per step until it hits a wall or robot. Robots chase you "
+            "(30 percent chance per step, one-axis) and fire at you on a "
+            "5-20 step cooldown along the dominant axis.\n\n"
+            "SCORING\n"
+            "+50 reward per robot destroyed by your bullet. -50 reward "
+            "each time you take damage (wall touch, robot contact, "
+            "enemy bullet hit). No reward for clearing a room or "
+            "escaping.\n\n"
+            "TERMINATION\n"
+            "Three lives. Any damage (wall, robot contact, enemy bullet) "
+            "costs one life and respawns you at (2, 13). Walking onto "
+            "the door advances the level and generates a new room. "
+            "Episode ends at 0 lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, facing direction, and robots "
+            "remaining.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
     def _symbol_meaning(self, ch: str) -> str:
         return {
             "█": "wall",

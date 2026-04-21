@@ -254,3 +254,38 @@ class BoxingEnv(AtariBase):
             "Move close then PUNCH to land a hit. "
             f"First to {self._WIN_SCORE} punches wins."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Boxing.\n\n"
+            "TASK\n"
+            "Face off against an AI boxer in a square ring. Whoever "
+            "lands 100 punches first wins the match.\n\n"
+            "BOARD\n"
+            "20x20 grid. Ring ropes: horizontal '=' at rows 2 and 17, "
+            "vertical '|' at columns 2 and 17, corner posts '+'. You "
+            "start near bottom-center (row 15) as an arrow glyph; the "
+            "opponent 'B' starts near top-center (row 4). Both pieces "
+            "stay within the ring interior (x in 3..16, y in 3..16).\n\n"
+            "MECHANICS\n"
+            "Each step you pick one of: NOOP, UP/DOWN/LEFT/RIGHT, or "
+            "PUNCH. A move shifts you 1 cell (blocked by opponent "
+            "position and ring walls). PUNCH lands if the Manhattan "
+            "distance between you and the opponent is <= 2; PUNCH has "
+            "a 3-step cooldown. Opponent moves each step (50 percent "
+            "chase, 50 percent random) and punches when adjacent with "
+            "40 percent chance, also on a 3-step cooldown.\n\n"
+            "SCORING\n"
+            "+1 reward per punch you land. No reward shaping for moving. "
+            "Opponent punches increment their score but give reward 0 "
+            "per-hit (only the KO gives -1 reward at game end). Winning "
+            "by reaching 100 first terminates with no extra reward; "
+            "losing terminates with -1 reward.\n\n"
+            "TERMINATION\n"
+            "First boxer to 100 punches wins (match ends). No life "
+            "counter. Episode also ends after max_turns.\n\n"
+            "HUD\n"
+            "Shows your punch count, opponent punch count, and target "
+            "score (100).\n\n"
+            + self.action_spec.render_for_prompt()
+        )

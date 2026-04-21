@@ -295,3 +295,38 @@ class BreakoutEnv(AtariBase):
             "Press FIRE to serve. Move LEFT/RIGHT to position the paddle. "
             "Don't let the ball get past you."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Breakout.\n\n"
+            "TASK\n"
+            "Destroy every brick in the wall by deflecting a ball with "
+            "your paddle. Clear the wall to advance to a new level.\n\n"
+            "BOARD\n"
+            "20x20 field with wall borders ('-', '|', '+' corners). "
+            "Four rows of bricks '#' fill columns 2-16 at rows 3-6. "
+            "Your paddle '=' is 3 cells wide at row 18, moving along "
+            "the bottom. Ball is '*'.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT move the paddle 1 cell (clamped inside the "
+            "walls). Until you FIRE, the ball sits on the paddle and "
+            "follows it. FIRE serves with dy=-1 and dx=+/-1 (random). "
+            "Once live, the ball moves 1 cell per step, bouncing off "
+            "the left, right, and top walls (flip the relevant "
+            "velocity). Hitting a brick removes it and flips dy. "
+            "Hitting the paddle flips dy and sets dx based on hit "
+            "position (left cell => dx=-1, right cell => dx=+1, middle "
+            "keeps dx).\n\n"
+            "SCORING\n"
+            "+1 reward per brick broken. +10 bonus when the last brick "
+            "is cleared (level-up bonus). Missing the ball gives no "
+            "explicit penalty but costs a life.\n\n"
+            "TERMINATION\n"
+            "Three lives. If the ball goes past the paddle row, you "
+            "lose a life and re-serve. Episode ends at 0 lives or "
+            "after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, ball position and velocity, "
+            "paddle x, and bricks remaining vs total.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

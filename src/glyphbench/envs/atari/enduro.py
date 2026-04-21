@@ -256,3 +256,37 @@ class EnduroEnv(AtariBase):
             "BRAKE to slow down. Pass cars to score. "
             "Avoid collisions or lose a life."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Enduro.\n\n"
+            "TASK\n"
+            "Race a car down a 3-lane highway, passing as many cars "
+            "as possible. Each day requires reaching the cumulative "
+            "target of 20*day cars passed.\n\n"
+            "BOARD\n"
+            "12 columns by 20 rows. Road runs left-to-right with road "
+            "edges '|' and dashed lane dividers ':'. Three lanes of "
+            "width 3. Grass '~' on the shoulder. Your car sits at row "
+            "17 (fixed); traffic cars are 'C'. You appear as an "
+            "arrow glyph in your lane.\n\n"
+            "MECHANICS\n"
+            "LEFT/RIGHT switch lanes (clamped to 3 lanes). ACCELERATE "
+            "bumps your speed (1-4); BRAKE decreases it. Traffic "
+            "cars move downward relative to you at speed (speed-1) "
+            "each step; they spawn at row 1 every max(3, 7-speed) "
+            "steps. When a car scrolls off the bottom row while in a "
+            "different lane than you it counts as passed.\n\n"
+            "SCORING\n"
+            "+1 reward per car passed. No penalty for speed changes. "
+            "Colliding with a car (same lane, row 16-17) gives reward "
+            "-1, resets your speed to 1, and costs a life.\n\n"
+            "TERMINATION\n"
+            "Three lives. Episode ends at 0 lives or after max_turns. "
+            "Reaching the day's car target advances the day (no "
+            "bonus), with a message 'Day N! Keep going!'.\n\n"
+            "HUD\n"
+            "Shows score, cars passed, current speed, lives, day, and "
+            "target crossings per day.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
