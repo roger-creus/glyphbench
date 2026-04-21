@@ -6,19 +6,19 @@
       "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "history_zeroshot",
-      "score": -0.24037967427897003,
+      "score": -0.15030133326514514,
       "per_suite": {
         "minigrid": -0.0031193939393939396,
         "atari": -0.02748180873180875,
-        "procgen": 0.0142857142857143,
+        "procgen": 0.46467741935483875,
         "craftax": -0.19273800607747843,
         "classics": -0.9928448769318833
       },
-      "parse_failure_rate": 0.0014590715540600898,
-      "total_input_tokens": 189686546,
-      "total_output_tokens": 2607260,
+      "parse_failure_rate": 0.001548801870251315,
+      "total_input_tokens": 193465790,
+      "total_output_tokens": 2662947,
       "total_cost": null,
-      "n_envs": 121
+      "n_envs": 123
     },
     {
       "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
@@ -42,37 +42,38 @@
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "history_zeroshot",
-      "score": 0.07994264062625836,
+      "score": 0.0496029288131985,
       "per_suite": {
-        "minigrid": 0.14963857142857143,
+        "minigrid": 0.14754294117647057,
         "minihack": -0.005,
         "atari": 0.3193449527646418,
+        "procgen": -0.09999999999999998,
         "craftax": 0.0059258157491022395,
         "classics": -0.07019613681102367
       },
-      "parse_failure_rate": 0.00013651707704527403,
-      "total_input_tokens": 191436096,
-      "total_output_tokens": 2579209,
+      "parse_failure_rate": 0.00012002247693658994,
+      "total_input_tokens": 218238936,
+      "total_output_tokens": 2835708,
       "total_cost": null,
-      "n_envs": 138
+      "n_envs": 155
     },
     {
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "markov_zeroshot",
-      "score": -0.01942829480213498,
+      "score": -0.020577388208728384,
       "per_suite": {
-        "minigrid": 0.026586538461538464,
+        "minigrid": 0.020841071428571428,
         "minihack": -0.014999999999999996,
         "procgen": 0.13457111436950148,
         "craftax": -0.16720898649536184,
         "classics": -0.07609014034635299
       },
-      "parse_failure_rate": 0.0006593551506626519,
-      "total_input_tokens": 157953242,
-      "total_output_tokens": 3318125,
+      "parse_failure_rate": 0.0006921590691946751,
+      "total_input_tokens": 162554904,
+      "total_output_tokens": 3657948,
       "total_cost": null,
-      "n_envs": 183
+      "n_envs": 187
     }
   ]
 }
