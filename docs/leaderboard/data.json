@@ -6,45 +6,63 @@
       "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "history_zeroshot",
-      "score": -0.40786407766990296,
+      "score": -0.38626102324446504,
       "per_suite": {
-        "procgen": -0.40786407766990296
+        "minigrid": -0.008855499999999999,
+        "procgen": -0.40786407766990296,
+        "craftax": -0.7420634920634921
       },
-      "parse_failure_rate": 0.0002886836027713626,
-      "total_input_tokens": 2451070,
-      "total_output_tokens": 34449,
+      "parse_failure_rate": 0.0001440329218106996,
+      "total_input_tokens": 50194718,
+      "total_output_tokens": 469500,
       "total_cost": null,
-      "n_envs": 3
+      "n_envs": 32
     },
     {
       "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "markov_zeroshot",
-      "score": -0.05906953019104164,
+      "score": 0.004273248710531391,
       "per_suite": {
-        "minigrid": -0.082666,
-        "procgen": 0.08,
-        "craftax": -0.17454259057312493
+        "minigrid": -0.011128636363636368,
+        "procgen": 0.1783712121212121,
+        "craftax": -0.15442282962598156
+      },
+      "parse_failure_rate": 0.00030396676630021786,
+      "total_input_tokens": 56054340,
+      "total_output_tokens": 1006432,
+      "total_cost": null,
+      "n_envs": 65
+    },
+    {
+      "id": "Qwen_Qwen3.5-2B__history_zeroshot",
+      "model": "Qwen/Qwen3.5-2B",
+      "harness": "history_zeroshot",
+      "score": -0.125,
+      "per_suite": {
+        "procgen": -0.125
       },
       "parse_failure_rate": 0.0,
-      "total_input_tokens": 15167431,
-      "total_output_tokens": 272682,
+      "total_input_tokens": 12779152,
+      "total_output_tokens": 99122,
       "total_cost": null,
-      "n_envs": 20
+      "n_envs": 9
     },
     {
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "markov_zeroshot",
-      "score": -0.13787798408488067,
+      "score": -0.08152864711346913,
       "per_suite": {
-        "procgen": -0.13787798408488067
+        "minigrid": 0.009409249999999997,
+        "procgen": -0.07015111325456155,
+        "craftax": -0.18384407808584585
       },
-      "parse_failure_rate": 0.010523798134417603,
-      "total_input_tokens": 3802609,
-      "total_output_tokens": 83802,
+      "parse_failure_rate": 0.0014541128259360852,
+      "total_input_tokens": 41738748,
+      "total_output_tokens": 713563,
       "total_cost": null,
-      "n_envs": 8
+      "n_envs": 54
     }
   ]
 }
