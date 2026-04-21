@@ -77,10 +77,14 @@ class FlappyEnv(BaseAsciiEnv):
         for p in self._pipes:
             p["x"] -= 1
 
+        # Reward: +1 per pipe successfully passed (pipe column moves past bird at x=2).
+        # 0 on idle, 0 on death (keeps invariant: invalid-action == NOOP == 0 reward).
+        reward = 0.0
         for p in self._pipes:
             if p["x"] == 1 and not p.get("scored"):
                 self._score += 1
                 p["scored"] = True
+                reward += 1.0
 
         self._pipes = [p for p in self._pipes if p["x"] >= 0]
 
@@ -103,7 +107,7 @@ class FlappyEnv(BaseAsciiEnv):
             return self._render_current_observation(), 0.0, True, False, info
 
         info["score"] = self._score
-        return self._render_current_observation(), 0.0, False, False, info
+        return self._render_current_observation(), reward, False, False, info
 
     def _spawn_pipe(self) -> None:
         gap_y = int(self.rng.integers(1, HEIGHT - GAP_SIZE - 1))
