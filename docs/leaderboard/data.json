@@ -1,6 +1,74 @@
 {
   "generated_at": "2026-04-21",
   "schema_version": 1,
-  "note": "Placeholder — will be regenerated from results/ after the first experiment matrix completes.",
-  "runs": []
+  "runs": [
+    {
+      "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
+      "model": "Qwen/Qwen3.5-0.8B",
+      "harness": "history_zeroshot",
+      "score": -0.5382158871916272,
+      "per_suite": {
+        "minigrid": -0.000248000000000001,
+        "procgen": -0.3854651162790697,
+        "craftax": -0.7743055555555556,
+        "classics": -0.9928448769318833
+      },
+      "parse_failure_rate": 0.0005502366017387477,
+      "total_input_tokens": 30023752,
+      "total_output_tokens": 291360,
+      "total_cost": null,
+      "n_envs": 19
+    },
+    {
+      "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
+      "model": "Qwen/Qwen3.5-0.8B",
+      "harness": "markov_zeroshot",
+      "score": -0.20330103792463078,
+      "per_suite": {
+        "minigrid": -0.0007599999999999998,
+        "atari": 0.013476900933055808,
+        "procgen": 0.17407894736842106,
+        "classics": -1.0
+      },
+      "parse_failure_rate": 7.877826170138537e-05,
+      "total_input_tokens": 40383419,
+      "total_output_tokens": 872363,
+      "total_cost": null,
+      "n_envs": 60
+    },
+    {
+      "id": "Qwen_Qwen3.5-2B__history_zeroshot",
+      "model": "Qwen/Qwen3.5-2B",
+      "harness": "history_zeroshot",
+      "score": -0.05055327067489963,
+      "per_suite": {
+        "minihack": 0.0,
+        "craftax": -0.08146367521367522,
+        "classics": -0.07019613681102367
+      },
+      "parse_failure_rate": 0.0001087547580206634,
+      "total_input_tokens": 56948569,
+      "total_output_tokens": 650338,
+      "total_cost": null,
+      "n_envs": 37
+    },
+    {
+      "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
+      "model": "Qwen/Qwen3.5-2B",
+      "harness": "markov_zeroshot",
+      "score": -0.01367596161759764,
+      "per_suite": {
+        "minigrid": 0.0028666666666666654,
+        "minihack": 0.0,
+        "procgen": 0.13457111436950148,
+        "craftax": -0.21094333986443234,
+        "classics": 0.0051257507402759995
+      },
+      "parse_failure_rate": 0.0014158743282348077,
+      "total_input_tokens": 66706742,
+      "total_output_tokens": 1212496,
+      "total_cost": null,
+      "n_envs": 78
+    }
+  ]
 }

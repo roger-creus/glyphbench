@@ -57,14 +57,16 @@ def suite_of(env_id: str) -> str:
 
 
 def aggregate_run(run_dir: Path, baseline: dict[str, float]) -> dict | None:
-    results_json = run_dir / "results.json"
-    if not results_json.exists():
-        return None
-    meta = json.loads(results_json.read_text())
+    """Aggregate all per-env JSONs under a run dir. The run dir may hold a
+    partial `results.json` (only one suite, when jobs are split by suite), so
+    we prefer the full `per_env/*.json` set for scoring and fall back to `meta`
+    only for model/harness identity."""
     per_env_dir = run_dir / "per_env"
     per_env_files = sorted(per_env_dir.glob("*.json")) if per_env_dir.exists() else []
     if not per_env_files:
         return None
+    results_json = run_dir / "results.json"
+    meta = json.loads(results_json.read_text()) if results_json.exists() else {}
 
     per_suite_scores: dict[str, list[float]] = {s: [] for s in SUITES}
     total_input_tokens = 0
@@ -113,12 +115,28 @@ def main() -> None:
 
     runs = []
     if args.results.exists():
-        for run_dir in sorted(args.results.iterdir()):
-            if not run_dir.is_dir():
+        # Two layouts supported:
+        # 1) results/<slug>/results.json               (flat; slug is the run id)
+        # 2) results/<model>/<harness>/results.json    (nested; cluster manager layout)
+        for model_dir in sorted(args.results.iterdir()):
+            if not model_dir.is_dir() or model_dir.name == "logs":
                 continue
-            agg = aggregate_run(run_dir, baseline)
-            if agg:
-                runs.append(agg)
+            if (model_dir / "results.json").exists():
+                agg = aggregate_run(model_dir, baseline)
+                if agg:
+                    runs.append(agg)
+            else:
+                for harness_dir in sorted(model_dir.iterdir()):
+                    if not harness_dir.is_dir():
+                        continue
+                    agg = aggregate_run(harness_dir, baseline)
+                    if agg:
+                        # Always override identity from directory names: meta
+                        # comes from a single-suite sub-job and may be incomplete.
+                        agg["model"] = model_dir.name.replace("_", "/", 1)
+                        agg["harness"] = harness_dir.name
+                        agg["id"] = f"{model_dir.name}__{harness_dir.name}"
+                        runs.append(agg)
 
     data = {
         "generated_at": dt.date.today().isoformat(),
