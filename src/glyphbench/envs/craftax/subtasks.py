@@ -175,7 +175,7 @@ class _SubtaskMixin:
 class CraftaxChopTreesEnv(_SubtaskMixin, CraftaxClassicEnv):
     """Start in a meadow with trees.  Goal: collect 5 wood."""
 
-    _subtask_max_turns = 50
+    _subtask_max_turns = 70
 
     def env_id(self) -> str:
         return "glyphbench/craftax-choptrees-v0"
@@ -186,7 +186,7 @@ class CraftaxChopTreesEnv(_SubtaskMixin, CraftaxClassicEnv):
             "TASK\n"
             "Collect 5 wood by chopping trees. Face a tree and use DO.\n"
             "Reward: +1 per wood collected.  Episode ends when you have 5 wood "
-            "or after 50 steps.\n\n"
+            "or after 70 steps.\n\n"
             "WORLD\n"
             "A small meadow surrounded by trees.\n\n"
             + self.action_spec.render_for_prompt()
@@ -241,7 +241,7 @@ class CraftaxChopTreesEnv(_SubtaskMixin, CraftaxClassicEnv):
 class CraftaxMineStoneEnv(_SubtaskMixin, CraftaxClassicEnv):
     """Start with a wood pickaxe near stone deposits.  Goal: mine 5 stone."""
 
-    _subtask_max_turns = 50
+    _subtask_max_turns = 70
 
     def env_id(self) -> str:
         return "glyphbench/craftax-minestone-v0"
@@ -253,7 +253,7 @@ class CraftaxMineStoneEnv(_SubtaskMixin, CraftaxClassicEnv):
             "Mine 5 stone.  You start with a wood pickaxe.  Face stone (S) "
             "and use DO to mine.\n"
             "Reward: +1 per stone mined.  Episode ends when you have 5 stone "
-            "or after 50 steps.\n\n"
+            "or after 70 steps.\n\n"
             "WORLD\n"
             "A small area with many stone deposits.\n\n"
             + self.action_spec.render_for_prompt()
@@ -300,7 +300,7 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
     """Start empty-handed.  Collect wood, craft pickaxe, mine stone.
     Goal: have 3 wood + 3 stone in inventory.  Multi-step planning."""
 
-    _subtask_max_turns = 100
+    _subtask_max_turns = 110
 
     def env_id(self) -> str:
         return "glyphbench/craftax-gatherresources-v0"
@@ -314,7 +314,7 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
             "craft wood pickaxe (1 wood, near table) -> mine stone.\n"
             "Reward: +1 per resource collected.  +5 bonus on goal completion.\n"
             "Episode ends when you have >= 3 wood AND >= 3 stone, "
-            "or after 100 steps.\n\n"
+            "or after 110 steps.\n\n"
             "WORLD\n"
             "A meadow with trees and stone deposits, plus space to place "
             "a crafting table.\n\n"
@@ -457,7 +457,7 @@ class CraftaxCraftChainEnv(_SubtaskMixin, CraftaxClassicEnv):
     Goal: craft wood pickaxe, mine stone, craft stone sword.
     Multi-step chain of 3 crafts."""
 
-    _subtask_max_turns = 100
+    _subtask_max_turns = 120
 
     def env_id(self) -> str:
         return "glyphbench/craftax-craftchain-v0"
@@ -479,7 +479,7 @@ class CraftaxCraftChainEnv(_SubtaskMixin, CraftaxClassicEnv):
             "table + furnace)\n\n"
             "Reward: +3 per milestone (pickaxe crafted, stone mined, "
             "sword crafted).  +5 bonus on final goal.\n"
-            "Episode ends when you have a stone sword or after 100 steps.\n\n"
+            "Episode ends when you have a stone sword or after 120 steps.\n\n"
             "WORLD\n"
             "A meadow with trees, stone, a crafting table, and a furnace "
             "already placed nearby.\n\n"
@@ -859,7 +859,7 @@ class CraftaxDungeonExploreEnv(_SubtaskMixin, CraftaxClassicEnv):
 class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
     """Start in dungeon with a sword.  Kill all enemies on the floor."""
 
-    _subtask_max_turns = 100
+    _subtask_max_turns = 120
     _WORLD_SIZE = 24
 
     def env_id(self) -> str:
@@ -873,7 +873,7 @@ class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
             "You have an iron sword (+3 damage, total 4 per hit).\n"
             "Reward: +5 per kill, +10 bonus for clearing the floor.\n"
             "-10 if you die.\n"
-            "Episode ends when all enemies are dead, you die, or 100 steps.\n\n"
+            "Episode ends when all enemies are dead, you die, or 120 steps.\n\n"
             "TILES\n"
             "\u2588 = dungeon wall (impassable)\n"
             "\u25aa = dungeon floor (walkable)\n"
