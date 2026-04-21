@@ -303,11 +303,42 @@ class MiniGridBase(BaseAsciiEnv):
 
     def _task_description(self) -> str:
         """Override in subclasses for a custom task paragraph."""
+        goal = Goal().render_char()
         return (
-            "Navigate the grid to reach the goal (G). You earn a reward based "
-            "on how quickly you reach the goal: reward = 1 - 0.9 * "
+            f"Navigate the grid to reach the goal ({goal}). You earn a reward "
+            "based on how quickly you reach the goal: reward = 1 - 0.9 * "
             "(steps_taken / max_steps). The faster you reach the goal, the "
             "higher your reward."
+        )
+
+    def _glyph_legend(self) -> str:
+        """Canonical legend of the glyphs used in rendered observations.
+
+        Read dynamically from the object definitions (see
+        ``glyphbench.envs.minigrid.objects``) and from ``DIR_TO_CHAR`` so the
+        prompt can never drift from what the renderer actually emits."""
+        wall = Wall().render_char()
+        goal = Goal().render_char()
+        lava = Lava().render_char()
+        water = Water().render_char()
+        floor = "·"  # · -- matches make_empty_grid
+        right = DIR_TO_CHAR[DIR_RIGHT]
+        down = DIR_TO_CHAR[DIR_DOWN]
+        left = DIR_TO_CHAR[DIR_LEFT]
+        up = DIR_TO_CHAR[DIR_UP]
+        return (
+            f"  {wall} wall (impassable)\n"
+            f"  {floor} empty floor\n"
+            f"  {goal} goal\n"
+            f"  {lava} lava (terminates episode with zero reward)\n"
+            f"  {water} water (passable, no penalty)\n"
+            f"  {right} you, facing right\n"
+            f"  {down} you, facing down\n"
+            f"  {left} you, facing left\n"
+            f"  {up} you, facing up\n"
+            "Other objects (keys, balls, boxes, doors) appear as distinct "
+            "Unicode glyphs; the per-observation [Legend] lists every glyph "
+            "present on the current grid."
         )
 
     def system_prompt(self) -> str:
@@ -315,9 +346,9 @@ class MiniGridBase(BaseAsciiEnv):
             f"You are playing {self.env_id()}.\n\n"
             f"TASK\n{self._task_description()}\n\n"
             "GRID\n"
-            "The room is rendered as an ASCII grid. Walls are shown as #. "
-            "You are one of >, v, <, ^ showing your facing direction. "
-            "G is the goal. . is empty floor.\n\n"
+            "The room is rendered as a Unicode glyph grid. Each cell is one "
+            "glyph. The glyphs you will encounter are:\n"
+            f"{self._glyph_legend()}\n\n"
             "MOVEMENT\n"
             "You move relative to your facing direction. MOVE_FORWARD advances "
             "one cell in the direction you face. TURN_LEFT and TURN_RIGHT rotate "

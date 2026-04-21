@@ -77,9 +77,10 @@ class MiniGridFourRoomsEnv(MiniGridBase):
         self._place_obj(gx, gy, Goal())
 
     def _task_description(self) -> str:
+        goal = Goal().render_char()
         return (
             "Navigate a 17x17 room divided into four quadrants by walls. "
             "Each wall has one doorway you can pass through. "
-            "Find and reach the goal (G) in another quadrant. "
+            f"Find and reach the goal ({goal}) in another quadrant. "
             "Reward = 1 - 0.9 * (steps / max_steps)."
         )
