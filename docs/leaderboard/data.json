@@ -3,21 +3,35 @@
   "schema_version": 1,
   "runs": [
     {
+      "id": "Qwen_Qwen3-0.6B__history_cot",
+      "model": "Qwen/Qwen3-0.6B",
+      "harness": "history_cot",
+      "score": 0.16000000000000003,
+      "per_suite": {
+        "procgen": 0.16000000000000003
+      },
+      "parse_failure_rate": 0.050387596899224806,
+      "total_input_tokens": 442476,
+      "total_output_tokens": 256170,
+      "total_cost": null,
+      "n_envs": 1
+    },
+    {
       "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "history_zeroshot",
-      "score": -0.45130159868821956,
+      "score": -0.5058639247469272,
       "per_suite": {
         "minigrid": -0.011307846153846156,
-        "procgen": -0.40786407766990296,
-        "craftax": -0.39278575367285046,
+        "procgen": -0.8678640776699029,
+        "craftax": -0.15103505790768113,
         "classics": -0.9932487172562787
       },
-      "parse_failure_rate": 0.0004770817277698264,
-      "total_input_tokens": 116789325,
-      "total_output_tokens": 1105698,
+      "parse_failure_rate": 0.001025897862578154,
+      "total_input_tokens": 136229016,
+      "total_output_tokens": 1607142,
       "total_cost": null,
-      "n_envs": 67
+      "n_envs": 95
     },
     {
       "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
@@ -40,36 +54,80 @@
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "history_zeroshot",
-      "score": 0.02302815539293114,
+      "score": -0.003811922264676343,
       "per_suite": {
+        "minigrid": 0.03620399999999999,
         "minihack": 0.0,
         "procgen": 0.07440390749601278,
         "craftax": 0.0006988509148616826,
-        "classics": 0.0170098631608501
+        "classics": -0.13036636973425617
       },
-      "parse_failure_rate": 5.8640020641287264e-05,
-      "total_input_tokens": 110301140,
-      "total_output_tokens": 1063038,
+      "parse_failure_rate": 0.0001049097775912715,
+      "total_input_tokens": 158521924,
+      "total_output_tokens": 1799271,
       "total_cost": null,
-      "n_envs": 70
+      "n_envs": 97
     },
     {
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "markov_zeroshot",
-      "score": -0.004196769014539217,
+      "score": -0.018810294566640642,
       "per_suite": {
-        "minigrid": 0.070636,
+        "minigrid": 0.021134923076923075,
         "minihack": 0.0,
         "procgen": -0.07015111325456155,
         "craftax": -0.09000113851757613,
-        "classics": 0.06853240669944159
+        "classics": 0.04496585586201139
       },
-      "parse_failure_rate": 0.0006298310907529344,
-      "total_input_tokens": 102845250,
-      "total_output_tokens": 1783791,
+      "parse_failure_rate": 0.0004640301014309276,
+      "total_input_tokens": 139628344,
+      "total_output_tokens": 2648079,
       "total_cost": null,
-      "n_envs": 118
+      "n_envs": 151
+    },
+    {
+      "id": "google_gemma-3-12b-it__history_cot",
+      "model": "google/gemma-3-12b-it",
+      "harness": "history_cot",
+      "score": -1.0,
+      "per_suite": {
+        "procgen": -1.0
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 1634350,
+      "total_output_tokens": 104122,
+      "total_cost": null,
+      "n_envs": 2
+    },
+    {
+      "id": "google_gemma-3-12b-it__history_zeroshot",
+      "model": "google/gemma-3-12b-it",
+      "harness": "history_zeroshot",
+      "score": -0.2944234404536862,
+      "per_suite": {
+        "minihack": 0.0,
+        "classics": -0.5888468809073724
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 24789948,
+      "total_output_tokens": 205950,
+      "total_cost": null,
+      "n_envs": 18
+    },
+    {
+      "id": "google_gemma-3-12b-it__markov_cot",
+      "model": "google/gemma-3-12b-it",
+      "harness": "markov_cot",
+      "score": -0.88,
+      "per_suite": {
+        "procgen": -0.88
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 714640,
+      "total_output_tokens": 150829,
+      "total_cost": null,
+      "n_envs": 2
     },
     {
       "id": "google_gemma-3-12b-it__markov_zeroshot",
@@ -81,55 +139,111 @@
         "classics": -0.9621928166351608
       },
       "parse_failure_rate": 0.0,
-      "total_input_tokens": 1949939,
-      "total_output_tokens": 32000,
+      "total_input_tokens": 21324684,
+      "total_output_tokens": 285414,
       "total_cost": null,
-      "n_envs": 2
+      "n_envs": 23
+    },
+    {
+      "id": "google_gemma-3-4b-it__history_cot",
+      "model": "google/gemma-3-4b-it",
+      "harness": "history_cot",
+      "score": -0.69,
+      "per_suite": {
+        "procgen": -0.69
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 3243575,
+      "total_output_tokens": 207532,
+      "total_cost": null,
+      "n_envs": 3
     },
     {
       "id": "google_gemma-3-4b-it__history_zeroshot",
       "model": "google/gemma-3-4b-it",
       "harness": "history_zeroshot",
-      "score": -0.49375506346205783,
+      "score": -0.09465672573240289,
       "per_suite": {
-        "minihack": 0.0,
-        "classics": -0.9875101269241157
+        "minihack": 0.01428571428571429,
+        "classics": -0.20359916575052006
       },
       "parse_failure_rate": 0.0,
-      "total_input_tokens": 6161559,
-      "total_output_tokens": 54875,
+      "total_input_tokens": 113877285,
+      "total_output_tokens": 681233,
       "total_cost": null,
-      "n_envs": 4
+      "n_envs": 52
+    },
+    {
+      "id": "google_gemma-3-4b-it__markov_cot",
+      "model": "google/gemma-3-4b-it",
+      "harness": "markov_cot",
+      "score": -0.5050485436893204,
+      "per_suite": {
+        "procgen": -0.5050485436893204
+      },
+      "parse_failure_rate": 0.0017893660531697342,
+      "total_input_tokens": 1427774,
+      "total_output_tokens": 320191,
+      "total_cost": null,
+      "n_envs": 3
     },
     {
       "id": "google_gemma-3-4b-it__markov_zeroshot",
       "model": "google/gemma-3-4b-it",
       "harness": "markov_zeroshot",
-      "score": -0.4978058331082906,
+      "score": -0.09528442920497061,
       "per_suite": {
-        "minihack": 0.0,
-        "classics": -0.9956116662165811
+        "minihack": 0.04857142857142858,
+        "classics": -0.2391402869813698
       },
       "parse_failure_rate": 0.0,
-      "total_input_tokens": 3759943,
-      "total_output_tokens": 56321,
+      "total_input_tokens": 74269511,
+      "total_output_tokens": 744575,
       "total_cost": null,
-      "n_envs": 4
+      "n_envs": 52
+    },
+    {
+      "id": "mistralai_Mistral-7B-Instruct-v0.3__history_cot",
+      "model": "mistralai/Mistral-7B-Instruct-v0.3",
+      "harness": "history_cot",
+      "score": -0.7414563106796117,
+      "per_suite": {
+        "procgen": -0.7414563106796117
+      },
+      "parse_failure_rate": 0.09249798332885184,
+      "total_input_tokens": 4181601,
+      "total_output_tokens": 383153,
+      "total_cost": null,
+      "n_envs": 3
+    },
+    {
+      "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_cot",
+      "model": "mistralai/Mistral-7B-Instruct-v0.3",
+      "harness": "markov_cot",
+      "score": -0.6429126213592233,
+      "per_suite": {
+        "procgen": -0.6429126213592233
+      },
+      "parse_failure_rate": 0.11770404456284815,
+      "total_input_tokens": 1795787,
+      "total_output_tokens": 429941,
+      "total_cost": null,
+      "n_envs": 3
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_zeroshot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "markov_zeroshot",
-      "score": -0.4647245476640562,
+      "score": -0.1079724104502426,
       "per_suite": {
-        "minihack": 0.0,
-        "classics": -0.9294490953281124
+        "minihack": -0.006956521739130435,
+        "classics": -0.20898829916135475
       },
-      "parse_failure_rate": 0.0,
-      "total_input_tokens": 2179392,
-      "total_output_tokens": 32000,
+      "parse_failure_rate": 2.790996246110049e-05,
+      "total_input_tokens": 59318035,
+      "total_output_tokens": 760190,
       "total_cost": null,
-      "n_envs": 2
+      "n_envs": 53
     }
   ]
 }
