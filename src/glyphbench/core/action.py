@@ -33,13 +33,25 @@ class ActionSpec:
         return len(self.names)
 
     def index_of(self, name: str) -> int:
-        """Strict lookup; raises KeyError if name is not valid."""
+        """Look up an action by name.
+
+        Tries an exact match first, then a whitespace-stripped case-insensitive
+        fallback (only accepted when the case-folded match is unique — a
+        collision with another action under case-folding raises KeyError).
+        """
+        stripped = name.strip()
         try:
-            return self.names.index(name)
-        except ValueError as e:
-            raise KeyError(
-                f"Unknown action name: {name!r}. Valid: {list(self.names)}"
-            ) from e
+            return self.names.index(stripped)
+        except ValueError:
+            pass
+
+        folded = stripped.casefold()
+        matches = [i for i, n in enumerate(self.names) if n.casefold() == folded]
+        if len(matches) == 1:
+            return matches[0]
+        raise KeyError(
+            f"Unknown action name: {name!r}. Valid: {list(self.names)}"
+        )
 
     def render_for_prompt(self) -> str:
         """Rendered once into the system prompt at episode start, not per turn."""

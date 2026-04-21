@@ -156,9 +156,10 @@ def parse_harness_output(
     except KeyError as e:
         return _noop_result(action_spec, noop_action_name, f"unknown action: {action_name!r} ({e})")
 
+    canonical_name = action_spec.names[action_index]
     return ParseResult(
         action_index=action_index,
-        action_name=action_name,
+        action_name=canonical_name,
         parsed=parsed,
         retries_used=0,
         fell_back_to_noop=False,
