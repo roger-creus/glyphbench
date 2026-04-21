@@ -117,8 +117,11 @@ def render_colored(text: str) -> str:
     return "\n".join(output)
 
 
-def clear_screen():
-    os.system("clear" if os.name != "nt" else "cls")
+CURSOR_HOME = "\033[H"
+ERASE_TO_END = "\033[J"
+CLEAR_SCREEN = "\033[2J"
+HIDE_CURSOR = "\033[?25l"
+SHOW_CURSOR = "\033[?25h"
 
 
 # ---------------------------------------------------------------------------
@@ -140,44 +143,62 @@ def load_trajectory(path: Path) -> list[dict]:
 # Terminal replay
 # ---------------------------------------------------------------------------
 
+def _step_frame(step: dict, path: Path) -> str:
+    turn = step["turn"]
+    action = step["action_name"]
+    reward = step["reward"]
+    cum_reward = step["cumulative_reward"]
+    terminated = step["terminated"]
+    truncated = step["truncated"]
+    parse_failed = step.get("parse_failed", False)
+
+    status = ""
+    if terminated:
+        status = " \033[1;32m[TERMINATED]\033[0m"
+    elif truncated:
+        status = " \033[1;33m[TRUNCATED]\033[0m"
+
+    lines = [
+        f"\033[1m{'=' * 70}\033[0m",
+        (
+            f"\033[1m{path.name}\033[0m  "
+            f"Turn {turn}  "
+            f"Action: \033[1;36m{action}\033[0m  "
+            f"Reward: {reward:+.2f}  "
+            f"Total: {cum_reward:+.2f}"
+            f"{status}"
+        ),
+    ]
+    if parse_failed:
+        lines.append("\033[1;31m  [PARSE FAILED - fell back to NOOP]\033[0m")
+    lines.extend([
+        f"\033[1m{'=' * 70}\033[0m",
+        "",
+        render_colored(step["observation"]),
+        "",
+    ])
+    return "\n".join(lines)
+
+
 def replay_terminal(steps: list[dict], path: Path, delay: float = 0.1) -> None:
-    """Replay a trajectory in the terminal with color."""
-    for i, step in enumerate(steps):
-        clear_screen()
+    """Replay a trajectory in the terminal with color.
 
-        # Header
-        turn = step["turn"]
-        action = step["action_name"]
-        reward = step["reward"]
-        cum_reward = step["cumulative_reward"]
-        terminated = step["terminated"]
-        truncated = step["truncated"]
-        parse_failed = step.get("parse_failed", False)
-
-        status = ""
-        if terminated:
-            status = " \033[1;32m[TERMINATED]\033[0m"
-        elif truncated:
-            status = " \033[1;33m[TRUNCATED]\033[0m"
-
-        print(f"\033[1m{'=' * 70}\033[0m")
-        print(f"\033[1m{path.name}\033[0m  "
-              f"Turn {turn}  "
-              f"Action: \033[1;36m{action}\033[0m  "
-              f"Reward: {reward:+.2f}  "
-              f"Total: {cum_reward:+.2f}"
-              f"{status}")
-        if parse_failed:
-            print(f"\033[1;31m  [PARSE FAILED - fell back to NOOP]\033[0m")
-        print(f"\033[1m{'=' * 70}\033[0m")
-        print()
-
-        # Render observation with color
-        obs = step["observation"]
-        print(render_colored(obs))
-
-        if i < len(steps) - 1:
-            time.sleep(delay)
+    Flicker-free: we assemble the entire frame, then emit it in one write
+    with cursor-home + erase-below. That avoids the blanked-screen window
+    `os.system("clear")` leaves between frames.
+    """
+    sys.stdout.write(CLEAR_SCREEN + HIDE_CURSOR)
+    sys.stdout.flush()
+    try:
+        for i, step in enumerate(steps):
+            frame = _step_frame(step, path)
+            sys.stdout.write(CURSOR_HOME + frame + ERASE_TO_END)
+            sys.stdout.flush()
+            if i < len(steps) - 1:
+                time.sleep(delay)
+    finally:
+        sys.stdout.write(SHOW_CURSOR)
+        sys.stdout.flush()
 
     print(f"\n\033[1mEpisode finished: {len(steps)} steps, return={steps[-1]['cumulative_reward']:+.3f}\033[0m")
 
