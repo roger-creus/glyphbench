@@ -6,63 +6,130 @@
       "id": "Qwen_Qwen3.5-0.8B__history_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "history_zeroshot",
-      "score": -0.38626102324446504,
+      "score": -0.45130159868821956,
       "per_suite": {
-        "minigrid": -0.008855499999999999,
+        "minigrid": -0.011307846153846156,
         "procgen": -0.40786407766990296,
-        "craftax": -0.7420634920634921
+        "craftax": -0.39278575367285046,
+        "classics": -0.9932487172562787
       },
-      "parse_failure_rate": 0.0001440329218106996,
-      "total_input_tokens": 50194718,
-      "total_output_tokens": 469500,
+      "parse_failure_rate": 0.0004770817277698264,
+      "total_input_tokens": 116789325,
+      "total_output_tokens": 1105698,
       "total_cost": null,
-      "n_envs": 32
+      "n_envs": 67
     },
     {
       "id": "Qwen_Qwen3.5-0.8B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-0.8B",
       "harness": "markov_zeroshot",
-      "score": 0.004273248710531391,
+      "score": -0.23229893678833918,
       "per_suite": {
-        "minigrid": -0.011128636363636368,
+        "minigrid": -0.006398111111111111,
         "procgen": 0.1783712121212121,
-        "craftax": -0.15442282962598156
+        "craftax": -0.10648799709962788,
+        "classics": -0.9946808510638299
       },
-      "parse_failure_rate": 0.00030396676630021786,
-      "total_input_tokens": 56054340,
-      "total_output_tokens": 1006432,
+      "parse_failure_rate": 0.00017422412191042558,
+      "total_input_tokens": 102148925,
+      "total_output_tokens": 1721034,
       "total_cost": null,
-      "n_envs": 65
+      "n_envs": 124
     },
     {
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "history_zeroshot",
-      "score": -0.125,
+      "score": 0.02302815539293114,
       "per_suite": {
-        "procgen": -0.125
+        "minihack": 0.0,
+        "procgen": 0.07440390749601278,
+        "craftax": 0.0006988509148616826,
+        "classics": 0.0170098631608501
       },
-      "parse_failure_rate": 0.0,
-      "total_input_tokens": 12779152,
-      "total_output_tokens": 99122,
+      "parse_failure_rate": 5.8640020641287264e-05,
+      "total_input_tokens": 110301140,
+      "total_output_tokens": 1063038,
       "total_cost": null,
-      "n_envs": 9
+      "n_envs": 70
     },
     {
       "id": "Qwen_Qwen3.5-2B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "markov_zeroshot",
-      "score": -0.08152864711346913,
+      "score": -0.004196769014539217,
       "per_suite": {
-        "minigrid": 0.009409249999999997,
+        "minigrid": 0.070636,
+        "minihack": 0.0,
         "procgen": -0.07015111325456155,
-        "craftax": -0.18384407808584585
+        "craftax": -0.09000113851757613,
+        "classics": 0.06853240669944159
       },
-      "parse_failure_rate": 0.0014541128259360852,
-      "total_input_tokens": 41738748,
-      "total_output_tokens": 713563,
+      "parse_failure_rate": 0.0006298310907529344,
+      "total_input_tokens": 102845250,
+      "total_output_tokens": 1783791,
       "total_cost": null,
-      "n_envs": 54
+      "n_envs": 118
+    },
+    {
+      "id": "google_gemma-3-12b-it__markov_zeroshot",
+      "model": "google/gemma-3-12b-it",
+      "harness": "markov_zeroshot",
+      "score": -0.4810964083175804,
+      "per_suite": {
+        "minihack": 0.0,
+        "classics": -0.9621928166351608
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 1949939,
+      "total_output_tokens": 32000,
+      "total_cost": null,
+      "n_envs": 2
+    },
+    {
+      "id": "google_gemma-3-4b-it__history_zeroshot",
+      "model": "google/gemma-3-4b-it",
+      "harness": "history_zeroshot",
+      "score": -0.49375506346205783,
+      "per_suite": {
+        "minihack": 0.0,
+        "classics": -0.9875101269241157
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 6161559,
+      "total_output_tokens": 54875,
+      "total_cost": null,
+      "n_envs": 4
+    },
+    {
+      "id": "google_gemma-3-4b-it__markov_zeroshot",
+      "model": "google/gemma-3-4b-it",
+      "harness": "markov_zeroshot",
+      "score": -0.4978058331082906,
+      "per_suite": {
+        "minihack": 0.0,
+        "classics": -0.9956116662165811
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 3759943,
+      "total_output_tokens": 56321,
+      "total_cost": null,
+      "n_envs": 4
+    },
+    {
+      "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_zeroshot",
+      "model": "mistralai/Mistral-7B-Instruct-v0.3",
+      "harness": "markov_zeroshot",
+      "score": -0.4647245476640562,
+      "per_suite": {
+        "minihack": 0.0,
+        "classics": -0.9294490953281124
+      },
+      "parse_failure_rate": 0.0,
+      "total_input_tokens": 2179392,
+      "total_output_tokens": 32000,
+      "total_cost": null,
+      "n_envs": 2
     }
   ]
 }
