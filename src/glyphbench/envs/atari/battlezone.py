@@ -274,3 +274,37 @@ class BattleZoneEnv(AtariBase):
             "Use obstacles (#) for cover. "
             "Enemy tanks pursue you and fire back."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari BattleZone.\n\n"
+            "TASK\n"
+            "Pilot a tank in a top-down battlefield and destroy enemy "
+            "tanks while avoiding their fire.\n\n"
+            "BOARD\n"
+            "20x20 field with wall borders ('-', '|'). Random obstacles "
+            "'#' provide cover (6-15 of them, more as level rises). You "
+            "start at the bottom center; enemy tanks 'T' spawn in the "
+            "upper half. Your bullets are '*', enemy bullets are 'o'. "
+            "Your player glyph is an arrow showing last move direction.\n\n"
+            "MECHANICS\n"
+            "Each step: a direction key moves you 1 cell and also sets "
+            "your firing direction; FIRE launches a bullet from the cell "
+            "in front of you. At most 3 player bullets alive at a time. "
+            "Enemy tanks update every 3 steps: they move toward you "
+            "along the longer axis and fire every 8 steps along the "
+            "dominant axis. Bullets travel 1 cell per step and die on "
+            "walls, obstacles, or edges.\n\n"
+            "SCORING\n"
+            "+100 reward for each enemy tank destroyed. No per-step "
+            "penalty. Up to 3 enemies alive at once; a new one spawns "
+            "every 20 steps.\n\n"
+            "TERMINATION\n"
+            "Three lives. Being hit by an enemy bullet or colliding with "
+            "a tank costs one life and respawns you at the starting "
+            "position. Episode ends at 0 lives or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, your facing direction, and "
+            "number of enemy tanks alive.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

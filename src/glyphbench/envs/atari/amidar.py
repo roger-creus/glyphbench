@@ -59,6 +59,39 @@ class AmidarEnv(AtariBase):
             "Avoid enemies (e) that patrol the grid."
         )
 
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Amidar.\n\n"
+            "TASK\n"
+            "Walk over every unpainted segment of a grid to paint it. "
+            "Finish painting the whole grid to clear the level.\n\n"
+            "BOARD\n"
+            "20x16 grid. Walls are '#'. Unpainted segments are shown as "
+            "'.' and painted segments as '='. Enemies are 'e'. You are an "
+            "arrow indicating your facing direction. The walkable layout is "
+            "a rectangular rack: horizontal lines on every other row and "
+            "vertical columns every 3 cells, all connected at "
+            "intersections.\n\n"
+            "MECHANICS\n"
+            "Move one cell per step in any of the four cardinal directions; "
+            "you can only enter painted or unpainted segment cells (not "
+            "walls). Entering an unpainted cell paints it. Enemies patrol "
+            "along the tracks, horizontal and vertical; at intersections "
+            "they may turn (30 percent chance) or reverse when blocked.\n\n"
+            "SCORING\n"
+            "+10 reward per unpainted segment you paint. +100 reward when "
+            "you paint the final segment and the level resets with more "
+            "enemies. Colliding with an enemy gives -50 reward and costs "
+            "a life.\n\n"
+            "TERMINATION\n"
+            "Three lives; on contact with an enemy you respawn at (1,1) "
+            "and lose one life. Episode ends when lives reach 0 or after "
+            "max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, and painted / total segments.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
     def _symbol_meaning(self, ch: str) -> str:
         return {
             "█": "wall",

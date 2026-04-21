@@ -260,3 +260,34 @@ class AlienEnv(AtariBase):
             "Navigate the maze, collect all eggs (o) and shoot "
             "aliens (A) with FIRE. Avoid alien contact."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Alien.\n\n"
+            "TASK\n"
+            "Survive in a maze while collecting eggs and killing aliens. "
+            "Clear every egg to advance to the next level.\n\n"
+            "BOARD\n"
+            "20x20 maze. Border and interior walls are '#'. Open corridors "
+            "are ' '. Eggs are 'o'. Aliens are 'A'. Your bullets are '!'. "
+            "You spawn at (2,2) and are shown as an arrow indicating your "
+            "facing direction.\n\n"
+            "MECHANICS\n"
+            "Move one cell per step in any of the four directions; walls "
+            "block you. FIRE launches a bullet in the direction you last "
+            "moved; the bullet travels each step until it hits a wall or "
+            "an alien. Aliens move on a random timer (every 2-6 turns) and "
+            "chase you along one axis. Stepping onto an egg collects it.\n\n"
+            "SCORING\n"
+            "+10 reward for each egg collected. +50 reward for each alien "
+            "killed by your bullet. Clearing all eggs advances the level "
+            "(no bonus, new maze generated). No per-step time penalty.\n\n"
+            "TERMINATION\n"
+            "You start with 3 lives. Touching an alien (or an alien "
+            "stepping onto you) costs one life and respawns you at (2,2). "
+            "Episode ends when lives reach 0 or after max_turns steps.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, facing direction, and eggs "
+            "remaining this level.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

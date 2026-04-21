@@ -297,9 +297,13 @@ class Match3Env(BaseAsciiEnv):
             "  3-match = 3 points, 4-match = 8 points, 5-match = 15 points.\n"
             "  Chains multiply: chain 2 = x2, chain 3 = x3, etc.\n\n"
             "ACTIONS\n"
-            "Actions are SWAP_row_col_DIRECTION where DIRECTION is UP/DOWN/LEFT/RIGHT.\n"
-            "Action index = row*32 + col*4 + dir (UP=0, DOWN=1, LEFT=2, RIGHT=3).\n\n"
-            + self.action_spec.render_for_prompt()
+            f"Actions are named SWAP_<row>_<col>_<DIRECTION> with row,col in [0,{_SIZE - 1}] "
+            "and DIRECTION in {UP, DOWN, LEFT, RIGHT}. Swaps out of bounds are NOOP.\n"
+            f"Total action space: {_SIZE * _SIZE * 4} actions.\n"
+            "Examples:\n"
+            "  SWAP_0_0_RIGHT — swap gem at (0,0) with the one on its right\n"
+            "  SWAP_3_4_DOWN  — swap gem at (3,4) with the one below it\n"
+            f"  SWAP_{_SIZE - 1}_{_SIZE - 1}_UP — swap gem at bottom-right with the one above\n"
         )
 
 

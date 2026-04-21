@@ -66,6 +66,41 @@ class BankHeistEnv(AtariBase):
             "Use FIRE to drop dynamite (d) that stuns nearby police."
         )
 
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Bank Heist.\n\n"
+            "TASK\n"
+            "Drive through a maze of streets, rob as many banks as you "
+            "can, then escape through the exit before your gas runs out. "
+            "Each level has more banks and more police.\n\n"
+            "BOARD\n"
+            "20x16 maze. Walls are '#', streets are ' ' (empty). Banks "
+            "are '$', police cars are 'p', the exit is 'E', dynamite you "
+            "drop is 'd'. You start at (1, 14) bottom-left; the exit is "
+            "fixed at (18, 1) top-right. Banks are placed in open cells.\n\n"
+            "MECHANICS\n"
+            "Move one cell per step in any cardinal direction; walls "
+            "block you. Each step consumes 1 gas (starts at 200). "
+            "Stepping on a bank robs it. Stepping on the exit clears the "
+            "level. FIRE drops dynamite (limited to 3 per life) that "
+            "stuns all police within Manhattan distance 3 for 10 steps. "
+            "Police move toward you with 40 percent probability per step "
+            "and otherwise continue in their last direction.\n\n"
+            "SCORING\n"
+            "+50 reward for each bank robbed. Exiting adds a bonus of "
+            "20 * (banks robbed this level). Getting caught by police "
+            "gives -100 reward and costs a life; running out of gas gives "
+            "-50 reward and costs a life.\n\n"
+            "TERMINATION\n"
+            "Three lives; losing a life respawns you at (1, 14) with a "
+            "full tank and the same maze. Episode ends when lives reach "
+            "0 or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, gas remaining, dynamite count, "
+            "and banks left this level.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
     def _symbol_meaning(self, ch: str) -> str:
         return {
             "█": "wall",

@@ -281,3 +281,38 @@ class AsteroidsEnv(AtariBase):
             "Rotate with LEFT/RIGHT, THRUST to move, FIRE to shoot. "
             "Screen wraps around all edges."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Asteroids.\n\n"
+            "TASK\n"
+            "Destroy all asteroids in the field; when one is shot it may "
+            "split into smaller, faster pieces. Clearing the field advances "
+            "the level and spawns more starting asteroids.\n\n"
+            "BOARD\n"
+            "20x20 wrap-around space (no walls; leaving an edge reappears "
+            "on the opposite side). Your ship is drawn as an arrow pointing "
+            "in one of 8 compass directions. Large asteroids are 'O', "
+            "medium 'o', small '.' (period). Bullets are '!'.\n\n"
+            "MECHANICS\n"
+            "LEFT / RIGHT rotate by 45 degrees (8 facings). THRUST moves "
+            "you one cell in the current facing (and applies no inertia, "
+            "so thrusting only moves during that step). FIRE launches a "
+            "bullet in the facing direction; up to 4 bullets can be alive "
+            "and each expires after 12 steps. Asteroids drift 1 cell per N "
+            "steps where N = max(1, 4 - size); smaller rocks are faster. "
+            "A hit large rock spawns two medium rocks with random "
+            "velocities; a medium spawns two small; a small disappears.\n\n"
+            "SCORING\n"
+            "+20 reward for a large asteroid, +50 for medium, +100 for "
+            "small. No per-step penalty. Level clear awards no bonus but "
+            "restarts with level+1 asteroids.\n\n"
+            "TERMINATION\n"
+            "Three lives. Colliding with any asteroid destroys your ship, "
+            "respawns it at center, and costs one life. Episode ends when "
+            "lives reach 0 or after max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, level, ship facing direction, last "
+            "velocity, and number of asteroids remaining.\n\n"
+            + self.action_spec.render_for_prompt()
+        )

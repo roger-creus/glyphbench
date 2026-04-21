@@ -209,3 +209,34 @@ class AsterixEnv(AtariBase):
             "Avoid enemies (E) or lose a life. "
             "Food and enemies scroll from right to left."
         )
+
+    def system_prompt(self) -> str:
+        return (
+            "You are playing Atari Asterix.\n\n"
+            "TASK\n"
+            "Collect scrolling food items while avoiding enemies as they "
+            "pass through 8 horizontal lanes.\n\n"
+            "BOARD\n"
+            "20 columns by 16 rows. Border walls are '-' and '|'. Playable "
+            "lanes are rows 4-11 (8 lanes), separated by '.' markers. You "
+            "sit at column 2 and can only move UP or DOWN between lanes; "
+            "you never move horizontally. Food is '*', enemies are 'E'.\n\n"
+            "MECHANICS\n"
+            "Food and enemies spawn at the right edge (col 18) in a random "
+            "lane every ~8 steps and scroll left; food moves 1 cell every "
+            "2 steps. Enemies move 1 cell every 1-2 steps (faster as level "
+            "rises). They despawn at the left edge. You only pick up food "
+            "or get hit when you are in the exact same cell as the item.\n\n"
+            "SCORING\n"
+            "+10 reward for each food collected. No explicit reward for "
+            "letting enemies pass, but colliding with one costs a life. "
+            "After every 100 score points the level increases, making "
+            "enemies spawn more often and move faster.\n\n"
+            "TERMINATION\n"
+            "Three lives; hitting an enemy costs one life and respawns you "
+            "in the middle lane. Episode ends when lives reach 0 or after "
+            "max_turns.\n\n"
+            "HUD\n"
+            "Shows score, lives, and level.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
