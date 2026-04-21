@@ -74,3 +74,12 @@ def test_parse_harness_output_missing_action_field():
 
 def test_max_repair_retries_is_three():
     assert MAX_REPAIR_RETRIES == 3
+
+
+def test_parser_falls_back_on_lowercase():
+    text = '{"action": "north", "thinking": "go up"}'
+    result = parse_harness_output(text, ACTION_SPEC, noop_action_name="NOOP")
+    assert result.parse_error is None
+    assert result.fell_back_to_noop is False
+    assert result.action_index == 0
+    assert result.action_name == "NORTH"

@@ -58,3 +58,49 @@ def test_action_spec_is_frozen():
         assert "frozen" in str(e).lower() or "can't set attribute" in str(e).lower() or "cannot assign" in str(e).lower()
     else:
         raise AssertionError("expected frozen dataclass")
+
+
+def test_index_of_exact_match_preserved():
+    spec = ActionSpec(
+        names=("NORTH", "SOUTH", "NOOP"),
+        descriptions=("", "", ""),
+    )
+    assert spec.index_of("NORTH") == 0
+    assert spec.index_of("SOUTH") == 1
+    assert spec.index_of("NOOP") == 2
+
+
+def test_index_of_case_insensitive_fallback():
+    spec = ActionSpec(
+        names=("UP", "DOWN", "NOOP"),
+        descriptions=("", "", ""),
+    )
+    assert spec.index_of("up") == 0
+    assert spec.index_of("Down") == 1
+    assert spec.index_of("nOoP") == 2
+
+
+def test_index_of_ambiguous_case_raises():
+    spec = ActionSpec(
+        names=("UP", "up"),
+        descriptions=("shouty", "quiet"),
+    )
+    # Exact matches must still work.
+    assert spec.index_of("UP") == 0
+    assert spec.index_of("up") == 1
+    # But an only-case-matching lookup that is ambiguous must fail.
+    with pytest.raises(KeyError, match="Up"):
+        spec.index_of("Up")
+
+
+def test_index_of_whitespace_stripped():
+    spec = ActionSpec(
+        names=("NORTH", "SOUTH", "NOOP"),
+        descriptions=("", "", ""),
+    )
+    assert spec.index_of("  NORTH  ") == 0
+    assert spec.index_of("\tsouth\n") == 1
+    with pytest.raises(KeyError):
+        spec.index_of("   ")
+    with pytest.raises(KeyError):
+        spec.index_of("")
