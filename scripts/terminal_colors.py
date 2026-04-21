@@ -1,4 +1,4 @@
-"""Curses color mapping for all ATLAS env tile symbols.
+"""Curses color mapping for all GlyphBench env tile symbols.
 
 Provides a single function `char_attr(ch)` that returns the curses attribute
 (color pair + bold/dim) for any grid character.  The mapping is env-agnostic:

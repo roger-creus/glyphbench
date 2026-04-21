@@ -1,4 +1,4 @@
-# ATLAS Environment Catalog
+# GlyphBench Environment Catalog
 
 Total environments: 169
 

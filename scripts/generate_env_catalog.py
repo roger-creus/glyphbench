@@ -17,7 +17,7 @@ def main() -> None:
         suites.setdefault(suite, []).append(eid)
 
     lines = [
-        "# ATLAS Environment Catalog",
+        "# GlyphBench Environment Catalog",
         "",
         f"Total environments: {len(envs)}",
         "",

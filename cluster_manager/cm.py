@@ -97,30 +97,42 @@ def cmd_setup(args: argparse.Namespace) -> None:
 # submit
 # ===================================================================
 def cmd_submit(args: argparse.Namespace) -> None:
-    """Generate and submit SLURM jobs."""
+    """Generate and submit SLURM jobs.
+
+    Jobs are split per (model, harness, suite), not per env. --suites filters
+    which suites to run; --pilot restricts to a minimal 1-suite smoke test.
+    """
     clusters = args.clusters or CLUSTER_NAMES
-    env_ids = get_env_ids(args)
+
+    suites = args.suites if hasattr(args, "suites") and args.suites else None
+    models = args.models if hasattr(args, "models") and args.models else None
+    harnesses = (
+        args.harnesses if hasattr(args, "harnesses") and args.harnesses else None
+    )
 
     if args.pilot:
-        # Just 5 representative envs for testing
-        pilot_envs = [
-            "glyphbench/minigrid-empty-5x5-v0",
-            "glyphbench/minihack-room-5x5-v0",
-            "glyphbench/procgen-coinrun-v0",
-            "glyphbench/atari-pong-v0",
-            "glyphbench/craftax-classic-v0",
-        ]
-        env_ids = [e for e in pilot_envs if e in env_ids] or pilot_envs
+        # Smoke test: just minigrid suite, one model, one harness
+        suites = ["minigrid"]
+        if models is None:
+            models = ["Qwen/Qwen3-0.6B"]
+        if harnesses is None:
+            harnesses = ["markov_zeroshot"]
 
-    jobs = generate_all_jobs(env_ids, clusters)
+    jobs = generate_all_jobs(
+        models=models, harnesses=harnesses, suites=suites, clusters=clusters,
+    )
     print_job_summary(jobs)
 
     if args.dry_run:
         print("\n[DRY RUN] Would submit the above jobs. Use without --dry-run to submit.")
         # Save first script for inspection
         if jobs:
-            print(f"\nExample script ({jobs[0]['env_id']} on {jobs[0]['cluster']}):")
-            print(jobs[0]["script"][:1000])
+            j = jobs[0]
+            print(
+                f"\nExample script ({j['model']}/{j['harness']}/{j['suite']} "
+                f"on {j['cluster']}):"
+            )
+            print(j["script"][:1000])
         return
 
     print(f"\nSubmitting {len(jobs)} jobs...")
@@ -152,15 +164,15 @@ def cmd_status(args: argparse.Namespace) -> None:
     for c in clusters:
         rc, out, err = ssh_run(c, "squeue -u rogercc")
         lines = out.split("\n")
-        atlas_jobs = [l for l in lines if "atlas" in l]
-        running = sum(1 for l in atlas_jobs if " R " in l)
-        pending = sum(1 for l in atlas_jobs if " PD" in l)
-        print(f"  {c}: {running} running, {pending} pending, {len(atlas_jobs)} total")
+        gb_jobs = [l for l in lines if "glyphbench" in l or "gb_" in l]
+        running = sum(1 for l in gb_jobs if " R " in l)
+        pending = sum(1 for l in gb_jobs if " PD" in l)
+        print(f"  {c}: {running} running, {pending} pending, {len(gb_jobs)} total")
         if args.detailed:
-            for l in atlas_jobs[:20]:
+            for l in gb_jobs[:20]:
                 print(f"    {l.strip()}")
-            if len(atlas_jobs) > 20:
-                print(f"    ... and {len(atlas_jobs) - 20} more")
+            if len(gb_jobs) > 20:
+                print(f"    ... and {len(gb_jobs) - 20} more")
 
 
 # ===================================================================
@@ -223,10 +235,12 @@ def main() -> None:
     # submit
     p = sub.add_parser("submit", help="Submit SLURM jobs")
     p.add_argument("--clusters", nargs="*")
+    p.add_argument("--models", nargs="*", help="Restrict to these model IDs")
+    p.add_argument("--harnesses", nargs="*", help="Restrict to these harness modes")
     p.add_argument("--envs", nargs="*")
     p.add_argument("--suites", nargs="*")
     p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--pilot", action="store_true", help="Submit 5 pilot envs only")
+    p.add_argument("--pilot", action="store_true", help="Submit a single-suite smoke test")
 
     # status
     p = sub.add_parser("status", help="Check job status")

@@ -1,4 +1,4 @@
-# Contributing to ATLAS
+# Contributing to GlyphBench
 
 ## Adding a New Environment
 

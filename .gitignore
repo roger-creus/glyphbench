@@ -51,3 +51,6 @@ Craftax-main.zip
 Minigrid-master.zip
 minihack-main.zip
 procgen-master.zip
+
+# Container images
+cluster_manager/*.sif

@@ -1,4 +1,4 @@
-# ATLAS RL — minimal vLLM-based container for cluster eval
+# GlyphBench — minimal vLLM-based container for cluster eval
 #
 # Build:  docker build -t glyphbench:latest .
 # To SIF: apptainer build glyphbench.sif docker-daemon://glyphbench:latest

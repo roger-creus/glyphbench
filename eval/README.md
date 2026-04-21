@@ -1,4 +1,4 @@
-# ATLAS Evaluation Pipeline
+# GlyphBench Evaluation Pipeline
 
 Batched LLM evaluation using vLLM offline inference. No server needed -- loads the model directly into GPU memory and runs batched inference across all active environments at each timestep.
 

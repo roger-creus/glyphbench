@@ -1,6 +1,6 @@
 # GlyphBench
 
-A unified benchmark of **210 text-rendered RL environments** for evaluating LLM agents on sequential decision-making.
+A unified benchmark of **292 text-rendered RL environments** for evaluating LLM agents on sequential decision-making.
 
 Every environment renders its state as a Unicode text grid with a legend, HUD, and discrete named actions. Observations are deterministic (seeded), making results fully reproducible.
 
@@ -28,7 +28,7 @@ uv sync --all-extras
 ## Quick Start
 
 ```python
-import glyphbench  # registers all 210 environments
+import glyphbench  # registers all 292 environments
 import gymnasium as gym
 
 env = gym.make("glyphbench/minigrid-empty-5x5-v0")
@@ -59,10 +59,11 @@ print(obs)
 | **MiniGrid** | 71 | Grid navigation, key/door puzzles, dynamic obstacles, memory | 7 |
 | **MiniHack** | 63 | NetHack-inspired dungeon crawling, combat, items, skills | 22 |
 | **Atari** | 57 | Classic arcade games (Pong, Breakout, Space Invaders, ...) | 3-18 |
+| **Classics** | 50 | Snake, Sokoban, Minesweeper, Sudoku, Nim and other classics | 4-10 |
+| **Craftax** | 35 | Open-world survival crafting, dungeon floors, focused sub-tasks | 19 |
 | **Procgen** | 16 | Procedurally generated platformers, shooters, mazes | 4-6 |
-| **Craftax** | 2 | Open-world survival crafting with 22+ achievements | 19 |
 
-All environments use Unicode glyphs (`→↓←↑` for player direction, `█` walls, `★` goals, `≈` water, etc.) to minimize symbol collisions and maximize readability for both humans and LLMs.
+**Total: 292 environments.** All use Unicode glyphs (`→↓←↑` for player direction, `█` walls, `★` goals, `≈` water, etc.) to minimize symbol collisions and maximize readability for both humans and LLMs.
 
 ## Observation Format
 
@@ -80,7 +81,7 @@ Each environment also provides `system_prompt()` with full game rules, action de
 GlyphBench includes a batched evaluation runner using vLLM offline inference:
 
 ```bash
-# Evaluate Qwen3.5-4B on all 210 environments (25 episodes each)
+# Evaluate Qwen3.5-4B on all 292 environments (25 episodes each)
 uv run python eval/run_eval.py \
     --model Qwen/Qwen3.5-4B \
     --episodes 25 \
@@ -145,14 +146,15 @@ print(f"Episode return: {total_reward}")
 ```
 src/glyphbench/
     core/       # BaseAsciiEnv, GridObservation, ActionSpec, registry
-    envs/       # 5 suites, 210 environments
+    envs/       # 6 suites, 292 environments
     harness/    # LLM agent loop, prompt builder, JSON parser
     providers/  # vLLM, OpenAI, Anthropic, Gemini clients
     runner/     # Async benchmark runner, config, dashboard, storage
     plotting/   # Analysis and visualization
-eval/           # Batched vLLM eval runner + cluster manager
-scripts/        # Demo viewer, trajectory replay, GIF export
-examples/       # Quickstart, random agent, custom agent loop
+eval/                   # Batched vLLM eval runner
+cluster_manager/        # SLURM multi-cluster experiment manager
+scripts/                # Demo viewer, trajectory replay, GIF export
+examples/               # Quickstart, random agent, custom agent loop
 ```
 
 ## Development

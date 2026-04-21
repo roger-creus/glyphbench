@@ -162,7 +162,7 @@ class Dashboard:
             self._live.update(self._render())
 
     def _render(self) -> Any:
-        table = Table(title=f"ATLAS - {self.run_id}")
+        table = Table(title=f"GlyphBench - {self.run_id}")
         table.add_column("Env")
         table.add_column("Episodes", justify="right")
         table.add_column("Mean Ret", justify="right")
