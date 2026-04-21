@@ -25,13 +25,18 @@ from glyphbench.core import all_glyphbench_env_ids
 
 
 def run_random_episodes(
-    env_id: str, seeds: list[int], max_turns: int = 200,
+    env_id: str, seeds: list[int], max_turns: int | None = None,
 ) -> dict[str, Any]:
-    """Run random agent on one env across all seeds."""
+    """Run random agent on one env across all seeds.
+
+    If max_turns is None, each env uses its own natural budget (defined by
+    the env class). Overriding it distorts the baseline for envs whose
+    difficulty depends on the step budget.
+    """
     returns = []
     lengths = []
     for seed in seeds:
-        env = gym.make(env_id, max_turns=max_turns)
+        env = gym.make(env_id) if max_turns is None else gym.make(env_id, max_turns=max_turns)
         obs, info = env.reset(seed=seed)
         total_reward = 0.0
         steps = 0
@@ -61,8 +66,9 @@ def run_random_episodes(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="GlyphBench random baseline")
-    parser.add_argument("--episodes", type=int, default=50, help="Episodes per env")
-    parser.add_argument("--max-turns", type=int, default=200)
+    parser.add_argument("--episodes", type=int, default=25, help="Episodes per env")
+    parser.add_argument("--max-turns", type=int, default=None,
+                        help="Override env's natural max_turns (default: None = use env's own budget)")
     parser.add_argument("--suites", nargs="*", help="Filter by suite")
     parser.add_argument("--output", type=Path, default=Path("eval/random_baseline.json"))
     args = parser.parse_args()
