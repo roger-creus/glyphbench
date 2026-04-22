@@ -139,20 +139,20 @@
       "id": "Qwen_Qwen3-8B__history_cot",
       "model": "Qwen/Qwen3-8B",
       "harness": "history_cot",
-      "score": 0.05481095031428462,
+      "score": 0.12130192329380722,
       "per_suite": {
         "minigrid": 0.0,
         "minihack": 0.2,
         "atari": 1.3383084577114426,
         "procgen": 0.19,
-        "craftax": -0.40476190476190477,
+        "craftax": -0.005816066884769211,
         "classics": -0.9946808510638299
       },
-      "parse_failure_rate": 0.0008936550491510277,
-      "total_input_tokens": 17274627,
-      "total_output_tokens": 62918376,
+      "parse_failure_rate": 0.0008801029043395843,
+      "total_input_tokens": 17510820,
+      "total_output_tokens": 63402663,
       "total_cost": null,
-      "n_envs": 10
+      "n_envs": 11
     },
     {
       "id": "Qwen_Qwen3-8B__history_zeroshot",
@@ -177,20 +177,20 @@
       "id": "Qwen_Qwen3-8B__markov_cot",
       "model": "Qwen/Qwen3-8B",
       "harness": "markov_cot",
-      "score": 0.5396096237606097,
+      "score": 0.3313189049070062,
       "per_suite": {
         "minigrid": 0.0,
         "minihack": 0.0,
         "atari": 2.6567164179104474,
         "procgen": -0.010000000000000009,
         "craftax": 0.3358778625954198,
-        "classics": 0.25506346205779096
+        "classics": -0.9946808510638299
       },
-      "parse_failure_rate": 0.0009563554164493132,
-      "total_input_tokens": 6471890,
-      "total_output_tokens": 50288452,
+      "parse_failure_rate": 0.0010508447174844395,
+      "total_input_tokens": 7147118,
+      "total_output_tokens": 53113250,
       "total_cost": null,
-      "n_envs": 8
+      "n_envs": 9
     },
     {
       "id": "Qwen_Qwen3-8B__markov_zeroshot",
@@ -621,20 +621,20 @@
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_cot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "markov_cot",
-      "score": -0.0764889425015381,
+      "score": -0.08269131372070093,
       "per_suite": {
-        "minigrid": 0.0101415625,
+        "minigrid": 0.01330564705882353,
         "minihack": -0.009999999999999998,
         "atari": -0.5295194107582138,
         "procgen": -0.08204918032786886,
-        "craftax": 0.16969316165707132,
+        "craftax": 0.1293148497832708,
         "classics": -0.017199788080217167
       },
-      "parse_failure_rate": 0.306248846283601,
-      "total_input_tokens": 222656948,
-      "total_output_tokens": 36784329,
+      "parse_failure_rate": 0.3081587720171161,
+      "total_input_tokens": 228931936,
+      "total_output_tokens": 37665529,
       "total_cost": null,
-      "n_envs": 248
+      "n_envs": 254
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_zeroshot",
