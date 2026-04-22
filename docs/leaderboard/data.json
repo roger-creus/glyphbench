@@ -106,18 +106,18 @@
       "id": "Qwen_Qwen3-14B__markov_cot",
       "model": "Qwen/Qwen3-14B",
       "harness": "markov_cot",
-      "score": 0.7358718772929246,
+      "score": 0.8203698772929245,
       "per_suite": {
-        "minigrid": 0.34388399999999997,
+        "minigrid": 0.6818759999999999,
         "atari": 1.5373134328358207,
         "procgen": 0.86,
         "craftax": 0.20229007633587778
       },
-      "parse_failure_rate": 0.00015453562046051616,
-      "total_input_tokens": 4363818,
-      "total_output_tokens": 16826414,
+      "parse_failure_rate": 0.00014990256333383302,
+      "total_input_tokens": 4469746,
+      "total_output_tokens": 17548182,
       "total_cost": null,
-      "n_envs": 6
+      "n_envs": 7
     },
     {
       "id": "Qwen_Qwen3-14B__markov_zeroshot",
@@ -446,11 +446,11 @@
         "craftax": 0.4694656488549618,
         "classics": 0.030245746691871387
       },
-      "parse_failure_rate": 0.18451447312134608,
-      "total_input_tokens": 3972549,
-      "total_output_tokens": 32864042,
+      "parse_failure_rate": 0.15323304894476875,
+      "total_input_tokens": 4730340,
+      "total_output_tokens": 35894831,
       "total_cost": null,
-      "n_envs": 5
+      "n_envs": 6
     },
     {
       "id": "google_gemma-3-12b-it__history_cot",
@@ -621,20 +621,20 @@
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_cot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "markov_cot",
-      "score": -0.08269131372070093,
+      "score": -0.08177115736072105,
       "per_suite": {
-        "minigrid": 0.01330564705882353,
+        "minigrid": 0.010813764705882353,
         "minihack": -0.009999999999999998,
         "atari": -0.5295194107582138,
         "procgen": -0.08204918032786886,
-        "craftax": 0.1293148497832708,
+        "craftax": 0.13732767029609128,
         "classics": -0.017199788080217167
       },
-      "parse_failure_rate": 0.3081587720171161,
-      "total_input_tokens": 228931936,
-      "total_output_tokens": 37665529,
+      "parse_failure_rate": 0.3104634689334143,
+      "total_input_tokens": 232035295,
+      "total_output_tokens": 38167110,
       "total_cost": null,
-      "n_envs": 254
+      "n_envs": 257
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_zeroshot",
