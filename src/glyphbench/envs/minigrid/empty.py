@@ -157,13 +157,8 @@ class MiniGridEmptyRandom5x5Env(MiniGridBase):
         goal_pos = (1, 5) if (ax, ay) == (5, 5) else (5, 5)
         self._place_obj(goal_pos[0], goal_pos[1], Goal())
 
-    def reset(
-        self,
-        *,
-        seed: int | None = None,
-        options: dict[str, Any] | None = None,
-    ) -> tuple[str, dict[str, Any]]:
-        obs, info = super().reset(seed=seed, options=options)
+    def reset(self, seed: int) -> tuple[str, dict[str, Any]]:
+        obs, info = super().reset(seed)
         info["agent_pos"] = self._agent_pos
         return obs, info
 
@@ -198,13 +193,8 @@ class MiniGridEmptyRandom6x6Env(MiniGridBase):
         goal_pos = (1, 6) if (ax, ay) == (6, 6) else (6, 6)
         self._place_obj(goal_pos[0], goal_pos[1], Goal())
 
-    def reset(
-        self,
-        *,
-        seed: int | None = None,
-        options: dict[str, Any] | None = None,
-    ) -> tuple[str, dict[str, Any]]:
-        obs, info = super().reset(seed=seed, options=options)
+    def reset(self, seed: int) -> tuple[str, dict[str, Any]]:
+        obs, info = super().reset(seed)
         info["agent_pos"] = self._agent_pos
         return obs, info
 
