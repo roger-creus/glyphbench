@@ -1,70 +1,84 @@
-"""Craftax suite. Importing this module registers all Craftax envs with gym."""
+"""Craftax suite - importing registers all envs."""
 
 from glyphbench.core.registry import register_env
-
-register_env(
-    "glyphbench/craftax-classic-v0",
-    "glyphbench.envs.craftax.classic:CraftaxClassicEnv",
-    max_episode_steps=None,
+from glyphbench.envs.craftax.classic import CraftaxClassicEnv
+from glyphbench.envs.craftax.full import CraftaxFullEnv
+from glyphbench.envs.craftax.subtasks import (
+    CraftaxChopTreesEnv,
+    CraftaxCraftChainEnv,
+    CraftaxCraftPickaxeEnv,
+    CraftaxCraftSwordEnv,
+    CraftaxDungeonClearEnv,
+    CraftaxDungeonExploreEnv,
+    CraftaxFightZombieEnv,
+    CraftaxGatherResourcesEnv,
+    CraftaxMineStoneEnv,
+    CraftaxSurviveHordeEnv,
+)
+from glyphbench.envs.craftax.subtasks_extended import (
+    CraftaxBossFightEnv,
+    CraftaxBuildShelterEnv,
+    CraftaxCraftIronSetEnv,
+    CraftaxFightArchersEnv,
+    CraftaxFightBatsEnv,
+    CraftaxFightCowEnv,
+    CraftaxFightSkeletonsEnv,
+    CraftaxFightSpidersEnv,
+    CraftaxFightZombiesEnv,
+    CraftaxFindDiamondEnv,
+    CraftaxFindWaterEnv,
+    CraftaxFirstDayEnv,
+    CraftaxFloor1Env,
+    CraftaxFloor2Env,
+    CraftaxFloor3Env,
+    CraftaxPlantFarmEnv,
+    CraftaxReachDungeonEnv,
+    CraftaxSmeltIronEnv,
+    CraftaxSpeedrunEnv,
+    CraftaxSurviveHungerEnv,
+    CraftaxSurviveNightEnv,
+    CraftaxSurviveThirstEnv,
+    CraftaxSurviveWildEnv,
 )
 
-register_env(
-    "glyphbench/craftax-v0",
-    "glyphbench.envs.craftax.full:CraftaxFullEnv",
-    max_episode_steps=None,
-)
+_REGISTRATIONS = {
+    "glyphbench/craftax-classic-v0": CraftaxClassicEnv,
+    "glyphbench/craftax-v0": CraftaxFullEnv,
+    "glyphbench/craftax-choptrees-v0": CraftaxChopTreesEnv,
+    "glyphbench/craftax-minestone-v0": CraftaxMineStoneEnv,
+    "glyphbench/craftax-gatherresources-v0": CraftaxGatherResourcesEnv,
+    "glyphbench/craftax-craftpickaxe-v0": CraftaxCraftPickaxeEnv,
+    "glyphbench/craftax-craftsword-v0": CraftaxCraftSwordEnv,
+    "glyphbench/craftax-craftchain-v0": CraftaxCraftChainEnv,
+    "glyphbench/craftax-fightzombie-v0": CraftaxFightZombieEnv,
+    "glyphbench/craftax-survivehorde-v0": CraftaxSurviveHordeEnv,
+    "glyphbench/craftax-dungeonexplore-v0": CraftaxDungeonExploreEnv,
+    "glyphbench/craftax-dungeonclear-v0": CraftaxDungeonClearEnv,
+    # Extended subtasks
+    "glyphbench/craftax-floor1-v0": CraftaxFloor1Env,
+    "glyphbench/craftax-floor2-v0": CraftaxFloor2Env,
+    "glyphbench/craftax-floor3-v0": CraftaxFloor3Env,
+    "glyphbench/craftax-bossfight-v0": CraftaxBossFightEnv,
+    "glyphbench/craftax-survive-hunger-v0": CraftaxSurviveHungerEnv,
+    "glyphbench/craftax-survive-thirst-v0": CraftaxSurviveThirstEnv,
+    "glyphbench/craftax-survive-night-v0": CraftaxSurviveNightEnv,
+    "glyphbench/craftax-survive-wild-v0": CraftaxSurviveWildEnv,
+    "glyphbench/craftax-fight-cow-v0": CraftaxFightCowEnv,
+    "glyphbench/craftax-fight-zombies-v0": CraftaxFightZombiesEnv,
+    "glyphbench/craftax-fight-skeletons-v0": CraftaxFightSkeletonsEnv,
+    "glyphbench/craftax-fight-archers-v0": CraftaxFightArchersEnv,
+    "glyphbench/craftax-fight-spiders-v0": CraftaxFightSpidersEnv,
+    "glyphbench/craftax-fight-bats-v0": CraftaxFightBatsEnv,
+    "glyphbench/craftax-craft-ironset-v0": CraftaxCraftIronSetEnv,
+    "glyphbench/craftax-smelt-iron-v0": CraftaxSmeltIronEnv,
+    "glyphbench/craftax-build-shelter-v0": CraftaxBuildShelterEnv,
+    "glyphbench/craftax-plant-farm-v0": CraftaxPlantFarmEnv,
+    "glyphbench/craftax-find-water-v0": CraftaxFindWaterEnv,
+    "glyphbench/craftax-find-diamond-v0": CraftaxFindDiamondEnv,
+    "glyphbench/craftax-reach-dungeon-v0": CraftaxReachDungeonEnv,
+    "glyphbench/craftax-firstday-v0": CraftaxFirstDayEnv,
+    "glyphbench/craftax-speedrun-v0": CraftaxSpeedrunEnv,
+}
 
-# -- Craftax sub-task environments --
-register_env(
-    "glyphbench/craftax-choptrees-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxChopTreesEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-minestone-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxMineStoneEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-gatherresources-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxGatherResourcesEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-craftpickaxe-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxCraftPickaxeEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-craftsword-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxCraftSwordEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-craftchain-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxCraftChainEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-fightzombie-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxFightZombieEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-survivehorde-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxSurviveHordeEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-dungeonexplore-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxDungeonExploreEnv",
-    max_episode_steps=None,
-)
-register_env(
-    "glyphbench/craftax-dungeonclear-v0",
-    "glyphbench.envs.craftax.subtasks:CraftaxDungeonClearEnv",
-    max_episode_steps=None,
-)
-
-# -- Extended Craftax sub-task environments (23 focused tasks) --
-import glyphbench.envs.craftax.subtasks_extended  # noqa: F401, E402
+for _id, _cls in _REGISTRATIONS.items():
+    register_env(_id, _cls)

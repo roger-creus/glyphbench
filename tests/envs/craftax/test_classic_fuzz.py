@@ -16,7 +16,7 @@ from glyphbench.envs.craftax.classic import CraftaxClassicEnv
 @settings(max_examples=30, deadline=None)
 def test_random_action_sequence_no_crash(actions: list[int], seed: int) -> None:
     env = CraftaxClassicEnv(max_turns=1000)
-    obs, info = env.reset(seed=seed)
+    obs, info = env.reset(seed)
     assert isinstance(obs, str)
     assert len(obs) > 0
     for a in actions:

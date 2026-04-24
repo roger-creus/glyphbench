@@ -13,7 +13,10 @@ endgame gear), not code bugs.  See
 """
 from __future__ import annotations
 
-import gymnasium as gym
+from glyphbench.core import make_env
+import glyphbench.envs.craftax  # register envs
+
+
 import pytest
 
 import glyphbench  # noqa: F401 -- registers envs
@@ -34,7 +37,7 @@ BUDGET_EXPECTATIONS = {
 
 @pytest.mark.parametrize("env_id,expected", list(BUDGET_EXPECTATIONS.items()))
 def test_budget_bumps_stick(env_id: str, expected: int) -> None:
-    env = gym.make(env_id).unwrapped
+    env = make_env(env_id)
     assert env.max_turns == expected, (
         f"{env_id} max_turns={env.max_turns} != expected {expected}"
     )
@@ -45,8 +48,8 @@ def test_budget_bumps_stick(env_id: str, expected: int) -> None:
 # ---------------------------------------------------------------------------
 
 def _reset(env_id: str, seed: int = 0):
-    env = gym.make(env_id).unwrapped
-    env.reset(seed=seed)
+    env = make_env(env_id)
+    env.reset(seed)
     return env
 
 

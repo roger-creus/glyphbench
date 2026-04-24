@@ -12,7 +12,6 @@ from __future__ import annotations
 from typing import Any
 
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 from glyphbench.envs.craftax.base import (
     TILE_BAT,
     TILE_BOSS,
@@ -1459,64 +1458,4 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
         return obs, reward, terminated, truncated, info
 
 
-# ===================================================================
-# Registration
-# ===================================================================
-
-_SUBTASK_ENVS: list[tuple[str, str]] = [
-    # Dungeon floors
-    ("glyphbench/craftax-floor1-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFloor1Env"),
-    ("glyphbench/craftax-floor2-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFloor2Env"),
-    ("glyphbench/craftax-floor3-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFloor3Env"),
-    ("glyphbench/craftax-bossfight-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxBossFightEnv"),
-    # Survival
-    ("glyphbench/craftax-survive-hunger-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxSurviveHungerEnv"),
-    ("glyphbench/craftax-survive-thirst-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxSurviveThirstEnv"),
-    ("glyphbench/craftax-survive-night-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxSurviveNightEnv"),
-    ("glyphbench/craftax-survive-wild-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxSurviveWildEnv"),
-    # Combat
-    ("glyphbench/craftax-fight-cow-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFightCowEnv"),
-    ("glyphbench/craftax-fight-zombies-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFightZombiesEnv"),
-    ("glyphbench/craftax-fight-skeletons-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFightSkeletonsEnv"),
-    ("glyphbench/craftax-fight-archers-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFightArchersEnv"),
-    ("glyphbench/craftax-fight-spiders-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFightSpidersEnv"),
-    ("glyphbench/craftax-fight-bats-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFightBatsEnv"),
-    # Crafting
-    ("glyphbench/craftax-craft-ironset-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxCraftIronSetEnv"),
-    ("glyphbench/craftax-smelt-iron-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxSmeltIronEnv"),
-    ("glyphbench/craftax-build-shelter-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxBuildShelterEnv"),
-    ("glyphbench/craftax-plant-farm-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxPlantFarmEnv"),
-    # Exploration
-    ("glyphbench/craftax-find-water-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFindWaterEnv"),
-    ("glyphbench/craftax-find-diamond-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFindDiamondEnv"),
-    ("glyphbench/craftax-reach-dungeon-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxReachDungeonEnv"),
-    # Economy/Achievement
-    ("glyphbench/craftax-firstday-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxFirstDayEnv"),
-    ("glyphbench/craftax-speedrun-v0",
-     "glyphbench.envs.craftax.subtasks_extended:CraftaxSpeedrunEnv"),
-]
-
-for _env_id, _entry_point in _SUBTASK_ENVS:
-    register_env(_env_id, _entry_point)
+# Registration is handled in glyphbench.envs.craftax.__init__.

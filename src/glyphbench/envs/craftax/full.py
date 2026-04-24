@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any, TypedDict
 
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
 from glyphbench.envs.craftax.base import (
     ALL_FULL_ACHIEVEMENTS,
@@ -187,7 +187,7 @@ class Mob(TypedDict):
     floor: int
 
 
-class CraftaxFullEnv(BaseAsciiEnv):
+class CraftaxFullEnv(BaseGlyphEnv):
     """Craftax Full: survival crafting with dungeons and magic.
 
     80 achievements spanning resource gathering, crafting, combat,

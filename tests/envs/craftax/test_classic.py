@@ -1,3 +1,5 @@
+from glyphbench.core import make_env
+import glyphbench.envs.craftax  # register envs
 """Unit tests for Craftax Classic (22-achievement) env."""
 
 import pytest
@@ -80,7 +82,7 @@ class TestCraftaxClassic:
     # --- Observation contract ---
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -92,7 +94,7 @@ class TestCraftaxClassic:
 
     def test_visible_window_size(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 7, f"Expected 7 rows, got {len(grid_lines)}"
@@ -107,7 +109,7 @@ class TestCraftaxClassic:
     def test_collect_wood(self):
         """DO action at a tree -> tree disappears, wood += 1, achievement unlocked."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
 
         # Place a tree next to agent and face it
         ax, ay = env._agent_x, env._agent_y
@@ -123,7 +125,7 @@ class TestCraftaxClassic:
     def test_make_wood_pickaxe_at_table(self):
         """At a placed table with wood -> MAKE_WOOD_PICKAXE -> pickaxe granted."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._inventory["wood"] = 5
         # Place table in facing direction
         place_table = env.action_spec.index_of("PLACE_TABLE")
@@ -139,7 +141,7 @@ class TestCraftaxClassic:
     def test_achievement_idempotence(self):
         """Unlocking an already-unlocked achievement gives 0 reward."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Pre-unlock both collect_wood and collect_sapling so neither triggers
         env._achievements_unlocked.add("collect_wood")
         env._achievements_unlocked.add("collect_sapling")
@@ -155,7 +157,7 @@ class TestCraftaxClassic:
     # --- Max turns truncation ---
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -170,7 +172,7 @@ class TestCraftaxClassic:
     def test_reward_bounds(self):
         """Rewards are 0 or 1 (per achievement)."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for _ in range(20):
             _, reward, terminated, _, _ = env.step(noop)
@@ -181,7 +183,7 @@ class TestCraftaxClassic:
     # --- HUD ---
     def test_hud_content(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         hud = env.get_observation().hud
         assert "HP:" in hud
         assert "Food:" in hud
@@ -193,7 +195,7 @@ class TestCraftaxClassic:
     # --- Legend ---
     def test_legend_has_symbols(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         legend = env.get_observation().legend
         # Player is directional: →, ←, ↑, or ↓
         assert any(c in legend for c in "→←↑↓")
@@ -202,7 +204,7 @@ class TestCraftaxClassic:
     # --- Info extras ---
     def test_info_extras(self):
         env = self._make_env()
-        _, info = env.reset(seed=0)
+        _, info = env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         _, _, _, _, info = env.step(noop)
         assert "achievements_this_step" in info
@@ -213,7 +215,7 @@ class TestCraftaxClassic:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):
@@ -227,7 +229,7 @@ class TestCraftaxClassic:
     # --- Movement ---
     def test_movement_changes_position(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         right = env.action_spec.index_of("MOVE_RIGHT")
         env.step(right)
         assert isinstance(env._agent_x, int)
@@ -235,7 +237,7 @@ class TestCraftaxClassic:
     # --- DO on empty ground is no-op ---
     def test_do_on_empty_ground(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         fx, fy = ax + env._facing[0], ay + env._facing[1]
         if 0 <= fx < env._WORLD_SIZE and 0 <= fy < env._WORLD_SIZE:
@@ -254,14 +256,14 @@ class TestCraftaxClassic:
     def test_day_night_initial(self):
         """Game starts in daytime."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._day_night == "day"
         assert env._day_counter == 0
 
     def test_night_transition(self):
         """After 200 steps, night falls."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for _ in range(200):
             _, _, terminated, _, _ = env.step(noop)
@@ -272,7 +274,7 @@ class TestCraftaxClassic:
     def test_dawn_transition(self):
         """After 300 steps, dawn arrives (keep player alive with high HP)."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Keep player alive through starvation/dehydration damage
         env._hp = 999
         env._max_hp = 999
@@ -285,7 +287,7 @@ class TestCraftaxClassic:
     def test_initial_survival_stats(self):
         """Survival stats start at max."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._food == _MAX_FOOD
         assert env._water == _MAX_WATER
         assert env._energy == _MAX_ENERGY
@@ -293,7 +295,7 @@ class TestCraftaxClassic:
     def test_food_drain(self):
         """Food decreases over time."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         initial_food = env._food
         for _ in range(50):
@@ -305,7 +307,7 @@ class TestCraftaxClassic:
     def test_water_drain(self):
         """Water decreases over time."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         initial_water = env._water
         for _ in range(40):
@@ -318,7 +320,7 @@ class TestCraftaxClassic:
     def test_attack_mob(self):
         """DO facing a mob attacks it."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place a zombie next to agent
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
@@ -339,7 +341,7 @@ class TestCraftaxClassic:
     def test_defeat_zombie_achievement(self):
         """Killing a zombie unlocks defeat_zombie."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
         fx, fy = ax + 1, ay
@@ -356,7 +358,7 @@ class TestCraftaxClassic:
     def test_defeat_skeleton_achievement(self):
         """Killing a skeleton unlocks defeat_skeleton."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
         fx, fy = ax + 1, ay
@@ -373,7 +375,7 @@ class TestCraftaxClassic:
     def test_eat_cow_achievement(self):
         """Killing a cow unlocks eat_cow and restores food."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
         fx, fy = ax + 1, ay
@@ -392,7 +394,7 @@ class TestCraftaxClassic:
     def test_weapon_bonus_damage(self):
         """Weapon increases damage."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
         fx, fy = ax + 1, ay
@@ -412,7 +414,7 @@ class TestCraftaxClassic:
     def test_sleep_restores_energy(self):
         """SLEEP restores energy to max."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._energy = 3
         sleep_action = env.action_spec.index_of("SLEEP")
         env.step(sleep_action)
@@ -421,7 +423,7 @@ class TestCraftaxClassic:
     def test_sleep_unlocks_wake_up(self):
         """First SLEEP unlocks wake_up achievement."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         sleep_action = env.action_spec.index_of("SLEEP")
         _, reward, _, _, _ = env.step(sleep_action)
         assert "wake_up" in env._achievements_unlocked
@@ -431,7 +433,7 @@ class TestCraftaxClassic:
     def test_place_plant(self):
         """PLACE_PLANT with a sapling places a sapling tile."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._inventory["sapling"] = 1
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
@@ -447,7 +449,7 @@ class TestCraftaxClassic:
     def test_plant_ripens(self):
         """Sapling becomes ripe plant after enough steps."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._inventory["sapling"] = 1
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
@@ -469,7 +471,7 @@ class TestCraftaxClassic:
     def test_eat_plant(self):
         """EAT_PLANT on ripe plant restores food."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
         fx, fy = ax + 1, ay
@@ -484,7 +486,7 @@ class TestCraftaxClassic:
     def test_drink_water(self):
         """DRINK_WATER facing water restores water."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
         fx, fy = ax + 1, ay
@@ -499,7 +501,7 @@ class TestCraftaxClassic:
     def test_place_stone_achievement(self):
         """PLACE_STONE unlocks place_stone achievement."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._inventory["stone"] = 1
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
@@ -515,7 +517,7 @@ class TestCraftaxClassic:
     def test_make_iron_pickaxe(self):
         """MAKE_IRON_PICKAXE near table+furnace with resources."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         # Place table and furnace adjacent
         env._world[ay][ax + 1] = TILE_TABLE
@@ -531,7 +533,7 @@ class TestCraftaxClassic:
     def test_diamond_requires_iron_pickaxe(self):
         """Diamond needs iron pickaxe, not stone pickaxe."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._facing = (1, 0)
         env._world[ay][ax + 1] = "D"
@@ -552,7 +554,7 @@ class TestCraftaxClassic:
     def test_make_wood_sword(self):
         """MAKE_WOOD_SWORD near table with wood."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._world[ay][ax + 1] = TILE_TABLE
         env._inventory["wood"] = 1
@@ -564,7 +566,7 @@ class TestCraftaxClassic:
     def test_make_stone_sword(self):
         """MAKE_STONE_SWORD near table+furnace with resources."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._world[ay][ax + 1] = TILE_TABLE
         env._world[ay][ax - 1] = "f"
@@ -578,7 +580,7 @@ class TestCraftaxClassic:
     def test_make_iron_sword(self):
         """MAKE_IRON_SWORD near table+furnace with resources."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         env._world[ay][ax + 1] = TILE_TABLE
         env._world[ay][ax - 1] = "f"
@@ -593,14 +595,14 @@ class TestCraftaxClassic:
     def test_cows_spawn_at_start(self):
         """Cows are spawned on reset."""
         env = self._make_env()
-        env.reset(seed=42)
+        env.reset(42)
         cow_count = sum(1 for m in env._mobs if m["type"] == "cow")
         assert cow_count >= 3
 
     def test_night_spawns_hostile_mobs(self):
         """Hostile mobs spawn when night falls."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         # Step to nightfall
         for _ in range(200):
@@ -614,7 +616,7 @@ class TestCraftaxClassic:
     def test_cannot_walk_onto_mob(self):
         """Player cannot move onto a tile occupied by a mob."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         # Place a cow to the right
         env._world[ay][ax + 1] = TILE_GRASS
@@ -630,7 +632,7 @@ class TestCraftaxClassic:
     def test_player_death(self):
         """Player dies when HP drops to 0."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._hp = 1
         env._food = 0
         env._water = 0
@@ -646,7 +648,7 @@ class TestCraftaxClassic:
     def test_tree_may_drop_sapling(self):
         """Chopping a tree has a chance to drop a sapling."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         do_action = env.action_spec.index_of("DO")
         saplings_found = False
 
@@ -668,7 +670,7 @@ class TestCraftaxClassic:
     def test_shelter_check(self):
         """Player is sheltered when surrounded by placed stone on all 4 sides."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         ax, ay = env._agent_x, env._agent_y
         for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
             env._world[ay + dy][ax + dx] = TILE_PLACED_STONE
