@@ -54,16 +54,13 @@ src/glyphbench/
         prompting.py                  # build_system_prompt(), render_user_turn(), frame-stack formatter
         rubric.py                     # EpisodicReturnRubric + monitor metrics
 configs/
-    eval/
-        glyphbench-debug.toml         # prime-rl eval config, 2 envs × 2 episodes, Qwen3-0.6B
-        glyphbench-full.toml          # all 292 envs × 10 episodes, Qwen3-0.6B
     rl/
         glyphbench-smoke/
-            train.toml
-            orch.toml
-            infer.toml
+            rl.toml                   # single-file prime-rl RL smoke config (trainer + orch + infer)
 eval/
-    README.md                         # rewritten for vf-eval / prime eval run flow
+    README.md                         # rewritten for vf-eval flow
+    run_debug.sh                      # vf-eval smoke: 2 envs × 2 episodes × Qwen3-0.6B
+    run_full.sh                       # vf-eval full: 292 envs × 10 episodes × Qwen3-0.6B
     random_baseline.py                # ported to non-gym API
     random_baseline.json              # regenerated under new harness
 scripts/
@@ -551,30 +548,90 @@ uv run vf-eval glyphbench -m Qwen/Qwen3-0.6B -b http://localhost:8000/v1 \
 # expect: completes, writes results
 ```
 
-## prime-rl wiring
+## prime-rl / verifiers wiring
 
-### Eval config (`configs/eval/glyphbench-debug.toml`)
+Eval uses **`vf-eval`** directly (from verifiers) — prime-rl has no standalone `eval` entrypoint; evals either run via verifiers' own CLI or are embedded in training configs under `[orchestrator.eval]`.
 
-```toml
-# Minimal smoke config for prime-rl eval entrypoint
-model = "Qwen/Qwen3-0.6B"
-environments = ["glyphbench"]
-extra_env_kwargs = { env_id = ["glyphbench/dummy-passthrough-v0", "glyphbench/minigrid-empty-5x5-v0"], num_episodes = 2 }
-max_tokens = 512
-temperature = 0.7
-sampling_args = { top_p = 0.9 }
+### Eval: `vf-eval` (verifiers CLI)
 
-[inference]
-base_url = "http://localhost:8000/v1"
+Two convenience wrappers live under `eval/`:
+
+`eval/run_debug.sh`:
+```bash
+#!/usr/bin/env bash
+# Smoke: 2 envs × 2 episodes × Qwen3-0.6B against local vLLM server.
+uv run vf-eval glyphbench \
+  -m Qwen/Qwen3-0.6B \
+  -b "${VLLM_BASE_URL:-http://localhost:8000/v1}" \
+  -n 2 -t 512 \
+  -a '{"env_id": ["glyphbench/dummy-passthrough-v0", "glyphbench/minigrid-empty-5x5-v0"], "num_episodes": 2, "n_frames": 4}'
 ```
+
+`eval/run_full.sh`:
+```bash
+#!/usr/bin/env bash
+# All 292 envs × 10 episodes × Qwen3-0.6B.
+uv run vf-eval glyphbench \
+  -m Qwen/Qwen3-0.6B \
+  -b "${VLLM_BASE_URL:-http://localhost:8000/v1}" \
+  -n 10 -t 512 \
+  -a '{"num_episodes": 10, "n_frames": 4}'
+```
+
+(`-a` passes `env_args` = kwargs for `load_environment`; `-n` is `num_examples` per env = `num_episodes` in our API; `-t` is `max_tokens`.)
 
 ### RL smoke config (`configs/rl/glyphbench-smoke/`)
 
-- `train.toml`: FSDP trainer targeting `Qwen/Qwen3-0.6B`, 1 GPU, LoRA off, 20 orchestrator steps, `micro_batch_size=1`, GRPO objective, low LR.
-- `orch.toml`: points at `glyphbench` env with `env_id="glyphbench/minigrid-empty-5x5-v0"`, `num_episodes=4`, `n_frames=4`, `max_turns=50`.
-- `infer.toml`: vLLM serving Qwen3-0.6B on `localhost:8001`, `max_model_len=4096` (more than enough for 512 output × 4-frame history × ~4k context).
+Based on `/tmp/prime-rl-main/examples/wordle/rl.toml` and `configs/debug/` patterns. Single-file `rl.toml` (prime-rl convention) that includes all three components:
 
-Smoke condition: `uv run rl --trainer @ train.toml --orchestrator @ orch.toml --inference @ infer.toml` runs for ≥ 1 full orchestrator step end-to-end without crashing. **Not** tuned for quality — just proves the pipeline works against the new env package.
+```toml
+max_steps = 20
+seq_len = 8192
+
+[deployment]
+num_train_gpus = 1
+num_infer_gpus = 1
+
+[model]
+name = "Qwen/Qwen3-0.6B"
+
+[orchestrator]
+batch_size = 4
+rollouts_per_example = 4
+
+[[orchestrator.train.env]]
+id = "glyphbench"
+name = "glyphbench-minigrid-smoke"
+# verifiers load_environment kwargs
+args = { env_id = "glyphbench/minigrid-empty-5x5-v0", num_episodes = 4, n_frames = 4, max_turns = 50 }
+
+[orchestrator.train.sampling]
+max_completion_tokens = 512
+temperature = 0.7
+top_p = 0.9
+
+[orchestrator.eval]
+interval = 10      # eval every 10 orchestrator steps
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "glyphbench-minigrid-eval"
+args = { env_id = "glyphbench/minigrid-empty-5x5-v0", num_episodes = 2, n_frames = 4, max_turns = 50 }
+
+[orchestrator.eval.sampling]
+max_completion_tokens = 512
+temperature = 0.0        # greedy eval
+
+[trainer]
+# defaults; FSDP2, GRPO objective
+
+[inference]
+enforce_eager = true     # smaller / faster startup for smoke
+```
+
+(The precise TOML field names come from prime-rl's pydantic config classes; the plan step for M6 will verify each field against `/tmp/prime-rl-main/src/prime_rl/entrypoints/rl.py` and the debug configs before committing.)
+
+Smoke condition: `uv run rl @ configs/rl/glyphbench-smoke/rl.toml` runs for ≥ 1 full orchestrator step end-to-end without crashing. **Not** tuned for quality — just proves the pipeline works against the new env package.
 
 ## Error handling
 
@@ -597,7 +654,7 @@ Six milestones, suite-by-suite:
 5. **M5 Scripts + eval runner + random baseline.** Port demo/play/replay/record_random_gifs scripts to non-gym API. Regenerate `eval/random_baseline.json` under the new harness (5-episode quick run just to have a file; full baseline can be regenerated separately). Rewrite `eval/README.md` for vf-eval.
 6. **M6 Container + prime-rl smoke.** New Dockerfile, build.sh, build SIF. prime-rl debug eval config + RL smoke config. Local smoke tests:
     - `uv run vf-eval glyphbench -m Qwen/Qwen3-0.6B -x '{"env_id":"glyphbench/dummy-passthrough-v0","num_episodes":2}' -t 512` → passes.
-    - `uv run eval @ configs/eval/glyphbench-debug.toml` → passes against local vLLM.
+    - `bash eval/run_debug.sh` → passes against local vLLM (Qwen3-0.6B).
     - `uv run rl ...smoke config...` → runs ≥ 1 orchestrator step without error.
     - SIF built via `scripts/build_sif.sh` and the same `vf-eval` command works inside `apptainer run glyphbench.sif …`.
 
@@ -610,6 +667,6 @@ All six milestones happen in one session via subagent-driven-development (dispat
 - `uv run python -c "import glyphbench; assert len(glyphbench.all_glyphbench_env_ids()) == 292"` succeeds.
 - `uv run pytest` runs all tests green.
 - `uv run vf-eval glyphbench -m Qwen/Qwen3-0.6B -x '{"env_id":"glyphbench/dummy-passthrough-v0","num_episodes":2}' -t 512` completes with non-crashed rollouts.
-- `uv run eval @ configs/eval/glyphbench-debug.toml` completes against a running Qwen3-0.6B vLLM server.
-- `uv run rl --trainer @ configs/rl/glyphbench-smoke/train.toml --orchestrator @ configs/rl/glyphbench-smoke/orch.toml --inference @ configs/rl/glyphbench-smoke/infer.toml` completes ≥ 1 orchestrator step.
+- `bash eval/run_debug.sh` completes against a running Qwen3-0.6B vLLM server.
+- `uv run rl @ configs/rl/glyphbench-smoke/rl.toml` completes ≥ 1 orchestrator step.
 - `bash scripts/build_sif.sh` produces `glyphbench.sif`; running the same `vf-eval` inside `apptainer run` succeeds.
