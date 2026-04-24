@@ -17,11 +17,10 @@ import time
 from pathlib import Path
 from typing import Any
 
-import gymnasium as gym
 import numpy as np
 
 import glyphbench  # noqa: F401 — register envs
-from glyphbench.core import all_glyphbench_env_ids
+from glyphbench.core import all_glyphbench_env_ids, make_env
 
 
 def run_random_episodes(
@@ -36,13 +35,13 @@ def run_random_episodes(
     returns = []
     lengths = []
     for seed in seeds:
-        env = gym.make(env_id) if max_turns is None else gym.make(env_id, max_turns=max_turns)
-        obs, info = env.reset(seed=seed)
+        env = make_env(env_id) if max_turns is None else make_env(env_id, max_turns=max_turns)
+        obs, info = env.reset(int(seed))
         total_reward = 0.0
         steps = 0
         done = False
         while not done:
-            action = env.action_space.sample()
+            action = int(env.rng.integers(0, env.action_spec.n))
             obs, reward, terminated, truncated, info = env.step(action)
             total_reward += reward
             steps += 1
