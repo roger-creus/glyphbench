@@ -1,9 +1,6 @@
-"""Test-fixture dummy env. Importing this module registers the env with gym."""
+"""Dummy test-fixture env. Importing this module registers the env."""
 
 from glyphbench.core.registry import register_env
+from glyphbench.envs.dummy.env import DummyEnv
 
-register_env(
-    "glyphbench/__dummy-v0",
-    "glyphbench.envs.dummy.env:DummyEnv",
-    max_episode_steps=None,
-)
+register_env("glyphbench/__dummy-v0", DummyEnv)

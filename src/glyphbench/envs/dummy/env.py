@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from glyphbench.core.action import ActionSpec
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
 
 
-class DummyEnv(BaseAsciiEnv):
+class DummyEnv(BaseGlyphEnv):
     """3x3 walk-to-goal. Used by later plans as a test fixture for harness,
     runner, and provider infrastructure before real pilot envs exist."""
 
