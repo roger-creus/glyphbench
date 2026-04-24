@@ -1,38 +1,95 @@
+"""Tests for the plain-Python class-object registry (no gym)."""
 
+from __future__ import annotations
+
+import pytest
+
+from glyphbench.core.action import ActionSpec
+from glyphbench.core.base_env import BaseGlyphEnv
+from glyphbench.core.observation import GridObservation
 from glyphbench.core.registry import (
+    REGISTRY,
     all_glyphbench_env_ids,
+    make_env,
     register_env,
 )
 
 
-def test_register_env_makes_id_visible_to_gym():
-    register_env(
-        "glyphbench/__registry-test-1-v0",
-        "tests.core.test_registry:_FakeEntry",
-    )
-    assert "glyphbench/__registry-test-1-v0" in all_glyphbench_env_ids()
+class _E(BaseGlyphEnv):
+    action_spec = ActionSpec(names=("A",), descriptions=("a",))
+
+    def _reset(self, seed: int) -> GridObservation:
+        return GridObservation(grid=".", legend="", hud="", message="")
+    def _step(self, action: int):
+        return GridObservation(grid=".", legend="", hud="", message=""), 0.0, True, False, {}
+    def _render_current_observation(self) -> GridObservation:
+        return GridObservation(grid=".", legend="", hud="", message="")
+    def system_prompt(self) -> str:
+        return ""
+    def env_id(self) -> str:
+        return "test/e-v0"
 
 
-def test_register_env_is_idempotent():
-    register_env(
-        "glyphbench/__registry-test-2-v0",
-        "tests.core.test_registry:_FakeEntry",
-    )
-    register_env(
-        "glyphbench/__registry-test-2-v0",
-        "tests.core.test_registry:_FakeEntry",
-    )
-    ids = all_glyphbench_env_ids()
-    assert ids.count("glyphbench/__registry-test-2-v0") == 1
+class _F(BaseGlyphEnv):
+    action_spec = ActionSpec(names=("A",), descriptions=("a",))
+
+    def _reset(self, seed: int) -> GridObservation:
+        return GridObservation(grid=".", legend="", hud="", message="")
+    def _step(self, action: int):
+        return GridObservation(grid=".", legend="", hud="", message=""), 0.0, True, False, {}
+    def _render_current_observation(self) -> GridObservation:
+        return GridObservation(grid=".", legend="", hud="", message="")
+    def system_prompt(self) -> str:
+        return ""
+    def env_id(self) -> str:
+        return "test/f-v0"
 
 
-def test_all_ids_are_sorted():
-    register_env("glyphbench/__zz-v0", "tests.core.test_registry:_FakeEntry")
-    register_env("glyphbench/__aa-v0", "tests.core.test_registry:_FakeEntry")
+@pytest.fixture(autouse=True)
+def _save_restore_registry():
+    snapshot = dict(REGISTRY)
+    yield
+    REGISTRY.clear()
+    REGISTRY.update(snapshot)
+
+
+def test_register_and_make():
+    register_env("test/e-v0", _E)
+    env = make_env("test/e-v0")
+    assert isinstance(env, _E)
+
+
+def test_register_idempotent_same_class():
+    register_env("test/e-v0", _E)
+    register_env("test/e-v0", _E)  # idempotent, no error
+
+
+def test_register_rejects_duplicate_with_different_class():
+    register_env("test/e-v0", _E)
+    with pytest.raises(ValueError, match="already registered"):
+        register_env("test/e-v0", _F)
+
+
+def test_make_unknown_raises():
+    with pytest.raises(KeyError, match="unknown env_id"):
+        make_env("test/not-there-v0")
+
+
+def test_make_forwards_kwargs():
+    register_env("test/e-v0", _E)
+    env = make_env("test/e-v0", max_turns=7)
+    assert env.max_turns == 7
+
+
+def test_all_env_ids_sorted():
+    register_env("test/b-v0", _E)
+    register_env("test/a-v0", _F)
     ids = all_glyphbench_env_ids()
     assert ids == sorted(ids)
 
 
-class _FakeEntry:
-    """Fake entry point used only so gym.register has something valid to point at."""
-    pass
+def test_register_rejects_non_baseclass():
+    class NotAnEnv:
+        pass
+    with pytest.raises(TypeError):
+        register_env("test/bad-v0", NotAnEnv)  # type: ignore[arg-type]

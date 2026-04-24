@@ -1,35 +1,47 @@
-"""Thin wrapper around gym.register that tracks our owned ids."""
+"""Plain-Python class-object registry for glyphbench environments."""
 
 from __future__ import annotations
 
-import gymnasium as gym
+from typing import Any
 
-_REGISTERED: set[str] = set()
+from glyphbench.core.base_env import BaseGlyphEnv
+
+REGISTRY: dict[str, type[BaseGlyphEnv]] = {}
 
 
-def register_env(
-    env_id: str,
-    entry_point: str,
-    *,
-    max_episode_steps: int | None = None,
-) -> None:
-    """Register a gym id. Idempotent across module re-imports.
+def register_env(env_id: str, cls: type[BaseGlyphEnv]) -> None:
+    """Register a class under an env id.
 
-    Args:
-        env_id: The canonical id, e.g. "glyphbench/minigrid-empty-5x5-v0".
-        entry_point: "module.path:ClassName" accepted by gymnasium.
-        max_episode_steps: Optional gym-level time limit wrapper.
+    Idempotent for the same (id, class) pair; raises ``ValueError`` on
+    conflicting registrations and ``TypeError`` if ``cls`` is not a
+    ``BaseGlyphEnv`` subclass.
     """
-    if env_id in _REGISTERED:
-        return
-    gym.register(
-        id=env_id,
-        entry_point=entry_point,
-        max_episode_steps=max_episode_steps,
-    )
-    _REGISTERED.add(env_id)
+    if not isinstance(cls, type) or not issubclass(cls, BaseGlyphEnv):
+        raise TypeError(
+            f"register_env expected a BaseGlyphEnv subclass, got {cls!r}"
+        )
+    existing = REGISTRY.get(env_id)
+    if existing is not None and existing is not cls:
+        raise ValueError(
+            f"env_id {env_id!r} already registered to {existing.__name__}; "
+            f"refusing to overwrite with {cls.__name__}"
+        )
+    REGISTRY[env_id] = cls
+
+
+def make_env(env_id: str, **kwargs: Any) -> BaseGlyphEnv:
+    """Instantiate the class registered under ``env_id``.
+
+    Extra kwargs are forwarded to the class constructor.
+    """
+    cls = REGISTRY.get(env_id)
+    if cls is None:
+        raise KeyError(
+            f"unknown env_id {env_id!r}; known ids: {sorted(REGISTRY)[:5]}…"
+        )
+    return cls(**kwargs)
 
 
 def all_glyphbench_env_ids() -> list[str]:
     """Return every registered id as a sorted list."""
-    return sorted(_REGISTERED)
+    return sorted(REGISTRY)
