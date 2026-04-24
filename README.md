@@ -1,6 +1,6 @@
 # GlyphBench
 
-A benchmark of **292 text-rendered reinforcement-learning environments** for evaluating LLM agents on sequential decision-making.
+A benchmark of **293 text-rendered reinforcement-learning environments** for evaluating LLM agents on sequential decision-making.
 
 Every environment renders its state as a Unicode text grid with a legend, HUD, and discrete named actions. Observations are deterministic (seeded), making results fully reproducible.
 
@@ -26,7 +26,7 @@ All environments use single-codepoint Unicode glyphs (`→↓←↑` for player 
 
 ```bash
 uv add glyphbench                    # core (environments only)
-uv add "glyphbench[eval]"            # + batched vLLM eval runner
+uv add "glyphbench[eval]"            # + verifiers + vLLM (eval + RL integration)
 uv add "glyphbench[all]"             # + providers, analysis, dev tooling
 ```
 
@@ -41,12 +41,16 @@ uv sync --all-extras
 ## Quick start
 
 ```python
-import glyphbench  # registers all 292 environments
-import gymnasium as gym
+import glyphbench
+from glyphbench.core import make_env
 
-env = gym.make("glyphbench/minigrid-empty-5x5-v0")
-obs, info = env.reset(seed=42)
+# Direct game loop
+env = make_env("glyphbench/minigrid-empty-5x5-v0")
+obs, info = env.reset(42)
 print(obs)
+
+# Or: load as a verifiers environment for eval / RL
+vf_env = glyphbench.load_environment(env_id="glyphbench/minigrid-empty-5x5-v0")
 ```
 
 ```
@@ -62,7 +66,7 @@ print(obs)
 ███████
 ```
 
-Every environment also exposes `env.unwrapped.system_prompt()` — a compact description of rules, actions, reward structure, and termination conditions, ready to pass as a system message to any LLM.
+Every environment also exposes `env.system_prompt()` — a compact description of rules, actions, reward structure, and termination conditions, ready to pass as a system message to any LLM.
 
 ## Observation format
 
@@ -75,38 +79,41 @@ Every environment returns a single text string with four sections:
 
 ## Running LLM evaluations
 
-GlyphBench includes a batched evaluation runner using vLLM offline inference:
+GlyphBench registers every environment as a [verifiers](https://github.com/PrimeIntellect-ai/verifiers)
+environment, so any OpenAI-compatible endpoint can be evaluated via `vf-eval`.
+Two turnkey wrappers are provided:
 
 ```bash
-# All 292 envs, 25 episodes each, history-CoT harness
-uv run python eval/run_eval.py \
-    --model Qwen/Qwen3.5-4B \
-    --harness history_cot \
-    --episodes 25 \
-    --output results/
+# Short smoke (1 env, 1 episode) — useful for wiring checks
+bash eval/run_debug.sh
 
-# Single suite
-uv run python eval/run_eval.py --model Qwen/Qwen3.5-4B --suites atari
-
-# Specific envs
-uv run python eval/run_eval.py --model Qwen/Qwen3.5-4B \
-    --envs glyphbench/minigrid-doorkey-6x6-v0 glyphbench/atari-pong-v0
+# Full sweep (all 293 envs, configurable episodes via $EPISODES / $MODEL)
+bash eval/run_full.sh
 ```
 
-Results include per-env metrics (mean return, episode length, parse-failure rate) plus full trajectory recordings (observation, LLM response, action, reward at every step) for replay verification.
+Both scripts assume an OpenAI-compatible server is reachable at `http://localhost:8000/v1`
+(e.g. `uv run vllm serve Qwen/Qwen3-0.6B --port 8000`). See [`eval/README.md`](eval/README.md)
+for full arguments.
 
-## Harness modes
+At a Python level, the single entry point is:
 
-Each model is evaluated in four conditions:
+```python
+import glyphbench
+env = glyphbench.load_environment(
+    env_id="glyphbench/minigrid-empty-5x5-v0",
+    num_episodes=10,
+    n_frames=4,
+    max_output_tokens=512,
+)
+```
 
-| Mode | Context | Response |
-|---|---|---|
-| `markov_zeroshot`  | single observation | just an action |
-| `markov_cot`       | single observation | thinking + action |
-| `history_zeroshot` | last N obs + actions | just an action |
-| `history_cot`      | last N obs + actions | thinking + action |
+which returns a `verifiers.MultiTurnEnv` ready for `vf.evaluate(...)` or RL training.
 
-Comparing `markov` vs `history` shows which envs need memory; comparing `zeroshot` vs `cot` shows which need reasoning.
+## Harness
+
+One harness mode only: frame-stacked history (N=4 frames by default) with CoT-style
+responses and a 512-token response budget communicated to the model. All observations
+are deterministic — identical seeds produce identical trajectories.
 
 ## Scoring
 
@@ -143,14 +150,14 @@ The renderer is flicker-free (single-write frame with ANSI cursor-home).
 
 ```python
 import glyphbench
-import gymnasium as gym
+from glyphbench.core import make_env
 
-env = gym.make("glyphbench/minigrid-doorkey-6x6-v0")
-obs, info = env.reset(seed=42)
+env = make_env("glyphbench/minigrid-doorkey-6x6-v0")
+obs, info = env.reset(42)
 
 done, total = False, 0.0
 while not done:
-    action = your_agent(obs, env.unwrapped.action_spec.names)
+    action = your_agent(obs, env.action_spec.names)
     obs, reward, terminated, truncated, info = env.step(action)
     total += reward
     done = terminated or truncated
@@ -162,12 +169,11 @@ print(f"Episode return: {total}")
 
 ```
 src/glyphbench/
-    core/                # BaseAsciiEnv, GridObservation, ActionSpec, registry
-    envs/                # 6 suites · 292 envs
-    harness/             # LLM agent loop, prompt builder, JSON parser
-    providers/           # vLLM, OpenAI, Anthropic, Gemini clients
-    runner/              # Async benchmark runner, config, dashboard, storage
-eval/                    # Batched vLLM runner, random baseline, scoring
+    core/                # BaseGlyphEnv, GridObservation, ActionSpec, registry, verifiers adapter
+    envs/                # 6 suites · 293 envs
+    harness/             # frame-stacked history + prompt builder
+eval/                    # vf-eval wrappers, random baseline, scoring
+configs/rl/              # prime-rl training configs (e.g. glyphbench-smoke)
 cluster_manager/         # SLURM multi-cluster experiment manager
 scripts/                 # Demo, trajectory replay, GIF export, upload tools
 docs/leaderboard/        # GitHub Pages site (leaderboard + rollout gallery)
@@ -177,7 +183,7 @@ docs/leaderboard/        # GitHub Pages site (leaderboard + rollout gallery)
 
 ```bash
 uv sync --all-extras
-uv run pytest                          # 2108+ tests
+uv run pytest                          # 2293+ tests
 uv run ruff check src/
 uv run mypy src/glyphbench/
 ```

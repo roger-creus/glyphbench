@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Full eval: all 292 envs × 10 episodes × Qwen3-0.6B.
+# Full eval: all 293 envs × 10 episodes × Qwen3-0.6B.
 set -euo pipefail
 MODEL=${MODEL:-Qwen/Qwen3-0.6B}
 BASE_URL=${VLLM_BASE_URL:-http://localhost:8000/v1}
