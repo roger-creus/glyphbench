@@ -10,7 +10,7 @@ Rebuild GlyphBench's environment infrastructure on top of [Verifiers](https://gi
 
 **No gymnasium anywhere in the codebase after this migration.** No `gym.Env` inheritance, no `gym.register`, no `import gymnasium`.
 
-**No `ascii` in code names either.** The project is `glyphbench`. Observations are Unicode glyphs, not ASCII. Naming is renamed throughout (`BaseAsciiEnv` → `BaseGlyphEnv`, `ascii_primitives.py` → `glyph_primitives.py`, doc strings updated).
+**No `ascii` in code names either.** The project is `glyphbench`. Observations are Unicode glyphs, not ASCII. Naming is renamed throughout (`BaseAsciiEnv` → `BaseGlyphEnv`, `glyph_primitives.py` → `glyph_primitives.py`, doc strings updated).
 
 ## Background (what exists today)
 
@@ -40,7 +40,7 @@ src/glyphbench/
         base_env.py                   # BaseGlyphEnv (plain class, no gym.Env)
         action.py                     # ActionSpec — unchanged
         observation.py                # GridObservation — unchanged
-        glyph_primitives.py           # renamed from ascii_primitives.py
+        glyph_primitives.py           # renamed from glyph_primitives.py
         registry.py                   # REGISTRY: dict[str, type[BaseGlyphEnv]], register_env(id, cls), make_env(id, **kw)
         metrics.py                    # existing
     envs/

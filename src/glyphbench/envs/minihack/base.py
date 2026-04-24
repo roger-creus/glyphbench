@@ -10,7 +10,7 @@ from abc import abstractmethod
 from typing import Any
 
 from glyphbench.core.action import ActionSpec
-from glyphbench.core.ascii_primitives import build_legend, grid_to_string, make_empty_grid
+from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
 from glyphbench.core.base_env import BaseAsciiEnv
 from glyphbench.core.observation import GridObservation
 from glyphbench.envs.minihack.creatures import Creature, CreatureType

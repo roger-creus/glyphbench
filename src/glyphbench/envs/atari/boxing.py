@@ -203,7 +203,7 @@ class BoxingEnv(AtariBase):
 
     def _render_current_observation(self, **kw: Any):  # type: ignore[override]
         """Override to show opponent score in HUD."""
-        from glyphbench.core.ascii_primitives import (
+        from glyphbench.core.glyph_primitives import (
             build_legend,
             grid_to_string,
         )

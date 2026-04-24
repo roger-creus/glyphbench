@@ -23,7 +23,7 @@
 ### Files created
 
 ```
-src/glyphbench/core/glyph_primitives.py          # renamed from ascii_primitives.py
+src/glyphbench/core/glyph_primitives.py          # renamed from glyph_primitives.py
 src/glyphbench/verifiers_integration/__init__.py
 src/glyphbench/verifiers_integration/env.py      # GlyphbenchMultiTurnEnv + load_environment
 src/glyphbench/verifiers_integration/parser.py   # GlyphbenchXMLParser
@@ -53,7 +53,7 @@ src/glyphbench/core/registry.py                  # dict-based class registry
 src/glyphbench/core/metrics.py                   # only import cleanup if needed
 src/glyphbench/envs/{dummy,minigrid,minihack,atari,craftax,procgen,classics}/
                                                  # every *.py: BaseAsciiEnv→BaseGlyphEnv,
-                                                 # ascii_primitives→glyph_primitives;
+                                                 # glyph_primitives→glyph_primitives;
                                                  # each __init__.py rewritten to class-object registration
 
 pyproject.toml                                   # drop gymnasium, add verifiers+datasets, new script entries
@@ -67,7 +67,7 @@ scripts/replay_trajectory.py, scripts/record_random_gifs.py, scripts/run_benchma
 
 tests/core/test_base_env.py                      # drop gym assertions
 tests/core/test_registry.py                      # class-object API
-tests/core/test_ascii_primitives.py              # rename file + imports
+tests/core/test_glyph_primitives.py              # rename file + imports
 tests/envs/**/*.py                               # every test: gym.make(id) → make_env(id)
 tests/conftest.py                                # drop gym imports
 tests/test_cli.py                                # update entry-point smoke
@@ -84,14 +84,14 @@ tests/test_minigrid_prompt_sync.py               # port (drop gym), keeps system
 src/glyphbench/harness/                          # entire directory
 src/glyphbench/providers/                        # entire directory
 src/glyphbench/runner/                           # entire directory
-src/glyphbench/core/ascii_primitives.py          # renamed (moved to glyph_primitives.py)
+src/glyphbench/core/glyph_primitives.py          # renamed (moved to glyph_primitives.py)
 eval/run_eval.py
 eval/scoring.py
 scripts/serve_vllm.sh
 tests/harness/                                   # entire directory
 tests/providers/ (if exists)                     # not present, listed for completeness
 tests/runner/ (if exists)                        # not present, listed for completeness
-tests/core/test_ascii_primitives.py              # renamed to test_glyph_primitives.py
+tests/core/test_glyph_primitives.py              # renamed to test_glyph_primitives.py
 tests/test_eval_history.py
 tests/test_scoring_coverage.py
 ```
@@ -133,33 +133,33 @@ Expected: no matches. If matches exist, they're in files we're about to port —
 git commit -m "remove obsolete harness/providers/runner/eval_runner — replaced by verifiers integration"
 ```
 
-### Task 1.2: Rename `ascii_primitives.py` → `glyph_primitives.py`
+### Task 1.2: Rename `glyph_primitives.py` → `glyph_primitives.py`
 
 **Files:**
-- Move: `src/glyphbench/core/ascii_primitives.py` → `src/glyphbench/core/glyph_primitives.py`
+- Move: `src/glyphbench/core/glyph_primitives.py` → `src/glyphbench/core/glyph_primitives.py`
 - Modify: all files importing from the old path
-- Move: `tests/core/test_ascii_primitives.py` → `tests/core/test_glyph_primitives.py`
+- Move: `tests/core/test_glyph_primitives.py` → `tests/core/test_glyph_primitives.py`
 
 - [ ] **Step 1: Rename via git mv**
 
 ```bash
 cd /home/roger/Desktop/rl-world-ascii
-git mv src/glyphbench/core/ascii_primitives.py src/glyphbench/core/glyph_primitives.py
-git mv tests/core/test_ascii_primitives.py tests/core/test_glyph_primitives.py
+git mv src/glyphbench/core/glyph_primitives.py src/glyphbench/core/glyph_primitives.py
+git mv tests/core/test_glyph_primitives.py tests/core/test_glyph_primitives.py
 ```
 
 - [ ] **Step 2: Update all imports**
 
 ```bash
-grep -rl "ascii_primitives" src/ tests/ | xargs sed -i 's/ascii_primitives/glyph_primitives/g'
+grep -rl "glyph_primitives" src/ tests/ | xargs sed -i 's/glyph_primitives/glyph_primitives/g'
 # Also update textual docs that reference the module
-grep -rl "ascii_primitives" docs/ 2>/dev/null | xargs -r sed -i 's/ascii_primitives/glyph_primitives/g'
+grep -rl "glyph_primitives" docs/ 2>/dev/null | xargs -r sed -i 's/glyph_primitives/glyph_primitives/g'
 ```
 
 - [ ] **Step 3: Verify**
 
 ```bash
-grep -rn "ascii_primitives" src/ tests/ docs/ 2>&1 | grep -v ".git\|__pycache__\|.mypy_cache\|.ruff_cache\|.hypothesis"
+grep -rn "glyph_primitives" src/ tests/ docs/ 2>&1 | grep -v ".git\|__pycache__\|.mypy_cache\|.ruff_cache\|.hypothesis"
 ```
 
 Expected: no matches.
@@ -168,7 +168,7 @@ Expected: no matches.
 
 ```bash
 git add -A
-git commit -m "rename ascii_primitives → glyph_primitives (observations are Unicode, not ASCII)"
+git commit -m "rename glyph_primitives → glyph_primitives (observations are Unicode, not ASCII)"
 ```
 
 ### Task 1.3: Rewrite `core/base_env.py` — drop gym.Env, rename to `BaseGlyphEnv`
@@ -2241,10 +2241,10 @@ Expected: prints the lines above, no errors.
 
 ```bash
 cd /home/roger/Desktop/rl-world-ascii
-grep -rl "BaseAsciiEnv\|ascii_primitives" src/glyphbench/envs/minigrid/ | \
+grep -rl "BaseAsciiEnv\|glyph_primitives" src/glyphbench/envs/minigrid/ | \
     xargs sed -i \
     -e 's/BaseAsciiEnv/BaseGlyphEnv/g' \
-    -e 's/ascii_primitives/glyph_primitives/g'
+    -e 's/glyph_primitives/glyph_primitives/g'
 ```
 
 - [ ] **Step 2: Rewrite `src/glyphbench/envs/minigrid/__init__.py`**
@@ -2431,7 +2431,7 @@ Repeat the exact pattern from M2 for each suite, suite-by-suite (independent sub
 - [ ] **Step 1: Bulk rename**
 
 ```bash
-grep -rl "BaseAsciiEnv\|ascii_primitives" src/glyphbench/envs/classics/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/ascii_primitives/glyph_primitives/g'
+grep -rl "BaseAsciiEnv\|glyph_primitives" src/glyphbench/envs/classics/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/glyph_primitives/glyph_primitives/g'
 ```
 
 - [ ] **Step 2: Regenerate `__init__.py`**
@@ -2531,7 +2531,7 @@ git commit -m "tests: port classics tests to non-gym API"
 
 ```bash
 # sources
-grep -rl "BaseAsciiEnv\|ascii_primitives" src/glyphbench/envs/procgen/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/ascii_primitives/glyph_primitives/g'
+grep -rl "BaseAsciiEnv\|glyph_primitives" src/glyphbench/envs/procgen/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/glyph_primitives/glyph_primitives/g'
 
 # __init__.py regeneration
 sed -i 's/classics/procgen/g' /tmp/gen_classics_init.py > /tmp/gen_procgen_init.py || true
@@ -2611,7 +2611,7 @@ Same recipe as M2/M3, three times over. This is the last suite batch — after M
 - [ ] **Step 1-3:** apply the M3.1 recipe with `SUITE = "atari"`.
 
 ```bash
-grep -rl "BaseAsciiEnv\|ascii_primitives" src/glyphbench/envs/atari/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/ascii_primitives/glyph_primitives/g'
+grep -rl "BaseAsciiEnv\|glyph_primitives" src/glyphbench/envs/atari/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/glyph_primitives/glyph_primitives/g'
 
 python3 -c "
 import re, pathlib
@@ -2668,7 +2668,7 @@ git commit -m "tests: port atari tests to non-gym API"
 
 ```bash
 # sources
-grep -rl "BaseAsciiEnv\|ascii_primitives" src/glyphbench/envs/minihack/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/ascii_primitives/glyph_primitives/g'
+grep -rl "BaseAsciiEnv\|glyph_primitives" src/glyphbench/envs/minihack/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/glyph_primitives/glyph_primitives/g'
 python3 -c "
 import re, pathlib
 SUITE='minihack'
@@ -2712,7 +2712,7 @@ git commit -m "envs+tests: port minihack (63) to non-gym API"
 ### Task 4.4: Port craftax (same recipe, SUITE="craftax")
 
 ```bash
-grep -rl "BaseAsciiEnv\|ascii_primitives" src/glyphbench/envs/craftax/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/ascii_primitives/glyph_primitives/g'
+grep -rl "BaseAsciiEnv\|glyph_primitives" src/glyphbench/envs/craftax/ | xargs sed -i -e 's/BaseAsciiEnv/BaseGlyphEnv/g' -e 's/glyph_primitives/glyph_primitives/g'
 python3 -c "
 import re, pathlib
 SUITE='craftax'
@@ -2833,7 +2833,7 @@ Expected: all tests pass. Log any failure and fix before moving on.
 - [ ] **Step 2: Final grep audit across entire src/ and tests/**
 
 ```bash
-grep -rn "gymnasium\|gym\.Env\|gym\.register\|gym\.make\b\|import gym\b\|import gymnasium\|BaseAsciiEnv\|ascii_primitives" src/ tests/ 2>&1 | grep -v "__pycache__\|.pyc\|.git\|.mypy_cache\|.ruff_cache\|.hypothesis"
+grep -rn "gymnasium\|gym\.Env\|gym\.register\|gym\.make\b\|import gym\b\|import gymnasium\|BaseAsciiEnv\|glyph_primitives" src/ tests/ 2>&1 | grep -v "__pycache__\|.pyc\|.git\|.mypy_cache\|.ruff_cache\|.hypothesis"
 ```
 
 Expected: no matches.
@@ -3097,7 +3097,7 @@ git commit -m "cli: port to non-gym API"
 ```bash
 uv run pytest tests 2>&1 | tail -10
 # Entire repo grep audit
-grep -rn "gymnasium\|gym\.Env\|gym\.register\|gym\.make\b\|import gym\b\|import gymnasium\|BaseAsciiEnv\|ascii_primitives" \
+grep -rn "gymnasium\|gym\.Env\|gym\.register\|gym\.make\b\|import gym\b\|import gymnasium\|BaseAsciiEnv\|glyph_primitives" \
     src/ tests/ scripts/ eval/ \
     2>&1 | grep -v "__pycache__\|.pyc\|.git\|.mypy_cache\|.ruff_cache\|.hypothesis"
 ```
@@ -3445,7 +3445,7 @@ vf_env = glyphbench.load_environment(env_id="glyphbench/minigrid-empty-5x5-v0")
 
 The repo moved off gymnasium to verifiers + prime-rl. Key changes:
 
-- `BaseAsciiEnv` → `BaseGlyphEnv`; `ascii_primitives.py` → `glyph_primitives.py`.
+- `BaseAsciiEnv` → `BaseGlyphEnv`; `glyph_primitives.py` → `glyph_primitives.py`.
 - `gym.register/gym.make` replaced with `register_env(id, cls)` / `make_env(id, **kw)` on a dict-based registry.
 - Eval now runs via `vf-eval` against any OpenAI-compatible endpoint; see `eval/README.md`. The old `eval/run_eval.py` is gone.
 - `glyphbench.load_environment(env_id=..., num_episodes=10, n_frames=4, max_output_tokens=512)` is the verifiers entry point.
@@ -3475,7 +3475,7 @@ Expected: all tests pass.
 - [ ] **Step 2: Final full-repo grep audit**
 
 ```bash
-grep -rn "gymnasium\|gym\.Env\|gym\.register\|gym\.make\b\|import gym\b\|import gymnasium\|BaseAsciiEnv\|ascii_primitives" \
+grep -rn "gymnasium\|gym\.Env\|gym\.register\|gym\.make\b\|import gym\b\|import gymnasium\|BaseAsciiEnv\|glyph_primitives" \
     src/ tests/ scripts/ eval/ configs/ Dockerfile README.md HANDOVER.md pyproject.toml \
     2>&1 | grep -v "__pycache__\|.pyc\|.git\|.mypy_cache\|.ruff_cache\|.hypothesis\|docs/superpowers"
 ```

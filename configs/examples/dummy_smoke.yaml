@@ -4,7 +4,7 @@ provider: mock
 model_id: mock-model
 seeds: [0, 1]
 episodes_per_env: 2
-max_turns_per_episode: 20
+# max_turns_per_episode omitted -> use dummy env's natural 20-turn budget
 concurrency: 2
 budget_usd: null
 envs:

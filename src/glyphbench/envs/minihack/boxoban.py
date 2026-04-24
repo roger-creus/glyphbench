@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from glyphbench.core.ascii_primitives import build_legend, grid_to_string, make_empty_grid
+from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
 from glyphbench.core.observation import GridObservation
 from glyphbench.envs.minihack.base import MOVE_VECTORS, MiniHackBase
 

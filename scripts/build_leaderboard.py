@@ -66,7 +66,14 @@ def aggregate_run(run_dir: Path, baseline: dict[str, float]) -> dict | None:
     if not per_env_files:
         return None
     results_json = run_dir / "results.json"
-    meta = json.loads(results_json.read_text()) if results_json.exists() else {}
+    meta = {}
+    if results_json.exists():
+        raw = results_json.read_text().strip()
+        if raw:
+            try:
+                meta = json.loads(raw)
+            except json.JSONDecodeError:
+                meta = {}
 
     per_suite_scores: dict[str, list[float]] = {s: [] for s in SUITES}
     total_input_tokens = 0
@@ -75,7 +82,13 @@ def aggregate_run(run_dir: Path, baseline: dict[str, float]) -> dict | None:
     total_steps = 0
 
     for f in per_env_files:
-        info = json.loads(f.read_text())
+        raw = f.read_bytes().rstrip(b"\x00").decode("utf-8", errors="replace").strip()
+        if not raw:
+            continue
+        try:
+            info = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
         env_id = info["env_id"]
         suite = suite_of(env_id)
         if suite not in per_suite_scores:

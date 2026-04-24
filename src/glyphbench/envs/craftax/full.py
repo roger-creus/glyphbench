@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from glyphbench.core.ascii_primitives import build_legend, grid_to_string
+from glyphbench.core.glyph_primitives import build_legend, grid_to_string
 from glyphbench.core.base_env import BaseAsciiEnv
 from glyphbench.core.observation import GridObservation
 from glyphbench.envs.craftax.base import (

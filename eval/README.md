@@ -31,7 +31,6 @@ uv run python eval/run_eval.py --model Qwen/Qwen3.5-4B --suites minigrid atari
 uv run python eval/run_eval.py \
     --model Qwen/Qwen3.5-4B \
     --episodes 25 \
-    --max-turns 200 \
     --batch-size 25 \
     --temperature 0.7 \
     --output results/

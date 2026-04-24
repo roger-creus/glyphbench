@@ -5,7 +5,7 @@ model: Qwen/Qwen3.5-4B
 harness: markov_zeroshot
 history_len: 5
 episodes: 10
-max_turns: 200
+# max_turns omitted -> use each env's natural budget
 batch_size: 10
 temperature: 0.7
 max_new_tokens: 16384

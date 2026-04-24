@@ -27,6 +27,9 @@ dependencies = [
     "rich>=13.9",
 ]
 
+[project.scripts]
+glyphbench = "glyphbench.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/roger-creus/glyphbench"
 Repository = "https://github.com/roger-creus/glyphbench"

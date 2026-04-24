@@ -20,11 +20,10 @@ Results on the leaderboard must be reproducible. A valid submission includes:
 **How to submit:**
 
 ```bash
-# 1. Run the official eval (25 episodes × 200 max_turns, all 292 envs)
+# 1. Run the official eval (25 episodes, all 292 envs, each env's natural step budget)
 uv run python eval/run_eval.py \
     --model <your-model-id> \
     --episodes 25 \
-    --max-turns 200 \
     --harness history_cot \
     --output results/<your-model-id>__history_cot/
 
@@ -40,14 +39,14 @@ tar czf run.tar.gz results/<your-model-id>__history_cot/
 CI will:
 - Validate the schema of `results.json` and each `per_env/*.json`
 - Spot-check 3 random trajectories: replay each one to confirm the recorded actions reproduce the recorded rewards
-- Reject submissions where seeds or max_turns deviate from the official protocol
+- Reject submissions where seeds or the step budget deviate from the official protocol
 
 The leaderboard auto-updates nightly from merged PRs.
 
 ### Official protocol
 
 - **episodes:** 25 per environment
-- **max_turns:** 200
+- **max_turns:** each env's natural step budget (do not pass `--max-turns` to override)
 - **harness modes:** at least one of `markov_zeroshot` / `markov_cot` / `history_zeroshot` / `history_cot`
 - **seeds:** fixed via `eval/run_eval.py` seed-derivation (do not override)
 - **temperature:** 0.7 (default; specify if different)

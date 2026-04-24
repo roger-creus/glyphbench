@@ -211,7 +211,7 @@ class FishingDerbyEnv(AtariBase):
         pass
 
     def _render_current_observation(self, **kw: Any):  # type: ignore[override]
-        from glyphbench.core.ascii_primitives import build_legend, grid_to_string
+        from glyphbench.core.glyph_primitives import build_legend, grid_to_string
         from glyphbench.core.observation import GridObservation
         render = [row[:] for row in self._grid]
         symbols: dict[str, str] = {}

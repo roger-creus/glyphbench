@@ -4,7 +4,7 @@ run_id: "random-baseline"
 provider: random
 seeds: [0, 1, 2, 3, 4]
 episodes_per_env: 5
-max_turns_per_episode: 200
+# max_turns_per_episode omitted -> use each env's natural budget
 concurrency: 4
 budget_usd: null
 envs:

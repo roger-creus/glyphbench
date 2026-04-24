@@ -1,6 +1,6 @@
 import pytest
 
-from glyphbench.core.ascii_primitives import (
+from glyphbench.core.glyph_primitives import (
     build_legend,
     draw_box,
     grid_to_string,
