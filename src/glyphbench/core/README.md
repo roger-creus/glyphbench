@@ -6,7 +6,7 @@ Core contracts. Every env, harness component, and runner depends on this package
 
 - `GridObservation` — frozen dataclass with `grid`, `legend`, `hud`, `message` string fields. Its `render()` method produces the canonical prompt-ready string.
 - `ActionSpec` — frozen dataclass with `names`, `descriptions`. The env's action vocabulary is defined once and never per-turn filtered.
-- `BaseAsciiEnv` — abstract gymnasium env. Subclasses implement `_reset`, `_step`, `_render_current_observation`, `system_prompt`, `env_id`. Reset requires an explicit seed.
+- `BaseGlyphEnv` — plain abstract Python class (no framework inheritance). Subclasses implement `_reset`, `_step`, `_render_current_observation`, `system_prompt`, `env_id`. Reset requires an explicit integer seed (positional).
 
 ## Invariants
 
