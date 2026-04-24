@@ -66,16 +66,9 @@ def load_environment(
 
 def _ensure_envs_loaded() -> None:
     """Force-import all suite __init__.py files so the registry is populated."""
-    import glyphbench.envs  # noqa: F401
-    # Individual suites populate REGISTRY on import.
-    import glyphbench.envs.dummy      # noqa: F401
-    for suite in ("minigrid", "minihack", "atari", "craftax", "procgen", "classics"):
-        try:
-            __import__(f"glyphbench.envs.{suite}")
-        except (ImportError, TypeError):
-            # TypeError tolerates suites still using the old gym-style
-            # register_env signature during the migration window.
-            pass  # suite not present in this build — acceptable during migration
+    from glyphbench.envs import _import_all_suites
+
+    _import_all_suites()
 
 
 def _resolve_env_ids(env_id: str | list[str] | None) -> list[str]:

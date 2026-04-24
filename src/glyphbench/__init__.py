@@ -18,18 +18,14 @@ from glyphbench.verifiers_integration import (
     load_environment,
 )
 
-# Importing any suite module populates REGISTRY eagerly:
-from glyphbench.envs import dummy  # noqa: F401
-
-# The rest of the suites are optional during migration; they get added as
-# the ports land in M2-M4 (import safely, silently skip on ImportError or
-# legacy-register_env TypeErrors).
+# Importing any suite module populates REGISTRY eagerly. Suites still on the
+# legacy register_env signature (or not yet ported) are skipped silently —
+# acceptable during the migration window.
 # TEMPORARY — remove at end of M4 (plan Task 4.7)
-for _suite in ("minigrid", "minihack", "atari", "craftax", "procgen", "classics"):
-    try:
-        __import__(f"glyphbench.envs.{_suite}")
-    except (ImportError, TypeError):
-        pass
+from glyphbench.envs import _import_all_suites as _load_suites
+
+_load_suites()
+del _load_suites
 
 __all__ = [
     "ActionSpec",
