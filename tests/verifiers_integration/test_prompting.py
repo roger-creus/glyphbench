@@ -23,12 +23,22 @@ class _Game(BaseGlyphEnv):
 
     def _reset(self, seed: int) -> GridObservation:
         return GridObservation(grid="A.", legend="A symbol-a", hud="step=0", message="")
+
     def _step(self, action: int):
-        return GridObservation(grid="A.", legend="A symbol-a", hud="step=1", message=""), 0.0, False, False, {}
+        return (
+            GridObservation(grid="A.", legend="A symbol-a", hud="step=1", message=""),
+            0.0,
+            False,
+            False,
+            {},
+        )
+
     def _render_current_observation(self) -> GridObservation:
         return self._reset(0)
+
     def system_prompt(self) -> str:
         return "You play a game. Move around."
+
     def env_id(self) -> str:
         return "test/g-v0"
 
@@ -100,8 +110,8 @@ def test_user_turn_history_window_respected(game):
     text = render_user_turn(
         game, frames, current_obs="[Grid]\nC", turn=4, max_output_tokens=512
     )
-    # Four history entries rendered.
-    assert text.count("reward") == 4 or text.count("→") == 4 or "turn" in text
+    # Four history entries rendered — each formatted as "chose <action> → reward ...".
+    assert text.count("chose ") == 4
 
 
 def test_user_turn_reminds_format_and_budget(game):

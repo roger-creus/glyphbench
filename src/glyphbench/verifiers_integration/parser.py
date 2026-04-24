@@ -64,9 +64,10 @@ class GlyphbenchXMLParser(vf.XMLParser):
         if candidate is None:
             return self._noop(spec, noop)
         try:
-            return (spec.index_of(candidate), spec.names[spec.index_of(candidate)], False)
+            idx = spec.index_of(candidate)
         except KeyError:
             return self._noop(spec, noop)
+        return idx, spec.names[idx], False
 
     def _extract_candidate(self, text: str) -> str | None:
         # 1. Complete <action>...</action> — take the last occurrence.
