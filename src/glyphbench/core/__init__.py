@@ -10,7 +10,7 @@ from glyphbench.core.registry import (
     register_env,
 )
 
-# Back-compat alias during migration (removed at end of M4).
+# TEMPORARY — remove at end of M4 (plan Task 4.7)
 BaseAsciiEnv = BaseGlyphEnv
 
 __all__ = [

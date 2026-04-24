@@ -24,6 +24,7 @@ from glyphbench.envs import dummy  # noqa: F401
 # The rest of the suites are optional during migration; they get added as
 # the ports land in M2-M4 (import safely, silently skip on ImportError or
 # legacy-register_env TypeErrors).
+# TEMPORARY — remove at end of M4 (plan Task 4.7)
 for _suite in ("minigrid", "minihack", "atari", "craftax", "procgen", "classics"):
     try:
         __import__(f"glyphbench.envs.{_suite}")

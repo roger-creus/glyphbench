@@ -109,8 +109,3 @@ class BaseGlyphEnv(ABC):
     def close(self) -> None:
         """Optional cleanup hook. Default: no-op."""
         return None
-
-
-# Back-compat alias during migration (removed at end of Milestone 4).
-# TEMPORARY — grep-audit at end of M4 removes this line.
-BaseAsciiEnv = BaseGlyphEnv
