@@ -76,7 +76,16 @@ class BaseGlyphEnv(ABC):
     def _render_current_observation(self) -> GridObservation: ...
 
     @abstractmethod
-    def system_prompt(self) -> str: ...
+    def system_prompt(self) -> str:
+        """Per-game rules / goal description for the system prompt.
+
+        Should describe the objective, reward structure, and any game-specific
+        mechanics. Should NOT enumerate the action list — the verifiers
+        integration appends ``action_spec.render_for_prompt()`` separately
+        (see ``build_system_prompt`` in ``verifiers_integration.prompting``),
+        so including it here would duplicate tokens.
+        """
+        ...
 
     @abstractmethod
     def env_id(self) -> str: ...

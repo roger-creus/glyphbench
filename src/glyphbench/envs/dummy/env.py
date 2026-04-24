@@ -42,8 +42,7 @@ class DummyEnv(BaseGlyphEnv):
         return (
             "You are playing a 3x3 test env. Navigate from the top-left corner to "
             "the goal 'G' in the bottom-right corner. You earn +1 on reaching the "
-            "goal and the episode ends. Otherwise 0.\n\n"
-            + self.action_spec.render_for_prompt()
+            "goal and the episode ends. Otherwise 0."
         )
 
     def _reset(self, seed: int) -> GridObservation:
