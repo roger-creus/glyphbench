@@ -11,9 +11,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -56,7 +55,7 @@ GRAVITY = 0.3
 # ---------------------------------------------------------------------------
 
 
-class ArtilleryEnv(BaseAsciiEnv):
+class ArtilleryEnv(BaseGlyphEnv):
     """Aim angle + power, fire projectile to hit targets on terrain."""
 
     action_spec = ARTILLERY_ACTION_SPEC
@@ -346,7 +345,3 @@ class ArtilleryEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-artillery-v0",
-    "glyphbench.envs.classics.artillery:ArtilleryEnv",
-)

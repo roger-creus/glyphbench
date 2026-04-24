@@ -12,9 +12,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -85,7 +84,7 @@ def _make_lane_configs() -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-class FroggerEnv(BaseAsciiEnv):
+class FroggerEnv(BaseGlyphEnv):
     """Frogger: cross roads and rivers to reach the top."""
 
     action_spec = FROGGER_ACTION_SPEC
@@ -262,8 +261,3 @@ class FroggerEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-frogger-v0",
-    "glyphbench.envs.classics.frogger:FroggerEnv",
-    max_episode_steps=None,
-)

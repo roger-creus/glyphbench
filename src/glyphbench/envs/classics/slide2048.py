@@ -12,9 +12,8 @@ import numpy as np
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -71,7 +70,7 @@ def _tile_sym(val: int) -> str:
 # ---------------------------------------------------------------------------
 
 
-class Slide2048Env(BaseAsciiEnv):
+class Slide2048Env(BaseGlyphEnv):
     """2048: slide tiles to merge and reach high values."""
 
     action_spec = SLIDE_ACTION_SPEC
@@ -259,7 +258,3 @@ class Slide2048Env(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-2048-v0",
-    "glyphbench.envs.classics.slide2048:Slide2048Env",
-)

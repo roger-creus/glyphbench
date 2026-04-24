@@ -14,9 +14,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -117,7 +116,7 @@ def _generate_maze(
 # ---------------------------------------------------------------------------
 
 
-class _MazeRunnerBase(BaseAsciiEnv):
+class _MazeRunnerBase(BaseGlyphEnv):
     """Maze runner: navigate a procedurally generated maze from start to exit."""
 
     action_spec = MAZE_ACTION_SPEC
@@ -252,15 +251,3 @@ class MazeHardEnv(_MazeRunnerBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-maze-easy-v0",
-    "glyphbench.envs.classics.maze_runner:MazeEasyEnv",
-)
-register_env(
-    "glyphbench/classics-maze-medium-v0",
-    "glyphbench.envs.classics.maze_runner:MazeMediumEnv",
-)
-register_env(
-    "glyphbench/classics-maze-hard-v0",
-    "glyphbench.envs.classics.maze_runner:MazeHardEnv",
-)

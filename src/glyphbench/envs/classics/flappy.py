@@ -10,9 +10,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 WIDTH = 20
 HEIGHT = 10
@@ -32,7 +31,7 @@ SYM_EMPTY = "\u00b7"
 SYM_GROUND = "\u2550"
 
 
-class FlappyEnv(BaseAsciiEnv):
+class FlappyEnv(BaseGlyphEnv):
     """Flappy bird: flap to navigate through pipe gaps."""
 
     action_spec = FLAPPY_ACTION_SPEC
@@ -147,8 +146,3 @@ class FlappyEnv(BaseAsciiEnv):
         )
 
 
-register_env(
-    "glyphbench/classics-flappy-v0",
-    "glyphbench.envs.classics.flappy:FlappyEnv",
-    max_episode_steps=None,
-)

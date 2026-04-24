@@ -12,9 +12,8 @@ import numpy as np
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -52,7 +51,7 @@ SYM_FLAME = "*"
 # ---------------------------------------------------------------------------
 
 
-class LunarLanderEnv(BaseAsciiEnv):
+class LunarLanderEnv(BaseGlyphEnv):
     """Land a spacecraft on the landing pad with low velocity."""
 
     action_spec = LUNAR_ACTION_SPEC
@@ -250,7 +249,3 @@ class LunarLanderEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-lunarlander-v0",
-    "glyphbench.envs.classics.lunar_lander:LunarLanderEnv",
-)

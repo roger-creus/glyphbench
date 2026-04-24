@@ -13,9 +13,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Pipe connectivity definitions
@@ -118,7 +117,7 @@ def _make_pipe_action_spec(grid_size: int) -> ActionSpec:
     return ActionSpec(names=names, descriptions=descs)
 
 
-class _PipeConnectBase(BaseAsciiEnv):
+class _PipeConnectBase(BaseGlyphEnv):
     """Rotate pipe pieces to connect source to sink."""
 
     noop_action_name: str = "ROTATE_0"
@@ -413,15 +412,3 @@ class PipeConnectHardEnv(_PipeConnectBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-pipeconnect-easy-v0",
-    "glyphbench.envs.classics.pipe_connect:PipeConnectEasyEnv",
-)
-register_env(
-    "glyphbench/classics-pipeconnect-medium-v0",
-    "glyphbench.envs.classics.pipe_connect:PipeConnectMediumEnv",
-)
-register_env(
-    "glyphbench/classics-pipeconnect-hard-v0",
-    "glyphbench.envs.classics.pipe_connect:PipeConnectHardEnv",
-)

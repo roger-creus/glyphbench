@@ -12,9 +12,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -65,7 +64,7 @@ _DIR_DELTAS = {
 # ---------------------------------------------------------------------------
 
 
-class FarmSimEnv(BaseAsciiEnv):
+class FarmSimEnv(BaseGlyphEnv):
     """Farm simulator: plant, water, harvest, and sell crops."""
 
     action_spec = FARM_ACTION_SPEC
@@ -249,8 +248,3 @@ class FarmSimEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-farm-v0",
-    "glyphbench.envs.classics.farm_sim:FarmSimEnv",
-    max_episode_steps=None,
-)

@@ -13,9 +13,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Action spec builder
@@ -41,7 +40,7 @@ def _make_nim_action_spec(pile_sizes: tuple[int, ...]) -> ActionSpec:
 # ---------------------------------------------------------------------------
 
 
-class _NimBase(BaseAsciiEnv):
+class _NimBase(BaseGlyphEnv):
     """Nim: take objects from piles. Whoever takes the last object loses."""
 
     noop_action_name: str = "TAKE_0_1"
@@ -268,11 +267,3 @@ class NimHardEnv(_NimBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-nim-easy-v0",
-    "glyphbench.envs.classics.nim:NimEasyEnv",
-)
-register_env(
-    "glyphbench/classics-nim-hard-v0",
-    "glyphbench.envs.classics.nim:NimHardEnv",
-)

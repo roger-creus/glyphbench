@@ -6,9 +6,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -49,7 +48,7 @@ MATCH3_ACTION_SPEC = ActionSpec(
 # ---------------------------------------------------------------------------
 
 
-class Match3Env(BaseAsciiEnv):
+class Match3Env(BaseGlyphEnv):
     """Match-3 gem-swapping on an 8x8 board with 6 gem types."""
 
     action_spec = MATCH3_ACTION_SPEC
@@ -314,7 +313,3 @@ class Match3Env(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-match3-v0",
-    "glyphbench.envs.classics.match3:Match3Env",
-)

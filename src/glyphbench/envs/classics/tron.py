@@ -12,9 +12,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -60,7 +59,7 @@ _OPPOSITE = {"UP": "DOWN", "DOWN": "UP", "LEFT": "RIGHT", "RIGHT": "LEFT"}
 # ---------------------------------------------------------------------------
 
 
-class TronEnv(BaseAsciiEnv):
+class TronEnv(BaseGlyphEnv):
     """Tron: light cycle game against an AI opponent."""
 
     action_spec = TRON_ACTION_SPEC
@@ -313,8 +312,3 @@ class TronEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-tron-v0",
-    "glyphbench.envs.classics.tron:TronEnv",
-    max_episode_steps=None,
-)

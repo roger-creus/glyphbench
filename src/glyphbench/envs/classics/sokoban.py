@@ -13,9 +13,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -50,7 +49,7 @@ _DIR_DELTAS = {
 # ---------------------------------------------------------------------------
 
 
-class _SokobanBase(BaseAsciiEnv):
+class _SokobanBase(BaseGlyphEnv):
     """Sokoban: push all boxes onto target positions."""
 
     action_spec = SOKOBAN_ACTION_SPEC
@@ -338,15 +337,3 @@ class SokobanHardEnv(_SokobanBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-sokoban-easy-v0",
-    "glyphbench.envs.classics.sokoban:SokobanEasyEnv",
-)
-register_env(
-    "glyphbench/classics-sokoban-medium-v0",
-    "glyphbench.envs.classics.sokoban:SokobanMediumEnv",
-)
-register_env(
-    "glyphbench/classics-sokoban-hard-v0",
-    "glyphbench.envs.classics.sokoban:SokobanHardEnv",
-)

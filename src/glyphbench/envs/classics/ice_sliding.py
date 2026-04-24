@@ -15,9 +15,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -57,7 +56,7 @@ DIFFICULTY = {
 # ---------------------------------------------------------------------------
 
 
-class _IceSlidingBase(BaseAsciiEnv):
+class _IceSlidingBase(BaseGlyphEnv):
     """Pokemon-style ice puzzle: slide until hitting wall/rock."""
 
     action_spec = ICE_ACTION_SPEC
@@ -255,15 +254,3 @@ class IceSlidingHardEnv(_IceSlidingBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-icesliding-easy-v0",
-    "glyphbench.envs.classics.ice_sliding:IceSlidingEasyEnv",
-)
-register_env(
-    "glyphbench/classics-icesliding-medium-v0",
-    "glyphbench.envs.classics.ice_sliding:IceSlidingMediumEnv",
-)
-register_env(
-    "glyphbench/classics-icesliding-hard-v0",
-    "glyphbench.envs.classics.ice_sliding:IceSlidingHardEnv",
-)

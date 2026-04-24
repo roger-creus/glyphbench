@@ -8,9 +8,8 @@ import numpy as np
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Symbols
@@ -68,7 +67,7 @@ _HARD_ACTION_SPEC = _make_action_spec(_HARD_SIZE)
 # ---------------------------------------------------------------------------
 
 
-class NonogramEnv(BaseAsciiEnv):
+class NonogramEnv(BaseGlyphEnv):
     """Nonogram puzzle. Fill/mark cells to match hidden pattern."""
 
     # Overridden per variant
@@ -295,12 +294,4 @@ class NonogramHardEnv(NonogramEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-nonogram-easy-v0",
-    "glyphbench.envs.classics.nonogram:NonogramEasyEnv",
-)
 
-register_env(
-    "glyphbench/classics-nonogram-hard-v0",
-    "glyphbench.envs.classics.nonogram:NonogramHardEnv",
-)

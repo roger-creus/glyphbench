@@ -12,9 +12,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -204,7 +203,7 @@ def _build_action_spec(num_vehicles: int) -> ActionSpec:
 # Env
 # ---------------------------------------------------------------------------
 
-class _RushHourBase(BaseAsciiEnv):
+class _RushHourBase(BaseGlyphEnv):
     """Slide vehicles to let your car exit the right edge."""
 
     noop_action_name: str = "NOOP"
@@ -387,11 +386,3 @@ class RushHourHardEnv(_RushHourBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-rushhour-easy-v0",
-    "glyphbench.envs.classics.rush_hour:RushHourEasyEnv",
-)
-register_env(
-    "glyphbench/classics-rushhour-hard-v0",
-    "glyphbench.envs.classics.rush_hour:RushHourHardEnv",
-)

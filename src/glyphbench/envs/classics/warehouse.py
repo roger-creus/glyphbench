@@ -12,9 +12,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -58,7 +57,7 @@ _DIR_DELTAS = {
 # ---------------------------------------------------------------------------
 
 
-class WarehouseEnv(BaseAsciiEnv):
+class WarehouseEnv(BaseGlyphEnv):
     """Warehouse: pick up packages and deliver to matching destinations."""
 
     action_spec = WAREHOUSE_ACTION_SPEC
@@ -262,8 +261,3 @@ class WarehouseEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-warehouse-v0",
-    "glyphbench.envs.classics.warehouse:WarehouseEnv",
-    max_episode_steps=None,
-)

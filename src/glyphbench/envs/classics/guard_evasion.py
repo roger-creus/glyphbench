@@ -15,9 +15,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -135,7 +134,7 @@ class _Guard:
 # ---------------------------------------------------------------------------
 
 
-class _GuardEvasionBase(BaseAsciiEnv):
+class _GuardEvasionBase(BaseGlyphEnv):
     """Reach the exit while avoiding guards with vision cones."""
 
     action_spec = GUARD_ACTION_SPEC
@@ -388,15 +387,3 @@ class GuardEvasionHardEnv(_GuardEvasionBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-guardevasion-easy-v0",
-    "glyphbench.envs.classics.guard_evasion:GuardEvasionEasyEnv",
-)
-register_env(
-    "glyphbench/classics-guardevasion-medium-v0",
-    "glyphbench.envs.classics.guard_evasion:GuardEvasionMediumEnv",
-)
-register_env(
-    "glyphbench/classics-guardevasion-hard-v0",
-    "glyphbench.envs.classics.guard_evasion:GuardEvasionHardEnv",
-)

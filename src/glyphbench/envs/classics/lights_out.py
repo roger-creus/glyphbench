@@ -13,9 +13,8 @@ import numpy as np
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -41,7 +40,7 @@ def _make_lightsout_action_spec(size: int) -> ActionSpec:
 # ---------------------------------------------------------------------------
 
 
-class _LightsOutBase(BaseAsciiEnv):
+class _LightsOutBase(BaseGlyphEnv):
     """Lights Out: press cells to toggle them and neighbors. Turn all lights off."""
 
     noop_action_name: str = "PRESS_0"
@@ -203,11 +202,3 @@ class LightsOutHardEnv(_LightsOutBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-lightsout-easy-v0",
-    "glyphbench.envs.classics.lights_out:LightsOutEasyEnv",
-)
-register_env(
-    "glyphbench/classics-lightsout-hard-v0",
-    "glyphbench.envs.classics.lights_out:LightsOutHardEnv",
-)

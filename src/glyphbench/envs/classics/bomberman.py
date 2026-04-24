@@ -6,9 +6,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -55,7 +54,7 @@ _DIR_MAP = {"UP": (-1, 0), "DOWN": (1, 0), "LEFT": (0, -1), "RIGHT": (0, 1)}
 # ---------------------------------------------------------------------------
 
 
-class BombermanEnv(BaseAsciiEnv):
+class BombermanEnv(BaseGlyphEnv):
     """Bomberman on an 11x11 grid."""
 
     action_spec = BOMBERMAN_ACTION_SPEC
@@ -312,7 +311,3 @@ class BombermanEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-bomberman-v0",
-    "glyphbench.envs.classics.bomberman:BombermanEnv",
-)

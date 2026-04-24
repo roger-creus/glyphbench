@@ -12,9 +12,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -43,7 +42,7 @@ SYM_WALL = "\u2588"      # █
 # ---------------------------------------------------------------------------
 
 
-class GravityMazeEnv(BaseAsciiEnv):
+class GravityMazeEnv(BaseGlyphEnv):
     """Navigate a ball through a gravity maze to reach the goal."""
 
     action_spec = GRAVITY_ACTION_SPEC
@@ -255,7 +254,3 @@ class GravityMazeEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-gravitymaze-v0",
-    "glyphbench.envs.classics.gravity_maze:GravityMazeEnv",
-)

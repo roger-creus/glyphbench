@@ -10,9 +10,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -47,7 +46,7 @@ SYM_GROUND = "\u2588"     # █
 # ---------------------------------------------------------------------------
 
 
-class PlatformerEnv(BaseAsciiEnv):
+class PlatformerEnv(BaseGlyphEnv):
     """Side-scrolling Mario-style platformer."""
 
     action_spec = PLATFORMER_ACTION_SPEC
@@ -360,7 +359,3 @@ class PlatformerEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-platformer-v0",
-    "glyphbench.envs.classics.platformer:PlatformerEnv",
-)

@@ -8,9 +8,8 @@ import numpy as np
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -103,7 +102,7 @@ TETRIS_ACTION_SPEC = ActionSpec(
 # ---------------------------------------------------------------------------
 
 
-class TetrisEnv(BaseAsciiEnv):
+class TetrisEnv(BaseGlyphEnv):
     """Classic Tetris on a 10x20 board."""
 
     action_spec = TETRIS_ACTION_SPEC
@@ -335,7 +334,3 @@ class TetrisEnv(BaseAsciiEnv):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-tetris-v0",
-    "glyphbench.envs.classics.tetris:TetrisEnv",
-)

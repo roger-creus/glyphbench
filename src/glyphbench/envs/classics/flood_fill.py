@@ -12,9 +12,8 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import register_env
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -82,7 +81,7 @@ def _apply_flood(board: list[list[int]], rows: int, cols: int, new_color: int) -
 # Env
 # ---------------------------------------------------------------------------
 
-class _FloodFillBase(BaseAsciiEnv):
+class _FloodFillBase(BaseGlyphEnv):
     """Change your region's color to absorb adjacent same-color cells."""
 
     action_spec = FLOOD_ACTION_SPEC
@@ -210,11 +209,3 @@ class FloodFillHardEnv(_FloodFillBase):
 # Registration
 # ---------------------------------------------------------------------------
 
-register_env(
-    "glyphbench/classics-floodfill-easy-v0",
-    "glyphbench.envs.classics.flood_fill:FloodFillEasyEnv",
-)
-register_env(
-    "glyphbench/classics-floodfill-hard-v0",
-    "glyphbench.envs.classics.flood_fill:FloodFillHardEnv",
-)
