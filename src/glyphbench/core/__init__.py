@@ -10,13 +10,9 @@ from glyphbench.core.registry import (
     register_env,
 )
 
-# TEMPORARY — remove at end of M4 (plan Task 4.7)
-BaseAsciiEnv = BaseGlyphEnv
-
 __all__ = [
     "ActionSpec",
     "BaseGlyphEnv",
-    "BaseAsciiEnv",  # temporary alias
     "GridObservation",
     "REGISTRY",
     "all_glyphbench_env_ids",

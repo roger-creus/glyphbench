@@ -14,16 +14,6 @@ ALL_SUITES: tuple[str, ...] = (
 
 
 def _import_all_suites() -> None:
-    """Force-import every suite so side-effect registration populates REGISTRY.
-
-    Suites that aren't yet ported (or aren't installed in this build) are
-    skipped silently — ImportError covers missing modules, TypeError tolerates
-    any suite still on the legacy gym-style register_env signature during the
-    migration window.
-    """
+    """Force-import every suite so side-effect registration populates REGISTRY."""
     for suite in ALL_SUITES:
-        try:
-            __import__(f"glyphbench.envs.{suite}")
-        except (ImportError, TypeError):
-            # Suite not present in this build — acceptable during migration.
-            pass
+        __import__(f"glyphbench.envs.{suite}")

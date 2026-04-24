@@ -18,10 +18,7 @@ from glyphbench.verifiers_integration import (
     load_environment,
 )
 
-# Importing any suite module populates REGISTRY eagerly. Suites still on the
-# legacy register_env signature (or not yet ported) are skipped silently —
-# acceptable during the migration window.
-# TEMPORARY — remove at end of M4 (plan Task 4.7)
+# Importing any suite module populates REGISTRY via register_env side-effects.
 from glyphbench.envs import _import_all_suites as _load_suites
 
 _load_suites()

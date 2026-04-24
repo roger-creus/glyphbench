@@ -4,12 +4,12 @@ def test_importing_glyphbench_registers_dummy_env():
     assert "glyphbench/__dummy-v0" in all_glyphbench_env_ids()
 
 
-def test_gym_can_make_dummy_env_via_id():
-    import gymnasium as gym
+def test_make_env_can_make_dummy_env_via_id():
+    from glyphbench.core import make_env
 
     import glyphbench  # noqa: F401
-    env = gym.make("glyphbench/__dummy-v0")
-    obs, info = env.reset(seed=0)
+    env = make_env("glyphbench/__dummy-v0")
+    obs, info = env.reset(0)
     assert isinstance(obs, str)
     assert "@" in obs
 
@@ -17,7 +17,7 @@ def test_gym_can_make_dummy_env_via_id():
 def test_core_public_reexports():
     from glyphbench.core import (
         ActionSpec,
-        BaseAsciiEnv,
+        BaseGlyphEnv,
         GridObservation,
         all_glyphbench_env_ids,
         register_env,
@@ -27,4 +27,4 @@ def test_core_public_reexports():
     assert callable(all_glyphbench_env_ids)
     assert isinstance(GridObservation.__name__, str)
     assert isinstance(ActionSpec.__name__, str)
-    assert isinstance(BaseAsciiEnv.__name__, str)
+    assert isinstance(BaseGlyphEnv.__name__, str)
