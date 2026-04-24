@@ -1,24 +1,25 @@
-"""Core contracts shared by every env and the harness.
-
-Public types:
-    GridObservation — the frozen observation dataclass every env returns.
-    ActionSpec — per-env action vocabulary.
-    BaseAsciiEnv — abstract base class for all envs.
-
-Functions:
-    register_env — register a gym id pointing at our entry points.
-    all_glyphbench_env_ids — list all registered ids.
-"""
+"""Core contracts shared by every env and the verifiers integration."""
 
 from glyphbench.core.action import ActionSpec
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
-from glyphbench.core.registry import all_glyphbench_env_ids, register_env
+from glyphbench.core.registry import (
+    REGISTRY,
+    all_glyphbench_env_ids,
+    make_env,
+    register_env,
+)
+
+# Back-compat alias during migration (removed at end of M4).
+BaseAsciiEnv = BaseGlyphEnv
 
 __all__ = [
     "ActionSpec",
-    "BaseAsciiEnv",
+    "BaseGlyphEnv",
+    "BaseAsciiEnv",  # temporary alias
     "GridObservation",
+    "REGISTRY",
     "all_glyphbench_env_ids",
+    "make_env",
     "register_env",
 ]
