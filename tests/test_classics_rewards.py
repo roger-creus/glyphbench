@@ -7,10 +7,10 @@ exponential cascade multiplier that made random > skilled).
 
 from __future__ import annotations
 
-import gymnasium as gym
 import numpy as np
 
-import glyphbench  # noqa: F401 — register envs
+import glyphbench.envs.classics  # noqa: F401 — register envs
+from glyphbench.core import make_env
 from glyphbench.envs.classics.flappy import FlappyEnv
 from glyphbench.envs.classics.match3 import Match3Env, _SIZE
 
@@ -31,7 +31,7 @@ def _noop_idx(env: FlappyEnv) -> int:
 def test_flappy_reward_on_pipe_pass() -> None:
     """Crossing a pipe (pipe column decrements to 1 from 2) yields +1 reward."""
     env = FlappyEnv()
-    env.reset(seed=0)
+    env.reset(0)
 
     # Stage exactly one pipe at x=2 with a gap covering the bird row,
     # clear other pipes, and ensure bird will survive this step.
@@ -52,7 +52,7 @@ def test_flappy_reward_on_pipe_pass() -> None:
 def test_flappy_zero_reward_on_idle() -> None:
     """NOOP with no pipe crossing gives 0.0 reward (no time penalty)."""
     env = FlappyEnv()
-    env.reset(seed=0)
+    env.reset(0)
 
     # Push pipes far from the bird so no crossing happens this step.
     env._pipes = [{"x": 15, "gap_y": 3, "scored": False}]
@@ -67,7 +67,7 @@ def test_flappy_zero_reward_on_idle() -> None:
 def test_flappy_zero_reward_on_death() -> None:
     """Dying yields 0.0 reward (keeps invariant simple)."""
     env = FlappyEnv()
-    env.reset(seed=0)
+    env.reset(0)
 
     # Pipe at x=3 so after decrement it's at 2 and collides with bird at col 2
     # Bird out of gap → crash.
@@ -91,7 +91,7 @@ def test_match3_reward_no_cascade_multiplier() -> None:
     Reward should equal the total number of matched gems across all cascades.
     """
     env = Match3Env()
-    env.reset(seed=0)
+    env.reset(0)
 
     # Build a tiny controlled board: put a vertical triple ready to match
     # at column 0 rows 0,1,2 (all 0) and ensure the rest has no matches.
@@ -133,15 +133,14 @@ def test_match3_random_baseline_bounded() -> None:
     seeds = rng.integers(0, 2**31, size=25).tolist()
     returns: list[float] = []
     for seed in seeds:
-        env = gym.make(env_id)
-        env.reset(seed=int(seed))
-        # Seed the action space explicitly so this test is deterministic
-        # regardless of other tests' RNG usage.
-        env.action_space.seed(int(seed))
+        env = make_env(env_id)
+        env.reset(int(seed))
+        # env.reset seeds env.rng deterministically, so sampling below is
+        # reproducible across runs without needing a separate action-space RNG.
         total = 0.0
         done = False
         while not done:
-            action = env.action_space.sample()
+            action = int(env.rng.integers(0, env.action_spec.n))
             _, reward, terminated, truncated, _ = env.step(action)
             total += float(reward)
             done = terminated or truncated
@@ -164,13 +163,12 @@ def test_flappy_random_baseline_has_variance() -> None:
     seeds = rng.integers(0, 2**31, size=25).tolist()
     returns: list[float] = []
     for seed in seeds:
-        env = gym.make(env_id)
-        env.reset(seed=int(seed))
-        env.action_space.seed(int(seed))
+        env = make_env(env_id)
+        env.reset(int(seed))
         total = 0.0
         done = False
         while not done:
-            action = env.action_space.sample()
+            action = int(env.rng.integers(0, env.action_spec.n))
             _, reward, terminated, truncated, _ = env.step(action)
             total += float(reward)
             done = terminated or truncated
@@ -187,7 +185,7 @@ def test_flappy_random_baseline_has_variance() -> None:
     # independently of random luck:
     from glyphbench.envs.classics.flappy import FlappyEnv
     env2 = FlappyEnv()
-    env2.reset(seed=0)
+    env2.reset(0)
     env2._pipes = [{"x": 2, "gap_y": 0, "scored": False}]
     env2._bird_y = 1.0
     env2._bird_vy = 0.0
