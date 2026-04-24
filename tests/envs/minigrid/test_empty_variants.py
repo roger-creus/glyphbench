@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-import gymnasium as gym
+from glyphbench.core import make_env
+import glyphbench.envs.minigrid  # register envs
+
+
 import pytest
 
 import glyphbench  # noqa: F401
@@ -22,8 +25,8 @@ RANDOM_VARIANTS = [
 class TestEmptyVariants:
     @pytest.mark.parametrize("env_id,expected_w,expected_h", EMPTY_VARIANTS)
     def test_grid_size(self, env_id: str, expected_w: int, expected_h: int) -> None:
-        env = gym.make(env_id, max_turns=50)
-        obs, _ = env.reset(seed=0)
+        env = make_env(env_id, max_turns=50)
+        obs, _ = env.reset(0)
         grid_text = obs.split("[Grid]\n")[1].split("\n\n")[0]
         rows = grid_text.strip().split("\n")
         assert len(rows) == expected_h
@@ -33,15 +36,15 @@ class TestEmptyVariants:
     def test_random_start_varies_across_seeds(self, env_id: str) -> None:
         positions = set()
         for seed in range(10):
-            env = gym.make(env_id, max_turns=50)
+            env = make_env(env_id, max_turns=50)
             _, info = env.reset(seed=seed)
             positions.add(info.get("agent_pos"))
         assert len(positions) >= 2
 
     @pytest.mark.parametrize("env_id", RANDOM_VARIANTS)
     def test_random_start_deterministic(self, env_id: str) -> None:
-        e1 = gym.make(env_id, max_turns=50)
-        e2 = gym.make(env_id, max_turns=50)
+        e1 = make_env(env_id, max_turns=50)
+        e2 = make_env(env_id, max_turns=50)
         o1, _ = e1.reset(seed=42)
         o2, _ = e2.reset(seed=42)
         assert o1 == o2

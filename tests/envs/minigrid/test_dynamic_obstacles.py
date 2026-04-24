@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-import gymnasium as gym
+from glyphbench.core import make_env
+import glyphbench.envs.minigrid  # register envs
+
+
 import pytest
 
 import glyphbench  # noqa: F401
@@ -18,15 +21,15 @@ DYNAMIC_VARIANTS = [
 class TestDynamicObstacles:
     @pytest.mark.parametrize("env_id", DYNAMIC_VARIANTS)
     def test_reset_and_step(self, env_id: str) -> None:
-        env = gym.make(env_id, max_turns=100)
-        obs, info = env.reset(seed=0)
+        env = make_env(env_id, max_turns=100)
+        obs, info = env.reset(0)
         assert isinstance(obs, str)
         assert "G" in obs or "O" in obs  # goal or obstacle visible
 
     @pytest.mark.parametrize("env_id", DYNAMIC_VARIANTS)
     def test_seed_determinism(self, env_id: str) -> None:
-        e1 = gym.make(env_id, max_turns=100)
-        e2 = gym.make(env_id, max_turns=100)
+        e1 = make_env(env_id, max_turns=100)
+        e2 = make_env(env_id, max_turns=100)
         e1.reset(seed=42)
         e2.reset(seed=42)
         for _ in range(20):
@@ -39,8 +42,8 @@ class TestDynamicObstacles:
 
     @pytest.mark.parametrize("env_id", DYNAMIC_VARIANTS)
     def test_has_obstacles(self, env_id: str) -> None:
-        env = gym.make(env_id, max_turns=100)
-        obs, _ = env.reset(seed=0)
+        env = make_env(env_id, max_turns=100)
+        obs, _ = env.reset(0)
         assert "ball" in obs  # ball obstacles in legend
 
     @pytest.mark.parametrize("env_id", DYNAMIC_VARIANTS)
@@ -48,12 +51,12 @@ class TestDynamicObstacles:
         """Obstacles should change position after stepping."""
         from glyphbench.envs.minigrid.dynamic_obstacles import _DynamicObstaclesBase
 
-        env = gym.make(env_id, max_turns=200)
+        env = make_env(env_id, max_turns=200)
         # Try a few seeds to find one where obstacles visibly move
         moved = False
         for seed in range(10):
             env.reset(seed=seed)
-            unwrapped: _DynamicObstaclesBase = env.unwrapped  # type: ignore[assignment]
+            unwrapped: _DynamicObstaclesBase = env  # type: ignore[assignment]
             initial_pos = list(unwrapped._obstacle_positions)
             any_moved = False
             for _ in range(20):
@@ -70,19 +73,19 @@ class TestDynamicObstacles:
 
     @pytest.mark.parametrize("env_id", DYNAMIC_VARIANTS)
     def test_random_rollout_no_crash(self, env_id: str) -> None:
-        env = gym.make(env_id, max_turns=100)
-        env.reset(seed=0)
+        env = make_env(env_id, max_turns=100)
+        env.reset(0)
         for _ in range(100):
-            action = env.action_space.sample()
+            action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
             if terminated or truncated:
-                env.reset(seed=0)
+                env.reset(0)
 
     @pytest.mark.parametrize("env_id", DYNAMIC_VARIANTS)
     def test_goal_reachable(self, env_id: str) -> None:
         """The goal should exist in the initial observation."""
-        env = gym.make(env_id, max_turns=100)
-        obs, _ = env.reset(seed=0)
+        env = make_env(env_id, max_turns=100)
+        obs, _ = env.reset(0)
         assert "G" in obs
 
     def test_collision_terminates(self) -> None:
@@ -92,7 +95,7 @@ class TestDynamicObstacles:
         )
 
         env_inner = MiniGridDynamicObstacles5x5Env(max_turns=500)
-        env = gym.make(
+        env = make_env(
             "glyphbench/minigrid-dynamic-obstacles-5x5-v0", max_turns=500
         )
         # Run many seeds until we get a collision

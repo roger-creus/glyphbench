@@ -17,6 +17,9 @@ Runs across 3+ MiniGrid variants: Empty-5x5, DoorKey-5x5, Crossing-N1 (lava).
 
 from __future__ import annotations
 
+from glyphbench.core import make_env
+import glyphbench.envs.minigrid  # register envs
+
 import pytest
 
 from glyphbench.envs.minigrid.base import DIR_TO_CHAR
@@ -137,12 +140,11 @@ class TestAllMinigridEnvsConsistent:
     in each system prompt."""
 
     def _all_env_ids(self) -> list[str]:
-        import gymnasium as gym
-
         import glyphbench  # noqa: F401  # triggers env registration
+        from glyphbench.core import all_glyphbench_env_ids
 
         return sorted(
-            eid for eid in gym.registry.keys()
+            eid for eid in all_glyphbench_env_ids()
             if eid.startswith("glyphbench/minigrid-")
         )
 
@@ -152,14 +154,14 @@ class TestAllMinigridEnvsConsistent:
     def test_universal_glyphs_in_every_prompt(self) -> None:
         """Wall (█), all four agent arrows, and the goal (★) must appear in
         every minigrid env's system prompt."""
-        import gymnasium as gym
+        
 
         wall = Wall().render_char()
         goal = Goal().render_char()
         arrows = tuple(DIR_TO_CHAR.values())
         missing: dict[str, list[str]] = {}
         for env_id in self._all_env_ids():
-            env = gym.make(env_id, max_turns=20).unwrapped
+            env = make_env(env_id, max_turns=20)
             prompt = env.system_prompt()
             miss = []
             if wall not in prompt:

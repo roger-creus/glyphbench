@@ -75,7 +75,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 10.1: test_observation_contract ---
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, info = env.reset(seed=0)
+        obs_str, info = env.reset(0)
         assert isinstance(obs_str, str)
         assert len(obs_str) > 0
         # Grid must be present
@@ -93,7 +93,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 8.1: Agent starts at (1,1) facing right ---
     def test_initial_position_and_facing(self):
         env = self._make_env()
-        obs_str, info = env.reset(seed=0)
+        obs_str, info = env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         # 7x7 grid: row 1 (index 1), col 1 should have '→'
@@ -102,7 +102,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 8.1: Goal at (5,5) ---
     def test_goal_position(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         # Row 5, col 5 should have '★'
@@ -115,7 +115,7 @@ class TestMiniGridEmpty5x5:
     # In grid coords that's (5,1)
     def test_move_forward_four_times(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         fwd = env.action_spec.index_of("MOVE_FORWARD")
         for _ in range(4):
             env.step(fwd)
@@ -127,7 +127,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 8.1: Turn-right -> turn-right -> facing = LEFT ---
     def test_turn_right_twice_faces_left(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         right = env.action_spec.index_of("TURN_RIGHT")
         env.step(right)  # facing down
         env.step(right)  # facing left
@@ -153,7 +153,7 @@ class TestMiniGridEmpty5x5:
     # Spec might count differently. Let me just test the 9-step path and check reward.
     def test_optimal_path_reward(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         fwd = env.action_spec.index_of("MOVE_FORWARD")
         turn_right = env.action_spec.index_of("TURN_RIGHT")
 
@@ -182,7 +182,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 10.1: test_reward_bounds ---
     def test_reward_bounds(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         fwd = env.action_spec.index_of("MOVE_FORWARD")
         noop = env.action_spec.index_of("DONE")
         # Non-terminal steps have 0 reward
@@ -195,7 +195,7 @@ class TestMiniGridEmpty5x5:
     def test_episode_terminates(self):
         """Random-ish actions eventually end (via truncation at max_turns)."""
         env = self._make_env(max_turns=50)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("DONE")
         for _ in range(60):
             _, _, t, tr, _ = env.step(noop)
@@ -206,7 +206,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 10.1: test_max_turns_truncation ---
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("DONE")
         for i in range(5):
             _, _, terminated, truncated, info = env.step(noop)
@@ -220,7 +220,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 8.1: no-op actions (PICKUP, DROP, TOGGLE, DONE) don't change state ---
     def test_noop_actions_do_not_change_state(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         obs_before = env.get_observation()
         for name in ("PICKUP", "DROP", "TOGGLE", "DONE"):
             idx = env.action_spec.index_of(name)
@@ -232,7 +232,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 8.1: wall collision = stay put ---
     def test_wall_collision_stays_put(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Agent at (1,1) facing right. Turn left to face up.
         turn_left = env.action_spec.index_of("TURN_LEFT")
         fwd = env.action_spec.index_of("MOVE_FORWARD")
@@ -245,7 +245,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 8.1: HUD format ---
     def test_hud_format(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         assert "Step:" in grid_obs.hud
         assert "Facing:" in grid_obs.hud
@@ -254,7 +254,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 8.1: legend ---
     def test_legend_contains_agent_and_goal(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         assert "→" in grid_obs.legend or "agent" in grid_obs.legend.lower()
         assert "★" in grid_obs.legend
@@ -270,7 +270,7 @@ class TestMiniGridEmpty5x5:
     # --- Spec 8.1: info extras ---
     def test_info_extras(self):
         env = self._make_env()
-        _, info = env.reset(seed=0)
+        _, info = env.reset(0)
         assert "seed" in info
         fwd = env.action_spec.index_of("MOVE_FORWARD")
         _, _, _, _, info = env.step(fwd)
@@ -281,12 +281,12 @@ class TestMiniGridEmpty5x5:
     # --- Edge: reset clears state from previous episode ---
     def test_reset_clears_previous_state(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         fwd = env.action_spec.index_of("MOVE_FORWARD")
         env.step(fwd)
         env.step(fwd)
         # Reset should put agent back at start
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert grid_lines[1][1] == "→"
@@ -294,13 +294,13 @@ class TestMiniGridEmpty5x5:
     # --- Spec: requires explicit seed ---
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     # --- Grid dimensions ---
     def test_grid_is_7x7(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 7, f"Expected 7 rows, got {len(grid_lines)}"
