@@ -21,7 +21,7 @@ bash eval/run_full.sh
 
 ```python
 load_environment(
-    env_id: str | list[str] | None = None,   # single id, list, or None=all
+    task_id: str | list[str] | None = None,  # single id, list, or None=all
     num_episodes: int = 10,                   # rollouts per env
     n_frames: int = 4,                        # history window
     max_turns: int | None = None,             # None = use each env's own max
@@ -30,14 +30,19 @@ load_environment(
 )
 ```
 
+`task_id` (not `env_id`) — verifiers reserves `env_id` for the package
+name passed via `vf.load_environment`; using `task_id` for the per-game
+selector avoids the kwarg collision.
+
 Pass as JSON to `-a` / `-x`:
 
 ```bash
 vf-eval glyphbench \
   -m Qwen/Qwen3-0.6B \
   -b http://localhost:8000/v1 \
+  -k VLLM_API_KEY \
   -n 5 -t 512 \
-  -a '{"env_id":"glyphbench/atari-pong-v0","num_episodes":5,"n_frames":4}'
+  -a '{"task_id":"glyphbench/atari-pong-v0","num_episodes":5,"n_frames":4}'
 ```
 
 ## Results

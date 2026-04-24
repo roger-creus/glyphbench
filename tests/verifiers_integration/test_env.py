@@ -12,7 +12,7 @@ from glyphbench.verifiers_integration import GlyphbenchMultiTurnEnv, load_enviro
 
 def test_load_environment_returns_multi_turn_env():
     env = load_environment(
-        env_id="glyphbench/__dummy-v0",
+        task_id="glyphbench/__dummy-v0",
         num_episodes=2,
         n_frames=4,
         max_output_tokens=512,
@@ -21,7 +21,7 @@ def test_load_environment_returns_multi_turn_env():
 
 
 def test_load_environment_dataset_shape():
-    env = load_environment(env_id="glyphbench/__dummy-v0", num_episodes=3)
+    env = load_environment(task_id="glyphbench/__dummy-v0", num_episodes=3)
     assert len(env.dataset) == 3
     for row in env.dataset:
         info = json.loads(row["info"]) if isinstance(row["info"], str) else row["info"]
@@ -37,7 +37,7 @@ def test_load_environment_dataset_shape():
 
 def test_load_environment_multiple_env_ids():
     env = load_environment(
-        env_id=["glyphbench/__dummy-v0"],
+        task_id=["glyphbench/__dummy-v0"],
         num_episodes=2,
     )
     assert len(env.dataset) == 2
@@ -45,12 +45,12 @@ def test_load_environment_multiple_env_ids():
 
 def test_load_environment_rejects_unknown_id():
     with pytest.raises(KeyError):
-        load_environment(env_id="glyphbench/does-not-exist-v0", num_episodes=1)
+        load_environment(task_id="glyphbench/does-not-exist-v0", num_episodes=1)
 
 
 @pytest.mark.asyncio
 async def test_setup_state_creates_game_and_initial_obs():
-    env = load_environment(env_id="glyphbench/__dummy-v0", num_episodes=1)
+    env = load_environment(task_id="glyphbench/__dummy-v0", num_episodes=1)
     row = env.dataset[0]
     state: dict = {
         "info": row["info"],
@@ -74,7 +74,7 @@ async def test_setup_state_creates_game_and_initial_obs():
 
 @pytest.mark.asyncio
 async def test_env_response_applies_action_and_updates_state():
-    env = load_environment(env_id="glyphbench/__dummy-v0", num_episodes=1)
+    env = load_environment(task_id="glyphbench/__dummy-v0", num_episodes=1)
     row = env.dataset[0]
     state: dict = {
         "info": row["info"],
@@ -97,7 +97,7 @@ async def test_env_response_applies_action_and_updates_state():
 
 @pytest.mark.asyncio
 async def test_is_done_terminates_on_game_end():
-    env = load_environment(env_id="glyphbench/__dummy-v0", num_episodes=1)
+    env = load_environment(task_id="glyphbench/__dummy-v0", num_episodes=1)
     state: dict = {"done": False}
     assert await env.is_done(state) is False
     state["done"] = True

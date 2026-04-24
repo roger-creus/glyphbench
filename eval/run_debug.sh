@@ -10,5 +10,6 @@ BASE_URL=${VLLM_BASE_URL:-http://localhost:8000/v1}
 uv run vf-eval glyphbench \
   -m "$MODEL" \
   -b "$BASE_URL" \
+  -k "${API_KEY_VAR:-VLLM_API_KEY}" \
   -n 2 -t 512 \
-  -a '{"env_id": ["glyphbench/__dummy-v0", "glyphbench/minigrid-empty-5x5-v0"], "num_episodes": 2, "n_frames": 4}'
+  -a '{"task_id": ["glyphbench/__dummy-v0", "glyphbench/minigrid-empty-5x5-v0"], "num_episodes": 2, "n_frames": 4}'

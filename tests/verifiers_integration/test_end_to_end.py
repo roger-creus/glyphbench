@@ -15,7 +15,7 @@ async def test_mock_rollout_accumulates_reward():
     goal (east/south east sequence navigates 0,0 → 2,2 in 4 steps)."""
 
     env = glyphbench.load_environment(
-        env_id="glyphbench/__dummy-v0",
+        task_id="glyphbench/__dummy-v0",
         num_episodes=1,
         n_frames=4,
         max_turns=10,
@@ -55,7 +55,7 @@ async def test_mock_rollout_accumulates_reward():
 @pytest.mark.asyncio
 async def test_mock_rollout_parse_failures_accumulate():
     env = glyphbench.load_environment(
-        env_id="glyphbench/__dummy-v0",
+        task_id="glyphbench/__dummy-v0",
         num_episodes=1,
         n_frames=4,
         max_turns=3,

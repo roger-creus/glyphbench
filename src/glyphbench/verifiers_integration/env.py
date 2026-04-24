@@ -26,7 +26,7 @@ DEFAULT_BASE_SEED = 42
 
 
 def load_environment(
-    env_id: str | list[str] | None = None,
+    task_id: str | list[str] | None = None,
     num_episodes: int = DEFAULT_NUM_EPISODES,
     n_frames: int = DEFAULT_N_FRAMES,
     max_turns: int | None = None,
@@ -37,8 +37,11 @@ def load_environment(
     """Entry point consumed by ``vf-eval`` and ``prime-rl`` orchestrator.
 
     Args:
-        env_id: single id, list of ids, or ``None`` for all registered envs
-                (dummy envs excluded when id is ``None``).
+        task_id: single glyphbench env id (e.g. ``"glyphbench/__dummy-v0"``),
+                a list of ids, or ``None`` for all registered envs (dummy envs
+                excluded when id is ``None``). Named ``task_id`` (not
+                ``env_id``) because verifiers reserves ``env_id`` for the
+                package name passed via ``vf.load_environment``.
         num_episodes: rollouts per env.
         n_frames: history window shown in each user turn.
         max_turns: per-episode turn cap; ``None`` uses each game's own max_turns.
@@ -46,9 +49,22 @@ def load_environment(
                 the system prompt.
         seed: base seed; each episode uses ``seed + episode_idx`` as the
                 per-rollout seed.
+
+    ``**kwargs`` is intentional: verifiers' generic loader injects
+    ``env_id="<package-name>"``. We absorb it (and reject anything else) so
+    callers can either go through ``vf.load_environment`` or call
+    ``glyphbench.load_environment`` directly.
     """
+    # verifiers injects env_id=<package name>; ignore that one specific kwarg.
+    kwargs.pop("env_id", None)
+    if kwargs:
+        raise TypeError(
+            f"load_environment() got unexpected keyword arguments: "
+            f"{sorted(kwargs)!r}. Did you mean 'task_id' for the glyphbench "
+            f"env id?"
+        )
     _ensure_envs_loaded()
-    env_ids = _resolve_env_ids(env_id)
+    env_ids = _resolve_env_ids(task_id)
     dataset = _build_dataset(env_ids, num_episodes, seed)
 
     parser = GlyphbenchXMLParser()
