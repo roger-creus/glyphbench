@@ -1,0 +1,53 @@
+# Keep the Docker build context small. We only need source, configs, tests,
+# eval, scripts, pyproject.toml, uv.lock, README, HANDOVER, LICENSE.
+
+# Version control
+.git
+.gitignore
+
+# Large external source trees (only needed for local dev references)
+cluster_manager
+runs
+community_runs
+paper
+docs
+plans
+examples
+benchmarks
+
+# Upstream source zips kept in repo root for offline reference
+*.zip
+
+# Python build / cache / venv
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+*.egg-info
+build
+dist
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.hypothesis
+htmlcov
+.coverage
+.coverage.*
+coverage.xml
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+
+# Env / secrets
+.env
+*.env.local
+
+# Container outputs
+glyphbench.sif
+*.sif
+
+# Docker itself
+Dockerfile.*~

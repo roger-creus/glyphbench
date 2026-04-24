@@ -1,19 +1,48 @@
-# GlyphBench — minimal vLLM-based container for cluster eval
+# GlyphBench — verifiers + prime-rl container
 #
-# Build:  docker build -t glyphbench:latest .
-# To SIF: apptainer build glyphbench.sif docker-daemon://glyphbench:latest
+# Build:   docker build -t glyphbench:latest .
+# SIF:     bash scripts/build_sif.sh
+#
+# Run eval inside container (with model weights mounted):
+#   apptainer run --nv --bind $HF_HOME:/root/.cache/huggingface \
+#     glyphbench.sif bash eval/run_debug.sh
 
-FROM vllm/vllm-openai:latest
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
 
-# Install glyphbench dependencies (gymnasium, pydantic, etc.)
-RUN pip install --no-cache-dir \
-    gymnasium>=1.0 \
-    numpy>=2.0 \
-    pydantic>=2.9 \
-    pyyaml>=6.0 \
-    jinja2>=3.1 \
-    rich>=13.9
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_LINK_MODE=copy \
+    UV_SYSTEM_PYTHON=1
 
-# Project code will be bind-mounted at /src via apptainer
-# PYTHONPATH=/src/src set at runtime
-WORKDIR /src
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl ca-certificates build-essential \
+  && rm -rf /var/lib/apt/lists/*
+
+# uv (Python & Python package manager)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+  && cp /root/.local/bin/uv /usr/local/bin/uv \
+  && cp /root/.local/bin/uvx /usr/local/bin/uvx
+
+WORKDIR /opt/glyphbench
+
+# Install dependencies first (cached layer). We copy just the files required
+# by the build backend (pyproject.toml refers to README.md in [project.readme],
+# and hatchling builds the wheel from src/glyphbench) so this layer is cached
+# independent of tests/docs/configs edits.
+COPY pyproject.toml uv.lock README.md /opt/glyphbench/
+COPY src /opt/glyphbench/src
+RUN uv python install 3.12 \
+  && uv sync --frozen --extra eval
+
+# Copy the rest of the source and re-sync (no-op if nothing changed).
+COPY . /opt/glyphbench
+RUN uv sync --frozen --extra eval
+
+# Optional RL extra (prime-rl + flash-attn). Heavy; install at run time if needed.
+# RUN uv sync --frozen --extra eval --extra rl
+
+ENV PATH="/opt/glyphbench/.venv/bin:${PATH}"
+WORKDIR /workspace
+ENTRYPOINT []
+CMD ["bash"]
