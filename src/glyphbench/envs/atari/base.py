@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
 
 # Atari-wide rendering constants
@@ -29,7 +29,7 @@ class AtariEntity:
     data: dict[str, Any] = field(default_factory=dict)
 
 
-class AtariBase(BaseAsciiEnv):
+class AtariBase(BaseGlyphEnv):
     noop_action_name: str = "NOOP"
 
     def __init__(self, max_turns: int = 10000) -> None:

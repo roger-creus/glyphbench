@@ -12,11 +12,11 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
 
 
-class PongEnv(BaseAsciiEnv):
+class PongEnv(BaseGlyphEnv):
     """Atari Pong: paddle vs AI opponent. First to 21 wins.
 
     Court: 34 cols x 18 rows (32x16 interior + border).
