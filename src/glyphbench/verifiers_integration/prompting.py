@@ -81,6 +81,7 @@ def render_user_turn(
     frames: deque[tuple[str, str, float]] | Iterable[tuple[str, str, float]],
     current_obs: str,
     turn: int,
+    max_output_tokens: int,
 ) -> str:
     """Render the user-turn message for the current timestep.
 
@@ -89,13 +90,14 @@ def render_user_turn(
         frames: iterable of (obs_text_before_action, action_name, reward) tuples
                 in temporal order — oldest first, newest last.
         current_obs: the full ``GridObservation.render()`` text for this turn.
-        turn: the absolute turn number (``game._turn`` after the last step).
+        turn: the absolute turn number (``game.turn`` after the last step).
+        max_output_tokens: per-turn LLM budget, echoed in the footer reminder.
 
     Returns:
         The user-turn string.
     """
     frames_list = list(frames)
-    budget = _BUDGET_TOKENS  # kept separate so tests can override
+    budget = int(max_output_tokens)
 
     # 1. Build merged legend across history + current.
     legend_lines: dict[str, None] = {}  # ordered-set via dict
@@ -127,17 +129,6 @@ def render_user_turn(
     )
 
     return "\n\n".join(parts)
-
-
-# Default budget used in the reminder footer. Callers can override by reaching
-# into this module attribute; load_environment sets it from max_output_tokens.
-_BUDGET_TOKENS: int = 512
-
-
-def set_budget_tokens(n: int) -> None:
-    """Update the footer budget reminder value (called by load_environment)."""
-    global _BUDGET_TOKENS
-    _BUDGET_TOKENS = int(n)
 
 
 # ---------------------------------------------------------------------------

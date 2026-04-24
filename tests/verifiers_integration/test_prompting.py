@@ -65,7 +65,13 @@ def test_system_prompt_lists_actions(game):
 
 def test_user_turn_zero_no_history_section(game):
     frames: deque = deque(maxlen=4)
-    text = render_user_turn(game, frames, current_obs="[Legend]\nA — a\n\n[HUD]\nstep=0\n\n[Grid]\n.", turn=0)
+    text = render_user_turn(
+        game,
+        frames,
+        current_obs="[Legend]\nA — a\n\n[HUD]\nstep=0\n\n[Grid]\n.",
+        turn=0,
+        max_output_tokens=512,
+    )
     assert "[History" not in text
     assert "[Legend]" in text
     assert "[Current Observation" in text or "[Observation" in text
@@ -81,7 +87,7 @@ def test_user_turn_with_history_dedups_legend(game):
         maxlen=4,
     )
     current = "[Legend]\nA — a\n\n[Grid]\nAA"
-    text = render_user_turn(game, frames, current, turn=2)
+    text = render_user_turn(game, frames, current, turn=2, max_output_tokens=512)
     # Legend appears once globally (at top), not inside frames or current.
     assert text.count("[Legend]") == 1
 
@@ -91,13 +97,17 @@ def test_user_turn_history_window_respected(game):
         [(f"[Grid]\n{i}", "LEFT", float(i)) for i in range(4)],
         maxlen=4,
     )
-    text = render_user_turn(game, frames, current_obs="[Grid]\nC", turn=4)
+    text = render_user_turn(
+        game, frames, current_obs="[Grid]\nC", turn=4, max_output_tokens=512
+    )
     # Four history entries rendered.
     assert text.count("reward") == 4 or text.count("→") == 4 or "turn" in text
 
 
 def test_user_turn_reminds_format_and_budget(game):
     frames: deque = deque(maxlen=4)
-    text = render_user_turn(game, frames, current_obs="[Grid]\n.", turn=0)
+    text = render_user_turn(
+        game, frames, current_obs="[Grid]\n.", turn=0, max_output_tokens=512
+    )
     assert "<action>" in text
     assert "512" in text

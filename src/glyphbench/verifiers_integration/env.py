@@ -15,7 +15,6 @@ from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
 from glyphbench.verifiers_integration.prompting import (
     build_system_prompt,
     render_user_turn,
-    set_budget_tokens,
 )
 from glyphbench.verifiers_integration.rubric import EpisodicReturnRubric
 
@@ -51,7 +50,6 @@ def load_environment(
     _ensure_envs_loaded()
     env_ids = _resolve_env_ids(env_id)
     dataset = _build_dataset(env_ids, num_episodes, seed)
-    set_budget_tokens(max_output_tokens)
 
     parser = GlyphbenchXMLParser()
     rubric = EpisodicReturnRubric(parser=parser)
@@ -168,7 +166,11 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         # Populate the prompt now that we have the game instance.
         system_text = build_system_prompt(game, self._max_output_tokens)
         initial_user_text = render_user_turn(
-            game, frames=state["frames"], current_obs=obs_text, turn=0
+            game,
+            frames=state["frames"],
+            current_obs=obs_text,
+            turn=0,
+            max_output_tokens=self._max_output_tokens,
         )
         state["prompt"] = [
             {"role": "system", "content": system_text},
@@ -218,6 +220,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             frames=state["frames"],
             current_obs=obs_text,
             turn=game._turn,
+            max_output_tokens=self._max_output_tokens,
         )
         return [{"role": "user", "content": next_user}]
 
