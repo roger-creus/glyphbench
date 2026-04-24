@@ -12,36 +12,38 @@ from __future__ import annotations
 import argparse
 import time
 
-import gymnasium as gym
 import numpy as np
 
 import glyphbench  # noqa: F401 — trigger env registration
 
+from glyphbench.core import make_env
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Random-agent viewer for glyphbench envs")
-    parser.add_argument("env_id", help="Gym env ID, e.g. glyphbench/craftax-classic-v0")
+    parser.add_argument("env_id", help="Env ID, e.g. glyphbench/craftax-classic-v0")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--steps", type=int, default=200, help="Max steps to run")
     parser.add_argument("--max-turns", type=int, default=500, help="Env max_turns")
     parser.add_argument("--delay", type=float, default=0.1, help="Seconds between steps (0 = no delay)")
     args = parser.parse_args()
 
-    env = gym.make(args.env_id, max_turns=args.max_turns)
-    unwrapped = env.unwrapped
-    action_names = unwrapped.action_spec.names
-    n_actions = unwrapped.action_spec.n
+    env = make_env(args.env_id, max_turns=args.max_turns)
+    action_names = env.action_spec.names
+    n_actions = env.action_spec.n
     rng = np.random.default_rng(args.seed)
 
-    obs, info = env.reset(seed=args.seed)
+    obs, info = env.reset(args.seed)
 
     print(f"\n{'=' * 60}")
     print(f"  {args.env_id}  |  seed={args.seed}  |  actions={n_actions}")
     print(f"{'=' * 60}")
-    print(f"\n--- SYSTEM PROMPT ---\n{unwrapped.system_prompt()[:400]}...")
+    print(f"\n--- SYSTEM PROMPT ---\n{env.system_prompt()[:400]}...")
     print(f"\n--- STEP 0 (reset) ---\n{obs}\n")
 
     total_reward = 0.0
+    terminated = False
+    truncated = False
     for step in range(1, args.steps + 1):
         action = int(rng.integers(0, n_actions))
         obs, reward, terminated, truncated, info = env.step(action)

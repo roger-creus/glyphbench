@@ -1,6 +1,6 @@
 # GlyphBench Environment Catalog
 
-Total environments: 169
+Total environments: 293
 
 ## __Dummy (1 environments)
 
@@ -8,33 +8,162 @@ Total environments: 169
 |--------|---------|
 | `glyphbench/__dummy-v0` | 5 |
 
-## Atari (17 environments)
+## Atari (57 environments)
 
 | Env ID | Actions |
 |--------|---------|
+| `glyphbench/atari-alien-v0` | 6 |
 | `glyphbench/atari-amidar-v0` | 5 |
+| `glyphbench/atari-assault-v0` | 4 |
+| `glyphbench/atari-asterix-v0` | 3 |
+| `glyphbench/atari-asteroids-v0` | 5 |
+| `glyphbench/atari-atlantis-v0` | 4 |
 | `glyphbench/atari-bankheist-v0` | 6 |
+| `glyphbench/atari-battlezone-v0` | 6 |
+| `glyphbench/atari-beamrider-v0` | 4 |
 | `glyphbench/atari-berzerk-v0` | 10 |
+| `glyphbench/atari-bowling-v0` | 4 |
+| `glyphbench/atari-boxing-v0` | 6 |
 | `glyphbench/atari-breakout-v0` | 4 |
+| `glyphbench/atari-centipede-v0` | 6 |
+| `glyphbench/atari-choppercommand-v0` | 6 |
+| `glyphbench/atari-crazyclimber-v0` | 5 |
+| `glyphbench/atari-defender-v0` | 7 |
+| `glyphbench/atari-demonattack-v0` | 4 |
+| `glyphbench/atari-doubledunk-v0` | 6 |
+| `glyphbench/atari-enduro-v0` | 5 |
+| `glyphbench/atari-fishingderby-v0` | 6 |
 | `glyphbench/atari-freeway-v0` | 3 |
 | `glyphbench/atari-frostbite-v0` | 5 |
+| `glyphbench/atari-gopher-v0` | 4 |
+| `glyphbench/atari-gravitar-v0` | 5 |
 | `glyphbench/atari-hero-v0` | 6 |
+| `glyphbench/atari-icehockey-v0` | 6 |
+| `glyphbench/atari-jamesbond-v0` | 6 |
 | `glyphbench/atari-kangaroo-v0` | 6 |
+| `glyphbench/atari-krull-v0` | 6 |
+| `glyphbench/atari-kungfumaster-v0` | 7 |
 | `glyphbench/atari-montezumarevenge-v0` | 8 |
 | `glyphbench/atari-mspacman-v0` | 5 |
+| `glyphbench/atari-namethisgame-v0` | 4 |
+| `glyphbench/atari-phoenix-v0` | 5 |
 | `glyphbench/atari-pitfall-v0` | 6 |
 | `glyphbench/atari-pong-v0` | 6 |
+| `glyphbench/atari-privateeye-v0` | 6 |
 | `glyphbench/atari-qbert-v0` | 5 |
+| `glyphbench/atari-riverraid-v0` | 6 |
+| `glyphbench/atari-roadrunner-v0` | 4 |
+| `glyphbench/atari-robotank-v0` | 6 |
+| `glyphbench/atari-seaquest-v0` | 7 |
+| `glyphbench/atari-skiing-v0` | 3 |
+| `glyphbench/atari-solaris-v0` | 7 |
 | `glyphbench/atari-spaceinvaders-v0` | 6 |
+| `glyphbench/atari-stargunner-v0` | 6 |
 | `glyphbench/atari-surround-v0` | 5 |
+| `glyphbench/atari-tennis-v0` | 5 |
+| `glyphbench/atari-timepilot-v0` | 6 |
+| `glyphbench/atari-tutankham-v0` | 6 |
+| `glyphbench/atari-upndown-v0` | 6 |
 | `glyphbench/atari-venture-v0` | 6 |
+| `glyphbench/atari-videopinball-v0` | 4 |
 | `glyphbench/atari-wizardofwor-v0` | 6 |
+| `glyphbench/atari-yarsrevenge-v0` | 6 |
+| `glyphbench/atari-zaxxon-v0` | 6 |
 
-## Craftax (1 environments)
+## Classics (50 environments)
 
 | Env ID | Actions |
 |--------|---------|
+| `glyphbench/classics-2048-v0` | 4 |
+| `glyphbench/classics-artillery-v0` | 5 |
+| `glyphbench/classics-battleship-v0` | 100 |
+| `glyphbench/classics-bomberman-v0` | 6 |
+| `glyphbench/classics-connectfour-v0` | 7 |
+| `glyphbench/classics-farm-v0` | 8 |
+| `glyphbench/classics-flappy-v0` | 2 |
+| `glyphbench/classics-floodfill-easy-v0` | 6 |
+| `glyphbench/classics-floodfill-hard-v0` | 6 |
+| `glyphbench/classics-frogger-v0` | 5 |
+| `glyphbench/classics-gravitymaze-v0` | 3 |
+| `glyphbench/classics-guardevasion-easy-v0` | 5 |
+| `glyphbench/classics-guardevasion-hard-v0` | 5 |
+| `glyphbench/classics-guardevasion-medium-v0` | 5 |
+| `glyphbench/classics-icesliding-easy-v0` | 4 |
+| `glyphbench/classics-icesliding-hard-v0` | 4 |
+| `glyphbench/classics-icesliding-medium-v0` | 4 |
+| `glyphbench/classics-lightsout-easy-v0` | 25 |
+| `glyphbench/classics-lightsout-hard-v0` | 49 |
+| `glyphbench/classics-lunarlander-v0` | 4 |
+| `glyphbench/classics-match3-v0` | 256 |
+| `glyphbench/classics-maze-easy-v0` | 4 |
+| `glyphbench/classics-maze-hard-v0` | 4 |
+| `glyphbench/classics-maze-medium-v0` | 4 |
+| `glyphbench/classics-memorymatch-easy-v0` | 16 |
+| `glyphbench/classics-memorymatch-hard-v0` | 36 |
+| `glyphbench/classics-minesweeper-v0` | 64 |
+| `glyphbench/classics-mirrorlaser-v0` | 49 |
+| `glyphbench/classics-nim-easy-v0` | 15 |
+| `glyphbench/classics-nim-hard-v0` | 21 |
+| `glyphbench/classics-nonogram-easy-v0` | 50 |
+| `glyphbench/classics-nonogram-hard-v0` | 128 |
+| `glyphbench/classics-pipeconnect-easy-v0` | 25 |
+| `glyphbench/classics-pipeconnect-hard-v0` | 81 |
+| `glyphbench/classics-pipeconnect-medium-v0` | 49 |
+| `glyphbench/classics-platformer-v0` | 4 |
+| `glyphbench/classics-rushhour-easy-v0` | 11 |
+| `glyphbench/classics-rushhour-hard-v0` | 19 |
+| `glyphbench/classics-ski-v0` | 3 |
+| `glyphbench/classics-snake-easy-v0` | 4 |
+| `glyphbench/classics-snake-hard-v0` | 4 |
+| `glyphbench/classics-snake-medium-v0` | 4 |
+| `glyphbench/classics-sokoban-easy-v0` | 4 |
+| `glyphbench/classics-sokoban-hard-v0` | 4 |
+| `glyphbench/classics-sokoban-medium-v0` | 4 |
+| `glyphbench/classics-tetris-v0` | 6 |
+| `glyphbench/classics-towerdefense-v0` | 58 |
+| `glyphbench/classics-tron-v0` | 4 |
+| `glyphbench/classics-warehouse-v0` | 6 |
+| `glyphbench/classics-wavedefense-v0` | 4 |
+
+## Craftax (35 environments)
+
+| Env ID | Actions |
+|--------|---------|
+| `glyphbench/craftax-bossfight-v0` | 35 |
+| `glyphbench/craftax-build-shelter-v0` | 19 |
+| `glyphbench/craftax-choptrees-v0` | 19 |
 | `glyphbench/craftax-classic-v0` | 19 |
+| `glyphbench/craftax-craft-ironset-v0` | 19 |
+| `glyphbench/craftax-craftchain-v0` | 19 |
+| `glyphbench/craftax-craftpickaxe-v0` | 19 |
+| `glyphbench/craftax-craftsword-v0` | 19 |
+| `glyphbench/craftax-dungeonclear-v0` | 19 |
+| `glyphbench/craftax-dungeonexplore-v0` | 19 |
+| `glyphbench/craftax-fight-archers-v0` | 35 |
+| `glyphbench/craftax-fight-bats-v0` | 35 |
+| `glyphbench/craftax-fight-cow-v0` | 19 |
+| `glyphbench/craftax-fight-skeletons-v0` | 19 |
+| `glyphbench/craftax-fight-spiders-v0` | 35 |
+| `glyphbench/craftax-fight-zombies-v0` | 19 |
+| `glyphbench/craftax-fightzombie-v0` | 19 |
+| `glyphbench/craftax-find-diamond-v0` | 19 |
+| `glyphbench/craftax-find-water-v0` | 19 |
+| `glyphbench/craftax-firstday-v0` | 19 |
+| `glyphbench/craftax-floor1-v0` | 35 |
+| `glyphbench/craftax-floor2-v0` | 35 |
+| `glyphbench/craftax-floor3-v0` | 35 |
+| `glyphbench/craftax-gatherresources-v0` | 19 |
+| `glyphbench/craftax-minestone-v0` | 19 |
+| `glyphbench/craftax-plant-farm-v0` | 19 |
+| `glyphbench/craftax-reach-dungeon-v0` | 35 |
+| `glyphbench/craftax-smelt-iron-v0` | 19 |
+| `glyphbench/craftax-speedrun-v0` | 35 |
+| `glyphbench/craftax-survive-hunger-v0` | 19 |
+| `glyphbench/craftax-survive-night-v0` | 19 |
+| `glyphbench/craftax-survive-thirst-v0` | 19 |
+| `glyphbench/craftax-survive-wild-v0` | 19 |
+| `glyphbench/craftax-survivehorde-v0` | 19 |
+| `glyphbench/craftax-v0` | 35 |
 
 ## Minigrid (71 environments)
 

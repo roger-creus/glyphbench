@@ -14,9 +14,9 @@ from __future__ import annotations
 import argparse
 import curses
 
-import gymnasium as gym
-
 import glyphbench  # noqa: F401 — trigger env registration
+
+from glyphbench.core import make_env
 from terminal_colors import char_attr, init_colors
 
 
@@ -130,7 +130,7 @@ def main(stdscr: curses.window) -> None:
     parser = argparse.ArgumentParser(
         description="Interactive player for glyphbench envs"
     )
-    parser.add_argument("env_id", help="Gym env ID")
+    parser.add_argument("env_id", help="Env ID")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-turns", type=int, default=500)
     args = parser.parse_args()
@@ -141,17 +141,16 @@ def main(stdscr: curses.window) -> None:
     stdscr.keypad(True)
 
     # Env setup
-    env = gym.make(args.env_id, max_turns=args.max_turns)
-    unwrapped = env.unwrapped
-    action_names = unwrapped.action_spec.names
-    n_actions = unwrapped.action_spec.n
+    env = make_env(args.env_id, max_turns=args.max_turns)
+    action_names = env.action_spec.names
+    n_actions = env.action_spec.n
 
     # Build name -> index lookup
     name_to_idx: dict[str, int] = {
         name: idx for idx, name in enumerate(action_names)
     }
 
-    obs, info = env.reset(seed=args.seed)
+    obs, info = env.reset(args.seed)
     total_reward = 0.0
     step_num = 0
     last_action = "(reset)"
@@ -305,7 +304,7 @@ def main(stdscr: curses.window) -> None:
         if key == ord("q") or key == ord("Q"):
             break
         if key == ord("r") or key == ord("R"):
-            obs, info = env.reset(seed=args.seed)
+            obs, info = env.reset(args.seed)
             total_reward = 0.0
             step_num = 0
             last_action = "(reset)"

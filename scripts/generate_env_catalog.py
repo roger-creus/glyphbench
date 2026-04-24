@@ -2,14 +2,12 @@
 """Generate environment catalog from the registry."""
 
 import glyphbench  # noqa: F401
-import gymnasium as gym
+
+from glyphbench.core import all_glyphbench_env_ids, make_env
 
 
 def main() -> None:
-    envs = sorted(
-        eid for eid in gym.registry
-        if isinstance(eid, str) and eid.startswith("glyphbench/")
-    )
+    envs = sorted(all_glyphbench_env_ids())
 
     suites: dict[str, list[str]] = {}
     for eid in envs:
@@ -30,9 +28,8 @@ def main() -> None:
         lines.append("|--------|---------|")
         for eid in suite_envs:
             try:
-                env = gym.make(eid, max_turns=10)
-                unwrapped = env.unwrapped
-                n_actions = unwrapped.action_spec.n if hasattr(unwrapped, 'action_spec') else '?'
+                env = make_env(eid, max_turns=10)
+                n_actions = env.action_spec.n if hasattr(env, 'action_spec') else '?'
                 lines.append(f"| `{eid}` | {n_actions} |")
             except Exception:
                 lines.append(f"| `{eid}` | ? |")

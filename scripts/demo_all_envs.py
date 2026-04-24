@@ -15,9 +15,8 @@ import sys
 import time
 
 import glyphbench  # noqa: F401
-import gymnasium as gym
 
-from glyphbench.core import all_glyphbench_env_ids
+from glyphbench.core import all_glyphbench_env_ids, make_env
 
 # Import the color renderer from the replay utility
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
@@ -58,10 +57,10 @@ def _draw(frame: str) -> None:
 
 
 def run_env(env_id: str, steps: int = 100, delay: float = 0.1) -> float:
-    env = gym.make(env_id, max_turns=steps)
-    obs, info = env.reset(seed=42)
+    env = make_env(env_id, max_turns=steps)
+    obs, info = env.reset(42)
 
-    action_names = env.unwrapped.action_spec.names
+    action_names = env.action_spec.names
     total_reward = 0.0
 
     # Clear the screen once before the first frame so there's no leftover text.
@@ -69,7 +68,7 @@ def run_env(env_id: str, steps: int = 100, delay: float = 0.1) -> float:
     _draw(_build_frame(env_id, 1, steps, total_reward, action_names, obs))
 
     for step in range(steps):
-        action = env.action_space.sample()
+        action = int(env.rng.integers(0, env.action_spec.n))
         obs, reward, terminated, truncated, _ = env.step(action)
         total_reward += reward
 

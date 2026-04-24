@@ -20,9 +20,8 @@ import sys
 from pathlib import Path
 
 import glyphbench  # noqa: F401
-import gymnasium as gym
 
-from glyphbench.core import all_glyphbench_env_ids
+from glyphbench.core import all_glyphbench_env_ids, make_env
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from replay_trajectory import export_gif  # noqa: E402
@@ -37,17 +36,17 @@ def rollout_random(env_id: str, seed: int, steps: int | None = None) -> list[dic
     so the rendered GIF reflects the same rollout distribution as the
     scoring baseline. Pass an explicit `steps` only for short demo clips.
     """
-    env = gym.make(env_id) if steps is None else gym.make(env_id, max_turns=steps)
-    obs, info = env.reset(seed=seed)
-    action_names = env.unwrapped.action_spec.names
+    env = make_env(env_id) if steps is None else make_env(env_id, max_turns=steps)
+    obs, info = env.reset(seed)
+    action_names = env.action_spec.names
 
     trajectory: list[dict] = []
     cum_reward = 0.0
     turn = 0
     while True:
         turn += 1
-        action = env.action_space.sample()
-        new_obs, reward, terminated, truncated, _ = env.step(int(action))
+        action = int(env.rng.integers(0, env.action_spec.n))
+        new_obs, reward, terminated, truncated, _ = env.step(action)
         cum_reward += float(reward)
         trajectory.append({
             "turn": turn,

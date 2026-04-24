@@ -16,10 +16,11 @@ import argparse
 import curses
 import time
 
-import gymnasium as gym
 import numpy as np
 
 import glyphbench  # noqa: F401 — trigger env registration
+
+from glyphbench.core import make_env
 from terminal_colors import char_attr, init_colors
 
 
@@ -97,7 +98,7 @@ def _draw_hbar(win: curses.window, y: int, x: int, width: int) -> None:
     max_y, max_x = win.getmaxyx()
     if y >= max_y - 1:
         return
-    bar = "\u2500" * min(width, max_x - x - 1)
+    bar = "─" * min(width, max_x - x - 1)
     try:
         win.addstr(y, x, bar, curses.A_DIM)
     except curses.error:
@@ -108,7 +109,7 @@ def main(stdscr: curses.window) -> None:
     parser = argparse.ArgumentParser(
         description="Curses random-agent viewer for glyphbench envs"
     )
-    parser.add_argument("env_id", help="Gym env ID")
+    parser.add_argument("env_id", help="Env ID")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--steps", type=int, default=500)
     parser.add_argument("--max-turns", type=int, default=500)
@@ -125,13 +126,12 @@ def main(stdscr: curses.window) -> None:
     stdscr.timeout(int(args.delay * 1000))
 
     # Env setup
-    env = gym.make(args.env_id, max_turns=args.max_turns)
-    unwrapped = env.unwrapped
-    action_names = unwrapped.action_spec.names
-    n_actions = unwrapped.action_spec.n
+    env = make_env(args.env_id, max_turns=args.max_turns)
+    action_names = env.action_spec.names
+    n_actions = env.action_spec.n
     rng = np.random.default_rng(args.seed)
 
-    obs, info = env.reset(seed=args.seed)
+    obs, info = env.reset(args.seed)
     total_reward = 0.0
     step_num = 0
     last_action = "(reset)"
@@ -268,7 +268,7 @@ def main(stdscr: curses.window) -> None:
         if key == ord("q"):
             break
         if key == ord("r"):
-            obs, info = env.reset(seed=args.seed)
+            obs, info = env.reset(args.seed)
             total_reward = 0.0
             step_num = 0
             last_action = "(reset)"
