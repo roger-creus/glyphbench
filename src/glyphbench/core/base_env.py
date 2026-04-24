@@ -1,18 +1,21 @@
-"""The abstract base class every env extends."""
+"""Base class for every game in glyphbench.
+
+Plain Python class — no framework inheritance. Subclasses implement the five
+abstract methods; the public reset/step surface is fixed here.
+"""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any
 
-import gymnasium as gym
 import numpy as np
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.observation import GridObservation
 
 
-class BaseAsciiEnv(gym.Env[str, int], ABC):
+class BaseGlyphEnv(ABC):
     """Base class for every env in glyphbench.
 
     Subclasses MUST:
@@ -21,37 +24,27 @@ class BaseAsciiEnv(gym.Env[str, int], ABC):
       - implement `_step(action_index)` returning (obs, reward, terminated, truncated, info)
       - implement `_render_current_observation()` returning current state as GridObservation
       - implement `system_prompt()` returning the per-game system prompt
-      - implement `env_id()` returning the gym env id string
+      - implement `env_id()` returning the canonical env id string
     """
 
-    metadata = {"render_modes": ["ansi"]}
-
-    action_spec: ActionSpec  # class attribute set by subclass
-    noop_action_name: str = "NOOP"  # subclasses override to match their action set
+    action_spec: ActionSpec
+    noop_action_name: str = "NOOP"
 
     def __init__(self, max_turns: int = 500) -> None:
-        super().__init__()
         self.max_turns = max_turns
-        self.action_space = gym.spaces.Discrete(self.action_spec.n)
-        self.observation_space = gym.spaces.Text(max_length=1 << 16)
         self._turn: int = 0
         self._rng: np.random.Generator | None = None
 
-    def reset(
-        self,
-        *,
-        seed: int | None = None,
-        options: dict[str, Any] | None = None,
-    ) -> tuple[str, dict[str, Any]]:
-        if seed is None:
-            raise ValueError("glyphbench envs require an explicit integer seed on reset()")
-        self._rng = np.random.default_rng(seed)
+    def reset(self, seed: int) -> tuple[str, dict[str, Any]]:
+        if isinstance(seed, bool) or not isinstance(seed, (int, np.integer)):
+            raise TypeError(f"seed must be int, got {type(seed).__name__}")
+        self._rng = np.random.default_rng(int(seed))
         self._turn = 0
-        obs = self._reset(seed)
+        obs = self._reset(int(seed))
         info: dict[str, Any] = {
             "turn": 0,
             "env_id": self.env_id(),
-            "seed": seed,
+            "seed": int(seed),
         }
         return obs.render(), info
 
@@ -95,6 +88,15 @@ class BaseAsciiEnv(gym.Env[str, int], ABC):
         return self._rng
 
     def get_observation(self) -> GridObservation:
-        """Return the current observation without stepping. Used by the harness
-        for the initial prompt at turn 0."""
+        """Return the current observation without stepping. Useful for initial
+        prompt construction at turn 0."""
         return self._render_current_observation()
+
+    def close(self) -> None:
+        """Optional cleanup hook. Default: no-op."""
+        return None
+
+
+# Back-compat alias during migration (removed at end of Milestone 4).
+# TEMPORARY — grep-audit at end of M4 removes this line.
+BaseAsciiEnv = BaseGlyphEnv
