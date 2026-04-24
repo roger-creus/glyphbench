@@ -1,6 +1,6 @@
 """GlyphbenchXMLParser: XML-primary with JSON and bare-name fallbacks.
 
-Wraps ``verifiers.XMLParser`` (fields ``think``, ``action``) and adds a
+Wraps ``verifiers.XMLParser`` with a single ``action`` field and adds a
 3-layer fallback chain that tolerates imperfectly-formatted model output:
 
     1. XML: ``<action>NAME</action>`` (preferred, last occurrence wins).
@@ -8,6 +8,12 @@ Wraps ``verifiers.XMLParser`` (fields ``think``, ``action``) and adds a
     3. Bare: last uppercase/snake-case token matching a known action name.
 
 Unknown or missing action → ``(noop_idx, noop_name, parse_failed=True)``.
+
+Note: we deliberately do NOT register ``think`` as a parser field. Models
+like Qwen3 and DeepSeek-R1 auto-strip ``<think>…</think>`` in their chat
+template, which would cause verifiers' built-in format checks to fail.
+The model can still emit ``<think>`` for CoT — the system prompt asks for
+it — but the parser only needs the ``<action>`` tag to extract the action.
 """
 
 from __future__ import annotations
@@ -33,14 +39,14 @@ _BARE_NAME_RE = re.compile(r"\b([A-Z][A-Z0-9_]{1,})\b")
 class GlyphbenchXMLParser(vf.XMLParser):
     """Parser used by the glyphbench verifiers integration.
 
-    Instantiate with the default XML field layout (think + action); the extra
+    Instantiates ``vf.XMLParser`` with the single ``action`` field; the extra
     ``parse_action`` method on top of the verifiers base provides the 3-layer
     fallback chain.
     """
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
-            fields=["think", "action"],
+            fields=["action"],
             answer_field="action",
             **kwargs,
         )
