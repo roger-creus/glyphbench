@@ -87,6 +87,11 @@ class BaseGlyphEnv(ABC):
             raise RuntimeError("call reset() before accessing rng")
         return self._rng
 
+    @property
+    def turn(self) -> int:
+        """Number of steps taken since the last reset()."""
+        return self._turn
+
     def get_observation(self) -> GridObservation:
         """Return the current observation without stepping. Useful for initial
         prompt construction at turn 0."""

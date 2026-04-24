@@ -219,7 +219,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             game,
             frames=state["frames"],
             current_obs=obs_text,
-            turn=game._turn,
+            turn=game.turn,
             max_output_tokens=self._max_output_tokens,
         )
         return [{"role": "user", "content": next_user}]
