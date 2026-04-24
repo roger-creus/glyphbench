@@ -35,19 +35,19 @@ class TestLeaper:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_has_goal_row(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Top row should be goal
         assert env._lane_types[0] == "goal"
 
     def test_goal_reward(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place agent on row 1, move up to goal row 0
         env._agent_x = env.GRID_W // 2
         env._agent_y = 1
@@ -60,7 +60,7 @@ class TestLeaper:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:
@@ -72,12 +72,12 @@ class TestLeaper:
 
     def test_agent_starts_at_bottom(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._agent_y == env.GRID_H - 1
 
     def test_car_entities_exist(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         cars = [e for e in env._entities if e.etype == "car"]
         assert len(cars) > 0
 

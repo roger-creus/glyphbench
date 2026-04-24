@@ -35,19 +35,19 @@ class TestBigFish:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_has_fish(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         fish = [e for e in env._entities if e.etype == "fish"]
         assert len(fish) > 0
 
     def test_eat_smaller_fish(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Set agent size to 3 and place a small fish on agent
         env._agent_size = 3
         # Add a size-1 fish at agent position
@@ -59,7 +59,7 @@ class TestBigFish:
 
     def test_eaten_by_bigger_fish(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         env._agent_size = 1
         # Add a big fish at agent position
         env._add_entity("fish", "W", env._agent_x, env._agent_y, dx=0, data={"size": 6})
@@ -70,7 +70,7 @@ class TestBigFish:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:
@@ -82,7 +82,7 @@ class TestBigFish:
 
     def test_agent_grows(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         env._agent_size = 1
         env._fish_eaten = 2  # next eat will trigger growth
         # Place a small fish on agent

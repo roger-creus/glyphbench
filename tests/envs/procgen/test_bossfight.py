@@ -35,13 +35,13 @@ class TestBossFight:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_fire_creates_bullet(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         fire = env.action_spec.index_of("FIRE")
         env.step(fire)
         bullets = [e for e in env._entities if e.etype == "bullet"]
@@ -49,7 +49,7 @@ class TestBossFight:
 
     def test_boss_takes_damage(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place agent directly below boss
         env._agent_x = env._boss_x
         env._agent_y = env._boss_y + 1
@@ -62,7 +62,7 @@ class TestBossFight:
 
     def test_boss_phases(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._boss_phase() == 1
         env._boss_hp = 5
         assert env._boss_phase() == 2
@@ -71,7 +71,7 @@ class TestBossFight:
 
     def test_boss_defeat(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         env._boss_hp = 1
         # Place agent directly below boss
         env._agent_x = env._boss_x
@@ -83,7 +83,7 @@ class TestBossFight:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:

@@ -43,7 +43,7 @@ class TestNinja:
 
     def test_observation_contract(self) -> None:
         env = self._make()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -51,7 +51,7 @@ class TestNinja:
 
     def test_window_size(self) -> None:
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         assert len(lines) == 12
@@ -60,7 +60,7 @@ class TestNinja:
     def test_goal_reward(self) -> None:
         """Reaching goal gives +10."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         for y in range(env._world_h):
             for x in range(env._world_w):
                 if env._world_at(x, y) == "G":
@@ -79,7 +79,7 @@ class TestNinja:
     def test_throw_creates_projectile(self) -> None:
         """THROW action creates a shuriken entity."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         throw = env.action_spec.index_of("THROW")
         env.step(throw)
         # Should have created a shuriken (may be removed if hit something)
@@ -89,7 +89,7 @@ class TestNinja:
     def test_shuriken_kills_enemy(self) -> None:
         """A shuriken hitting an enemy kills it."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place enemy 2 cells right of agent
         env._entities.clear()
         env._add_entity("enemy", "E", env._agent_x + 2, env._agent_y, dx=0)
@@ -103,7 +103,7 @@ class TestNinja:
     def test_breakable_wall(self) -> None:
         """Shuriken breaks a breakable wall."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place breakable wall
         bx = env._agent_x + 2
         by = env._agent_y
@@ -117,7 +117,7 @@ class TestNinja:
     def test_enemy_kills_player(self) -> None:
         """Touching an enemy terminates."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         env._entities.clear()
         env._add_entity("enemy", "E", env._agent_x + 1, env._agent_y, dx=0)
         right = env.action_spec.index_of("RIGHT")
@@ -127,7 +127,7 @@ class TestNinja:
 
     def test_max_turns_truncation(self) -> None:
         env = self._make(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -144,7 +144,7 @@ class TestNinja:
 
     def test_reset_requires_seed(self) -> None:
         env = self._make()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     @pytest.mark.parametrize("seed", range(5))

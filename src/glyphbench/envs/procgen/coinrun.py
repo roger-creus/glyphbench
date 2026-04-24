@@ -13,7 +13,7 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
 from glyphbench.envs.procgen.base import JUMP_ARC_DY, VIEW_HEIGHT, VIEW_WIDTH
 
@@ -29,7 +29,7 @@ CELL_COIN = "C"
 CELL_AGENT = "@"
 
 
-class CoinRunEnv(BaseAsciiEnv):
+class CoinRunEnv(BaseGlyphEnv):
     """Procgen CoinRun: side-scrolling platformer with procedural levels.
 
     The agent sees a 20x12 partial-observation window centered on itself.

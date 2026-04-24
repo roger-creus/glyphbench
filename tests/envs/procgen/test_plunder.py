@@ -35,13 +35,13 @@ class TestPlunder:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_fire_creates_cannonball(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         fire = env.action_spec.index_of("FIRE")
         env.step(fire)
         balls = [e for e in env._entities if e.etype == "cannonball"]
@@ -49,7 +49,7 @@ class TestPlunder:
 
     def test_hit_pirate(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place pirate right above agent
         env._entities = []
         env._add_entity("pirate", "P", env._agent_x, env._agent_y - 1, dx=0, dy=0)
@@ -59,7 +59,7 @@ class TestPlunder:
 
     def test_hit_civilian_penalty(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place civilian right above agent
         env._entities = []
         env._add_entity("civilian", "c", env._agent_x, env._agent_y - 1, dx=0, dy=0)
@@ -69,7 +69,7 @@ class TestPlunder:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:

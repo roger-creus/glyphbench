@@ -35,24 +35,24 @@ class TestChaser:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_has_pellets(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._pellet_count > 0
 
     def test_has_ghosts(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         ghosts = [e for e in env._entities if e.etype == "ghost"]
         assert len(ghosts) >= 2
 
     def test_pellet_collection(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         initial = env._pellet_count
         # Move around to collect pellets
         right = env.action_spec.index_of("RIGHT")
@@ -67,7 +67,7 @@ class TestChaser:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:
@@ -79,7 +79,7 @@ class TestChaser:
 
     def test_power_pellet_scares_ghosts(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Find power pellet and place agent on it
         for y in range(env.MAZE_H):
             for x in range(env.MAZE_W):

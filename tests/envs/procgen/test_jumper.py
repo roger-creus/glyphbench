@@ -43,7 +43,7 @@ class TestJumper:
 
     def test_observation_contract(self) -> None:
         env = self._make()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -51,7 +51,7 @@ class TestJumper:
 
     def test_window_size(self) -> None:
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         assert len(lines) == 12
@@ -60,7 +60,7 @@ class TestJumper:
     def test_goal_reward(self) -> None:
         """Reaching goal gives +10."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Find G in the world
         for y in range(env._world_h):
             for x in range(env._world_w):
@@ -80,7 +80,7 @@ class TestJumper:
     def test_spike_kills(self) -> None:
         """Stepping on a spike terminates."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place spike next to agent
         env._set_cell(env._agent_x + 1, env._agent_y, "^")
         right = env.action_spec.index_of("RIGHT")
@@ -90,7 +90,7 @@ class TestJumper:
 
     def test_max_turns_truncation(self) -> None:
         env = self._make(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -107,12 +107,12 @@ class TestJumper:
 
     def test_reset_requires_seed(self) -> None:
         env = self._make()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_jump_from_ground(self) -> None:
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         initial_y = env._agent_y
         jump = env.action_spec.index_of("JUMP")
         env.step(jump)

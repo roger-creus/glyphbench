@@ -35,20 +35,20 @@ class TestMaze:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
         assert "[HUD]" in obs
 
     def test_has_cheese(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Cheese exists in the world grid
         assert env._world_at(env._cheese_x, env._cheese_y) == "C"
 
     def test_cheese_reward(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place agent next to cheese
         env._agent_x = env._cheese_x - 1
         env._agent_y = env._cheese_y
@@ -61,7 +61,7 @@ class TestMaze:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:
@@ -73,7 +73,7 @@ class TestMaze:
 
     def test_walls_block_movement(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Agent at (1,1), wall at (0,1)
         x0 = env._agent_x
         left = env.action_spec.index_of("LEFT")
@@ -83,7 +83,7 @@ class TestMaze:
 
     def test_max_turns_truncation(self):
         env = self._make(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)

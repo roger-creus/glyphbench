@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from glyphbench.core import make_env
+import glyphbench.envs.procgen  # register envs
+
 from glyphbench.core.action import ActionSpec
 
 

@@ -35,13 +35,13 @@ class TestHeist:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_has_goal(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Goal G should exist in the world
         found = False
         for y in range(env.MAZE_H):
@@ -53,7 +53,7 @@ class TestHeist:
 
     def test_key_pickup(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Find a key and place agent next to it
         for y in range(env.MAZE_H):
             for x in range(env.MAZE_W):
@@ -69,7 +69,7 @@ class TestHeist:
 
     def test_goal_reward(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Give all keys and place agent next to goal
         env._keys_held = {"r", "b", "y"}
         env._agent_x = env._goal_x
@@ -81,7 +81,7 @@ class TestHeist:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:
@@ -93,7 +93,7 @@ class TestHeist:
 
     def test_door_blocks_without_key(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Find a door
         for y in range(env.MAZE_H):
             for x in range(env.MAZE_W):

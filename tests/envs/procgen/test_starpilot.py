@@ -35,13 +35,13 @@ class TestStarPilot:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_fire_creates_bullet(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         fire = env.action_spec.index_of("FIRE")
         env.step(fire)
         bullets = [e for e in env._entities if e.etype == "bullet"]
@@ -49,7 +49,7 @@ class TestStarPilot:
 
     def test_enemy_spawning(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         # Run a few steps to trigger spawns
         for _ in range(10):
@@ -59,7 +59,7 @@ class TestStarPilot:
 
     def test_powerup_collection(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place a power-up on the agent
         env._add_entity("powerup", "$", env._agent_x, env._agent_y, dx=0, dy=0)
         noop = env.action_spec.index_of("NOOP")
@@ -68,7 +68,7 @@ class TestStarPilot:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:

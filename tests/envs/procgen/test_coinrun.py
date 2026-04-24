@@ -1,3 +1,5 @@
+from glyphbench.core import make_env
+import glyphbench.envs.procgen  # register envs
 """Unit tests for Procgen CoinRun env."""
 
 import pytest
@@ -64,7 +66,7 @@ class TestCoinRun:
     # --- Spec 10.1: test_observation_contract ---
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -77,7 +79,7 @@ class TestCoinRun:
     # --- Spec 8.3: window size is 20x12 ---
     def test_window_size(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 12, f"Expected 12 rows, got {len(grid_lines)}"
@@ -87,7 +89,7 @@ class TestCoinRun:
     def test_death_by_pit(self):
         """Falling into a pit terminates with 0 reward."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Force agent above a pit
         # Find a pit in the level
         pit_found = False
@@ -121,7 +123,7 @@ class TestCoinRun:
     def test_coin_collection_reward(self):
         """Reaching the coin gives +10."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place agent right next to the coin
         env._agent_x = env._coin_x - 1
         env._agent_y = env._coin_y
@@ -143,7 +145,7 @@ class TestCoinRun:
     # --- Spec 8.3: window scrolls as agent moves ---
     def test_window_scrolls(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         right = env.action_spec.index_of("RIGHT")
         initial_camera = env._camera_x
         for _ in range(15):
@@ -154,7 +156,7 @@ class TestCoinRun:
     # --- Spec 10.1: test_reward_bounds ---
     def test_reward_bounds(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for _ in range(20):
             _, reward, t, tr, _ = env.step(noop)
@@ -165,7 +167,7 @@ class TestCoinRun:
     # --- Spec 10.1: test_max_turns_truncation ---
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -177,7 +179,7 @@ class TestCoinRun:
     # --- Spec 8.3: HUD content ---
     def test_hud_content(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         hud = env.get_observation().hud
         assert "Step:" in hud
         assert "Vel:" in hud or "vel" in hud.lower()
@@ -185,7 +187,7 @@ class TestCoinRun:
     # --- Spec 8.3: info extras ---
     def test_info_extras(self):
         env = self._make_env()
-        _, info = env.reset(seed=0)
+        _, info = env.reset(0)
         right = env.action_spec.index_of("RIGHT")
         _, _, _, _, info = env.step(right)
         assert "agent_pos" in info
@@ -193,7 +195,7 @@ class TestCoinRun:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):
@@ -206,7 +208,7 @@ class TestCoinRun:
     def test_jump_from_ground(self):
         """Jumping from ground should move agent upward."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_y = env._agent_y
         jump = env.action_spec.index_of("JUMP")
         env.step(jump)
@@ -216,7 +218,7 @@ class TestCoinRun:
     def test_cannot_double_jump(self):
         """Cannot jump while already in the air."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         jump = env.action_spec.index_of("JUMP")
         env.step(jump)  # First jump
         env.step(jump)  # Second jump should be no-op (still in air)
@@ -228,7 +230,7 @@ class TestCoinRun:
     def test_gravity_pulls_agent_down(self):
         """Agent in air with no jump should fall."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Force agent into air
         env._agent_y = env._ground_y - 3
         env._on_ground = False

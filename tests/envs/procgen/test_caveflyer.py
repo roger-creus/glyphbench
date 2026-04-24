@@ -35,19 +35,19 @@ class TestCaveFlyer:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_has_enemies(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         enemies = [e for e in env._entities if e.etype == "enemy"]
         assert len(enemies) > 0
 
     def test_fire_creates_bullet(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         fire = env.action_spec.index_of("FIRE")
         env.step(fire)
         bullets = [e for e in env._entities if e.etype == "bullet"]
@@ -55,7 +55,7 @@ class TestCaveFlyer:
 
     def test_bullet_hits_enemy(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Clear entities and place enemy right of agent
         env._entities = []
         env._add_entity("enemy", "E", env._agent_x + 1, env._agent_y, dx=0, dy=0)
@@ -65,7 +65,7 @@ class TestCaveFlyer:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:

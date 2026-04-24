@@ -43,7 +43,7 @@ class TestMiner:
 
     def test_observation_contract(self) -> None:
         env = self._make()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -51,7 +51,7 @@ class TestMiner:
 
     def test_window_size(self) -> None:
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         assert len(lines) == 20
@@ -60,7 +60,7 @@ class TestMiner:
     def test_diamond_collection(self) -> None:
         """Collecting diamond gives +1."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place diamond next to agent
         env._set_cell(env._agent_x + 1, env._agent_y, "D")
         right = env.action_spec.index_of("RIGHT")
@@ -70,7 +70,7 @@ class TestMiner:
     def test_dig_through_dirt(self) -> None:
         """Agent can dig through dirt."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         env._set_cell(env._agent_x + 1, env._agent_y, "d")
         right = env.action_spec.index_of("RIGHT")
         env.step(right)
@@ -79,7 +79,7 @@ class TestMiner:
     def test_cannot_move_through_wall(self) -> None:
         """Agent cannot move through walls."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Agent is at (1,1), left wall is at x=0
         left = env.action_spec.index_of("LEFT")
         env.step(left)
@@ -88,7 +88,7 @@ class TestMiner:
     def test_cannot_move_through_boulder(self) -> None:
         """Agent cannot push boulders."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         env._set_cell(env._agent_x + 1, env._agent_y, "R")
         right = env.action_spec.index_of("RIGHT")
         old_x = env._agent_x
@@ -98,7 +98,7 @@ class TestMiner:
     def test_boulder_falls(self) -> None:
         """Boulder falls when cell below is empty."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Set up a clean column: clear everything above to avoid cascading
         bx, by = 5, 8
         for cy in range(1, by):
@@ -113,7 +113,7 @@ class TestMiner:
     def test_boulder_crush_kills(self) -> None:
         """Boulder falling on agent kills them."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Set up: boulder directly above agent, empty cell between
         env._agent_x = 5
         env._agent_y = 8
@@ -130,7 +130,7 @@ class TestMiner:
     def test_goal_reward(self) -> None:
         """Reaching exit gives +10."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Find G
         for y in range(env._world_h):
             for x in range(env._world_w):
@@ -147,7 +147,7 @@ class TestMiner:
 
     def test_max_turns_truncation(self) -> None:
         env = self._make(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -164,7 +164,7 @@ class TestMiner:
 
     def test_reset_requires_seed(self) -> None:
         env = self._make()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     @pytest.mark.parametrize("seed", range(5))

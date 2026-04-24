@@ -35,19 +35,19 @@ class TestDodgeball:
 
     def test_observation_contract(self):
         env = self._make()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
 
     def test_has_enemies(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         enemies = [e for e in env._entities if e.etype == "enemy"]
         assert len(enemies) > 0
 
     def test_throw_creates_ball(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         throw = env.action_spec.index_of("THROW")
         env.step(throw)
         balls = [e for e in env._entities if e.etype == "ball"]
@@ -55,7 +55,7 @@ class TestDodgeball:
 
     def test_ball_hits_enemy(self):
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Clear all entities and place an enemy right above agent
         env._entities = []
         env._facing_dx, env._facing_dy = 0, -1
@@ -66,7 +66,7 @@ class TestDodgeball:
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)
-        env.reset(seed=7)
+        env.reset(7)
         done = False
         steps = 0
         while not done and steps < 200:

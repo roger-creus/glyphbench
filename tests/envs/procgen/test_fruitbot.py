@@ -43,7 +43,7 @@ class TestFruitBot:
 
     def test_observation_contract(self) -> None:
         env = self._make()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -51,7 +51,7 @@ class TestFruitBot:
 
     def test_window_size(self) -> None:
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         assert len(lines) == 20
@@ -60,7 +60,7 @@ class TestFruitBot:
     def test_fruit_collection_reward(self) -> None:
         """Collecting fruit gives +1."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place fruit below agent
         env._set_cell(env._agent_x, env._agent_y + 1, "%")
         noop = env.action_spec.index_of("NOOP")
@@ -70,7 +70,7 @@ class TestFruitBot:
     def test_obstacle_penalty(self) -> None:
         """Hitting obstacle gives -1."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         # Place obstacle below agent
         env._set_cell(env._agent_x, env._agent_y + 1, "x")
         noop = env.action_spec.index_of("NOOP")
@@ -80,7 +80,7 @@ class TestFruitBot:
     def test_agent_falls(self) -> None:
         """Agent falls each step."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         initial_y = env._agent_y
         noop = env.action_spec.index_of("NOOP")
         env.step(noop)
@@ -89,7 +89,7 @@ class TestFruitBot:
     def test_down_falls_faster(self) -> None:
         """DOWN action falls 2 cells instead of 1."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         initial_y = env._agent_y
         # Clear the cells below
         env._set_cell(env._agent_x, initial_y + 1, ".")
@@ -101,7 +101,7 @@ class TestFruitBot:
     def test_terminates_at_bottom(self) -> None:
         """Game terminates when agent reaches the bottom."""
         env = self._make()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         terminated = False
         for _ in range(200):
@@ -112,7 +112,7 @@ class TestFruitBot:
 
     def test_max_turns_truncation(self) -> None:
         env = self._make(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -129,7 +129,7 @@ class TestFruitBot:
 
     def test_reset_requires_seed(self) -> None:
         env = self._make()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     @pytest.mark.parametrize("seed", range(5))
