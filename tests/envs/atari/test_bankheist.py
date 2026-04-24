@@ -45,7 +45,7 @@ class TestBankHeist:
 
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -53,7 +53,7 @@ class TestBankHeist:
 
     def test_grid_dimensions(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 16
@@ -61,7 +61,7 @@ class TestBankHeist:
 
     def test_bank_robbery(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place a bank next to player
         env._set_cell(env._player_x + 1, env._player_y, "$")
         env._total_banks += 1
@@ -72,7 +72,7 @@ class TestBankHeist:
 
     def test_gas_decreases(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_gas = env._gas
         noop = env.action_spec.index_of("NOOP")
         env.step(noop)
@@ -80,7 +80,7 @@ class TestBankHeist:
 
     def test_police_collision_loses_life(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_lives = env._lives
         # Place police on player's next position
         env._entities = [e for e in env._entities if e.etype != "police"]
@@ -93,7 +93,7 @@ class TestBankHeist:
 
     def test_dynamite_stuns_police(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place police nearby
         env._entities = [e for e in env._entities if e.etype != "police"]
         cop = env._add_entity("police", "p", env._player_x + 2, env._player_y)
@@ -105,13 +105,13 @@ class TestBankHeist:
 
     def test_hud_shows_gas(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         obs = env.get_observation()
         assert "Gas:" in obs.hud
 
     def test_rollout_no_crash(self):
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         for _ in range(200):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -120,7 +120,7 @@ class TestBankHeist:
 
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -131,7 +131,7 @@ class TestBankHeist:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):

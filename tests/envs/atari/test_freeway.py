@@ -48,7 +48,7 @@ class TestFreeway:
 
     def test_observation_contract(self) -> None:
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -56,7 +56,7 @@ class TestFreeway:
 
     def test_grid_dimensions(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 16
@@ -65,17 +65,17 @@ class TestFreeway:
 
     def test_starts_at_bottom(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._player_y == env._PLAYER_START_Y
 
     def test_lanes_created(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._lanes) > 0
 
     def test_up_moves_player(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         start_y = env._player_y
         up = env.action_spec.index_of("UP")
         env.step(up)
@@ -84,7 +84,7 @@ class TestFreeway:
     def test_never_terminates(self) -> None:
         """Freeway never terminates, only truncates."""
         env = self._make_env(max_turns=50)
-        env.reset(seed=42)
+        env.reset(42)
         noop = env.action_spec.index_of("NOOP")
         terminated_ever = False
         for _ in range(50):
@@ -97,7 +97,7 @@ class TestFreeway:
 
     def test_rollout_no_crash(self) -> None:
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         actions = list(range(env.action_spec.n))
         for i in range(200):
             a = actions[i % len(actions)]
@@ -107,7 +107,7 @@ class TestFreeway:
 
     def test_max_turns_truncation(self) -> None:
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -125,5 +125,5 @@ class TestFreeway:
         import pytest
 
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()

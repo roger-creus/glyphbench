@@ -54,7 +54,7 @@ class TestPong:
     # --- Spec 10.1: test_observation_contract ---
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -68,7 +68,7 @@ class TestPong:
     def test_court_dimensions(self):
         """Court is 34x18 (32x16 + border)."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 18, f"Expected 18 rows, got {len(grid_lines)}"
@@ -78,7 +78,7 @@ class TestPong:
     def test_ball_moves_after_serve(self):
         """After FIRE, ball should move each step."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         fire = env.action_spec.index_of("FIRE")
         noop = env.action_spec.index_of("NOOP")
         # Serve
@@ -93,7 +93,7 @@ class TestPong:
     def test_ball_bounces_off_top_bottom_walls(self):
         """Ball should bounce (vy flips) when hitting top or bottom wall."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Force ball near top wall heading up
         env._ball_x = 16
         env._ball_y = 1  # row 1 is first interior row
@@ -109,7 +109,7 @@ class TestPong:
     def test_scoring_agent_scores(self):
         """Ball passing left edge -> agent scores +1."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Force ball near left edge heading left, paddle out of the way
         env._ball_x = 2
         env._ball_y = 3
@@ -131,7 +131,7 @@ class TestPong:
     def test_scoring_opponent_scores(self):
         """Ball passing right edge -> opponent scores, reward = -1."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Force ball near right edge heading right, paddle out of the way
         env._ball_x = 31
         env._ball_y = 3
@@ -151,7 +151,7 @@ class TestPong:
     def test_game_ends_at_21(self):
         """First side to 21 -> terminated."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Force score to near-end
         env._score_right = 20
         env._score_left = 0
@@ -191,7 +191,7 @@ class TestPong:
     # --- Spec 8.5: paddle movement ---
     def test_paddle_moves_up_down(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_y = env._paddle_right_y
         up = env.action_spec.index_of("UP")
         env.step(up)
@@ -201,7 +201,7 @@ class TestPong:
     # --- Spec 8.5: ball speed up ---
     def test_ball_speed_increases_every_6_hits(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._ball_speed_level == 1
         env._rally_hits = 5
         # Simulate a paddle hit
@@ -212,7 +212,7 @@ class TestPong:
     # --- Spec 8.5: HUD shows ball velocity ---
     def test_hud_shows_ball_info(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         hud = env.get_observation().hud
         assert "Score:" in hud
         assert "Ball:" in hud or "vel" in hud.lower()
@@ -220,7 +220,7 @@ class TestPong:
     # --- Spec 8.5: FIRE serves ball ---
     def test_fire_serves_ball(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._serving
         fire = env.action_spec.index_of("FIRE")
         env.step(fire)
@@ -229,7 +229,7 @@ class TestPong:
     # --- Spec 10.1: max turns truncation ---
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -240,7 +240,7 @@ class TestPong:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):
@@ -252,7 +252,7 @@ class TestPong:
     # --- Spec 8.5: reward bounds ---
     def test_reward_bounds(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         fire = env.action_spec.index_of("FIRE")
         noop = env.action_spec.index_of("NOOP")
         env.step(fire)

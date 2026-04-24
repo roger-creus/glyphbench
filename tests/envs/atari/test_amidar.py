@@ -45,7 +45,7 @@ class TestAmidar:
 
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -53,7 +53,7 @@ class TestAmidar:
 
     def test_grid_dimensions(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 16
@@ -61,7 +61,7 @@ class TestAmidar:
 
     def test_painting_segments(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_painted = env._painted_segments
         # Move right (should paint unpainted segments)
         right = env.action_spec.index_of("RIGHT")
@@ -73,7 +73,7 @@ class TestAmidar:
 
     def test_scoring(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place unpainted segment next to player
         env._set_cell(env._player_x + 1, env._player_y, "\u00b7")
         right = env.action_spec.index_of("RIGHT")
@@ -83,7 +83,7 @@ class TestAmidar:
 
     def test_enemy_collision_loses_life(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_lives = env._lives
         # Place enemy on player
         env._entities = [e for e in env._entities if e.etype != "enemy"]
@@ -96,7 +96,7 @@ class TestAmidar:
 
     def test_progress_tracking(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         _, _, _, _, info = env.step(noop)
         assert "painted" in info
@@ -105,7 +105,7 @@ class TestAmidar:
 
     def test_rollout_no_crash(self):
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         for _ in range(200):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -114,7 +114,7 @@ class TestAmidar:
 
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -125,7 +125,7 @@ class TestAmidar:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):

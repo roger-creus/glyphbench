@@ -48,7 +48,7 @@ class TestKangaroo:
 
     def test_observation_contract(self) -> None:
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -56,7 +56,7 @@ class TestKangaroo:
 
     def test_grid_dimensions(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 20
@@ -65,12 +65,12 @@ class TestKangaroo:
 
     def test_player_starts_at_bottom(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._player_y >= env._HEIGHT - 4
 
     def test_punch_destroys_nearby_enemy(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Clear existing entities and place one enemy next to player
         env._entities = []
         env._add_entity("enemy", "M", env._player_x + 1, env._player_y)
@@ -83,7 +83,7 @@ class TestKangaroo:
 
     def test_rollout_no_crash(self) -> None:
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         actions = list(range(env.action_spec.n))
         for i in range(200):
             a = actions[i % len(actions)]
@@ -93,7 +93,7 @@ class TestKangaroo:
 
     def test_max_turns_truncation(self) -> None:
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -111,5 +111,5 @@ class TestKangaroo:
         import pytest
 
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()

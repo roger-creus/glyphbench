@@ -45,7 +45,7 @@ class TestMsPacMan:
 
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -53,7 +53,7 @@ class TestMsPacMan:
 
     def test_grid_dimensions(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 24  # maze height
@@ -61,7 +61,7 @@ class TestMsPacMan:
 
     def test_pellet_collection(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place player next to a known pellet
         # Find a pellet adjacent to player
         initial_pellets = env._pellet_count
@@ -78,7 +78,7 @@ class TestMsPacMan:
 
     def test_power_pellet_frightens_ghosts(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place player next to a power pellet
         # Power pellets are at corners of the maze
         env._player_x = 1
@@ -91,7 +91,7 @@ class TestMsPacMan:
 
     def test_ghost_collision_loses_life(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_lives = env._lives
         # Place a ghost on the player
         for e in env._entities:
@@ -112,7 +112,7 @@ class TestMsPacMan:
 
     def test_scoring(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._score == 0
         # Manually eat a pellet
         env._set_cell(env._player_x + 1, env._player_y, "·")
@@ -124,7 +124,7 @@ class TestMsPacMan:
 
     def test_rollout_no_crash(self):
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         for _ in range(200):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -133,7 +133,7 @@ class TestMsPacMan:
 
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -144,7 +144,7 @@ class TestMsPacMan:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):

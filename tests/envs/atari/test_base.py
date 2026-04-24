@@ -88,7 +88,7 @@ class TestAtariBaseInit:
 class TestAtariBaseGrid:
     def test_init_grid_dimensions(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._grid_w == 10
         assert env._grid_h == 8
         assert len(env._grid) == 8
@@ -96,33 +96,33 @@ class TestAtariBaseGrid:
 
     def test_init_grid_fill(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Default fill is space
         assert all(env._grid[y][x] == " " for y in range(8) for x in range(10))
 
     def test_set_cell_and_grid_at(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._set_cell(3, 4, "\u2588")
         assert env._grid_at(3, 4) == "\u2588"
 
     def test_set_cell_out_of_bounds_noop(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Should not raise
         env._set_cell(99, 99, "X")
         env._set_cell(-1, -1, "X")
 
     def test_grid_at_out_of_bounds_returns_hash(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._grid_at(-1, 0) == "\u2588"
         assert env._grid_at(0, -1) == "\u2588"
         assert env._grid_at(100, 0) == "\u2588"
 
     def test_is_solid_wall_chars(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._set_cell(0, 0, "█")
         assert env._is_solid(0, 0) is True
         env._set_cell(1, 0, " ")
@@ -132,19 +132,19 @@ class TestAtariBaseGrid:
 class TestAtariBaseReset:
     def test_reset_returns_string(self) -> None:
         env = make_env()
-        obs, info = env.reset(seed=7)
+        obs, info = env.reset(7)
         assert isinstance(obs, str)
 
     def test_reset_clears_score_lives_entities(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Manually dirty the state
         env._score = 100
         env._lives = 1
         env._entities.append(
             AtariEntity(etype="enemy", char="E", x=2, y=2)
         )
-        env.reset(seed=0)
+        env.reset(0)
         assert env._score == 0
         assert env._lives == 3
         assert env._entities == []
@@ -159,26 +159,26 @@ class TestAtariBaseReset:
     def test_reset_different_seeds_differ(self) -> None:
         # TestGame ignores seed, so same obs; just verify no crash with different seeds
         env = make_env()
-        env.reset(seed=1)
-        env.reset(seed=2)
+        env.reset(1)
+        env.reset(2)
 
     def test_reset_requires_seed(self) -> None:
         env = make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()  # type: ignore[call-arg]
 
 
 class TestAtariBaseObservation:
     def test_observation_has_required_sections(self) -> None:
         env = make_env()
-        obs, _ = env.reset(seed=0)
+        obs, _ = env.reset(0)
         assert "[Grid]" in obs
         assert "[Legend]" in obs
         assert "[HUD]" in obs
 
     def test_hud_format(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         obs_obj = env.get_observation()
         hud = obs_obj.hud
         assert "Score:" in hud
@@ -187,7 +187,7 @@ class TestAtariBaseObservation:
 
     def test_hud_reflects_score_and_lives(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._score = 42
         env._lives = 2
         env._level = 3
@@ -198,19 +198,19 @@ class TestAtariBaseObservation:
 
     def test_player_shown_as_at_sign(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_str = env.get_observation().grid
         assert "@" in grid_str
 
     def test_legend_contains_player_symbol(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         legend = env.get_observation().legend
         assert "@" in legend
 
     def test_grid_rows_equal_length(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_str = env.get_observation().grid
         rows = grid_str.split("\n")
         lengths = [len(r) for r in rows]
@@ -220,7 +220,7 @@ class TestAtariBaseObservation:
 class TestAtariBaseScoreAndLives:
     def test_on_point_scored_increases_score(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._on_point_scored(5)
         assert env._score == 5
         env._on_point_scored(3)
@@ -228,14 +228,14 @@ class TestAtariBaseScoreAndLives:
 
     def test_on_life_lost_decrements_lives(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._on_life_lost()
         assert env._lives == 2
         assert env._game_over is False
 
     def test_on_life_lost_triggers_game_over(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._lives = 1
         env._on_life_lost()
         assert env._lives == 0
@@ -244,7 +244,7 @@ class TestAtariBaseScoreAndLives:
 
     def test_game_over_terminates_step(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._lives = 1
         env._on_life_lost()
         noop = env.action_spec.index_of("NOOP")
@@ -255,7 +255,7 @@ class TestAtariBaseScoreAndLives:
 class TestAtariBaseEntities:
     def test_add_entity_appends(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         e = env._add_entity("enemy", "E", 3, 4)
         assert len(env._entities) == 1
         assert e.etype == "enemy"
@@ -265,14 +265,14 @@ class TestAtariBaseEntities:
 
     def test_add_entity_with_velocity(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         e = env._add_entity("bullet", "*", 5, 5, dx=1, dy=-1)
         assert e.dx == 1
         assert e.dy == -1
 
     def test_advance_entities_moves_them(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._add_entity("bullet", "*", 3, 3, dx=1, dy=0)
         env._advance_entities()
         assert env._entities[0].x == 4
@@ -280,7 +280,7 @@ class TestAtariBaseEntities:
 
     def test_advance_entities_removes_out_of_bounds(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place entity at edge heading out
         env._add_entity("bullet", "*", 9, 3, dx=1, dy=0)
         env._advance_entities()
@@ -288,7 +288,7 @@ class TestAtariBaseEntities:
 
     def test_advance_entities_skips_dead(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         e = env._add_entity("enemy", "E", 3, 3, dx=0, dy=0)
         e.alive = False
         env._advance_entities()
@@ -296,14 +296,14 @@ class TestAtariBaseEntities:
 
     def test_entities_rendered_in_grid(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._add_entity("enemy", "E", 2, 2)
         grid_str = env.get_observation().grid
         assert "E" in grid_str
 
     def test_fire_action_adds_bullet_entity(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         fire = env.action_spec.index_of("FIRE")
         env.step(fire)
         assert any(e.char == "*" for e in env._entities)
@@ -312,7 +312,7 @@ class TestAtariBaseEntities:
 class TestAtariBaseStep:
     def test_step_info_contains_score_lives_level(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         _, _, _, _, info = env.step(noop)
         assert "score" in info
@@ -321,7 +321,7 @@ class TestAtariBaseStep:
 
     def test_step_advances_entities(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._add_entity("bullet", "*", 3, 3, dx=1, dy=0)
         noop = env.action_spec.index_of("NOOP")
         env.step(noop)
@@ -331,7 +331,7 @@ class TestAtariBaseStep:
 
     def test_step_message_cleared_each_turn(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env._message = "old message"
         noop = env.action_spec.index_of("NOOP")
         env.step(noop)
@@ -341,7 +341,7 @@ class TestAtariBaseStep:
 
     def test_max_turns_truncation(self) -> None:
         env = make_env(max_turns=3)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(3):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -352,7 +352,7 @@ class TestAtariBaseStep:
 
     def test_left_right_moves_player(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_x = env._player_x
         right = env.action_spec.index_of("RIGHT")
         env.step(right)
@@ -366,13 +366,13 @@ class TestAtariBaseStep:
 class TestAtariBaseSystemPrompt:
     def test_system_prompt_contains_env_id(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         prompt = env.system_prompt()
         assert "test-game-v0" in prompt
 
     def test_system_prompt_contains_actions(self) -> None:
         env = make_env()
-        env.reset(seed=0)
+        env.reset(0)
         prompt = env.system_prompt()
         assert "NOOP" in prompt
         assert "LEFT" in prompt

@@ -45,7 +45,7 @@ class TestWizardOfWor:
 
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -53,7 +53,7 @@ class TestWizardOfWor:
 
     def test_grid_dimensions(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 16
@@ -61,7 +61,7 @@ class TestWizardOfWor:
 
     def test_shooting_kills_ghost(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Clear existing entities. Bullet spawns at player_x+1 and moves to
         # player_x+2 on the fire step. Collision is checked before ghosts
         # move, so place ghost at player_x+2.
@@ -80,7 +80,7 @@ class TestWizardOfWor:
 
     def test_ghost_collision_loses_life(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_lives = env._lives
         # Place ghost on player
         env._entities = [e for e in env._entities if e.etype not in ("ghost", "wizard")]
@@ -95,7 +95,7 @@ class TestWizardOfWor:
 
     def test_rollout_no_crash(self):
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         for _ in range(200):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -104,7 +104,7 @@ class TestWizardOfWor:
 
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -115,7 +115,7 @@ class TestWizardOfWor:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):

@@ -48,7 +48,7 @@ class TestVenture:
 
     def test_observation_contract(self) -> None:
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -56,7 +56,7 @@ class TestVenture:
 
     def test_grid_dimensions(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 16
@@ -65,12 +65,12 @@ class TestVenture:
 
     def test_starts_in_hallway(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._current_room == -1
 
     def test_fire_shoots_arrow(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         fire = env.action_spec.index_of("FIRE")
         env.step(fire)
         arrows = [e for e in env._entities if e.etype == "arrow"]
@@ -78,7 +78,7 @@ class TestVenture:
 
     def test_rollout_no_crash(self) -> None:
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         actions = list(range(env.action_spec.n))
         for i in range(200):
             a = actions[i % len(actions)]
@@ -88,7 +88,7 @@ class TestVenture:
 
     def test_max_turns_truncation(self) -> None:
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -106,5 +106,5 @@ class TestVenture:
         import pytest
 
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()

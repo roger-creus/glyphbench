@@ -16,7 +16,7 @@ from glyphbench.envs.atari.pong import PongEnv
 @settings(max_examples=50, deadline=None)
 def test_random_action_sequence_no_crash(actions: list[int], seed: int) -> None:
     env = PongEnv(max_turns=500)
-    obs, info = env.reset(seed=seed)
+    obs, info = env.reset(seed)
     assert isinstance(obs, str)
     assert len(obs) > 0
     for a in actions:
@@ -38,6 +38,6 @@ def test_random_action_sequence_no_crash(actions: list[int], seed: int) -> None:
 def test_reset_determinism_across_seeds(seed: int) -> None:
     e1 = PongEnv()
     e2 = PongEnv()
-    o1, _ = e1.reset(seed=seed)
-    o2, _ = e2.reset(seed=seed)
+    o1, _ = e1.reset(seed)
+    o2, _ = e2.reset(seed)
     assert o1 == o2

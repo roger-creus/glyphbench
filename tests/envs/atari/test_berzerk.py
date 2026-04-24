@@ -44,7 +44,7 @@ class TestBerzerk:
 
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -52,7 +52,7 @@ class TestBerzerk:
 
     def test_grid_dimensions(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 16
@@ -60,7 +60,7 @@ class TestBerzerk:
 
     def test_shooting_destroys_robot(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Place a robot right next to player, in line of fire
         env._entities = [e for e in env._entities if e.etype != "robot"]
         from glyphbench.envs.atari.berzerk import _ROBOT_CHAR
@@ -82,7 +82,7 @@ class TestBerzerk:
 
     def test_robot_collision_loses_life(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_lives = env._lives
         # Place robot on player
         env._entities = [e for e in env._entities if e.etype != "robot"]
@@ -96,7 +96,7 @@ class TestBerzerk:
 
     def test_exit_door_advances_level(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         initial_level = env._level
         # Clear all robots
         for e in env._entities:
@@ -119,7 +119,7 @@ class TestBerzerk:
 
     def test_rollout_no_crash(self):
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         for _ in range(200):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -128,7 +128,7 @@ class TestBerzerk:
 
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -139,7 +139,7 @@ class TestBerzerk:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):

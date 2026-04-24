@@ -48,7 +48,7 @@ class TestQbert:
 
     def test_observation_contract(self) -> None:
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -56,7 +56,7 @@ class TestQbert:
 
     def test_grid_dimensions(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == 15
@@ -65,27 +65,27 @@ class TestQbert:
 
     def test_starts_at_top(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._player_row == 0
         assert env._player_col == 0
 
     def test_cubes_created(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # 7-row pyramid: 1+2+3+4+5+6+7 = 28 cubes
         assert len(env._cubes) == 28
         assert all(not v for v in env._cubes.values())
 
     def test_hop_colors_cube(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         dr = env.action_spec.index_of("DOWN_RIGHT")
         _, r, _, _, _ = env.step(dr)
         assert r == 25  # +25 for coloring a cube
 
     def test_rollout_no_crash(self) -> None:
         env = self._make_env(max_turns=200)
-        env.reset(seed=42)
+        env.reset(42)
         actions = list(range(env.action_spec.n))
         for i in range(200):
             a = actions[i % len(actions)]
@@ -95,7 +95,7 @@ class TestQbert:
 
     def test_max_turns_truncation(self) -> None:
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(noop)
@@ -113,5 +113,5 @@ class TestQbert:
         import pytest
 
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
