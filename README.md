@@ -50,7 +50,7 @@ obs, info = env.reset(42)
 print(obs)
 
 # Or: load as a verifiers environment for eval / RL
-vf_env = glyphbench.load_environment(env_id="glyphbench/minigrid-empty-5x5-v0")
+vf_env = glyphbench.load_environment(task_id="glyphbench/minigrid-empty-5x5-v0")
 ```
 
 ```
@@ -100,7 +100,7 @@ At a Python level, the single entry point is:
 ```python
 import glyphbench
 env = glyphbench.load_environment(
-    env_id="glyphbench/minigrid-empty-5x5-v0",
+    task_id="glyphbench/minigrid-empty-5x5-v0",
     num_episodes=10,
     n_frames=4,
     max_output_tokens=512,
