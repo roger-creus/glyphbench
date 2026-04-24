@@ -46,19 +46,31 @@ outputs/
 specs/
 plans/
 .claude/
-Arcade-Learning-Environment-master.zip
-Craftax-main.zip
-Minigrid-master.zip
-minihack-main.zip
-procgen-master.zip
+# Third-party source zips kept locally for reference, never committed.
+*.zip
 
-# Container images
-cluster_manager/*.sif
+# Local test-output model dirs at repo root (e.g. `uv run eval/run_eval.py --output ./`)
+/Qwen_*/
+/Qwen2_*/
+/google_*/
+/deepseek-ai_*/
+/meta-llama_*/
+/mistralai_*/
 
-# Cluster results (pulled from remote, big & ephemeral)
-cluster_manager/results/
-cluster_manager/manifests/
+# --- Internal-only tooling (NOT part of the public benchmark release) ---
+# cluster_manager/ is tied to our specific Alliance/Mila accounts; we use it
+# internally to run the experiments that feed the leaderboard. Downstream
+# users of GlyphBench don't need it.
+cluster_manager/
+HANDOVER.md
+eval/random_baseline.json.*.bak
+eval/random_baseline.json.bak
 
 # GIFs live on Hugging Face (anon-paper-submission/glyphbench-assets), not in git
 docs/leaderboard/gifs/
+docs/leaderboard/gifs_manifest.json
+
+# Paper tooling is local-only (LaTeX sources + auto-generated figures/tables).
+# Generated on demand from the latest pulled results; not part of the public release.
+paper/
 
