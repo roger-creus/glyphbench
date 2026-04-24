@@ -38,14 +38,14 @@ class TestWoDEnvs:
     @pytest.mark.parametrize("cls", WOD_CLASSES)
     def test_reset_determinism(self, cls: type) -> None:
         e1, e2 = cls(), cls()
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     @pytest.mark.parametrize("cls", WOD_CLASSES)
     def test_reset_produces_valid_grid(self, cls: type) -> None:
         env = cls()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert "@" in obs_str
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -54,7 +54,7 @@ class TestWoDEnvs:
     @pytest.mark.parametrize("cls", WOD_CLASSES)
     def test_grid_rows_same_length(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in lines]
@@ -63,14 +63,14 @@ class TestWoDEnvs:
     @pytest.mark.parametrize("cls", WOD_CLASSES)
     def test_has_monsters(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) > 0, "WoD should spawn monsters"
 
     @pytest.mark.parametrize("cls", WOD_CLASSES)
     def test_random_rollout(self, cls: type) -> None:
         """Random rollout should not crash."""
         env = cls(max_turns=100)
-        env.reset(seed=7)
+        env.reset(7)
         for _ in range(100):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -92,37 +92,37 @@ class TestWoDEnvs:
 
     def test_easy_has_1_monster(self) -> None:
         env = MiniHackWoDEasyEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) == 1
 
     def test_medium_has_2_monsters(self) -> None:
         env = MiniHackWoDMediumEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) == 2
 
     def test_hard_has_3_monsters(self) -> None:
         env = MiniHackWoDHardEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) == 3
 
     def test_pro_has_4_monsters(self) -> None:
         env = MiniHackWoDProEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) == 4
 
     def test_pro_is_dark(self) -> None:
         env = MiniHackWoDProEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._dark is True
 
     def test_easy_not_dark(self) -> None:
         env = MiniHackWoDEasyEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._dark is False
 
     def test_hard_has_distractors(self) -> None:
         env = MiniHackWoDHardEnv()
-        env.reset(seed=0)
+        env.reset(0)
         # Should have wand of death + 2 distractors on floor
         all_floor_items = [
             item
@@ -137,7 +137,7 @@ class TestWoDEnvs:
     def test_zap_wand_kills_monster(self) -> None:
         """Picking up wand of death and zapping should kill a monster."""
         env = MiniHackWoDEasyEnv(max_turns=200)
-        env.reset(seed=0)
+        env.reset(0)
 
         # Give player the wand directly for deterministic test
         from glyphbench.envs.minihack.items import WAND_DEATH
@@ -155,7 +155,7 @@ class TestWoDEnvs:
     def test_zap_distractor_wand_no_kill(self) -> None:
         """Zapping a distractor wand should not kill a monster."""
         env = MiniHackWoDEasyEnv(max_turns=200)
-        env.reset(seed=0)
+        env.reset(0)
 
         from glyphbench.envs.minihack.items import WAND_FIRE
 

@@ -11,7 +11,7 @@ from typing import Any
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
-from glyphbench.core.base_env import BaseAsciiEnv
+from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
 from glyphbench.envs.minihack.creatures import Creature, CreatureType
 from glyphbench.envs.minihack.items import Item
@@ -65,7 +65,7 @@ MOVE_VECTORS: dict[str, tuple[int, int]] = {
 }
 
 
-class MiniHackBase(BaseAsciiEnv):
+class MiniHackBase(BaseGlyphEnv):
     """Abstract base for all MiniHack environments.
 
     Subclasses MUST implement:

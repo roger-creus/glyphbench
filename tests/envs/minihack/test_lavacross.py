@@ -38,14 +38,14 @@ class TestLavaCrossEnvs:
     @pytest.mark.parametrize("cls", LAVACROSS_CLASSES)
     def test_reset_determinism(self, cls: type) -> None:
         e1, e2 = cls(), cls()
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     @pytest.mark.parametrize("cls", LAVACROSS_CLASSES)
     def test_reset_produces_valid_grid(self, cls: type) -> None:
         env = cls()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert "@" in obs_str
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -54,7 +54,7 @@ class TestLavaCrossEnvs:
     @pytest.mark.parametrize("cls", LAVACROSS_CLASSES)
     def test_grid_rows_same_length(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in lines]
@@ -63,7 +63,7 @@ class TestLavaCrossEnvs:
     @pytest.mark.parametrize("cls", LAVACROSS_CLASSES)
     def test_has_lava(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         lava_count = sum(
             1
             for y in range(env._grid_h)
@@ -76,7 +76,7 @@ class TestLavaCrossEnvs:
     def test_random_rollout(self, cls: type) -> None:
         """Random rollout should not crash."""
         env = cls(max_turns=100)
-        env.reset(seed=7)
+        env.reset(7)
         for _ in range(100):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -98,7 +98,7 @@ class TestLavaCrossEnvs:
 
     def test_full_has_both_items(self) -> None:
         env = MiniHackLavaCrossFullEnv()
-        env.reset(seed=0)
+        env.reset(0)
         all_floor_items = [
             item
             for items in env._floor_items.values()
@@ -110,7 +110,7 @@ class TestLavaCrossEnvs:
 
     def test_levitate_only_potion(self) -> None:
         env = MiniHackLavaCrossLevitateEnv()
-        env.reset(seed=0)
+        env.reset(0)
         all_floor_items = [
             item
             for items in env._floor_items.values()
@@ -122,20 +122,20 @@ class TestLavaCrossEnvs:
 
     def test_potion_inv_starts_in_inventory(self) -> None:
         env = MiniHackLavaCrossPotionInvEnv()
-        env.reset(seed=0)
+        env.reset(0)
         inv_names = [i.name for i in env._inventory]
         assert "potion of levitation" in inv_names
 
     def test_ring_inv_starts_in_inventory(self) -> None:
         env = MiniHackLavaCrossRingInvEnv()
-        env.reset(seed=0)
+        env.reset(0)
         inv_names = [i.name for i in env._inventory]
         assert "ring of levitation" in inv_names
 
     def test_stepping_on_lava_kills(self) -> None:
         """Without levitation, stepping on lava should kill the player."""
         env = MiniHackLavaCrossFullEnv(max_turns=200)
-        env.reset(seed=0)
+        env.reset(0)
         # Move player to adjacent to lava and step onto it
         env._player_pos = (3, 3)
         move_e = env.action_spec.index_of("MOVE_E")
@@ -146,7 +146,7 @@ class TestLavaCrossEnvs:
     def test_levitation_prevents_lava_death(self) -> None:
         """With levitation active, stepping on lava should be safe."""
         env = MiniHackLavaCrossPotionInvEnv(max_turns=200)
-        env.reset(seed=0)
+        env.reset(0)
 
         # Quaff potion to activate levitation
         quaff = env.action_spec.index_of("QUAFF")
@@ -164,7 +164,7 @@ class TestLavaCrossEnvs:
     def test_levitation_wears_off(self) -> None:
         """Levitation should decrement each turn and eventually expire."""
         env = MiniHackLavaCrossPotionInvEnv(max_turns=200)
-        env.reset(seed=0)
+        env.reset(0)
 
         quaff = env.action_spec.index_of("QUAFF")
         env.step(quaff)
@@ -177,7 +177,7 @@ class TestLavaCrossEnvs:
     def test_lava_restored_after_levitating_step(self) -> None:
         """Lava tiles should be restored after a levitating step."""
         env = MiniHackLavaCrossPotionInvEnv(max_turns=200)
-        env.reset(seed=0)
+        env.reset(0)
 
         quaff = env.action_spec.index_of("QUAFF")
         env.step(quaff)

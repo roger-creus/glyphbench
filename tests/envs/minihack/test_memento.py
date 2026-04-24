@@ -38,14 +38,14 @@ class TestMementoEnvs:
     @pytest.mark.parametrize("cls", MEMENTO_CLASSES)
     def test_reset_determinism(self, cls: type) -> None:
         e1, e2 = cls(), cls()
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     @pytest.mark.parametrize("cls", MEMENTO_CLASSES)
     def test_reset_produces_valid_grid(self, cls: type) -> None:
         env = cls()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert "@" in obs_str
         assert "⇣" in obs_str
         assert "[Grid]" in obs_str
@@ -55,7 +55,7 @@ class TestMementoEnvs:
     @pytest.mark.parametrize("cls", MEMENTO_CLASSES)
     def test_grid_rows_same_length(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in lines]
@@ -65,7 +65,7 @@ class TestMementoEnvs:
     def test_single_floor_reach_goal(self, cls: type) -> None:
         """Navigate east to reach stairs (single-floor variants)."""
         env = cls(max_turns=500)
-        env.reset(seed=0)
+        env.reset(0)
         move_e = env.action_spec.index_of("MOVE_E")
         reached = False
         for _ in range(500):
@@ -82,7 +82,7 @@ class TestMementoEnvs:
     def test_multi_floor_f2(self) -> None:
         """F2 env requires reaching stairs twice."""
         env = MiniHackMementoF2Env(max_turns=1000)
-        env.reset(seed=0)
+        env.reset(0)
         move_e = env.action_spec.index_of("MOVE_E")
         floors_seen: set[int] = {1}
         final_reward = 0.0
@@ -100,7 +100,7 @@ class TestMementoEnvs:
     @pytest.mark.parametrize("cls", MEMENTO_CLASSES)
     def test_walls_block_movement(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         move_n = env.action_spec.index_of("MOVE_N")
         for _ in range(20):
             env.step(move_n)
@@ -115,7 +115,7 @@ class TestMementoEnvs:
     @pytest.mark.parametrize("cls", MEMENTO_CLASSES)
     def test_max_turns_truncation(self, cls: type) -> None:
         env = cls(max_turns=3)
-        env.reset(seed=0)
+        env.reset(0)
         wait = env.action_spec.index_of("WAIT")
         for i in range(3):
             _, _, terminated, truncated, _ = env.step(wait)
@@ -159,7 +159,7 @@ class TestMementoEnvs:
         import numpy as np
 
         env = cls(max_turns=50)
-        env.reset(seed=seed)
+        env.reset(seed)
         rng = np.random.default_rng(seed)
         for _ in range(50):
             action = int(rng.integers(0, env.action_spec.n))

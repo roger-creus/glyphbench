@@ -38,14 +38,14 @@ class TestKeyRoomEnvs:
     @pytest.mark.parametrize("cls", KEYROOM_CLASSES)
     def test_reset_determinism(self, cls: type) -> None:
         e1, e2 = cls(), cls()
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     @pytest.mark.parametrize("cls", KEYROOM_CLASSES)
     def test_reset_produces_valid_grid(self, cls: type) -> None:
         env = cls()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert "@" in obs_str
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -53,7 +53,7 @@ class TestKeyRoomEnvs:
     @pytest.mark.parametrize("cls", KEYROOM_CLASSES)
     def test_grid_rows_same_length(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in lines]
@@ -63,7 +63,7 @@ class TestKeyRoomEnvs:
     def test_door_exists_in_grid(self, cls: type) -> None:
         """Grid should contain a door (⊞) at reset."""
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         # Door might not be visible in dark variants from starting pos,
         # so check the internal grid directly
         flat = "".join("".join(row) for row in env._grid)
@@ -72,7 +72,7 @@ class TestKeyRoomEnvs:
     def test_door_opens_on_move_into(self) -> None:
         """Moving into the door should open it."""
         env = MiniHackKeyRoomS5Env()
-        env.reset(seed=0)
+        env.reset(0)
 
         # Find the door position
         door_pos = None
@@ -104,7 +104,7 @@ class TestKeyRoomEnvs:
     def test_can_reach_goal_through_door(self) -> None:
         """Agent should be able to reach stairs by going east through the door."""
         env = MiniHackKeyRoomS5Env(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         move_e = env.action_spec.index_of("MOVE_E")
         reached = False
         for _ in range(100):
@@ -119,7 +119,7 @@ class TestKeyRoomEnvs:
 
     def test_dark_variant_has_limited_visibility(self) -> None:
         env = MiniHackKeyRoomDarkS5Env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._dark is True
         obs = env.get_observation()
         rendered = obs.render()
@@ -127,7 +127,7 @@ class TestKeyRoomEnvs:
 
     def test_light_variant_is_fully_visible(self) -> None:
         env = MiniHackKeyRoomS5Env()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._dark is False
 
     @pytest.mark.parametrize("cls", KEYROOM_CLASSES)
@@ -139,7 +139,7 @@ class TestKeyRoomEnvs:
     @pytest.mark.parametrize("cls", KEYROOM_CLASSES)
     def test_max_turns_truncation(self, cls: type) -> None:
         env = cls(max_turns=3)
-        env.reset(seed=0)
+        env.reset(0)
         wait = env.action_spec.index_of("WAIT")
         for i in range(3):
             _, _, terminated, truncated, _ = env.step(wait)

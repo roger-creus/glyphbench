@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from glyphbench.core import make_env
+import glyphbench.envs.minihack  # register envs
+
 from glyphbench.envs.minihack.creatures import KOBOLD
 
 
@@ -32,23 +35,23 @@ class TestMiniHackBase:
 
     def test_reset_determinism(self) -> None:
         e1, e2 = self._make_env(), self._make_env()
-        assert e1.reset(seed=42)[0] == e2.reset(seed=42)[0]
+        assert e1.reset(42)[0] == e2.reset(42)[0]
 
     def test_movement(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("MOVE_E"))
         assert env._player_pos == (2, 1)
 
     def test_wall_blocks(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("MOVE_N"))  # wall at y=0
         assert env._player_pos == (1, 1)
 
     def test_reach_goal(self) -> None:
         env = self._make_env(width=5, height=5)
-        env.reset(seed=0)
+        env.reset(0)
         # (1,1) -> (3,3) via diagonal
         env.step(env.action_spec.index_of("MOVE_SE"))
         _, reward, terminated, _, info = env.step(env.action_spec.index_of("MOVE_SE"))
@@ -58,7 +61,7 @@ class TestMiniHackBase:
 
     def test_combat(self) -> None:
         env = self._make_env(monsters=True)
-        env.reset(seed=0)
+        env.reset(0)
         # Move toward monster at (3,3)
         env.step(env.action_spec.index_of("MOVE_SE"))  # (2,2)
         env.step(env.action_spec.index_of("MOVE_SE"))  # attacks monster at (3,3)
@@ -66,7 +69,7 @@ class TestMiniHackBase:
 
     def test_dark_room_visibility(self) -> None:
         env = self._make_env(width=9, height=9, dark=True)
-        env.reset(seed=0)
+        env.reset(0)
         obs = env.get_observation()
         rendered = obs.render()
         # In dark mode, far cells should be spaces
@@ -93,7 +96,7 @@ class TestMiniHackBase:
                 self._place_item(1, 1, FOOD_RATION)
 
         env = ItemEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         pickup = env.action_spec.index_of("PICKUP")
         env.step(pickup)
         assert len(env._inventory) == 1
@@ -114,7 +117,7 @@ class TestMiniHackBase:
                 self._place_item(1, 1, FOOD_RATION)
 
         env = EatEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("PICKUP"))
         env.step(env.action_spec.index_of("EAT"))
         assert len(env._inventory) == 0  # food consumed
@@ -134,7 +137,7 @@ class TestMiniHackBase:
                 self._place_item(1, 1, SWORD)
 
         env = DropEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("PICKUP"))
         assert len(env._inventory) == 1
         env.step(env.action_spec.index_of("DROP"))
@@ -156,7 +159,7 @@ class TestMiniHackBase:
                 self._place_item(1, 1, SWORD)
 
         env = WieldEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("PICKUP"))
         env.step(env.action_spec.index_of("WIELD"))
         assert env._wielding is not None
@@ -179,7 +182,7 @@ class TestMiniHackBase:
                 self._place_item(1, 1, SCROLL_LIGHT)
 
         env = ReadEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("PICKUP"))
         env.step(env.action_spec.index_of("READ"))
         assert len(env._inventory) == 0  # scroll consumed
@@ -199,7 +202,7 @@ class TestMiniHackBase:
                 self._place_item(1, 1, POTION_HEALING)
 
         env = QuaffEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("PICKUP"))
         env.step(env.action_spec.index_of("QUAFF"))
         assert len(env._inventory) == 0  # potion consumed
@@ -219,14 +222,14 @@ class TestMiniHackBase:
                 self._place_item(1, 1, WAND_DEATH)
 
         env = ZapEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("PICKUP"))
         env.step(env.action_spec.index_of("ZAP"))
         assert len(env._inventory) == 0  # wand consumed
 
     def test_pray_action(self) -> None:
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("PRAY"))
         obs = env.get_observation()
         assert "pray" in obs.message.lower()
@@ -246,7 +249,7 @@ class TestMiniHackBase:
                 self._place_item(3, 3, FOOD_RATION)
 
         env = RenderEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         obs = env.get_observation()
         assert "%" in obs.grid
 
@@ -265,8 +268,8 @@ class TestMiniHackBase:
                 self._place_item(1, 1, FOOD_RATION)
 
         env = ResetEnv(max_turns=100)
-        env.reset(seed=0)
+        env.reset(0)
         env.step(env.action_spec.index_of("PICKUP"))
         assert len(env._inventory) == 1
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._inventory) == 0

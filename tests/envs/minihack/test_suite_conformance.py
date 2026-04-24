@@ -5,17 +5,18 @@ Iterates over every env matching glyphbench/minihack-* and validates the contrac
 
 from __future__ import annotations
 
-import gymnasium as gym
-import pytest
+from glyphbench.core import make_env, all_glyphbench_env_ids
+import glyphbench.envs.minihack  # register envs
 
-import glyphbench  # noqa: F401
+
+import pytest
 
 
 def _minihack_env_ids() -> list[str]:
     """Collect all registered glyphbench/minihack-* env IDs."""
     return sorted(
         eid
-        for eid in gym.registry
+        for eid in all_glyphbench_env_ids()
         if isinstance(eid, str) and eid.startswith("glyphbench/minihack-")
     )
 
@@ -28,12 +29,12 @@ def env_id(request: pytest.FixtureRequest) -> str:
 class TestMiniHackSuiteConformance:
     def test_observation_contract(self, env_id: str) -> None:
         for seed in [0, 1, 2]:
-            env = gym.make(env_id, max_turns=50)
-            obs, info = env.reset(seed=seed)
+            env = make_env(env_id, max_turns=50)
+            obs, info = env.reset(seed)
             assert isinstance(obs, str)
             assert len(obs) > 0
             for _ in range(50):
-                action = env.action_space.sample()
+                action = int(env.rng.integers(0, env.action_spec.n))
                 obs, reward, terminated, truncated, info = env.step(action)
                 assert isinstance(obs, str)
                 assert len(obs) > 0
@@ -41,17 +42,17 @@ class TestMiniHackSuiteConformance:
                     break
 
     def test_action_space_is_22(self, env_id: str) -> None:
-        env = gym.make(env_id, max_turns=10)
-        from glyphbench.core.base_env import BaseAsciiEnv
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        env = make_env(env_id, max_turns=10)
+        from glyphbench.core.base_env import BaseGlyphEnv
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         assert unwrapped.action_spec.n == 22
 
     def test_seed_reproducibility(self, env_id: str) -> None:
         for seed in [0, 42, 99]:
-            e1 = gym.make(env_id, max_turns=50)
-            e2 = gym.make(env_id, max_turns=50)
-            o1, _ = e1.reset(seed=seed)
-            o2, _ = e2.reset(seed=seed)
+            e1 = make_env(env_id, max_turns=50)
+            e2 = make_env(env_id, max_turns=50)
+            o1, _ = e1.reset(seed)
+            o2, _ = e2.reset(seed)
             assert o1 == o2
             for _ in range(10):
                 a = 8  # WAIT (no-op)
@@ -63,9 +64,9 @@ class TestMiniHackSuiteConformance:
                     break
 
     def test_system_prompt_exists(self, env_id: str) -> None:
-        env = gym.make(env_id, max_turns=10)
-        from glyphbench.core.base_env import BaseAsciiEnv
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        env = make_env(env_id, max_turns=10)
+        from glyphbench.core.base_env import BaseGlyphEnv
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         prompt = unwrapped.system_prompt()
         assert isinstance(prompt, str)
         assert len(prompt) > 50

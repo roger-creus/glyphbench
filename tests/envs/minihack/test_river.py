@@ -41,14 +41,14 @@ class TestRiverEnvs:
     @pytest.mark.parametrize("cls", RIVER_CLASSES)
     def test_reset_determinism(self, cls: type) -> None:
         e1, e2 = cls(), cls()
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     @pytest.mark.parametrize("cls", RIVER_CLASSES)
     def test_reset_produces_valid_grid(self, cls: type) -> None:
         env = cls()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert "@" in obs_str
         assert "⇣" in obs_str
         assert "[Grid]" in obs_str
@@ -58,7 +58,7 @@ class TestRiverEnvs:
     @pytest.mark.parametrize("cls", RIVER_CLASSES)
     def test_grid_rows_same_length(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in lines]
@@ -68,7 +68,7 @@ class TestRiverEnvs:
     def test_river_row_exists(self, cls: type) -> None:
         """The middle row of the grid should contain river tiles."""
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         h = env._grid_h
         river_y = h // 2
         river_row = env._grid[river_y]
@@ -81,7 +81,7 @@ class TestRiverEnvs:
     def test_random_rollout(self, cls: type) -> None:
         """Random rollout should not crash."""
         env = cls(max_turns=100)
-        env.reset(seed=7)
+        env.reset(7)
         for _ in range(100):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -107,24 +107,24 @@ class TestRiverEnvs:
 
     def test_lava_uses_lava_tiles(self) -> None:
         env = MiniHackRiverLavaEnv()
-        env.reset(seed=0)
+        env.reset(0)
         river_y = env._grid_h // 2
         river_row = env._grid[river_y][1:-1]
         assert "♨" in river_row, "Lava river should contain ♨ tiles"
 
     def test_water_uses_water_tiles(self) -> None:
         env = MiniHackRiverEnv()
-        env.reset(seed=0)
+        env.reset(0)
         river_y = env._grid_h // 2
         river_row = env._grid[river_y][1:-1]
         assert "≈" in river_row, "Water river should contain ≈ tiles"
 
     def test_monster_variant_has_creatures(self) -> None:
         env = MiniHackRiverMonsterEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) > 0, "Monster variant should spawn creatures"
 
     def test_no_monster_variant_has_no_creatures(self) -> None:
         env = MiniHackRiverEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) == 0, "Base river should have no creatures"

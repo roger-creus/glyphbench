@@ -60,16 +60,16 @@ class TestRoomVariants:
         cls, *_ = variant
         e1 = cls(max_turns=50)
         e2 = cls(max_turns=50)
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     def test_step_determinism(self, variant) -> None:  # noqa: ANN001
         cls, *_ = variant
         e1 = cls(max_turns=50)
         e2 = cls(max_turns=50)
-        e1.reset(seed=7)
-        e2.reset(seed=7)
+        e1.reset(7)
+        e2.reset(7)
         wait = e1.action_spec.index_of("WAIT")
         for _ in range(5):
             o1, r1, t1, tr1, _ = e1.step(wait)
@@ -82,7 +82,7 @@ class TestRoomVariants:
     def test_observation_contract(self, variant) -> None:  # noqa: ANN001
         cls, *_ = variant
         env = cls(max_turns=50)
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -91,7 +91,7 @@ class TestRoomVariants:
     def test_grid_dimensions(self, variant) -> None:  # noqa: ANN001
         cls, _, grid_size, *_ = variant
         env = cls(max_turns=50)
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         assert len(grid_lines) == grid_size
@@ -101,7 +101,7 @@ class TestRoomVariants:
     def test_player_and_goal_present(self, variant) -> None:  # noqa: ANN001
         cls, _, _, _, _, is_dark = variant
         env = cls(max_turns=50)
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         assert "@" in grid_obs.grid
         # In dark rooms the goal may be outside the vision radius
@@ -120,7 +120,7 @@ class TestRoomVariants:
     def test_max_turns_truncation(self, variant) -> None:  # noqa: ANN001
         cls, *_ = variant
         env = cls(max_turns=3)
-        env.reset(seed=0)
+        env.reset(0)
         wait = env.action_spec.index_of("WAIT")
         for i in range(3):
             _, _, terminated, truncated, _ = env.step(wait)
@@ -133,7 +133,7 @@ class TestRoomVariants:
         cls, *_ = variant
         env = cls(max_turns=100)
         for seed in (0, 1, 42):
-            env.reset(seed=seed)
+            env.reset(seed)
             for _ in range(100):
                 a = int(env.rng.integers(0, env.action_spec.n))
                 obs, r, t, tr, info = env.step(a)
@@ -151,7 +151,7 @@ class TestRoomMonsterSpecific:
     )
     def test_monsters_present(self, cls: type) -> None:
         env = cls(max_turns=50)
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) > 0
         for c in env._creatures:
             assert c.hp > 0
@@ -169,7 +169,7 @@ class TestRoomMonsterSpecific:
         counts: set[int] = set()
         for seed in range(20):
             env = cls(max_turns=50)
-            env.reset(seed=seed)
+            env.reset(seed)
             counts.add(len(env._creatures))
         assert all(min_n <= c <= max_n for c in counts)
 
@@ -182,7 +182,7 @@ class TestRoomTrapSpecific:
     )
     def test_traps_present(self, cls: type) -> None:
         env = cls(max_turns=50)
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         assert "△" in grid_obs.grid
 
@@ -199,7 +199,7 @@ class TestRoomTrapSpecific:
         counts: set[int] = set()
         for seed in range(20):
             env = cls(max_turns=50)
-            env.reset(seed=seed)
+            env.reset(seed)
             grid_obs = env.get_observation()
             n_traps = grid_obs.grid.count("△")
             counts.add(n_traps)
@@ -214,7 +214,7 @@ class TestRoomDarkSpecific:
     )
     def test_dark_flag_set(self, cls: type) -> None:
         env = cls(max_turns=50)
-        env.reset(seed=0)
+        env.reset(0)
         assert env._dark is True
 
     @pytest.mark.parametrize(
@@ -227,7 +227,7 @@ class TestRoomDarkSpecific:
     def test_limited_vision(self, cls: type, grid_size: int) -> None:
         """In dark rooms, most cells should be spaces (unseen)."""
         env = cls(max_turns=50)
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         space_count = grid_obs.grid.count(" ")
         total = grid_size * grid_size
@@ -245,7 +245,7 @@ class TestRoomUltimateSpecific:
     )
     def test_all_hazards_present(self, cls: type) -> None:
         env = cls(max_turns=50)
-        env.reset(seed=0)
+        env.reset(0)
         assert env._dark is True
         assert len(env._creatures) > 0
         # Traps may not be visible (dark room), but they exist on the grid

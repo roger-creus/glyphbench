@@ -1,3 +1,5 @@
+from glyphbench.core import make_env
+import glyphbench.envs.minihack  # register envs
 """Unit tests for MiniHack Room-5x5 env."""
 
 import pytest
@@ -39,16 +41,16 @@ class TestMiniHackRoom5x5:
     def test_reset_determinism(self):
         e1 = self._make_env()
         e2 = self._make_env()
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     # --- Spec 10.1: test_step_determinism ---
     def test_step_determinism(self):
         e1 = self._make_env()
         e2 = self._make_env()
-        e1.reset(seed=0)
-        e2.reset(seed=0)
+        e1.reset(0)
+        e2.reset(0)
         move_e = e1.action_spec.index_of("MOVE_E")
         for _ in range(5):
             o1, r1, t1, tr1, _ = e1.step(move_e)
@@ -59,7 +61,7 @@ class TestMiniHackRoom5x5:
     # --- Spec 8.2: Reset with seed 0 -> specific positions ---
     def test_seed_0_positions(self):
         env = self._make_env()
-        _, info = env.reset(seed=0)
+        _, info = env.reset(0)
         # Agent and goal positions should be deterministic for seed 0
         # We just check they exist and are within bounds
         grid_obs = env.get_observation()
@@ -72,8 +74,8 @@ class TestMiniHackRoom5x5:
         """Different seeds should (usually) produce different layouts."""
         e1 = self._make_env()
         e2 = self._make_env()
-        o1, _ = e1.reset(seed=0)
-        o2, _ = e2.reset(seed=1)
+        o1, _ = e1.reset(0)
+        o2, _ = e2.reset(1)
         # They should usually differ (different random positions)
         # Not guaranteed but very likely with different seeds
         # We just verify both are valid
@@ -83,12 +85,12 @@ class TestMiniHackRoom5x5:
     # --- Spec 8.2: All 8 directional moves respect walls ---
     def test_wall_collision_all_directions(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Move in each direction many times -- should never crash
         for dir_name in ("MOVE_N", "MOVE_S", "MOVE_E", "MOVE_W",
                          "MOVE_NE", "MOVE_NW", "MOVE_SE", "MOVE_SW"):
             idx = env.action_spec.index_of(dir_name)
-            env.reset(seed=0)
+            env.reset(0)
             for _ in range(10):
                 obs, r, t, tr, _ = env.step(idx)
                 assert isinstance(obs, str)
@@ -99,7 +101,7 @@ class TestMiniHackRoom5x5:
     def test_reaching_goal_gives_reward_1(self):
         """Walk the agent toward the goal and check reward."""
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # We need to find agent and goal positions, then navigate
         # For a deterministic test, we'll just try all directions for many steps
         # and check that IF we reach the goal, reward is 1.0
@@ -144,7 +146,7 @@ class TestMiniHackRoom5x5:
     # --- Spec 10.1: test_observation_contract ---
     def test_observation_contract(self):
         env = self._make_env()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert isinstance(obs_str, str)
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -157,7 +159,7 @@ class TestMiniHackRoom5x5:
     # --- Spec 10.1: test_max_turns_truncation ---
     def test_max_turns_truncation(self):
         env = self._make_env(max_turns=5)
-        env.reset(seed=0)
+        env.reset(0)
         wait = env.action_spec.index_of("WAIT")
         for i in range(5):
             _, _, terminated, truncated, _ = env.step(wait)
@@ -170,7 +172,7 @@ class TestMiniHackRoom5x5:
     # --- Spec 8.2: no-op actions ---
     def test_noop_actions_dont_move(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         before_grid = env.get_observation().grid
         for name in ("WAIT", "SEARCH", "LOOK", "PICKUP", "DROP", "EAT", "READ",
                      "QUAFF", "WIELD", "ZAP", "PRAY", "APPLY", "INVENTORY", "ESCAPE"):
@@ -182,7 +184,7 @@ class TestMiniHackRoom5x5:
     # --- Spec 8.2: HUD contains NetHack-style info ---
     def test_hud_format(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         hud = env.get_observation().hud
         assert "Dlvl:" in hud
         assert "HP:" in hud
@@ -191,7 +193,7 @@ class TestMiniHackRoom5x5:
     # --- Spec 8.2: message on reaching goal ---
     def test_message_on_goal_reached(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         # Navigate to goal
         agent_x, agent_y = env._agent_x, env._agent_y
         goal_x, goal_y = env._goal_x, env._goal_y
@@ -226,7 +228,7 @@ class TestMiniHackRoom5x5:
     # --- Spec 8.2: Grid is 7x7 (walls + 5x5 interior) ---
     def test_grid_dimensions(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         # MiniHack Room-5x5 rendering uses - for top/bottom, | for sides
@@ -247,7 +249,7 @@ class TestMiniHackRoom5x5:
 
     def test_legend_contains_symbols(self):
         env = self._make_env()
-        env.reset(seed=0)
+        env.reset(0)
         legend = env.get_observation().legend
         assert "@" in legend
         assert "⇣" in legend
@@ -256,7 +258,7 @@ class TestMiniHackRoom5x5:
     # --- Info extras ---
     def test_info_extras(self):
         env = self._make_env()
-        _, info = env.reset(seed=0)
+        _, info = env.reset(0)
         wait = env.action_spec.index_of("WAIT")
         _, _, _, _, info = env.step(wait)
         assert "room_size" in info
@@ -264,7 +266,7 @@ class TestMiniHackRoom5x5:
 
     def test_reset_requires_seed(self):
         env = self._make_env()
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             env.reset()
 
     def test_system_prompt(self):

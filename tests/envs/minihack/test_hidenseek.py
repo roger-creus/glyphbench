@@ -38,14 +38,14 @@ class TestHideNSeekEnvs:
     @pytest.mark.parametrize("cls", HIDENSEEK_CLASSES)
     def test_reset_determinism(self, cls: type) -> None:
         e1, e2 = cls(), cls()
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     @pytest.mark.parametrize("cls", HIDENSEEK_CLASSES)
     def test_reset_produces_valid_grid(self, cls: type) -> None:
         env = cls()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert "@" in obs_str
         assert "⇣" in obs_str
         assert "[Grid]" in obs_str
@@ -55,7 +55,7 @@ class TestHideNSeekEnvs:
     @pytest.mark.parametrize("cls", HIDENSEEK_CLASSES)
     def test_grid_rows_same_length(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in lines]
@@ -65,7 +65,7 @@ class TestHideNSeekEnvs:
     def test_has_walls(self, cls: type) -> None:
         """Grid should contain internal walls (█) forming corridors."""
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         wall_count = sum(
             1 for row in env._grid for cell in row if cell == "█"
         )
@@ -74,14 +74,14 @@ class TestHideNSeekEnvs:
     @pytest.mark.parametrize("cls", HIDENSEEK_CLASSES)
     def test_has_creature(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) > 0, "HideNSeek should spawn a creature"
 
     @pytest.mark.parametrize("cls", HIDENSEEK_CLASSES)
     def test_random_rollout(self, cls: type) -> None:
         """Random rollout should not crash."""
         env = cls(max_turns=100)
-        env.reset(seed=7)
+        env.reset(7)
         for _ in range(100):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -103,24 +103,24 @@ class TestHideNSeekEnvs:
 
     def test_big_is_15x15(self) -> None:
         env = MiniHackHideNSeekBigEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._grid_w == 15
         assert env._grid_h == 15
 
     def test_standard_is_9x9(self) -> None:
         env = MiniHackHideNSeekEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._grid_w == 9
         assert env._grid_h == 9
 
     def test_lava_variant_has_lava(self) -> None:
         env = MiniHackHideNSeekLavaEnv()
-        env.reset(seed=0)
+        env.reset(0)
         has_lava = any(cell == "♨" for row in env._grid for cell in row)
         # Lava is random (30% chance per cell), check across multiple seeds
         found = False
         for s in range(10):
-            env.reset(seed=s)
+            env.reset(s)
             if any(cell == "♨" for row in env._grid for cell in row):
                 found = True
                 break

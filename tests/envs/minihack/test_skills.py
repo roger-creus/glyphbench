@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-import gymnasium as gym
+from glyphbench.core import make_env
+import glyphbench.envs.minihack  # register envs
+
+
 import pytest
 
 import glyphbench  # noqa: F401
@@ -28,8 +31,8 @@ class TestSkillReset:
 
     @pytest.mark.parametrize("env_id", SKILL_ENVS)
     def test_reset_and_step(self, env_id: str) -> None:
-        env = gym.make(env_id, max_turns=50)
-        obs, info = env.reset(seed=42)
+        env = make_env(env_id, max_turns=50)
+        obs, info = env.reset(42)
         assert isinstance(obs, str)
         assert len(obs) > 0
         assert "@" in obs
@@ -40,10 +43,10 @@ class TestSkillReset:
     @pytest.mark.parametrize("env_id", SKILL_ENVS)
     def test_seed_determinism(self, env_id: str) -> None:
         for seed in [0, 42, 99]:
-            e1 = gym.make(env_id, max_turns=50)
-            e2 = gym.make(env_id, max_turns=50)
-            o1, _ = e1.reset(seed=seed)
-            o2, _ = e2.reset(seed=seed)
+            e1 = make_env(env_id, max_turns=50)
+            e2 = make_env(env_id, max_turns=50)
+            o1, _ = e1.reset(seed)
+            o2, _ = e2.reset(seed)
             assert o1 == o2
             for _ in range(5):
                 a = 8  # WAIT
@@ -56,10 +59,10 @@ class TestSkillReset:
 
     @pytest.mark.parametrize("env_id", SKILL_ENVS)
     def test_random_rollout(self, env_id: str) -> None:
-        env = gym.make(env_id, max_turns=100)
-        obs, _ = env.reset(seed=7)
+        env = make_env(env_id, max_turns=100)
+        obs, _ = env.reset(7)
         for _ in range(100):
-            action = env.action_space.sample()
+            action = int(env.rng.integers(0, env.action_spec.n))
             obs, reward, terminated, truncated, info = env.step(action)
             assert isinstance(obs, str)
             assert len(obs) > 0
@@ -71,8 +74,8 @@ class TestEatSpecific:
     """Eat-specific mechanics."""
 
     def test_starvation_kills(self) -> None:
-        env = gym.make("glyphbench/minihack-eat-v0", max_turns=200)
-        env.reset(seed=0)
+        env = make_env("glyphbench/minihack-eat-v0", max_turns=200)
+        env.reset(0)
         # Wait until starvation (hunger starts at 20)
         for _ in range(25):
             obs, reward, terminated, truncated, info = env.step(8)  # WAIT
@@ -83,11 +86,11 @@ class TestEatSpecific:
         pytest.fail("Agent did not starve within 25 turns")
 
     def test_eating_restores_hunger(self) -> None:
-        env = gym.make("glyphbench/minihack-eat-v0", max_turns=200)
-        env.reset(seed=0)
-        from glyphbench.core.base_env import BaseAsciiEnv
+        env = make_env("glyphbench/minihack-eat-v0", max_turns=200)
+        env.reset(0)
+        from glyphbench.core.base_env import BaseGlyphEnv
 
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         from glyphbench.envs.minihack.skill_eat import _EatBase
 
         assert isinstance(unwrapped, _EatBase)
@@ -114,11 +117,11 @@ class TestPraySpecific:
     """Pray-specific mechanics."""
 
     def test_pray_heals(self) -> None:
-        env = gym.make("glyphbench/minihack-pray-v0", max_turns=50)
-        env.reset(seed=0)
-        from glyphbench.core.base_env import BaseAsciiEnv
+        env = make_env("glyphbench/minihack-pray-v0", max_turns=50)
+        env.reset(0)
+        from glyphbench.core.base_env import BaseGlyphEnv
 
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         from glyphbench.envs.minihack.skill_pray import _PrayBase
 
         assert isinstance(unwrapped, _PrayBase)
@@ -132,11 +135,11 @@ class TestReadSpecific:
     """Read-specific mechanics."""
 
     def test_read_teleport_to_stairs(self) -> None:
-        env = gym.make("glyphbench/minihack-read-v0", max_turns=50)
-        env.reset(seed=0)
-        from glyphbench.core.base_env import BaseAsciiEnv
+        env = make_env("glyphbench/minihack-read-v0", max_turns=50)
+        env.reset(0)
+        from glyphbench.core.base_env import BaseGlyphEnv
 
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         from glyphbench.envs.minihack.skill_read import _ReadBase
 
         assert isinstance(unwrapped, _ReadBase)
@@ -162,11 +165,11 @@ class TestQuaffSpecific:
     """Quaff-specific mechanics."""
 
     def test_quaff_heals(self) -> None:
-        env = gym.make("glyphbench/minihack-quaff-v0", max_turns=50)
-        env.reset(seed=0)
-        from glyphbench.core.base_env import BaseAsciiEnv
+        env = make_env("glyphbench/minihack-quaff-v0", max_turns=50)
+        env.reset(0)
+        from glyphbench.core.base_env import BaseGlyphEnv
 
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         from glyphbench.envs.minihack.skill_quaff import _QuaffBase
 
         assert isinstance(unwrapped, _QuaffBase)
@@ -192,11 +195,11 @@ class TestWieldSpecific:
     """Wield-specific mechanics."""
 
     def test_wield_equips_weapon(self) -> None:
-        env = gym.make("glyphbench/minihack-wield-v0", max_turns=50)
-        env.reset(seed=0)
-        from glyphbench.core.base_env import BaseAsciiEnv
+        env = make_env("glyphbench/minihack-wield-v0", max_turns=50)
+        env.reset(0)
+        from glyphbench.core.base_env import BaseGlyphEnv
 
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         from glyphbench.envs.minihack.skill_wield import _WieldBase
 
         assert isinstance(unwrapped, _WieldBase)
@@ -218,16 +221,16 @@ class TestSinkSpecific:
     """Sink-specific mechanics."""
 
     def test_sink_terrain_visible(self) -> None:
-        env = gym.make("glyphbench/minihack-sink-v0", max_turns=50)
-        obs, _ = env.reset(seed=0)
+        env = make_env("glyphbench/minihack-sink-v0", max_turns=50)
+        obs, _ = env.reset(0)
         assert "{" in obs
 
     def test_sink_walkable(self) -> None:
-        env = gym.make("glyphbench/minihack-sink-v0", max_turns=50)
-        env.reset(seed=0)
-        from glyphbench.core.base_env import BaseAsciiEnv
+        env = make_env("glyphbench/minihack-sink-v0", max_turns=50)
+        env.reset(0)
+        from glyphbench.core.base_env import BaseGlyphEnv
 
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         from glyphbench.envs.minihack.skill_sink import _SinkBase
 
         assert isinstance(unwrapped, _SinkBase)
@@ -250,11 +253,11 @@ class TestDistractVariants:
         [eid for eid in SKILL_ENVS if "distract" in eid],
     )
     def test_distract_has_extra_items(self, env_id: str) -> None:
-        env = gym.make(env_id, max_turns=50)
-        env.reset(seed=0)
-        from glyphbench.core.base_env import BaseAsciiEnv
+        env = make_env(env_id, max_turns=50)
+        env.reset(0)
+        from glyphbench.core.base_env import BaseGlyphEnv
 
-        unwrapped: BaseAsciiEnv = env.unwrapped  # type: ignore[assignment]
+        unwrapped: BaseGlyphEnv = env  # type: ignore[assignment]
         from glyphbench.envs.minihack.base import MiniHackBase
 
         assert isinstance(unwrapped, MiniHackBase)

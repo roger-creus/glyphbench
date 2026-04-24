@@ -32,14 +32,14 @@ class TestCorridorBattleEnvs:
     @pytest.mark.parametrize("cls", CORRIDORBATTLE_CLASSES)
     def test_reset_determinism(self, cls: type) -> None:
         e1, e2 = cls(), cls()
-        o1, _ = e1.reset(seed=42)
-        o2, _ = e2.reset(seed=42)
+        o1, _ = e1.reset(42)
+        o2, _ = e2.reset(42)
         assert o1 == o2
 
     @pytest.mark.parametrize("cls", CORRIDORBATTLE_CLASSES)
     def test_reset_produces_valid_grid(self, cls: type) -> None:
         env = cls()
-        obs_str, _ = env.reset(seed=0)
+        obs_str, _ = env.reset(0)
         assert "@" in obs_str
         assert "[Grid]" in obs_str
         assert "[Legend]" in obs_str
@@ -48,7 +48,7 @@ class TestCorridorBattleEnvs:
     @pytest.mark.parametrize("cls", CORRIDORBATTLE_CLASSES)
     def test_grid_rows_same_length(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         grid_obs = env.get_observation()
         lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in lines]
@@ -57,14 +57,14 @@ class TestCorridorBattleEnvs:
     @pytest.mark.parametrize("cls", CORRIDORBATTLE_CLASSES)
     def test_has_monsters(self, cls: type) -> None:
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         assert len(env._creatures) > 0, "CorridorBattle should spawn monsters"
 
     @pytest.mark.parametrize("cls", CORRIDORBATTLE_CLASSES)
     def test_corridor_shape(self, cls: type) -> None:
         """Grid should be 15x5 with a single corridor in the middle."""
         env = cls()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._grid_w == 15
         assert env._grid_h == 5
         # Middle row should be walkable (corridor)
@@ -78,7 +78,7 @@ class TestCorridorBattleEnvs:
     def test_random_rollout(self, cls: type) -> None:
         """Random rollout should not crash."""
         env = cls(max_turns=100)
-        env.reset(seed=7)
+        env.reset(7)
         for _ in range(100):
             action = int(env.rng.integers(0, env.action_spec.n))
             _, _, terminated, truncated, _ = env.step(action)
@@ -100,18 +100,18 @@ class TestCorridorBattleEnvs:
 
     def test_dark_variant_is_dark(self) -> None:
         env = MiniHackCorridorBattleDarkEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._dark is True
 
     def test_normal_variant_not_dark(self) -> None:
         env = MiniHackCorridorBattleEnv()
-        env.reset(seed=0)
+        env.reset(0)
         assert env._dark is False
 
     def test_fight_through_corridor(self) -> None:
         """Player moving east should be able to fight through monsters."""
         env = MiniHackCorridorBattleEnv(max_turns=500)
-        env.reset(seed=0)
+        env.reset(0)
         move_e = env.action_spec.index_of("MOVE_E")
         reached = False
         for _ in range(500):
