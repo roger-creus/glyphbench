@@ -234,5 +234,5 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         if game is not None:
             try:
                 game.close()
-            except Exception:  # noqa: BLE001
+            except (AttributeError, OSError, RuntimeError):
                 pass
