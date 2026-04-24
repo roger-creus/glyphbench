@@ -6,39 +6,39 @@
       "id": "Qwen_Qwen3-0.6B__history_cot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "history_cot",
-      "score": 0.05922065098802453,
+      "score": 0.054212147586663983,
       "per_suite": {
         "minigrid": 0.12738299999999997,
         "minihack": 0.07999999999999999,
         "atari": -0.09784052197353382,
         "procgen": 0.04000000000000001,
         "craftax": 0.21542428504453817,
-        "classics": -0.009642857142857146
+        "classics": -0.0396938775510204
       },
-      "parse_failure_rate": 0.03422033811737065,
-      "total_input_tokens": 43150364,
-      "total_output_tokens": 62282702,
+      "parse_failure_rate": 0.03745206434583396,
+      "total_input_tokens": 43814286,
+      "total_output_tokens": 65614819,
       "total_cost": null,
-      "n_envs": 50
+      "n_envs": 51
     },
     {
       "id": "Qwen_Qwen3-0.6B__history_zeroshot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "history_zeroshot",
-      "score": 0.20315456306465138,
+      "score": 0.19021080286271297,
       "per_suite": {
-        "minigrid": 0.11126657142857142,
-        "minihack": 0.0,
+        "minigrid": 0.1541555,
+        "minihack": -0.013333333333333327,
         "atari": -0.2937773349191615,
         "procgen": 1.0,
         "craftax": 0.48960480854516486,
-        "classics": -0.08816666666666666
+        "classics": -0.19538482311639208
       },
-      "parse_failure_rate": 0.022247939349566613,
-      "total_input_tokens": 46830717,
-      "total_output_tokens": 61233217,
+      "parse_failure_rate": 0.023747889701744514,
+      "total_input_tokens": 48432446,
+      "total_output_tokens": 65869701,
       "total_cost": null,
-      "n_envs": 61
+      "n_envs": 64
     },
     {
       "id": "Qwen_Qwen3-0.6B__markov_cot",
@@ -63,18 +63,18 @@
       "id": "Qwen_Qwen3-0.6B__markov_zeroshot",
       "model": "Qwen/Qwen3-0.6B",
       "harness": "markov_zeroshot",
-      "score": -0.00389404155290908,
+      "score": -0.0038040415529090777,
       "per_suite": {
-        "minigrid": 0.16186342857142857,
+        "minigrid": 0.1624034285714286,
         "minihack": -0.05333333333333332,
         "atari": -0.0030781876436347944,
         "procgen": -0.14,
         "craftax": 0.011583843088085046,
         "classics": -0.00039999999999997817
       },
-      "parse_failure_rate": 0.020825330626131813,
-      "total_input_tokens": 23492931,
-      "total_output_tokens": 61551706,
+      "parse_failure_rate": 0.020875051433273898,
+      "total_input_tokens": 23498479,
+      "total_output_tokens": 61587843,
       "total_cost": null,
       "n_envs": 63
     },
@@ -82,112 +82,113 @@
       "id": "Qwen_Qwen3-14B__history_cot",
       "model": "Qwen/Qwen3-14B",
       "harness": "history_cot",
-      "score": 1.1297844750120782,
+      "score": 0.9215317972472051,
       "per_suite": {
         "minigrid": 0.6466645,
         "minihack": 0.32,
         "atari": 0.5257008866578347,
         "procgen": 0.0,
-        "craftax": 0.6463414634146344,
+        "craftax": -0.6031746031746031,
         "classics": 4.64
       },
-      "parse_failure_rate": 0.003923789490716395,
-      "total_input_tokens": 25564993,
-      "total_output_tokens": 63117089,
+      "parse_failure_rate": 0.004315539831266281,
+      "total_input_tokens": 26666249,
+      "total_output_tokens": 66885521,
       "total_cost": null,
-      "n_envs": 34
+      "n_envs": 35
     },
     {
       "id": "Qwen_Qwen3-14B__history_zeroshot",
       "model": "Qwen/Qwen3-14B",
       "harness": "history_zeroshot",
-      "score": 1.0289472552673882,
+      "score": 0.3988158923774046,
       "per_suite": {
         "minigrid": 0.6421214,
         "minihack": 0.59,
         "atari": 0.3187049887471868,
         "procgen": 0.46,
-        "craftax": 3.642857142857143,
+        "craftax": -0.13793103448275862,
         "classics": 0.52
       },
-      "parse_failure_rate": 0.0029072021086905962,
-      "total_input_tokens": 27084905,
-      "total_output_tokens": 66441562,
+      "parse_failure_rate": 0.0028292278094232148,
+      "total_input_tokens": 28154918,
+      "total_output_tokens": 68006137,
       "total_cost": null,
-      "n_envs": 41
+      "n_envs": 42
     },
     {
       "id": "Qwen_Qwen3-14B__markov_cot",
       "model": "Qwen/Qwen3-14B",
       "harness": "markov_cot",
-      "score": 0.3958480309815788,
+      "score": 0.39384803098157883,
       "per_suite": {
         "minigrid": 0.7588362857142857,
-        "minihack": 0.4200000000000001,
+        "minihack": 0.355,
         "atari": 0.49318293465794544,
         "procgen": 0.86,
         "craftax": -0.13793103448275862,
-        "classics": -0.019000000000000017
+        "classics": 0.03400000000000003
       },
-      "parse_failure_rate": 0.005099986578982687,
-      "total_input_tokens": 11969770,
-      "total_output_tokens": 61103942,
+      "parse_failure_rate": 0.005069222577209797,
+      "total_input_tokens": 12509373,
+      "total_output_tokens": 65070521,
       "total_cost": null,
-      "n_envs": 40
+      "n_envs": 44
     },
     {
       "id": "Qwen_Qwen3-14B__markov_zeroshot",
       "model": "Qwen/Qwen3-14B",
       "harness": "markov_zeroshot",
-      "score": -0.024733973733677327,
+      "score": -0.05796796661714489,
       "per_suite": {
         "minigrid": 0.655817,
         "minihack": 0.22400000000000003,
         "atari": 0.1663464646649467,
         "procgen": -0.78,
+        "craftax": -0.2241379310344827,
         "classics": -0.3898333333333333
       },
-      "parse_failure_rate": 0.0020329335230737954,
-      "total_input_tokens": 10116314,
-      "total_output_tokens": 50171942,
+      "parse_failure_rate": 0.0019696671262556626,
+      "total_input_tokens": 10863668,
+      "total_output_tokens": 51692110,
       "total_cost": null,
-      "n_envs": 30
+      "n_envs": 31
     },
     {
       "id": "Qwen_Qwen3-8B__history_cot",
       "model": "Qwen/Qwen3-8B",
       "harness": "history_cot",
-      "score": 0.4888501738855508,
+      "score": 0.4991835072188841,
       "per_suite": {
         "minigrid": 0.1430595,
-        "minihack": 0.188,
+        "minihack": 0.25,
         "atari": 0.5140175364574248,
         "procgen": 1.659126213592233,
         "craftax": 0.2499999999999998,
         "classics": 0.1788977932636469
       },
-      "parse_failure_rate": 0.0030731252676389834,
-      "total_input_tokens": 41892661,
-      "total_output_tokens": 130287715,
+      "parse_failure_rate": 0.00302609385851771,
+      "total_input_tokens": 42382497,
+      "total_output_tokens": 131553541,
       "total_cost": null,
-      "n_envs": 44
+      "n_envs": 45
     },
     {
       "id": "Qwen_Qwen3-8B__history_zeroshot",
       "model": "Qwen/Qwen3-8B",
       "harness": "history_zeroshot",
-      "score": 0.6456878176323465,
+      "score": 0.6448544842990132,
       "per_suite": {
         "minigrid": 0.1417128,
-        "minihack": 0.365,
+        "minihack": 0.36,
         "atari": 0.717301210604945,
         "procgen": 0.8678640776699028,
         "craftax": 1.6244444444444444,
         "classics": 0.15780437307478667
       },
-      "parse_failure_rate": 0.0032451517432955167,
-      "total_input_tokens": 40152627,
-      "total_output_tokens": 139078670,
+      "parse_failure_rate": 0.0032198592609903663,
+      "total_input_tokens": 40189440,
+      "total_output_tokens": 139055679,
       "total_cost": null,
       "n_envs": 45
     },
@@ -195,20 +196,20 @@
       "id": "Qwen_Qwen3-8B__markov_cot",
       "model": "Qwen/Qwen3-8B",
       "harness": "markov_cot",
-      "score": 1.0779580645502915,
+      "score": 0.744933725145608,
       "per_suite": {
         "minigrid": 0.24026499999999998,
-        "minihack": 0.7,
+        "minihack": 0.44,
         "atari": 0.9050190327312121,
         "procgen": 0.8209090909090909,
-        "craftax": 3.615384615384615,
-        "classics": 0.18617064827683105
+        "craftax": 1.8249336870026522,
+        "classics": 0.23847554023069253
       },
-      "parse_failure_rate": 0.008768811470553382,
-      "total_input_tokens": 20692623,
-      "total_output_tokens": 147554630,
+      "parse_failure_rate": 0.008511213185625506,
+      "total_input_tokens": 22262732,
+      "total_output_tokens": 153002229,
       "total_cost": null,
-      "n_envs": 48
+      "n_envs": 52
     },
     {
       "id": "Qwen_Qwen3-8B__markov_zeroshot",
@@ -305,19 +306,19 @@
       "id": "Qwen_Qwen3.5-2B__history_cot",
       "model": "Qwen/Qwen3.5-2B",
       "harness": "history_cot",
-      "score": 0.13154809869964246,
+      "score": -0.1413090441575004,
       "per_suite": {
         "minigrid": 0.34420999999999996,
         "atari": -0.6576996652319465,
         "procgen": 0.0,
-        "craftax": 1.6934523809523812,
+        "craftax": 0.3291666666666667,
         "classics": -0.7222222222222223
       },
-      "parse_failure_rate": 0.24812593703148425,
-      "total_input_tokens": 6054561,
-      "total_output_tokens": 10265072,
+      "parse_failure_rate": 0.24366004112405756,
+      "total_input_tokens": 6710821,
+      "total_output_tokens": 11022236,
       "total_cost": null,
-      "n_envs": 16
+      "n_envs": 17
     },
     {
       "id": "Qwen_Qwen3.5-2B__history_zeroshot",
@@ -377,20 +378,20 @@
       "id": "Qwen_Qwen3.5-4B__history_cot",
       "model": "Qwen/Qwen3.5-4B",
       "harness": "history_cot",
-      "score": 1.1412530271053491,
+      "score": 1.1523641382164604,
       "per_suite": {
         "minigrid": 0.8099054999999998,
-        "minihack": 0.44,
+        "minihack": 0.5066666666666667,
         "atari": -0.08266129032258067,
         "procgen": -0.040000000000000036,
         "craftax": 5.547619047619048,
         "classics": 0.1726549053356282
       },
-      "parse_failure_rate": 0.17728055077452667,
-      "total_input_tokens": 2730758,
-      "total_output_tokens": 11384198,
+      "parse_failure_rate": 0.1751364972700546,
+      "total_input_tokens": 2782674,
+      "total_output_tokens": 11615240,
       "total_cost": null,
-      "n_envs": 21
+      "n_envs": 22
     },
     {
       "id": "Qwen_Qwen3.5-4B__history_zeroshot",
@@ -450,72 +451,74 @@
       "id": "Qwen_Qwen3.5-9B__history_cot",
       "model": "Qwen/Qwen3.5-9B",
       "harness": "history_cot",
-      "score": 0.28952006978992006,
+      "score": 0.6091254556492106,
       "per_suite": {
         "minigrid": 0.8451796666666667,
         "minihack": 0.9466666666666667,
-        "atari": -0.7352941176470589,
+        "atari": 0.115215844402277,
+        "craftax": 1.037037037037037,
         "classics": 0.10152806347340582
       },
-      "parse_failure_rate": 0.04107870805895265,
-      "total_input_tokens": 6772659,
-      "total_output_tokens": 18012531,
+      "parse_failure_rate": 0.05148410822169688,
+      "total_input_tokens": 8083194,
+      "total_output_tokens": 22075644,
       "total_cost": null,
-      "n_envs": 24
+      "n_envs": 26
     },
     {
       "id": "Qwen_Qwen3.5-9B__history_zeroshot",
       "model": "Qwen/Qwen3.5-9B",
       "harness": "history_zeroshot",
-      "score": 0.44703458127784107,
+      "score": 0.4337281296649379,
       "per_suite": {
         "minigrid": 0.8570933333333333,
         "minihack": 0.8,
-        "atari": 0.6834677419354839,
+        "atari": 0.6169354838709677,
         "craftax": -0.36781609195402293,
         "classics": 0.2624279230744115
       },
-      "parse_failure_rate": 0.04026774330641734,
-      "total_input_tokens": 8995478,
-      "total_output_tokens": 21040718,
+      "parse_failure_rate": 0.059907834101382486,
+      "total_input_tokens": 10111412,
+      "total_output_tokens": 23936275,
       "total_cost": null,
-      "n_envs": 31
+      "n_envs": 34
     },
     {
       "id": "Qwen_Qwen3.5-9B__markov_cot",
       "model": "Qwen/Qwen3.5-9B",
       "harness": "markov_cot",
-      "score": 0.8184317112234558,
+      "score": 1.334144685615506,
       "per_suite": {
-        "minigrid": 0.8806692,
+        "minigrid": 0.8691363333333332,
         "minihack": 0.65,
         "atari": -0.7058823529411765,
+        "procgen": 3.924242424242424,
         "craftax": 3.2592592592592586,
         "classics": 0.008112449799196793
       },
-      "parse_failure_rate": 0.05503355704697987,
-      "total_input_tokens": 2661576,
-      "total_output_tokens": 19246012,
+      "parse_failure_rate": 0.08605290278254896,
+      "total_input_tokens": 2978337,
+      "total_output_tokens": 23123876,
       "total_cost": null,
-      "n_envs": 23
+      "n_envs": 25
     },
     {
       "id": "Qwen_Qwen3.5-9B__markov_zeroshot",
       "model": "Qwen/Qwen3.5-9B",
       "harness": "markov_zeroshot",
-      "score": 0.4492287952268555,
+      "score": 0.4412287952268555,
       "per_suite": {
         "minigrid": 0.911837,
-        "minihack": 0.5599999999999999,
+        "minihack": 0.52,
         "atari": 0.03430697613427747,
         "procgen": 0.030000000000000027,
         "classics": 0.71
       },
-      "parse_failure_rate": 0.06264673174348202,
-      "total_input_tokens": 3395174,
-      "total_output_tokens": 22245754,
+      "parse_failure_rate": 0.06253854693474775,
+      "total_input_tokens": 3403621,
+      "total_output_tokens": 22297702,
       "total_cost": null,
-      "n_envs": 28
+      "n_envs": 29
     },
     {
       "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-1.5B__history_cot",
@@ -553,34 +556,34 @@
       "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-1.5B__markov_cot",
       "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
       "harness": "markov_cot",
-      "score": 0.07491935483870968,
+      "score": 0.09391533877445266,
       "per_suite": {
         "atari": 0.22983870967741932,
-        "classics": -0.07999999999999996
+        "classics": -0.04200803212851399
       },
-      "parse_failure_rate": 0.5563829787234043,
-      "total_input_tokens": 332525,
-      "total_output_tokens": 5814974,
+      "parse_failure_rate": 0.5568743818001978,
+      "total_input_tokens": 476832,
+      "total_output_tokens": 6149931,
       "total_cost": null,
-      "n_envs": 3
+      "n_envs": 4
     },
     {
       "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-1.5B__markov_zeroshot",
       "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
       "harness": "markov_zeroshot",
-      "score": 0.14573460227464477,
+      "score": 0.15133620870034759,
       "per_suite": {
         "minihack": 0.0,
         "atari": -0.7058823529411765,
         "procgen": -0.24,
         "craftax": 1.6785714285714284,
-        "classics": -0.004016064257028026
+        "classics": 0.023991967871486067
       },
-      "parse_failure_rate": 0.2736590365562009,
-      "total_input_tokens": 1404434,
-      "total_output_tokens": 9148760,
+      "parse_failure_rate": 0.28263707571801566,
+      "total_input_tokens": 1681993,
+      "total_output_tokens": 9780605,
       "total_cost": null,
-      "n_envs": 13
+      "n_envs": 14
     },
     {
       "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-14B__history_cot",
@@ -683,37 +686,39 @@
       "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-7B__markov_cot",
       "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
       "harness": "markov_cot",
-      "score": 0.16117723388210173,
+      "score": 0.05536699314736546,
       "per_suite": {
         "minigrid": 0.4978859999999999,
         "minihack": 0.66,
         "atari": -0.3859998305894915,
         "procgen": -0.12,
+        "craftax": -0.47368421052631576,
         "classics": 0.15400000000000008
       },
-      "parse_failure_rate": 0.10025273799494525,
-      "total_input_tokens": 13024536,
-      "total_output_tokens": 76713230,
+      "parse_failure_rate": 0.10290996726736448,
+      "total_input_tokens": 13427680,
+      "total_output_tokens": 78385527,
       "total_cost": null,
-      "n_envs": 27
+      "n_envs": 28
     },
     {
       "id": "deepseek-ai_DeepSeek-R1-Distill-Qwen-7B__markov_zeroshot",
       "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
       "harness": "markov_zeroshot",
-      "score": 0.04527524498931605,
+      "score": 0.14439603749109672,
       "per_suite": {
         "minigrid": 0.33053266666666664,
         "minihack": 0.66,
         "atari": -0.48296787839305433,
         "procgen": -0.39,
+        "craftax": 0.6400000000000001,
         "classics": 0.10881143667296789
       },
-      "parse_failure_rate": 0.13246012464349846,
-      "total_input_tokens": 13934647,
-      "total_output_tokens": 97870050,
+      "parse_failure_rate": 0.13549525853118294,
+      "total_input_tokens": 14342552,
+      "total_output_tokens": 99784877,
       "total_cost": null,
-      "n_envs": 27
+      "n_envs": 29
     },
     {
       "id": "google_gemma-3-12b-it__history_cot",
@@ -853,74 +858,76 @@
       "id": "mistralai_Mistral-7B-Instruct-v0.3__history_cot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "history_cot",
-      "score": -0.13688302205241104,
+      "score": -0.12688937825778204,
       "per_suite": {
         "minigrid": 0.007699833333333333,
         "atari": -0.5335607959231977,
         "procgen": -0.1619909347443488,
-        "craftax": -0.016383042245111206,
+        "craftax": 0.033585176728033864,
         "classics": 0.019819829317269087
       },
-      "parse_failure_rate": 0.2483042935864707,
-      "total_input_tokens": 390618414,
-      "total_output_tokens": 26664294,
+      "parse_failure_rate": 0.2475103470101559,
+      "total_input_tokens": 392708649,
+      "total_output_tokens": 26884509,
       "total_cost": null,
-      "n_envs": 182
+      "n_envs": 186
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__history_zeroshot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "history_zeroshot",
-      "score": -0.2172617873849961,
+      "score": -0.22822669966569786,
       "per_suite": {
         "minigrid": 0.012435071428571429,
         "minihack": -0.4,
         "atari": -0.5094026161353418,
         "procgen": -0.04000000000000002,
-        "craftax": -0.2784552845528455,
+        "craftax": -0.344244758237056,
         "classics": -0.08814789505036077
       },
-      "parse_failure_rate": 0.0031288679479687664,
-      "total_input_tokens": 320391820,
-      "total_output_tokens": 8751218,
+      "parse_failure_rate": 0.0033236775298281698,
+      "total_input_tokens": 321126189,
+      "total_output_tokens": 9050247,
       "total_cost": null,
-      "n_envs": 164
+      "n_envs": 165
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_cot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "markov_cot",
-      "score": -0.03228247038358724,
+      "score": 0.024826276303193697,
       "per_suite": {
         "minigrid": 0.010213,
+        "minihack": 0.0,
         "atari": -0.5295194107582138,
         "procgen": -0.08204918032786886,
-        "craftax": 0.4407692307692307,
+        "craftax": 0.7511392405063291,
         "classics": -0.0008259916010841861
       },
-      "parse_failure_rate": 0.34244110799905436,
-      "total_input_tokens": 179541625,
-      "total_output_tokens": 29801319,
+      "parse_failure_rate": 0.3446085443802927,
+      "total_input_tokens": 182925109,
+      "total_output_tokens": 30291433,
       "total_cost": null,
-      "n_envs": 188
+      "n_envs": 191
     },
     {
       "id": "mistralai_Mistral-7B-Instruct-v0.3__markov_zeroshot",
       "model": "mistralai/Mistral-7B-Instruct-v0.3",
       "harness": "markov_zeroshot",
-      "score": -0.13913420920437208,
+      "score": -0.01713927209577678,
       "per_suite": {
         "minigrid": -0.0020568888888888885,
+        "minihack": 0.0,
         "atari": -0.5602985927900185,
         "procgen": 0.06659836065573771,
-        "craftax": -0.17350117617140323,
+        "craftax": 0.41933423727579644,
         "classics": -0.02641274882728746
       },
-      "parse_failure_rate": 0.003916880640846262,
-      "total_input_tokens": 192819705,
-      "total_output_tokens": 13483427,
+      "parse_failure_rate": 0.003815592065050288,
+      "total_input_tokens": 203019138,
+      "total_output_tokens": 13749407,
       "total_cost": null,
-      "n_envs": 185
+      "n_envs": 201
     }
   ]
 }
