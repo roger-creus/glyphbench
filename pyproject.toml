@@ -4,11 +4,11 @@ version = "0.1.0"
 description = "GlyphBench: A unified benchmark of 210 text-rendered RL environments for evaluating LLM agents on sequential decision-making"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.13"
 authors = [
     { name = "Roger Creus Castanyer" },
 ]
-keywords = ["reinforcement-learning", "llm", "benchmark", "ascii", "evaluation", "gymnasium"]
+keywords = ["reinforcement-learning", "llm", "benchmark", "ascii", "evaluation"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -19,7 +19,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "gymnasium>=1.0",
+    "verifiers @ git+https://github.com/PrimeIntellect-ai/verifiers.git@77a9f28",
+    "datasets>=3.0",
+    "openai>=1.50",
     "numpy>=2.0",
     "pydantic>=2.9",
     "pyyaml>=6.0",
@@ -48,6 +50,10 @@ eval = [
     "vllm>=0.8",
     "torch>=2.4",
 ]
+# RL training (prime-rl, heavy install — wired up in Milestone 6 via Dockerfile;
+# installing locally requires the full set of uv sources prime-rl itself defines,
+# so this extra is deliberately empty for now and is satisfied inside the container)
+rl = []
 # Analysis and plotting
 analysis = [
     "pyarrow>=17.0",
@@ -75,6 +81,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/glyphbench"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.uv]
 managed = true
@@ -110,6 +119,9 @@ module = [
     "google.genai.*",
     "vllm",
     "vllm.*",
+    "verifiers",
+    "verifiers.*",
+    "datasets",
 ]
 ignore_missing_imports = true
 
