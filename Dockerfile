@@ -43,6 +43,14 @@ RUN uv sync --frozen --extra eval
 # RUN uv sync --frozen --extra eval --extra rl
 
 ENV PATH="/opt/glyphbench/.venv/bin:${PATH}"
+
+# uv installs the managed Python under /root/.local/share/uv/...; the venv
+# at /opt/glyphbench/.venv/bin/python symlinks to it. Older Singularity
+# (e.g. 3.7 on Mila) runs as the host user rather than fakeroot, so it
+# can't stat anything under /root unless /root is world-readable. Loosen
+# perms after install so non-root execs of the venv interpreter succeed.
+RUN chmod -R a+rX /root || true
+
 WORKDIR /workspace
 ENTRYPOINT []
 CMD ["bash"]

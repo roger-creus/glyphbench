@@ -32,26 +32,9 @@ def test_list_envs_excludes_dummy(capsys):
     assert "dummy" not in out
 
 
-def test_eval_parser_defaults():
-    parser = cli._build_parser()
-    args = parser.parse_args(["eval", "Qwen/Qwen3-8B"])
-    assert args.model == "Qwen/Qwen3-8B"
-    assert args.harness == "history_cot"
-    assert args.episodes == 25
-    assert args.suite is None
-    assert args.env is None
-
-
-def test_eval_parser_scope_mutex():
-    parser = cli._build_parser()
-    with pytest.raises(SystemExit):
-        parser.parse_args(["eval", "M", "--suite", "atari", "--env", "x"])
-
-
-def test_eval_parser_harness_all_accepted():
-    parser = cli._build_parser()
-    args = parser.parse_args(["eval", "M", "--harness", "all"])
-    assert args.harness == "all"
+# NOTE: the `glyphbench eval` subcommand was removed — use `vf-eval glyphbench`
+# (the canonical verifiers runner) directly. CLI now provides list-suites,
+# list-envs, replay, and bundle only.
 
 
 def test_bundle_creates_tarball_with_meta(tmp_path: Path):

@@ -45,7 +45,16 @@ outputs/
 # Project-specific (local workspace)
 specs/
 plans/
+notebooks/
 .claude/
+.claude*
+.cursor/
+.windsurf/
+.aider*
+.codeium/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
 # Third-party source zips kept locally for reference, never committed.
 *.zip
 
@@ -62,9 +71,20 @@ plans/
 # internally to run the experiments that feed the leaderboard. Downstream
 # users of GlyphBench don't need it.
 cluster_manager/
-HANDOVER.md
+
+# Internal handover / decision-log / TODO artifacts — written by humans or
+# agents during a working session, never part of the public release.
+HANDOVER*.md
+DECISIONS*.md
+TODO*.md
+NOTES*.md
+*.handover.md
+transcripts/
+chat_logs/
+
 eval/random_baseline.json.*.bak
 eval/random_baseline.json.bak
+eval/figures/
 
 # GIFs live on Hugging Face (anon-paper-submission/glyphbench-assets), not in git
 docs/leaderboard/gifs/

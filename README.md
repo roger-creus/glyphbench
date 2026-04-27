@@ -1,11 +1,10 @@
 # GlyphBench
 
-A benchmark of **293 text-rendered reinforcement-learning environments** for evaluating LLM agents on sequential decision-making.
+A benchmark of **292 text-rendered reinforcement-learning environments** for evaluating LLM agents on sequential decision-making.
 
-Every environment renders its state as a Unicode text grid with a legend, HUD, and discrete named actions. Observations are deterministic (seeded), making results fully reproducible.
+Every environment renders its state as a Unicode text grid with a legend and discrete named actions. The agent sees only the grid — no privileged state-channel — so every game-relevant fact must be readable off the glyphs themselves. Observations are deterministic (seeded), making results fully reproducible.
 
 - **Leaderboard & rollouts:** [roger-creus.github.io/glyphbench](https://roger-creus.github.io/glyphbench/leaderboard/)
-- **Assets (GIFs, trajectories):** [huggingface.co/datasets/anon-paper-submission/glyphbench-assets](https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets)
 - **Paper:** coming soon
 - **Contributing a run:** see [CONTRIBUTING.md](CONTRIBUTING.md)
 
@@ -70,12 +69,17 @@ Every environment also exposes `env.system_prompt()` — a compact description o
 
 ## Observation format
 
-Every environment returns a single text string with four sections:
+Every environment returns a single text string. The harness shows the model:
 
-- `[Legend]` — maps each glyph to its meaning.
-- `[HUD]` — game state (HP, score, inventory, step counter).
-- `[Grid]` — the 2D Unicode grid.
-- `[Message]` — optional per-turn narrative.
+- `[Legend]` — maps each glyph to its meaning (rendered once, deduped).
+- `[Grid]` — the 2D Unicode grid (the only required channel).
+- `[Message]` — optional per-turn narrative event ("You bumped a wall.").
+- `[Actions]` — the action vocabulary the model must pick from this turn.
+
+Envs may compute a `[HUD]` (HP, inventory, score, etc.) for their `info` dict
+and trajectory logs, but the harness deliberately does not show it to the
+model. Privileged state (mob positions, hidden inventory) must therefore be
+encoded in the visible grid for the agent to reason about.
 
 ## Running LLM evaluations
 
@@ -87,12 +91,12 @@ Two turnkey wrappers are provided:
 # Short smoke (1 env, 1 episode) — useful for wiring checks
 bash eval/run_debug.sh
 
-# Full sweep (all 293 envs, configurable episodes via $EPISODES / $MODEL)
+# Full sweep (all 292 envs, configurable episodes via $EPISODES / $MODEL)
 bash eval/run_full.sh
 ```
 
 Both scripts assume an OpenAI-compatible server is reachable at `http://localhost:8000/v1`
-(e.g. `uv run vllm serve Qwen/Qwen3-0.6B --port 8000`). See [`eval/README.md`](eval/README.md)
+(e.g. `uv run vllm serve Qwen/Qwen3.5-4B --port 8000`). See [`eval/README.md`](eval/README.md)
 for full arguments.
 
 At a Python level, the single entry point is:
@@ -101,9 +105,9 @@ At a Python level, the single entry point is:
 import glyphbench
 env = glyphbench.load_environment(
     task_id="glyphbench/minigrid-empty-5x5-v0",
-    num_episodes=10,
-    n_frames=4,
-    max_output_tokens=512,
+    num_episodes=5,              # default
+    n_frames=0,                  # stateless per turn (default)
+    max_output_tokens=8192,      # match your --max-tokens
 )
 ```
 
@@ -111,21 +115,31 @@ which returns a `verifiers.MultiTurnEnv` ready for `vf.evaluate(...)` or RL trai
 
 ## Harness
 
-One harness mode only: frame-stacked history (N=4 frames by default) with CoT-style
-responses and a 512-token response budget communicated to the model. All observations
-are deterministic — identical seeds produce identical trajectories.
+One harness mode: per turn the model sees only `[system, current observation]`
+— no HUD side-channel, every game-relevant fact must be readable off the
+Unicode grid. An optional frame-stacked history window is available
+(`n_frames=N`); the default is `n_frames=0` (stateless / pure Markov). The
+system prompt advertises the output-token budget the eval is run with so the
+model can self-pace its reasoning. All observations are deterministic —
+identical seeds produce identical trajectories.
 
 ## Scoring
 
-**GlyphBench Score** = equal-weight mean of per-suite interquartile means, after normalising each env against a fixed-seed random baseline ([`eval/random_baseline.json`](eval/random_baseline.json)).
-
-Per-env normalisation: `(model_return − random_return) / max(|random_return|, 1)`, clipped to `[−1, 10]`. We report raw `mean_return` alongside the normalised score — no opaque success rates.
+GlyphBench reports **raw episodic return per (env, model)**. There is no
+benchmark-wide normalised score: we publish the raw per-task per-model means
+and let downstream analyses choose their own aggregation. A reproducible
+random-agent baseline is available at
+[`eval/random_baseline.json`](eval/random_baseline.json) for callers that
+want a zero-skill reference.
 
 ## Trajectory replay and GIFs
 
 ```bash
-# Replay a recorded trajectory with color
-uv run python scripts/replay_trajectory.py results/Qwen_Qwen3.5-4B/history_cot/trajectories/glyphbench__atari-pong-v0/seed_42_ep_0.jsonl
+# Replay every saved trajectory under a results directory (rich TUI)
+uv run glyphbench replay cluster_manager/results --suite minigrid --pause
+
+# Replay a single recorded trajectory with color
+uv run python scripts/replay_trajectory.py path/to/trajectory.jsonl
 
 # Export a single trajectory as a GIF
 uv run python scripts/replay_trajectory.py trajectory.jsonl --gif output.gif
@@ -169,21 +183,22 @@ print(f"Episode return: {total}")
 
 ```
 src/glyphbench/
-    core/                # BaseGlyphEnv, GridObservation, ActionSpec, registry, verifiers adapter
-    envs/                # 6 suites · 293 envs
-    harness/             # frame-stacked history + prompt builder
-eval/                    # vf-eval wrappers, random baseline, scoring
-configs/rl/              # prime-rl training configs (e.g. glyphbench-smoke)
-cluster_manager/         # SLURM multi-cluster experiment manager
-scripts/                 # Demo, trajectory replay, GIF export, upload tools
-docs/leaderboard/        # GitHub Pages site (leaderboard + rollout gallery)
+    core/                  # BaseGlyphEnv, GridObservation, ActionSpec, registry
+    envs/                  # 6 suites · 292 envs
+    verifiers_integration/ # prompt builder, parser, multi-turn env, rubric
+    plotting/              # parquet loaders + paper-figure generators
+eval/                      # vf-eval wrappers, random baseline
+configs/                   # endpoint registry, prime-rl training configs
+cluster_manager/           # SLURM multi-cluster experiment manager
+scripts/                   # Demo, trajectory replay, GIF export, upload tools
+docs/leaderboard/          # GitHub Pages site (leaderboard + rollout gallery)
 ```
 
 ## Development
 
 ```bash
 uv sync --all-extras
-uv run pytest                          # 2293+ tests
+uv run pytest
 uv run ruff check src/
 uv run mypy src/glyphbench/
 ```

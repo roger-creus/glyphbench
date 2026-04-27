@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-"""Run random baseline on all environments. Fast (no LLM needed).
+"""Run a random-action baseline on every environment. Fast (no LLM needed).
 
-Produces random_baseline.json: {env_id: {mean_return, std_return, ...}}
-Used as the normalization anchor for all LLM eval scores.
+Writes random_baseline.json: {env_id: {mean_return, std_return, ...}}.
+Useful as a zero-skill reference when interpreting model scores. The
+benchmark itself reports raw episodic returns — there is no enforced
+normalisation.
 
 Usage:
     uv run python eval/random_baseline.py
@@ -26,7 +28,7 @@ from glyphbench.core import all_glyphbench_env_ids, make_env
 def run_random_episodes(
     env_id: str, seeds: list[int], max_turns: int | None = None,
 ) -> dict[str, Any]:
-    """Run random agent on one env across all seeds.
+    """Run a uniform-random agent on one env across all seeds.
 
     If max_turns is None, each env uses its own natural budget (defined by
     the env class). Overriding it distorts the baseline for envs whose

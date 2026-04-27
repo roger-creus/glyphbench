@@ -31,6 +31,7 @@ dependencies = [
 
 [project.scripts]
 glyphbench = "glyphbench.cli:main"
+gb = "glyphbench.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/roger-creus/glyphbench"
