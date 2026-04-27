@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class BeamRiderEnv(AtariBase):
     """Beam Rider: shoot enemies descending on beams.
 
@@ -22,8 +21,8 @@ class BeamRiderEnv(AtariBase):
     Enemies descend on beams; shoot them or dodge.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Reward: +10 per enemy, +50 sector clear
-    Lives: 3
+    Reward: +1 per enemy, +3 sector clear
+
     """
 
     action_spec = ActionSpec(
@@ -142,10 +141,10 @@ class BeamRiderEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
+                    self._on_point_scored(1)
+                    reward += 1
                     self._kills += 1
-                    self._message = "Enemy hit! +10"
+                    self._message = "Enemy hit! +1"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -179,9 +178,9 @@ class BeamRiderEnv(AtariBase):
 
         # Sector clear
         if self._kills >= self._SECTOR_TARGET:
-            self._on_point_scored(50)
-            reward += 50
-            self._message = "Sector cleared! +50"
+            self._on_point_scored(3)
+            reward += 3
+            self._message = "Sector cleared! +3"
             self._level += 1
             self._generate_level(self._level)
 
@@ -262,11 +261,11 @@ class BeamRiderEnv(AtariBase):
             "4 - level/2) steps. The spawn cooldown is max(4, 10 - "
             "level). Up to 6 enemies alive at once.\n\n"
             "SCORING\n"
-            "+10 reward for each enemy shot. +50 reward bonus when you "
+            "+1 reward for each enemy shot. +3 reward bonus when you "
             "reach 12 kills (sector clear), which also advances to the "
             "next sector and resets the kill counter.\n\n"
             "TERMINATION\n"
-            "Three lives. An enemy that reaches row 18 on your beam "
+            ". An enemy that reaches row 18 on your beam "
             "kills you (lose 1 life). Episode ends at 0 lives or after "
             "max_turns.\n\n"
             "HUD\n"

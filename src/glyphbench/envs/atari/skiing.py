@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase
 
-
 class SkiingEnv(AtariBase):
     """Skiing: downhill slalom racing.
 
@@ -60,7 +59,7 @@ class SkiingEnv(AtariBase):
         self._gates_passed = 0
         self._gates_missed = 0
         self._finished = False
-        self._lives = 99
+        self._lives = 1
 
         rng = self.rng
         self._gates = []

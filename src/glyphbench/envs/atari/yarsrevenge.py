@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase, AtariEntity
 
-
 class YarsRevengeEnv(AtariBase):
     """Yars' Revenge: eat shield cells and destroy the Qotile.
 
@@ -22,8 +21,8 @@ class YarsRevengeEnv(AtariBase):
     cannon to destroy the Qotile. Dodge the Destroyer missile.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE
-    Reward: +5 per shield cell, +100 Qotile hit
-    Lives: 3
+    Reward: +1 per shield cell, +5 Qotile hit
+
     """
 
     action_spec = ActionSpec(
@@ -120,8 +119,8 @@ class YarsRevengeEnv(AtariBase):
         if pos in self._shield_cells:
             self._shield_cells.discard(pos)
             self._energy = min(self._MAX_ENERGY, self._energy + 1)
-            self._on_point_scored(5)
-            reward += 5
+            self._on_point_scored(1)
+            reward += 1
             self._message = f"Shield eaten! Energy: {self._energy}"
 
         # Fire Zorlon cannon
@@ -155,9 +154,9 @@ class YarsRevengeEnv(AtariBase):
                 self._qotile_alive = False
                 self._cannon_shot.alive = False
                 self._cannon_shot = None
-                self._on_point_scored(100)
-                reward += 100
-                self._message = "Qotile destroyed! +100"
+                self._on_point_scored(5)
+                reward += 5
+                self._message = "Qotile destroyed! +5"
                 self._level += 1
                 self._generate_level(self._level)
                 return reward, self._game_over, info
@@ -253,7 +252,7 @@ class YarsRevengeEnv(AtariBase):
 
         obs = super()._render_current_observation()
         hud = (
-            f"Score: {self._score}    Lives: {self._lives}"
+            f"Score: {self._score}    "
             f"    Level: {self._level}"
             f"    Energy: {self._energy}/{self._MAX_ENERGY}"
         )
@@ -312,11 +311,11 @@ class YarsRevengeEnv(AtariBase):
             "(moves every 2 steps); it dies if it enters the "
             "neutral zone.\n\n"
             "SCORING\n"
-            "+5 reward per shield cell eaten. +100 reward for "
+            "+1 reward per shield cell eaten. +5 reward for "
             "hitting the Qotile with the Zorlon cannon (level "
             "up). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Destroyer contact costs a life and "
+            ". Destroyer contact costs a life and "
             "respawns you at (3, mid). Episode ends at 0 lives or "
             "after max_turns.\n\n"
             "HUD\n"

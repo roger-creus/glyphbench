@@ -218,13 +218,13 @@ class BombermanEnv(BaseGlyphEnv):
         # Check death from explosion
         if self._dead:
             info["dead"] = True
-            return self._render_current_observation(), -10.0, True, False, info
+            return self._render_current_observation(), -1.0, True, False, info
 
         # Check if player is on exit
         if self._grid[self._player_r][self._player_c] == EXIT:
             self._won = True
             info["win"] = True
-            return self._render_current_observation(), 10.0, True, False, info
+            return self._render_current_observation(), 5.0, True, False, info
 
         return self._render_current_observation(), reward, False, False, info
 
@@ -292,7 +292,7 @@ class BombermanEnv(BaseGlyphEnv):
             "RULES\n"
             f"The grid is {_SIZE}x{_SIZE}. You start at the top-left.\n"
             "Indestructible walls form a grid pattern. Destructible crates fill "
-            "~40%% of open cells. An exit is hidden behind one crate.\n\n"
+            "~40% of open cells. An exit is hidden behind one crate.\n\n"
             "BOMBS\n"
             f"Place a bomb with BOMB. It explodes after {_BOMB_TIMER} turns with "
             f"blast radius {_BLAST_RADIUS} in all 4 cardinal directions.\n"
@@ -301,8 +301,8 @@ class BombermanEnv(BaseGlyphEnv):
             "GOAL\n"
             "Destroy crates to find and reach the exit.\n"
             "  +1 reward per crate destroyed\n"
-            "  +10 reward for reaching the exit\n"
-            "  -10 reward if caught in an explosion\n\n"
+            "  +5 reward for reaching the exit\n"
+            "  -1 reward if caught in an explosion\n\n"
             + self.action_spec.render_for_prompt()
         )
 

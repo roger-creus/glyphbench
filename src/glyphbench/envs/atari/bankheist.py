@@ -26,12 +26,11 @@ _EXIT_CHAR = "E"
 _GAS_START = 200
 _DYNAMITE_CHAR = "d"
 
-
 class BankHeistEnv(AtariBase):
     """Bank Heist: rob banks, avoid police, reach the exit.
 
     Actions: NOOP, UP, RIGHT, LEFT, DOWN, FIRE
-    Reward: +50 per bank robbed, -100 if caught by police.
+    Reward: +2 per bank robbed, -1 if caught by police.
     Gas limit forces you to exit before running out.
     FIRE drops dynamite to stun nearby police.
     """
@@ -87,12 +86,12 @@ class BankHeistEnv(AtariBase):
             "Police move toward you with 40 percent probability per step "
             "and otherwise continue in their last direction.\n\n"
             "SCORING\n"
-            "+50 reward for each bank robbed. Exiting adds a bonus of "
-            "20 * (banks robbed this level). Getting caught by police "
-            "gives -100 reward and costs a life; running out of gas gives "
-            "-50 reward and costs a life.\n\n"
+            "+2 reward for each bank robbed. Exiting adds a bonus of "
+            "1 * (banks robbed this level). Getting caught by police "
+            "gives -1 reward and costs a life; running out of gas gives "
+            "-1 reward and costs a life.\n\n"
             "TERMINATION\n"
-            "Three lives; losing a life respawns you at (1, 14) with a "
+            "; losing a life respawns you at (1, 14) with a "
             "full tank and the same maze. Episode ends when lives reach "
             "0 or after max_turns.\n\n"
             "HUD\n"
@@ -203,7 +202,7 @@ class BankHeistEnv(AtariBase):
                 self._gas = _GAS_START
                 self._player_x = 1
                 self._player_y = _H - 2
-            return -50.0, self._game_over, info
+            return -1.0, self._game_over, info
 
         # Parse action
         move_dir: tuple[int, int] | None = None
@@ -228,12 +227,12 @@ class BankHeistEnv(AtariBase):
         if cell == _BANK_CHAR:
             self._set_cell(self._player_x, self._player_y, " ")
             self._banks_robbed += 1
-            self._on_point_scored(50)
-            reward += 50.0
+            self._on_point_scored(2)
+            reward += 2.0
             self._message = "Bank robbed!"
         elif cell == _EXIT_CHAR:
             # Level complete
-            bonus = self._banks_robbed * 20
+            bonus = self._banks_robbed * 1
             self._on_point_scored(bonus)
             reward += float(bonus)
             self._level += 1
@@ -271,7 +270,7 @@ class BankHeistEnv(AtariBase):
                 and e.data.get("stunned", 0) <= 0
             ):
                         self._on_life_lost()
-                        reward -= 100.0
+                        reward -= 1.0
                         self._message = "Caught by police!"
                         if not self._game_over:
                             self._player_x = 1

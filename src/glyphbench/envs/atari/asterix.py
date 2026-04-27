@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase, AtariEntity
 
-
 class AsterixEnv(AtariBase):
     """Asterix: collect food, dodge enemies in lanes.
 
@@ -21,7 +20,7 @@ class AsterixEnv(AtariBase):
     Move up/down between lanes to grab food and dodge enemies.
 
     Actions: NOOP, UP, DOWN
-    Reward: +10 per food collected, -1 per food missed
+    Reward: +1 per food collected
     Lives: 3 (lost on enemy collision)
     """
 
@@ -145,9 +144,9 @@ class AsterixEnv(AtariBase):
                 and f.y == self._player_y
             ):
                 f.alive = False
-                self._on_point_scored(10)
-                reward += 10
-                self._message = "Yum! +10"
+                self._on_point_scored(1)
+                reward += 1
+                self._message = "Yum! +1"
 
         # Check enemy collision
         for e in self._enemies:
@@ -163,10 +162,10 @@ class AsterixEnv(AtariBase):
                     self._LANE_START + self._NUM_LANES // 2
                 )
 
-        # Level up every 100 points
+        # Level up every 10 points
         if (
             self._score > 0
-            and self._score % 100 == 0
+            and self._score % 10 == 0
             and self._step_counter % self._spawn_rate == 0
         ):
             self._level += 1
@@ -198,7 +197,7 @@ class AsterixEnv(AtariBase):
             "─": "wall",
             "│": "wall",
             "·": "lane border",
-            "*": "food (+10)",
+            "*": "food (+1)",
             "E": "enemy (dodge!)",
             " ": "empty",
         }.get(ch, ch)
@@ -228,12 +227,12 @@ class AsterixEnv(AtariBase):
             "rises). They despawn at the left edge. You only pick up food "
             "or get hit when you are in the exact same cell as the item.\n\n"
             "SCORING\n"
-            "+10 reward for each food collected. No explicit reward for "
+            "+1 reward for each food collected. No explicit reward for "
             "letting enemies pass, but colliding with one costs a life. "
-            "After every 100 score points the level increases, making "
+            "After every 10 score points the level increases, making "
             "enemies spawn more often and move faster.\n\n"
             "TERMINATION\n"
-            "Three lives; hitting an enemy costs one life and respawns you "
+            "; hitting an enemy costs one life and respawns you "
             "in the middle lane. Episode ends when lives reach 0 or after "
             "max_turns.\n\n"
             "HUD\n"

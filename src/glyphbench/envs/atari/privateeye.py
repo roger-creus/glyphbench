@@ -26,7 +26,6 @@ _DIRS = {
     "RIGHT": (1, 0),
 }
 
-
 class PrivateEyeEnv(AtariBase):
     """PrivateEye: detective driving game.
 
@@ -35,7 +34,7 @@ class PrivateEyeEnv(AtariBase):
     Examine (E) locations to discover hidden clues.
 
     Grid: 30x16.
-    Reward: +30 per clue, +50 per criminal, +200 case solved.
+    Reward: +1 per clue, +2 per criminal, +5 case solved.
     """
 
     action_spec = ActionSpec(
@@ -224,9 +223,9 @@ class PrivateEyeEnv(AtariBase):
                 ):
                     e.alive = False
                     self._clues_found += 1
-                    self._on_point_scored(30)
-                    reward += 30
-                    self._message = "Clue found! +30"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Clue found! +1"
             elif e.etype == "hidden_clue":
                 if (
                     e.data.get("revealed")
@@ -235,9 +234,9 @@ class PrivateEyeEnv(AtariBase):
                 ):
                     e.alive = False
                     self._clues_found += 1
-                    self._on_point_scored(30)
-                    reward += 30
-                    self._message = "Hidden clue! +30"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Hidden clue! +1"
 
         # Thug AI
         for e in self._entities:
@@ -297,9 +296,9 @@ class PrivateEyeEnv(AtariBase):
                 and abs(e.y - self._player_y) <= 1
             ):
                 e.alive = False
-                self._on_point_scored(50)
-                reward += 50
-                self._message = "Criminal caught! +50"
+                self._on_point_scored(2)
+                reward += 2
+                self._message = "Criminal caught! +2"
 
         self._entities = [
             e for e in self._entities if e.alive
@@ -307,9 +306,9 @@ class PrivateEyeEnv(AtariBase):
 
         # Case solved: all clues found
         if self._clues_found >= self._clues_total:
-            self._on_point_scored(200)
-            reward += 200
-            self._message = "Case solved! +200"
+            self._on_point_scored(5)
+            reward += 5
+            self._message = "Case solved! +5"
             self._level += 1
             self._generate_level(self._level * 5003)
             return reward, False, info
@@ -384,12 +383,12 @@ class PrivateEyeEnv(AtariBase):
             "them. Thugs move every 2-4 steps horizontally, "
             "bouncing at walls; criminal flees from your column.\n\n"
             "SCORING\n"
-            "+30 reward per clue collected (visible or hidden). "
-            "+50 reward per criminal caught. +200 reward when "
+            "+1 reward per clue collected (visible or hidden). "
+            "+2 reward per criminal caught. +5 reward when "
             "all clues are collected (case solved, level up). No "
             "per-step penalty beyond the case timer.\n\n"
             "TERMINATION\n"
-            "Three lives. Thug contact costs a life and respawns "
+            ". Thug contact costs a life and respawns "
             "you at (3, road-1). Timer expiring or lives reaching "
             "0 ends the episode.\n\n"
             "HUD\n"

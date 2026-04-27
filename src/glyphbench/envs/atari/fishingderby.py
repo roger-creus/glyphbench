@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase, AtariEntity
 
-
 class FishingDerbyEnv(AtariBase):
     """Fishing Derby: catch fish from a lake.
 
@@ -66,7 +65,7 @@ class FishingDerbyEnv(AtariBase):
         self._fish = []
         self._hooked_fish = self._opp_hooked = None
         self._opp_score = self._timer = 0
-        self._lives = 99
+        self._lives = 1
         self._player_x, self._player_y = 3, self._PIER_Y
         self._hook_x, self._hook_y = 5, self._WATER_TOP + 2
         self._opp_hook_x, self._opp_hook_y = 14, self._WATER_TOP + 2

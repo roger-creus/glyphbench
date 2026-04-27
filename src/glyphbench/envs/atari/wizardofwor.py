@@ -24,13 +24,12 @@ _GHOST_CHAR = "w"
 _BULLET_CHAR = "!"
 _WIZARD_CHAR = "W"
 
-
 class WizardOfWorEnv(AtariBase):
     """Wizard of Wor: shoot warrior ghosts in a maze.
 
     Actions: NOOP, FIRE, UP, RIGHT, LEFT, DOWN
-    Reward: +100 per ghost, +500 for the Wizard.
-    Level clears when all enemies are dead.
+    Reward: +1 per ghost, +5 for the Wizard, -1 on hit (terminates).
+    Single-life. Level clears when all enemies are dead.
     """
 
     action_spec = ActionSpec(
@@ -85,17 +84,12 @@ class WizardOfWorEnv(AtariBase):
             "every 10-25 steps to a random corridor cell and "
             "otherwise moves like a ghost.\n\n"
             "SCORING\n"
-            "+100 reward per warrior ghost shot. +500 reward for "
-            "killing the Wizard. -100 reward each time you are "
-            "hit by an enemy bullet or collide with an enemy "
-            "(also costs a life).\n\n"
+            "+1 reward per warrior ghost shot. +5 reward for "
+            "killing the Wizard. -1 on enemy bullet hit or "
+            "enemy contact (terminates the episode — single life).\n\n"
             "TERMINATION\n"
-            "Three lives. Enemy contact or enemy bullet hit costs "
-            "a life and respawns you at (1, 13). Episode ends at "
-            "0 lives or after max_turns.\n\n"
-            "HUD\n"
-            "Shows score, lives, level, facing, and enemies "
-            "remaining.\n\n"
+            "Single-life: any hit ends the episode. Otherwise the "
+            "episode runs until max_turns.\n\n"
             + self.action_spec.render_for_prompt()
         )
 
@@ -241,7 +235,7 @@ class WizardOfWorEnv(AtariBase):
                 if b.x == self._player_x and b.y == self._player_y:
                     b.alive = False
                     self._on_life_lost()
-                    reward -= 100.0
+                    reward -= 1.0
                     if not self._game_over:
                         self._player_x = 1
                         py_options = [2, 5, 8, 11, 13]
@@ -254,7 +248,7 @@ class WizardOfWorEnv(AtariBase):
                     b.alive = False
                     enemy.alive = False
                     self._enemies_killed += 1
-                    pts = 500 if enemy.etype == "wizard" else 100
+                    pts = 5 if enemy.etype == "wizard" else 1
                     self._on_point_scored(pts)
                     reward += float(pts)
 
@@ -274,7 +268,7 @@ class WizardOfWorEnv(AtariBase):
                 and e.y == self._player_y
             ):
                     self._on_life_lost()
-                    reward -= 100.0
+                    reward -= 1.0
                     if not self._game_over:
                         self._player_x = 1
                         self._player_y = 13

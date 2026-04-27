@@ -14,10 +14,8 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 def _sign(a: int, b: int) -> int:
     return 1 if a > b else (-1 if a < b else 0)
-
 
 class GravitarEnv(AtariBase):
     """Gravitar: space shooter with gravity.
@@ -26,8 +24,8 @@ class GravitarEnv(AtariBase):
     collect fuel. Multiple planets to clear.
 
     Actions: NOOP, LEFT, RIGHT, THRUST, FIRE
-    Reward: +30 per enemy, +10 per fuel pickup
-    Lives: 3
+    Reward: +2 per enemy, +1 per fuel pickup
+
     """
 
     action_spec = ActionSpec(
@@ -197,9 +195,9 @@ class GravitarEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(30)
-                    reward += 30
-                    self._message = "Enemy down! +30"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = "Enemy down! +2"
                     break
         # Fuel pickup
         for fp in self._fuel_pickups:
@@ -207,9 +205,9 @@ class GravitarEnv(AtariBase):
                     and fp.y == self._player_y):
                 fp.alive = False
                 self._fuel = min(self._MAX_FUEL, self._fuel + 40)
-                self._on_point_scored(10)
-                reward += 10
-                self._message = "Fuel +40! +10pts"
+                self._on_point_scored(1)
+                reward += 1
+                self._message = "Fuel +40! +1pt"
         # Enemy fire
         for e in self._enemies:
             if not e.alive:
@@ -299,7 +297,7 @@ class GravitarEnv(AtariBase):
     def _symbol_meaning(self, ch: str) -> str:
         return {
             "─": "wall", "│": "wall", "=": "terrain",
-            "E": "enemy (30pts)", "F": "fuel pickup (+40)",
+            "E": "enemy (2pts)", "F": "fuel pickup (+40 fuel, +1 pt)",
             "*": "your bullet", "o": "enemy bullet",
             " ": "space",
         }.get(ch, ch)
@@ -351,11 +349,11 @@ class GravitarEnv(AtariBase):
             "FIRE launches a bullet (max 3 alive, TTL 10). Enemies "
             "fire at you every 12 steps along the dominant axis.\n\n"
             "SCORING\n"
-            "+30 reward per enemy destroyed. +10 reward per fuel "
+            "+2 reward per enemy destroyed. +1 reward per fuel "
             "pickup (also restores 40 fuel, capped at 120). No "
             "per-step penalty; fuel decreases only when thrusting.\n\n"
             "TERMINATION\n"
-            "Three lives. Crashing into terrain, being hit by an "
+            ". Crashing into terrain, being hit by an "
             "enemy bullet, or running out of fuel each cost a life "
             "and respawn you near the top. Clearing all enemies "
             "advances level + planet. Episode ends at 0 lives or "

@@ -15,7 +15,6 @@ from .base import AtariBase
 
 _SCORE_NAMES = ["0", "15", "30", "40"]
 
-
 class TennisEnv(AtariBase):
     """Tennis: top-down tennis with standard scoring.
 
@@ -72,7 +71,7 @@ class TennisEnv(AtariBase):
         self._player_games = 0
         self._opp_games = 0
         self._serve_side = "player"
-        self._lives = 99  # not used traditionally
+        self._lives = 1  # not used traditionally
         self._setup_point()
         self._redraw()
 

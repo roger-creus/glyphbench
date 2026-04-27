@@ -127,7 +127,7 @@ class ClimberEnv(ProcgenBase):
 
         # Goal
         if ch == "G":
-            reward += 10.0
+            reward += 5.0
             self._message = "Reached the top!"
             return reward, True, {}
 
@@ -190,7 +190,7 @@ class ClimberEnv(ProcgenBase):
             "\u25ac": "platform/ground",
             "\u2588": "wall",
             "*": "star (+1)",
-            "G": "goal (top, +10)",
+            "G": "goal (top, +5)",
             "@": "you",
         }
         return m.get(ch, ch)
@@ -198,6 +198,6 @@ class ClimberEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Climb upward by jumping between platforms. Collect stars (*) "
-            "for +1 each. Reach the goal (G) at the top for +10. "
+            "for +1 each. Reach the goal (G) at the top for +5. "
             "Avoid enemies (E) that patrol platforms."
         )

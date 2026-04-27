@@ -61,6 +61,18 @@ class _DynamicObstaclesBase(MiniGridBase):
     def _step(
         self, action: int
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        # Reference Minigrid penalises walking into a stationary obstacle.
+        # Detect that BEFORE delegating to the base step (which silently
+        # blocks the move because Ball.can_overlap is False).
+        action_name = self.action_spec.names[action]
+        if action_name == "MOVE_FORWARD":
+            ax, ay = self._agent_pos
+            dx, dy = DIR_TO_VEC[self._agent_dir]
+            tx, ty = ax + dx, ay + dy
+            if (tx, ty) in self._obstacle_positions:
+                info: dict[str, Any] = {"obstacle_collision": True}
+                return self._render_current_observation(), -1.0, True, False, info
+
         obs, reward, terminated, truncated, info = super()._step(action)
 
         if terminated or truncated:
@@ -123,16 +135,17 @@ class _DynamicObstaclesBase(MiniGridBase):
     # ------------------------------------------------------------------
 
     def _render_current_observation(self) -> GridObservation:
+        # Position is visible in the grid; only direction is hidden state.
+        # Surface a privileged-info-free heading-only summary so the agent
+        # can plan ahead one step without leaking obstacle coordinates.
         obs = super()._render_current_observation()
         _DNAME = {0: "right", 1: "down", 2: "left", 3: "up"}
-        dirs: list[str] = []
-        for i, (ox, oy) in enumerate(
-            self._obstacle_positions
-        ):
-            d = self._obstacle_directions[i]
-            dirs.append(f"({ox},{oy})->{_DNAME[d]}")
-        obstacle_info = "Obstacles: " + ", ".join(dirs)
-        new_hud = obs.hud + "\n" + obstacle_info
+        headings = [_DNAME[d] for d in self._obstacle_directions]
+        new_hud = (
+            obs.hud
+            + "\n"
+            + f"Obstacle headings (in legend order): {', '.join(headings)}"
+        )
         return GridObservation(
             grid=obs.grid,
             legend=obs.legend,

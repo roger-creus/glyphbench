@@ -84,12 +84,12 @@ class TestMiniGridBase:
         assert "→" in rendered
         assert "★" in rendered
 
-    def test_hud_contains_facing_and_position(self) -> None:
+    def test_hud_contains_step_and_carrying(self) -> None:
         env = self._make_env()
         env.reset(seed=0)
         obs = env.get_observation()
-        assert "Facing" in obs.hud
-        assert "Position" in obs.hud
+        assert "Step" in obs.hud
+        assert "Carrying" in obs.hud
 
     def test_system_prompt_nonempty(self) -> None:
         env = self._make_env()

@@ -25,7 +25,6 @@ _DIRS = {
     "RIGHT": (1, 0),
 }
 
-
 class TutankhamEnv(AtariBase):
     """Tutankham: pyramid maze shooter.
 
@@ -33,7 +32,7 @@ class TutankhamEnv(AtariBase):
     and mummies (M). Find the key (K) to unlock the exit (D).
 
     Grid: 20x16.
-    Reward: +20 per treasure, +30 per enemy, +100 exit bonus.
+    Reward: +2 per treasure, +2 per enemy, +5 exit bonus.
     """
 
     action_spec = ActionSpec(
@@ -237,9 +236,9 @@ class TutankhamEnv(AtariBase):
                 if b.x == en.x and b.y == en.y:
                     b.alive = False
                     en.alive = False
-                    self._on_point_scored(30)
-                    reward += 30
-                    self._message = f"{en.etype} destroyed! +30"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = f"{en.etype} destroyed! +2"
 
         # Player pickups
         for e in self._entities:
@@ -249,10 +248,10 @@ class TutankhamEnv(AtariBase):
                 continue
             if e.etype == "treasure":
                 e.alive = False
-                self._on_point_scored(20)
-                reward += 20
+                self._on_point_scored(2)
+                reward += 2
                 self._treasures_left -= 1
-                self._message = "Treasure! +20"
+                self._message = "Treasure! +2"
             elif e.etype == "key":
                 e.alive = False
                 self._has_key = True
@@ -260,9 +259,9 @@ class TutankhamEnv(AtariBase):
             elif e.etype == "door":
                 if self._has_key:
                     self._level += 1
-                    self._on_point_scored(100)
-                    reward += 100
-                    self._message = "Level cleared! +100"
+                    self._on_point_scored(5)
+                    reward += 5
+                    self._message = "Level cleared! +5"
                     self._generate_level(self._level * 3571)
                     return reward, False, info
                 else:
@@ -348,12 +347,12 @@ class TutankhamEnv(AtariBase):
             "the key. Stepping onto 'D' exits only if you have the "
             "key.\n\n"
             "SCORING\n"
-            "+20 reward per treasure '$' collected. +30 reward "
-            "per enemy killed by a bullet. +100 reward for "
+            "+2 reward per treasure '$' collected. +2 reward "
+            "per enemy killed by a bullet. +5 reward for "
             "exiting through the door with the key (advances "
             "level). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Contact with a snake or mummy costs a "
+            ". Contact with a snake or mummy costs a "
             "life and respawns at (2, 2). Episode ends at 0 "
             "lives or after max_turns.\n\n"
             "HUD\n"

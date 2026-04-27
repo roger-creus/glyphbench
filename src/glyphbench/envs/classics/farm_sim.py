@@ -130,7 +130,7 @@ class FarmSimEnv(BaseGlyphEnv):
                 self._farmer_pos = (nx, ny)
             # Auto-sell at market
             if self._farmer_pos == self._market_pos and self._crops_held > 0:
-                earned = self._crops_held * 3
+                earned = self._crops_held
                 self._gold += earned
                 reward = float(earned)
                 msg = f"Sold {self._crops_held} crop(s) for {earned} gold!"
@@ -219,7 +219,6 @@ class FarmSimEnv(BaseGlyphEnv):
 
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Position: ({fx}, {fy})    "
             f"Gold: {self._gold}    "
             f"Crops held: {self._crops_held}"
         )
@@ -238,7 +237,7 @@ class FarmSimEnv(BaseGlyphEnv):
             "- WATER waters the plot you stand on. Each growth stage needs 3 waterings.\n"
             "- Growth stages: dirt \u2192 seeded (\u2660) \u2192 growing (\u2663) \u2192 ready (\u273f).\n"
             "- HARVEST picks up a ready crop. You can carry multiple crops.\n"
-            "- Walk to the market tile (\u25a3) to auto-sell all held crops for 3 gold each.\n"
+            "- Walk to the market tile (\u25a3) to auto-sell all held crops for 1 gold each.\n"
             "- The episode lasts 200 steps. Reward = gold earned from selling.\n\n"
             + self.action_spec.render_for_prompt()
         )

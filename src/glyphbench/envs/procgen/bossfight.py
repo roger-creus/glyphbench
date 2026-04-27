@@ -172,7 +172,7 @@ class BossFightEnv(ProcgenBase):
 
         # Check boss death
         if self._boss_hp <= 0:
-            reward += 10.0
+            reward += 5.0
             terminated = True
             self._message = "Boss defeated!"
             return reward, terminated, info
@@ -209,9 +209,9 @@ class BossFightEnv(ProcgenBase):
         else:
             obs = super()._render_current_observation()
         phase = self._boss_phase()
+        # Boss x/y removed — boss glyph is visible on the grid.
         extra = (
             f"Boss: HP={self._boss_hp}/{_BOSS_MAX_HP}"
-            f"  pos=({self._boss_x},{self._boss_y})"
             f"  phase={phase}"
         )
         new_hud = obs.hud + "\n" + extra
@@ -225,7 +225,7 @@ class BossFightEnv(ProcgenBase):
             "You face a boss (B) in a space arena. FIRE shoots bullets (|) "
             "upward. The boss has 3 phases as HP decreases: single shots, "
             "spread shots, rapid aimed fire. Dodge boss projectiles (v, \\, /, o). "
-            f"+1 per hit on boss, +10 on defeat. Boss HP: {_BOSS_MAX_HP}."
+            f"+1 per hit on boss, +5 on defeat. Boss HP: {_BOSS_MAX_HP}."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

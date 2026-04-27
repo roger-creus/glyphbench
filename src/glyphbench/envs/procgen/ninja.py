@@ -125,7 +125,7 @@ class NinjaEnv(ProcgenBase):
         ch = self._world_at(self._agent_x, self._agent_y)
         if ch == "G":
             self._message = "Reached the goal!"
-            return 10.0 + reward, True, {}
+            return 5.0 + reward, True, {}
 
         # Enemy collision with agent
         for e in self._entities:
@@ -192,7 +192,7 @@ class NinjaEnv(ProcgenBase):
             "\u25ac": "ground",
             "\u2588": "platform",
             "B": "breakable wall",
-            "G": "goal (+10)",
+            "G": "goal (+5)",
             "@": "you",
         }
         return m.get(ch, ch)
@@ -219,5 +219,5 @@ class NinjaEnv(ProcgenBase):
         return (
             "Traverse the level as a ninja. Throw shurikens (THROW) to "
             "defeat enemies (E, +1 each) and break walls (B). Reach the "
-            "goal (G) for +10. Avoid touching enemies."
+            "goal (G) for +5. Avoid touching enemies."
         )

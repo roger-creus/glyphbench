@@ -16,7 +16,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class SeaquestEnv(AtariBase):
     """Seaquest: submarine combat with oxygen management.
 
@@ -24,8 +23,8 @@ class SeaquestEnv(AtariBase):
     oxygen. Running out of oxygen kills you.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE, SURFACE
-    Reward: +10 per enemy, +50 per diver rescued
-    Lives: 3
+    Reward: +1 per enemy, +2 per diver rescued
+
     """
 
     action_spec = ActionSpec(
@@ -171,7 +170,7 @@ class SeaquestEnv(AtariBase):
         elif action_name == "SURFACE":
             if self._player_y <= self._SURFACE_Y + 1:
                 self._oxygen = 100
-                pts = self._carried * 50
+                pts = self._carried * 2
                 if self._carried > 0:
                     self._on_point_scored(pts)
                     reward += pts
@@ -204,9 +203,9 @@ class SeaquestEnv(AtariBase):
                 ):
                     e.alive = False
                     t.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
-                    self._message = "Enemy hit! +10"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Enemy hit! +1"
                     break
         self._torpedoes = [
             t for t in self._torpedoes if t.alive
@@ -356,7 +355,7 @@ class SeaquestEnv(AtariBase):
             symbols[pch] = f"you (facing {dname})"
         facing = "right" if self._facing == 1 else "left"
         hud = (
-            f"Score: {self._score}    Lives: {self._lives}"
+            f"Score: {self._score}    "
             f"    Level: {self._level}"
             f"    O2: {self._oxygen}%"
             f"    Divers: {self._carried}/4\n"
@@ -433,11 +432,11 @@ class SeaquestEnv(AtariBase):
             "every 3 steps. You can carry up to 4 divers; pick up "
             "divers by being within 1 column and on the same row.\n\n"
             "SCORING\n"
-            "+10 reward per enemy destroyed with a torpedo. +50 "
+            "+1 reward per enemy destroyed with a torpedo. +2 "
             "reward per diver cashed in on SURFACE (total = "
-            "carried * 50). No per-step penalty.\n\n"
+            "carried * 2). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Collisions with enemies, being hit by "
+            ". Collisions with enemies, being hit by "
             "enemy torpedoes, or running out of oxygen cost a "
             "life. Wave clears when all enemies are gone (advances "
             "level, respawns enemies). Episode ends at 0 lives or "

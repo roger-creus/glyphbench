@@ -120,7 +120,7 @@ class TestMsPacMan:
         env._pellet_count += 1
         right = env.action_spec.index_of("RIGHT")
         env.step(right)
-        assert env._score >= 10
+        assert env._score >= 1
 
     def test_rollout_no_crash(self):
         env = self._make_env(max_turns=200)

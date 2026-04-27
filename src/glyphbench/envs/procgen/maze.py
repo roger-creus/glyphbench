@@ -85,28 +85,22 @@ class MazeEnv(ProcgenBase):
 
         # Check if agent reached cheese
         if self._agent_x == self._cheese_x and self._agent_y == self._cheese_y:
-            reward = 10.0
+            reward = 5.0
             terminated = True
             self._message = "You found the cheese!"
 
         return reward, terminated, info
 
     def _render_current_observation(self) -> GridObservation:
-        obs = super()._render_current_observation()
-        extra = (
-            f"Goal: cheese at"
-            f" ({self._cheese_x},{self._cheese_y})"
-        )
-        new_hud = obs.hud + "\n" + extra
-        return GridObservation(
-            grid=obs.grid, legend=obs.legend,
-            hud=new_hud, message=obs.message,
-        )
+        # Cheese coordinates were leaked here — that defeats the navigation
+        # task. The cheese glyph is visible in the legend; the agent must
+        # locate it visually.
+        return super()._render_current_observation()
 
     def _task_description(self) -> str:
         return (
             "Navigate through the maze to reach the cheese (C). "
-            "Walls (\u2588) block movement. Reach the cheese for +10 reward."
+            "Walls (\u2588) block movement. Reach the cheese for +5 reward."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

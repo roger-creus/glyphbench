@@ -238,7 +238,7 @@ class _SokobanBase(BaseGlyphEnv):
 
         terminated = new_on_targets == len(self._targets)
         if terminated:
-            reward += 10.0
+            reward += 5.0
 
         info["boxes_on_targets"] = new_on_targets
         info["total_targets"] = len(self._targets)
@@ -295,7 +295,7 @@ class _SokobanBase(BaseGlyphEnv):
             f"- There are {self._num_boxes} boxes and {self._num_boxes} targets.\n"
             "- Moving into a box pushes it one cell in the same direction, if the cell behind it is empty.\n"
             "- You get +1 reward when a box lands on a target, -1 when a box is pushed off a target.\n"
-            "- You get +10 bonus when all boxes are on targets (game ends).\n"
+            "- You get +5 bonus when all boxes are on targets (game ends).\n"
             "- Be careful: pushing a box into a corner may make the puzzle unsolvable.\n\n"
             + self.action_spec.render_for_prompt()
         )

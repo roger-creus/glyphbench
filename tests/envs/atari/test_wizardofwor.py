@@ -76,7 +76,7 @@ class TestWizardOfWor:
         env._facing = (1, 0)
         fire = env.action_spec.index_of("FIRE")
         _, reward, _, _, _ = env.step(fire)
-        assert reward >= 100.0 or env._enemies_killed > 0
+        assert reward >= 1.0 or env._enemies_killed > 0
 
     def test_ghost_collision_loses_life(self):
         env = self._make_env()

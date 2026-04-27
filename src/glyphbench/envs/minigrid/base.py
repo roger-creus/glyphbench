@@ -270,11 +270,13 @@ class MiniGridBase(BaseGlyphEnv):
         ax, ay = self._agent_pos
         render_grid[ay][ax] = agent_char
 
-        # Agent legend entries
-        symbol_meanings["\u2192"] = "you, facing right"
-        symbol_meanings["\u2193"] = "you, facing down"
-        symbol_meanings["\u2190"] = "you, facing left"
-        symbol_meanings["\u2191"] = "you, facing up"
+        # Only the actually-rendered facing glyph goes in the legend; the
+        # other three would just be noise for the LLM.
+        _facing_name = {
+            "\u2192": "right", "\u2193": "down",
+            "\u2190": "left", "\u2191": "up",
+        }[agent_char]
+        symbol_meanings[agent_char] = f"you, facing {_facing_name}"
 
         legend = build_legend(symbol_meanings)
 
@@ -285,8 +287,6 @@ class MiniGridBase(BaseGlyphEnv):
         )
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Facing: {_FACING_NAMES[self._agent_dir]}    "
-            f"Position: ({ax}, {ay})    "
             f"{carrying_str}"
         )
 

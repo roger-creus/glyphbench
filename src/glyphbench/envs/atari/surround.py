@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase
 
-
 class SurroundEnv(AtariBase):
     """Surround: Tron-like trail game.
 

@@ -26,7 +26,6 @@ _DIRS = {
     "RIGHT": (1, 0),
 }
 
-
 class JamesBondEnv(AtariBase):
     """JamesBond: side-scrolling vehicle action.
 
@@ -35,7 +34,7 @@ class JamesBondEnv(AtariBase):
     The world scrolls left; dodge or destroy threats.
 
     Grid: 30x16.
-    Reward: +10 per obstacle, +20 per enemy, +50 per intel.
+    Reward: +1 per obstacle, +2 per enemy, +3 per intel.
     """
 
     action_spec = ActionSpec(
@@ -160,9 +159,9 @@ class JamesBondEnv(AtariBase):
                 if t.etype == "enemy" and b.x == t.x and b.y == t.y:
                     b.alive = False
                     t.alive = False
-                    self._on_point_scored(20)
-                    reward += 20
-                    self._message = "Enemy destroyed! +20"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = "Enemy destroyed! +2"
                 elif (
                     t.etype == "obstacle"
                     and b.x == t.x
@@ -170,9 +169,9 @@ class JamesBondEnv(AtariBase):
                 ):
                     b.alive = False
                     t.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
-                    self._message = "Obstacle destroyed! +10"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Obstacle destroyed! +1"
 
         # Player pickups
         for e in self._entities:
@@ -183,9 +182,9 @@ class JamesBondEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 e.alive = False
-                self._on_point_scored(50)
-                reward += 50
-                self._message = "Intel collected! +50"
+                self._on_point_scored(3)
+                reward += 3
+                self._message = "Intel collected! +3"
 
         # Player-enemy/obstacle collision
         for e in self._entities:
@@ -299,12 +298,12 @@ class JamesBondEnv(AtariBase):
             "steps (30 percent enemy, 40 percent obstacle, 30 percent "
             "intel).\n\n"
             "SCORING\n"
-            "+10 reward per obstacle 'X' destroyed by a bullet. +20 "
-            "reward per enemy 'E' destroyed by a bullet. +50 reward "
+            "+1 reward per obstacle 'X' destroyed by a bullet. +2 "
+            "reward per enemy 'E' destroyed by a bullet. +3 reward "
             "per intel 'i' collected (walk onto it). No per-step "
             "penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Colliding with enemy or obstacle costs a "
+            ". Colliding with enemy or obstacle costs a "
             "life and respawns you at (3, GROUND-2). Traveling "
             "80 + 20*level distance advances to the next stage "
             "(regenerates level). Episode ends at 0 lives or after "

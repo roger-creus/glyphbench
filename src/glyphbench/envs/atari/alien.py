@@ -25,7 +25,6 @@ _DIRS = {
     "RIGHT": (1, 0),
 }
 
-
 class AlienEnv(AtariBase):
     """Alien: maze action game.
 
@@ -34,7 +33,7 @@ class AlienEnv(AtariBase):
     Pulsar (P) spawns periodically and is invincible.
 
     Grid: 20x20.
-    Reward: +10 per egg, +50 per alien killed.
+    Reward: +1 per egg, +2 per alien killed.
     """
 
     action_spec = ActionSpec(
@@ -186,9 +185,9 @@ class AlienEnv(AtariBase):
                 if b.x == a.x and b.y == a.y:
                     b.alive = False
                     a.alive = False
-                    self._on_point_scored(50)
-                    reward += 50
-                    self._message = "Alien killed! +50"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = "Alien killed! +2"
 
         # Player-egg collection
         for e in self._entities:
@@ -199,10 +198,10 @@ class AlienEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 e.alive = False
-                self._on_point_scored(10)
-                reward += 10
+                self._on_point_scored(1)
+                reward += 1
                 self._eggs_left -= 1
-                self._message = "Egg collected! +10"
+                self._message = "Egg collected! +1"
 
         # Player-alien collision
         for e in self._entities:
@@ -213,6 +212,7 @@ class AlienEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 self._on_life_lost()
+                reward -= 1
                 self._message = "Caught by alien!"
                 if not self._game_over:
                     self._player_x = 2
@@ -279,11 +279,13 @@ class AlienEnv(AtariBase):
             "an alien. Aliens move on a random timer (every 2-6 turns) and "
             "chase you along one axis. Stepping onto an egg collects it.\n\n"
             "SCORING\n"
-            "+10 reward for each egg collected. +50 reward for each alien "
-            "killed by your bullet. Clearing all eggs advances the level "
-            "(no bonus, new maze generated). No per-step time penalty.\n\n"
+            "+1 reward for each egg collected. +2 reward for each alien "
+            "killed by your bullet. -1 reward when caught by an alien "
+            "(in addition to losing a life). Clearing all eggs advances "
+            "the level (no bonus, new maze generated). No per-step "
+            "time penalty.\n\n"
             "TERMINATION\n"
-            "You start with 3 lives. Touching an alien (or an alien "
+            "You start with . Touching an alien (or an alien "
             "stepping onto you) costs one life and respawns you at (2,2). "
             "Episode ends when lives reach 0 or after max_turns steps.\n\n"
             "HUD\n"

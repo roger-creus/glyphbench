@@ -323,7 +323,6 @@ class _GuardEvasionBase(BaseGlyphEnv):
 
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Position: ({px}, {py})    "
             f"Guards: {len(self._guards)}"
         )
 

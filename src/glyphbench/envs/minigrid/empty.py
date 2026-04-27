@@ -88,7 +88,7 @@ class MiniGridEmpty8x8Env(MiniGridBase):
     right. Goal is at (8,8).
     """
 
-    def __init__(self, max_turns: int = 100) -> None:
+    def __init__(self, max_turns: int = 200) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
@@ -115,7 +115,7 @@ class MiniGridEmpty16x16Env(MiniGridBase):
     right. Goal is at (16,16).
     """
 
-    def __init__(self, max_turns: int = 100) -> None:
+    def __init__(self, max_turns: int = 300) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:

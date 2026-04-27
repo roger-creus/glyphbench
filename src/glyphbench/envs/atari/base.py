@@ -41,7 +41,10 @@ class AtariBase(BaseGlyphEnv):
         self._player_y: int = 0
         self._player_dir: tuple[int, int] = (0, 0)
         self._score: int = 0
-        self._lives: int = 3
+        # GlyphBench uses a single-life model across the whole benchmark —
+        # we deliberately drop the legacy ALE multi-life mechanic. Death
+        # ends the episode.
+        self._lives: int = 1
         self._level: int = 1
         self._game_over: bool = False
         self._entities: list[AtariEntity] = []
@@ -75,10 +78,10 @@ class AtariBase(BaseGlyphEnv):
         self._score += delta
 
     def _on_life_lost(self) -> None:
-        self._lives -= 1
-        if self._lives <= 0:
-            self._game_over = True
-            self._message = "Game Over!"
+        # Single-life model — any life-loss event ends the episode.
+        self._lives = 0
+        self._game_over = True
+        self._message = "Game Over!"
 
     def _advance_entities(self) -> None:
         for e in self._entities:
@@ -97,7 +100,7 @@ class AtariBase(BaseGlyphEnv):
 
     def _reset(self, seed: int) -> GridObservation:
         self._score = 0
-        self._lives = 3
+        self._lives = 1
         self._level = 1
         self._game_over = False
         self._entities = []
@@ -124,7 +127,6 @@ class AtariBase(BaseGlyphEnv):
         if self._game_over:
             terminated = True
         info["score"] = self._score
-        info["lives"] = self._lives
         info["level"] = self._level
         return self._render_current_observation(), reward, terminated, False, info
 
@@ -162,9 +164,11 @@ class AtariBase(BaseGlyphEnv):
                 self._player_dir, "none"
             )
             symbols[pch] = f"you (facing {dname})"
+        # HUD is computed for the env's info dict only — it is NOT shown to
+        # the model (see verifiers_integration/prompting.py). Single-life
+        # model: no Lives field.
         hud = (
             f"Score: {self._score}    "
-            f"Lives: {self._lives}    "
             f"Level: {self._level}"
         )
         return GridObservation(

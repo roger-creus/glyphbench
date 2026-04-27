@@ -15,7 +15,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase
 
-
 class MontezumaRevengeEnv(AtariBase):
     """Montezuma's Revenge: room-based platformer.
 
@@ -49,7 +48,7 @@ class MontezumaRevengeEnv(AtariBase):
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
-        self._lives = 5
+        self._lives = 1
         self._room_x: int = 0
         self._room_y: int = 0
         self._keys: set[str] = set()
@@ -68,7 +67,7 @@ class MontezumaRevengeEnv(AtariBase):
         return self._room_y * self._ROOMS_X + self._room_x
 
     def _generate_level(self, seed: int) -> None:
-        self._lives = 5
+        self._lives = 1
         self._room_x = 0
         self._room_y = 0
         self._keys = set()
@@ -286,9 +285,9 @@ class MontezumaRevengeEnv(AtariBase):
                 elif e.etype == "treasure":
                     e.alive = False
                     self._collected_treasures.add(rid)
-                    self._on_point_scored(100)
-                    reward += 100
-                    self._message = "Treasure! +100"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = "Treasure! +2"
                 elif e.etype == "door":
                     needed = e.data.get("color", "red")
                     needed_char = needed[0].upper()
@@ -314,9 +313,9 @@ class MontezumaRevengeEnv(AtariBase):
         enemies_left = any(e.alive and e.etype == "enemy" for e in self._entities)
         if not treasures_left and not enemies_left and rid not in self._rooms_cleared:
             self._rooms_cleared.add(rid)
-            self._on_point_scored(300)
-            reward += 300
-            self._message = "Room cleared! +300"
+            self._on_point_scored(5)
+            reward += 5
+            self._message = "Room cleared! +5"
 
         info["room"] = (self._room_x, self._room_y)
         info["keys"] = list(self._keys)
@@ -392,12 +391,12 @@ class MontezumaRevengeEnv(AtariBase):
             "at room edges teleport you to the neighboring room in "
             "the 6x4 grid.\n\n"
             "SCORING\n"
-            "+100 reward per treasure '$' collected. +300 reward "
+            "+2 reward per treasure '$' collected. +5 reward "
             "the first time a room is cleared (no treasures + no "
             "enemies remain). Keys and doors give no direct reward. "
             "No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Five lives. Enemy contact costs a life and respawns "
+            ". Enemy contact costs a life and respawns "
             "you at the start position inside the current room. "
             "Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

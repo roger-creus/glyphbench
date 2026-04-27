@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class UpNDownEnv(AtariBase):
     """Up'n Down: drive on a scrolling road, jump on or dodge cars.
 
@@ -22,8 +21,8 @@ class UpNDownEnv(AtariBase):
     Jump on cars for points or dodge them.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, JUMP
-    Reward: +10 jump on car, +5 dodge
-    Lives: 3
+    Reward: +1 jump on car, +3 checkpoint
+
     """
 
     action_spec = ActionSpec(
@@ -171,9 +170,9 @@ class UpNDownEnv(AtariBase):
                 if self._jumping:
                     # Jump on car
                     c.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
-                    self._message = "Jumped on car! +10"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Jumped on car! +1"
                 else:
                     # Crash
                     c.alive = False
@@ -193,9 +192,9 @@ class UpNDownEnv(AtariBase):
 
         # Level progression by distance
         if self._distance >= 50 + self._level * 10:
-            self._on_point_scored(50)
-            reward += 50
-            self._message = "Checkpoint! +50"
+            self._on_point_scored(3)
+            reward += 3
+            self._message = "Checkpoint! +3"
             self._level += 1
             self._distance = 0
 
@@ -284,11 +283,11 @@ class UpNDownEnv(AtariBase):
             "oncoming cars also move up 2 rows every 2 steps. New "
             "cars spawn at row 1 ~33 percent of scroll steps.\n\n"
             "SCORING\n"
-            "+10 reward when you land on a car while airborne. "
-            "+50 reward per checkpoint reached (distance >= 50 + "
+            "+1 reward when you land on a car while airborne. "
+            "+3 reward per checkpoint reached (distance >= 50 + "
             "10*level). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Colliding with a car without jumping or "
+            ". Colliding with a car without jumping or "
             "going off-road costs a life and re-centers you in "
             "lane 1. Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

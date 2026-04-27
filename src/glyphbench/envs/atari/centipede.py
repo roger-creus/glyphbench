@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class CentipedeEnv(AtariBase):
     """Centipede: shoot the centipede winding through mushrooms.
 
@@ -22,8 +21,8 @@ class CentipedeEnv(AtariBase):
     Player moves in the bottom 4 rows.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE
-    Reward: +10 per segment, +5 per mushroom
-    Lives: 3
+    Reward: +1 per mushroom, +2 per segment, +3 per spider
+
     """
 
     action_spec = ActionSpec(
@@ -154,11 +153,11 @@ class CentipedeEnv(AtariBase):
                 ):
                     seg.alive = False
                     b.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
+                    self._on_point_scored(2)
+                    reward += 2
                     # Leave mushroom where segment died
                     self._mushrooms.add((seg.x, seg.y))
-                    self._message = "Segment hit! +10"
+                    self._message = "Segment hit! +2"
                     break
             # Hit spider
             if (
@@ -170,9 +169,9 @@ class CentipedeEnv(AtariBase):
             ):
                 self._spider.alive = False
                 b.alive = False
-                self._on_point_scored(30)
-                reward += 30
-                self._message = "Spider killed! +30"
+                self._on_point_scored(3)
+                reward += 3
+                self._message = "Spider killed! +3"
 
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -336,11 +335,11 @@ class CentipedeEnv(AtariBase):
             "death cell. Spider spawns every 20 steps, ping-pongs "
             "in the player zone, and eats mushrooms it touches.\n\n"
             "SCORING\n"
-            "+10 reward per centipede segment shot. +1 reward per "
-            "mushroom shot. +30 reward per spider shot. No per-step "
+            "+2 reward per centipede segment shot. +1 reward per "
+            "mushroom shot. +3 reward per spider shot. No per-step "
             "penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Centipede-player contact or spider-player "
+            ". Centipede-player contact or spider-player "
             "contact costs a life and respawns you at bottom-center. "
             "Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

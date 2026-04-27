@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase, AtariEntity
 
-
 class RiverRaidEnv(AtariBase):
     """River Raid: fly up a scrolling river, shoot enemies, manage fuel.
 
@@ -21,8 +20,8 @@ class RiverRaidEnv(AtariBase):
     Running out of fuel or crashing ends the game.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE
-    Reward: +10 enemy, +20 fuel depot
-    Lives: 3
+    Reward: +1 enemy, +2 fuel depot
+
     """
 
     action_spec = ActionSpec(
@@ -171,17 +170,17 @@ class RiverRaidEnv(AtariBase):
                     b.alive = False
                     if obs.etype == "fuel":
                         obs.alive = False
-                        self._on_point_scored(20)
-                        reward += 20
+                        self._on_point_scored(2)
+                        reward += 2
                         self._fuel = min(
                             self._MAX_FUEL, self._fuel + 30
                         )
-                        self._message = "Fuel! +20 & refuel"
+                        self._message = "Fuel! +2 & refuel"
                     else:
                         obs.alive = False
-                        self._on_point_scored(10)
-                        reward += 10
-                        self._message = "Enemy destroyed! +10"
+                        self._on_point_scored(1)
+                        reward += 1
+                        self._message = "Enemy destroyed! +1"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -208,9 +207,9 @@ class RiverRaidEnv(AtariBase):
             ):
                 obs.alive = False
                 self._fuel = min(self._MAX_FUEL, self._fuel + 30)
-                self._on_point_scored(20)
-                reward += 20
-                self._message = "Fuel pickup! +20"
+                self._on_point_scored(2)
+                reward += 2
+                self._message = "Fuel pickup! +2"
 
         # Player collision with enemies
         for obs in self._obstacles:
@@ -274,7 +273,7 @@ class RiverRaidEnv(AtariBase):
             if o.alive and o.etype in ("ship", "heli")
         )
         hud = (
-            f"Score: {self._score}    Lives: {self._lives}"
+            f"Score: {self._score}    "
             f"    Level: {self._level}    "
             f"Fuel: {self._fuel}\n"
             f"Enemies: {enemies}"
@@ -328,12 +327,12 @@ class RiverRaidEnv(AtariBase):
             "every 3 steps, reversing at the banks. Fuel decreases "
             "1 per step.\n\n"
             "SCORING\n"
-            "+10 reward per enemy ship or helicopter destroyed. "
-            "+20 reward per fuel depot (shot or touched); also "
+            "+1 reward per enemy ship or helicopter destroyed. "
+            "+2 reward per fuel depot (shot or touched); also "
             "adds +30 fuel (capped at 100). No per-step penalty "
             "beyond fuel timer.\n\n"
             "TERMINATION\n"
-            "Three lives. Touching a bank, enemy, or running out "
+            ". Touching a bank, enemy, or running out "
             "of fuel costs a life / ends the run. Episode ends at "
             "0 lives or after max_turns.\n\n"
             "HUD\n"

@@ -139,7 +139,7 @@ class MinerEnv(ProcgenBase):
         ch = self._world_at(self._agent_x, self._agent_y)
         if ch == "G":
             self._message = "Found the exit!"
-            return reward + 10.0, True, {}
+            return reward + 5.0, True, {}
 
         # Boulder physics: boulders fall when cell below is empty
         self._process_boulders()
@@ -185,7 +185,7 @@ class MinerEnv(ProcgenBase):
             "d": "dirt (diggable)",
             "D": "diamond (+1)",
             "R": "boulder (falls, deadly)",
-            "G": "exit (+10)",
+            "G": "exit (+5)",
             "@": "you",
         }
         return m.get(ch, ch)
@@ -193,6 +193,6 @@ class MinerEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Dig through dirt (d) to navigate the mine. Collect diamonds "
-            "(D) for +1 each. Reach the exit (G) for +10. Beware of "
+            "(D) for +1 each. Reach the exit (G) for +5. Beware of "
             "boulders (R) — they fall when unsupported and crush you."
         )

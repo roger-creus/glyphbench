@@ -33,9 +33,9 @@ THRUST_POWER = 0.8  # thrust counteracts/exceeds gravity
 LUNAR_ACTION_SPEC = ActionSpec(
     names=("THRUST_UP", "THRUST_LEFT", "THRUST_RIGHT", "NOOP"),
     descriptions=(
-        "fire main thruster (push craft upward)",
-        "fire right thruster (push craft left)",
-        "fire left thruster (push craft right)",
+        "fire main thruster — pushes craft upward",
+        "fire side thruster — pushes craft to the LEFT",
+        "fire side thruster — pushes craft to the RIGHT",
         "do nothing, drift with gravity",
     ),
 )
@@ -138,12 +138,12 @@ class LunarLanderEnv(BaseGlyphEnv):
         if gx < 0 or gx >= WIDTH or self._y < -1:
             self._done = True
             self._done_msg = "Drifted off screen!"
-            return self._render_current_observation(), -5.0, True, False, info
+            return self._render_current_observation(), -1.0, True, False, info
 
         if self._y >= HEIGHT + 2:
             self._done = True
             self._done_msg = "Fell off the bottom!"
-            return self._render_current_observation(), -10.0, True, False, info
+            return self._render_current_observation(), -1.0, True, False, info
 
         # Check ground contact
         if gy >= 0 and gx >= 0 and gx < WIDTH:
@@ -160,14 +160,14 @@ class LunarLanderEnv(BaseGlyphEnv):
                     self._done = True
                     self._done_msg = "Successful landing!"
                     self._y = float(terrain_y)
-                    return self._render_current_observation(), 10.0, True, False, info
+                    return self._render_current_observation(), 5.0, True, False, info
                 else:
                     self._done = True
                     if not on_pad:
                         self._done_msg = "Crashed! Missed the landing pad."
                     else:
                         self._done_msg = f"Crashed! Too fast (vx={self._vx:.1f}, vy={self._vy:.1f})."
-                    return self._render_current_observation(), -10.0, True, False, info
+                    return self._render_current_observation(), -1.0, True, False, info
 
         return self._render_current_observation(), 0.0, False, False, info
 
@@ -235,9 +235,9 @@ class LunarLanderEnv(BaseGlyphEnv):
             f"- Gravity pulls the craft down by {GRAVITY} per step.\n"
             "- Thrusters add velocity in the chosen direction.\n"
             f"- You start with {MAX_FUEL} fuel. Each thrust costs {THRUST_COST} fuel.\n"
-            "- Successful landing (on pad, |vx| <= 1, |vy| <= 1.5): +10 reward.\n"
-            "- Crash (high velocity or off-pad): -10 reward.\n"
-            "- Drift off screen: -5 reward.\n"
+            "- Successful landing (on pad, |vx| <= 1, |vy| <= 1.5): +5 reward.\n"
+            "- Crash (high velocity or off-pad): -1 reward.\n"
+            "- Drift off screen: -1 reward.\n"
             "- Position updates: new_pos = old_pos + velocity each step.\n"
             "- THRUST_UP adds upward velocity (counteracts gravity).\n"
             "- THRUST_LEFT / THRUST_RIGHT add horizontal velocity.\n\n"

@@ -227,7 +227,6 @@ class GravityMazeEnv(BaseGlyphEnv):
         grounded = self._is_grounded()
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Position: ({bx}, {by})    "
             f"Grounded: {'yes' if grounded else 'no'}"
         )
 

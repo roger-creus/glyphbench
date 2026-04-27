@@ -140,7 +140,7 @@ class TestMiner:
                     env._set_cell(x - 1, y, "·")  # clear path
                     right = env.action_spec.index_of("RIGHT")
                     _, reward, terminated, _, _ = env.step(right)
-                    assert reward >= 10.0
+                    assert reward >= 5.0
                     assert terminated
                     return
         pytest.skip("No goal found")

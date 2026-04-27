@@ -15,7 +15,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase
 
-
 class VentureEnv(AtariBase):
     """Venture: room-based dungeon crawler.
 
@@ -53,7 +52,7 @@ class VentureEnv(AtariBase):
         return "glyphbench/atari-venture-v0"
 
     def _generate_level(self, seed: int) -> None:
-        self._lives = 3
+        self._lives = 1
         self._current_room = -1
         self._facing = "RIGHT"
         self._collected = set()
@@ -197,9 +196,9 @@ class VentureEnv(AtariBase):
                 elif e.etype == "treasure":
                     e.alive = False
                     self._collected.add(self._current_room)
-                    self._on_point_scored(100)
-                    reward += 100
-                    self._message = "Treasure! +100"
+                    self._on_point_scored(5)
+                    reward += 5
+                    self._message = "Treasure! +5"
                 elif e.etype == "door":
                     room_id = int(e.char) - 1
                     self._current_room = room_id
@@ -263,9 +262,9 @@ class VentureEnv(AtariBase):
                 if arrow.x == enemy.x and arrow.y == enemy.y:
                     arrow.alive = False
                     enemy.alive = False
-                    self._on_point_scored(50)
-                    self._arrow_kill_reward += 50
-                    self._message = "Enemy destroyed! +50"
+                    self._on_point_scored(2)
+                    self._arrow_kill_reward += 2
+                    self._message = "Enemy destroyed! +2"
         self._entities = [e for e in self._entities if e.alive]
 
     def _symbol_meaning(self, ch: str) -> str:
@@ -325,11 +324,11 @@ class VentureEnv(AtariBase):
             "room. Enemies patrol with simple axis movement and "
             "bounce at walls. Each room also has an internal wall.\n\n"
             "SCORING\n"
-            "+100 reward for collecting a treasure '$' (marks the "
-            "room as cleared). +50 reward per enemy killed by an "
+            "+5 reward for collecting a treasure '$' (marks the "
+            "room as cleared). +2 reward per enemy killed by an "
             "arrow. No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Touching an enemy costs a life and "
+            ". Touching an enemy costs a life and "
             "respawns you at the room exit (if in a room) or "
             "hallway center. Episode ends at 0 lives or after "
             "max_turns.\n\n"

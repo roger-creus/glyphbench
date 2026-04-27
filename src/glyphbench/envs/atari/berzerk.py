@@ -25,13 +25,12 @@ _BULLET_CHAR = "!"
 _ROBOT_CHAR = "r"
 _EXIT_CHAR = "D"
 
-
 class BerzerkEnv(AtariBase):
     """Berzerk: shoot robots, escape rooms, don't touch walls.
 
     Actions: NOOP, FIRE, UP, RIGHT, LEFT, DOWN,
              UP_FIRE, DOWN_FIRE, LEFT_FIRE, RIGHT_FIRE
-    Reward: +50 per robot destroyed.
+    Reward: +1 per robot destroyed, -1 per damage taken.
     Level clears when all robots dead or agent exits through door.
     """
 
@@ -91,12 +90,12 @@ class BerzerkEnv(AtariBase):
             "(30 percent chance per step, one-axis) and fire at you on a "
             "5-20 step cooldown along the dominant axis.\n\n"
             "SCORING\n"
-            "+50 reward per robot destroyed by your bullet. -50 reward "
+            "+1 reward per robot destroyed by your bullet. -1 reward "
             "each time you take damage (wall touch, robot contact, "
             "enemy bullet hit). No reward for clearing a room or "
             "escaping.\n\n"
             "TERMINATION\n"
-            "Three lives. Any damage (wall, robot contact, enemy bullet) "
+            ". Any damage (wall, robot contact, enemy bullet) "
             "costs one life and respawns you at (2, 13). Walking onto "
             "the door advances the level and generates a new room. "
             "Episode ends at 0 lives or after max_turns.\n\n"
@@ -231,7 +230,7 @@ class BerzerkEnv(AtariBase):
         # Check if player touched a wall (electrocution)
         if self._is_solid(self._player_x, self._player_y):
             self._on_life_lost()
-            reward -= 50.0
+            reward -= 1.0
             if not self._game_over:
                 self._player_x = 2
                 self._player_y = _H - 3
@@ -321,7 +320,7 @@ class BerzerkEnv(AtariBase):
                 if b.x == self._player_x and b.y == self._player_y:
                     b.alive = False
                     self._on_life_lost()
-                    reward -= 50.0
+                    reward -= 1.0
                     if not self._game_over:
                         self._player_x = 2
                         self._player_y = _H - 3
@@ -334,14 +333,14 @@ class BerzerkEnv(AtariBase):
                     b.alive = False
                     r.alive = False
                     self._robots_killed += 1
-                    self._on_point_scored(50)
-                    reward += 50.0
+                    self._on_point_scored(1)
+                    reward += 1.0
 
         # Check robot-player collision
         for e in self._entities:
             if e.etype == "robot" and e.alive and e.x == self._player_x and e.y == self._player_y:
                     self._on_life_lost()
-                    reward -= 50.0
+                    reward -= 1.0
                     if not self._game_over:
                         self._player_x = 2
                         self._player_y = _H - 3

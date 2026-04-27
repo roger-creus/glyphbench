@@ -27,7 +27,7 @@ class TestWorldObject:
     def test_lava_properties(self) -> None:
         from glyphbench.envs.minigrid.objects import Lava
         lv = Lava()
-        assert lv.char == "♧"
+        assert lv.char == "♨"  # was ♧ but collided with purple Key
         assert lv.can_overlap is True
 
     def test_water_properties(self) -> None:

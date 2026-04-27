@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class ChopperCommandEnv(AtariBase):
     """Chopper Command: fly a helicopter and protect trucks.
 
@@ -22,8 +21,8 @@ class ChopperCommandEnv(AtariBase):
     Shoot enemies before they destroy your trucks.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +10 per enemy heli, +50 wave bonus
-    Lives: 3
+    Reward: +1 per enemy heli, +3 wave bonus
+
     """
 
     action_spec = ActionSpec(
@@ -143,9 +142,9 @@ class ChopperCommandEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
-                    self._message = "Enemy down! +10"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Enemy down! +1"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -216,9 +215,9 @@ class ChopperCommandEnv(AtariBase):
         # Level clear
         alive_enemies = [e for e in self._enemies if e.alive]
         if len(alive_enemies) == 0:
-            self._on_point_scored(50)
-            reward += 50
-            self._message = "Wave cleared! +50"
+            self._on_point_scored(3)
+            reward += 3
+            self._message = "Wave cleared! +3"
             self._level += 1
             self._generate_level(self._level)
 
@@ -304,12 +303,12 @@ class ChopperCommandEnv(AtariBase):
             "enemy bullets destroy a truck if they reach row 13 in the "
             "truck's column.\n\n"
             "SCORING\n"
-            "+10 reward for each enemy helicopter destroyed. +50 "
+            "+1 reward for each enemy helicopter destroyed. +3 "
             "reward when the wave is fully cleared (advances level and "
             "respawns 3+level new enemies). No reward or penalty for "
             "trucks directly.\n\n"
             "TERMINATION\n"
-            "Three lives. Colliding with an enemy or an enemy bullet "
+            ". Colliding with an enemy or an enemy bullet "
             "costs a life and respawns you at (3, GROUND-4). Episode "
             "ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

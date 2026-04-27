@@ -242,14 +242,13 @@ class TestMiniGridEmpty5x5:
         grid_lines = grid_obs.grid.split("\n")
         assert grid_lines[1][1] == "↑", "Expected '↑' at (1,1) after wall bump"
 
-    # --- Spec 8.1: HUD format ---
+    # --- Spec 8.1: HUD format (info only — HUD is not shown to the model) ---
     def test_hud_format(self):
         env = self._make_env()
         env.reset(0)
         grid_obs = env.get_observation()
         assert "Step:" in grid_obs.hud
-        assert "Facing:" in grid_obs.hud
-        assert "Position:" in grid_obs.hud
+        assert "Carrying:" in grid_obs.hud
 
     # --- Spec 8.1: legend ---
     def test_legend_contains_agent_and_goal(self):

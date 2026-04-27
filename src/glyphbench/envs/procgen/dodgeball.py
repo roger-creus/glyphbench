@@ -154,7 +154,7 @@ class DodgeballEnv(ProcgenBase):
         # Check level clear
         enemies_alive = sum(1 for e in self._entities if e.etype == "enemy")
         if enemies_alive == 0:
-            reward += 10.0
+            reward += 5.0
             self._level += 1
             self._message = f"Level {self._level - 1} cleared!"
             # Spawn more enemies for next wave
@@ -192,7 +192,7 @@ class DodgeballEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "You are in an arena (@). Throw balls (*) at enemies (E) by moving "
-            "in a direction then using THROW. +1 per enemy hit, +10 for clearing "
+            "in a direction then using THROW. +1 per enemy hit, +5 for clearing "
             "a wave. Touching an enemy kills you (-1)."
         )
 

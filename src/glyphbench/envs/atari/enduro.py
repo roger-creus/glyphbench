@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase, AtariEntity
 
-
 class EnduroEnv(AtariBase):
     """Enduro: lane-based racing game.
 
@@ -75,7 +74,7 @@ class EnduroEnv(AtariBase):
         self._cars_passed = 0
         self._day = 1
         self._spawn_timer = 0
-        self._lives = 3
+        self._lives = 1
 
         self._player_x = self._lane_x(self._player_lane)
         self._player_y = self._PLAYER_ROW
@@ -229,7 +228,7 @@ class EnduroEnv(AtariBase):
             f"Score: {self._score}  "
             f"Cars: {self._cars_passed}  "
             f"Speed: {self._speed}  "
-            f"Lives: {self._lives}  "
+            f"    "
             f"Day: {self._day}\n"
             f"Target: {target}/day"
         )
@@ -282,7 +281,7 @@ class EnduroEnv(AtariBase):
             "Colliding with a car (same lane, row 16-17) gives reward "
             "-1, resets your speed to 1, and costs a life.\n\n"
             "TERMINATION\n"
-            "Three lives. Episode ends at 0 lives or after max_turns. "
+            ". Episode ends at 0 lives or after max_turns. "
             "Reaching the day's car target advances the day (no "
             "bonus), with a message 'Day N! Keep going!'.\n\n"
             "HUD\n"

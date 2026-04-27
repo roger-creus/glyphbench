@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase
 
-
 class BoxingEnv(AtariBase):
     """Boxing: two boxers in a ring.
 

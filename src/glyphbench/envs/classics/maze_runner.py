@@ -191,7 +191,6 @@ class _MazeRunnerBase(BaseGlyphEnv):
 
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Position: ({px}, {py})    "
             f"Maze: {self._grid_size}x{self._grid_size} ({self._difficulty})"
         )
 

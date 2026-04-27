@@ -15,7 +15,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class FrostbiteEnv(AtariBase):
     """Frostbite: ice floe jumping game.
 
@@ -47,7 +46,7 @@ class FrostbiteEnv(AtariBase):
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
-        self._lives = 3
+        self._lives = 1
         self._igloo_built: int = 0
         self._floe_rows: list[list[AtariEntity]] = []
         self._on_floe: bool = False
@@ -194,11 +193,11 @@ class FrostbiteEnv(AtariBase):
                                     floe_id = id(floe)
                                     if floe_id not in self._visited_floes:
                                         self._visited_floes.add(floe_id)
-                                        self._on_point_scored(10)
-                                        reward += 10
+                                        self._on_point_scored(1)
+                                        reward += 1
                                         self._igloo_built += 1
                                         self._message = (
-                                            f"Floe! +10 (igloo "
+                                            f"Floe! +1 (igloo "
                                             f"{self._igloo_built}/{self._IGLOO_SECTIONS})"
                                         )
                                 break
@@ -225,9 +224,9 @@ class FrostbiteEnv(AtariBase):
             and self._on_shore()
             and self._igloo_built >= self._IGLOO_SECTIONS
         ):
-                self._on_point_scored(100)
-                reward += 100
-                self._message = "Igloo complete! +100"
+                self._on_point_scored(5)
+                reward += 5
+                self._message = "Igloo complete! +5"
                 self._level += 1
                 self._igloo_built = 0
                 self._visited_floes = set()
@@ -357,12 +356,12 @@ class FrostbiteEnv(AtariBase):
             "timer ticks down from 45; reaching 0 costs a life and "
             "resets you to the bottom shore with full timer.\n\n"
             "SCORING\n"
-            "+10 reward the first time you land on each distinct "
-            "floe (this also adds one igloo section). +100 reward "
+            "+1 reward the first time you land on each distinct "
+            "floe (this also adds one igloo section). +5 reward "
             "when you reach the top shore after collecting all 10 "
             "sections (level up).\n\n"
             "TERMINATION\n"
-            "Three lives. Falling into water (non-floe water cell) "
+            ". Falling into water (non-floe water cell) "
             "or freezing (timer = 0) costs a life and respawns you. "
             "Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

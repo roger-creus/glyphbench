@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase
 
-
 class IceHockeyEnv(AtariBase):
     """Ice Hockey: top-down hockey rink.
 
@@ -74,7 +73,7 @@ class IceHockeyEnv(AtariBase):
         self._opp_goals = 0
         self._period = 1
         self._period_timer = 0
-        self._lives = 99
+        self._lives = 1
         self._reset_positions()
         self._redraw()
 

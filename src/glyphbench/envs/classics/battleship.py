@@ -139,14 +139,14 @@ class BattleshipEnv(BaseGlyphEnv):
             # Miss
             self._visible[r, c] = 1
             self._total_misses += 1
-            reward = -0.01
+            reward = -0.1
             self._last_msg = f"Miss at ({r},{c})."
         else:
             # Hit
             self._visible[r, c] = 2
             self._total_hits += 1
             self._ship_health[ship_idx] -= 1
-            reward = 0.1
+            reward = 1.0
             ship_name = _SHIPS[ship_idx][0]
 
             if self._ship_health[ship_idx] == 0:
@@ -154,7 +154,7 @@ class BattleshipEnv(BaseGlyphEnv):
                 self._ships_sunk += 1
                 for sr, sc in self._ship_cells[ship_idx]:
                     self._visible[sr, sc] = 3
-                reward += 1.0
+                reward += 5.0
                 self._last_msg = f"Hit and sunk the {ship_name}!"
 
                 # Check all sunk
@@ -233,10 +233,10 @@ class BattleshipEnv(BaseGlyphEnv):
             "Each turn, fire at one cell. You will learn if it is a hit or miss.\n"
             "When all cells of a ship are hit, it sinks and is marked.\n\n"
             "SCORING\n"
-            "  +0.1 per hit\n"
-            "  +1.0 per ship sunk\n"
-            "  -0.01 per miss\n"
-            "  Game ends when all ships are sunk (+1 bonus) or max steps reached.\n"
+            "  +1 per hit\n"
+            "  +5 per ship sunk\n"
+            "  -0.1 per miss\n"
+            "  Game ends when all ships are sunk or max steps reached.\n"
             "  Firing at an already-fired cell has no effect.\n\n"
             "STRATEGY\n"
             "Start by sampling spread-out cells. When you get a hit, probe adjacent "

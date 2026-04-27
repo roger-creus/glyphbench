@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase
 
-
 class BowlingEnv(AtariBase):
     """Bowling: 10-pin bowling with standard scoring.
 

@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class VideoPinballEnv(AtariBase):
     """Video Pinball: pinball with flippers and bumpers.
 
@@ -22,7 +21,7 @@ class VideoPinballEnv(AtariBase):
     Use flippers to keep ball in play.
 
     Actions: NOOP, LEFT_FLIPPER, RIGHT_FLIPPER, NUDGE
-    Reward: +10 bumper, +50 target, +100 spinner
+    Reward: +1 bumper, +3 target, +5 spinner
     Lives: 3 (lost when ball drains)
     """
 
@@ -159,9 +158,9 @@ class VideoPinballEnv(AtariBase):
             if self._ball_x == bx and self._ball_y == by:
                 self._ball_dx = -self._ball_dx
                 self._ball_dy = -self._ball_dy
-                self._on_point_scored(10)
-                reward += 10
-                self._message = "Bumper! +10"
+                self._on_point_scored(1)
+                reward += 1
+                self._message = "Bumper! +1"
                 self._ball_x += self._ball_dx
                 self._ball_y += self._ball_dy
                 break
@@ -171,17 +170,17 @@ class VideoPinballEnv(AtariBase):
                     and t.y == self._ball_y):
                 t.alive = False
                 self._ball_dy = -self._ball_dy
-                self._on_point_scored(50)
-                reward += 50
-                self._message = "Target! +50"
+                self._on_point_scored(3)
+                reward += 3
+                self._message = "Target! +3"
         # Spinner collision
         for sp in self._spinners:
             if (sp.alive and sp.x == self._ball_x
                     and sp.y == self._ball_y):
                 self._ball_dy = -self._ball_dy
-                self._on_point_scored(100)
-                reward += 100
-                self._message = "Spinner! +100"
+                self._on_point_scored(5)
+                reward += 5
+                self._message = "Spinner! +5"
         # All targets cleared
         alive = [t for t in self._targets if t.alive]
         if not alive and self._targets:
@@ -272,11 +271,11 @@ class VideoPinballEnv(AtariBase):
             "walls and ceiling; hitting a bumper reverses both "
             "velocities.\n\n"
             "SCORING\n"
-            "+10 reward per bumper hit. +50 reward per target "
+            "+1 reward per bumper hit. +3 reward per target "
             "destroyed (once cleared, all targets clear -> level "
-            "up). +100 reward per spinner hit. No per-step penalty.\n\n"
+            "up). +5 reward per spinner hit. No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Ball crossing row 22 (drain) costs a "
+            ". Ball crossing row 22 (drain) costs a "
             "life and resets the ball above the flippers. Episode "
             "ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

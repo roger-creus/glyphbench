@@ -82,10 +82,10 @@ class TestBreakout:
         env.step(fire)
         assert env._serving is False
 
-    def test_lives_start_at_3(self) -> None:
+    def test_starts_with_one_life(self) -> None:
         env = self._make_env()
         env.reset(0)
-        assert env._lives == 3
+        assert env._lives == 1  # single-life model
 
     def test_rollout_no_crash(self) -> None:
         env = self._make_env(max_turns=200)

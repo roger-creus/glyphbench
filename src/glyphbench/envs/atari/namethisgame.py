@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class NameThisGameEnv(AtariBase):
     """Name This Game: underwater shooter protecting fish.
 
@@ -23,8 +22,8 @@ class NameThisGameEnv(AtariBase):
     Protect the fish at the bottom.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Reward: +10 per enemy, -20 if fish eaten
-    Lives: 3
+    Reward: +1 per enemy, -1 if fish eaten
+
     """
 
     action_spec = ActionSpec(
@@ -151,10 +150,10 @@ class NameThisGameEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
+                    self._on_point_scored(1)
+                    reward += 1
                     self._kills += 1
-                    self._message = "Enemy hit! +10"
+                    self._message = "Enemy hit! +1"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -187,9 +186,9 @@ class NameThisGameEnv(AtariBase):
                 ):
                     f.alive = False
                     e.alive = False
-                    self._score = max(0, self._score - 20)
-                    reward -= 20
-                    self._message = "Fish eaten! -20"
+                    self._score = max(0, self._score - 1)
+                    reward -= 1
+                    self._message = "Fish eaten! -1"
                     break
 
         # Check all fish dead
@@ -213,9 +212,9 @@ class NameThisGameEnv(AtariBase):
 
         # Wave clear
         if self._kills >= self._wave_target:
-            self._on_point_scored(50)
-            reward += 50
-            self._message = "Wave cleared! +50"
+            self._on_point_scored(3)
+            reward += 3
+            self._message = "Wave cleared! +3"
             self._level += 1
             self._generate_level(self._level)
 
@@ -307,12 +306,12 @@ class NameThisGameEnv(AtariBase):
             "row down every 6 steps. An enemy within 1 column of a "
             "fish at the fish row eats the fish and dies.\n\n"
             "SCORING\n"
-            "+10 reward per enemy you shoot. -20 reward each time a "
-            "fish is eaten (also subtracts 20 from score, floored "
-            "at 0). +50 reward when you reach the wave target "
+            "+1 reward per enemy you shoot. -1 reward each time a "
+            "fish is eaten (also subtracts 1 from score, floored "
+            "at 0). +3 reward when you reach the wave target "
             "(10 + 3*level kills). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Losing all fish in a wave costs a life "
+            ". Losing all fish in a wave costs a life "
             "(fish respawn). Episode ends at 0 lives or after "
             "max_turns.\n\n"
             "HUD\n"

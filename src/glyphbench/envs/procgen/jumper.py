@@ -133,7 +133,7 @@ class JumperEnv(ProcgenBase):
         # Check goal
         if ch == "G":
             self._message = "Reached the goal!"
-            return 10.0, True, {}
+            return 5.0, True, {}
 
         # Enemy collision
         for e in self._entities:
@@ -185,7 +185,7 @@ class JumperEnv(ProcgenBase):
             "\u25ac": "ground",
             "\u2588": "platform",
             "^": "spike (deadly)",
-            "G": "goal (+10)",
+            "G": "goal (+5)",
             "@": "you",
         }
         return m.get(ch, ch)
@@ -193,5 +193,5 @@ class JumperEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Run and jump across platforms to reach the goal (G) at the "
-            "right end for +10 reward. Avoid spikes (^) and enemies (E)."
+            "right end for +5 reward. Avoid spikes (^) and enemies (E)."
         )

@@ -15,7 +15,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase
 
-
 class PitfallEnv(AtariBase):
     """Pitfall: side-scrolling platformer.
 
@@ -45,7 +44,7 @@ class PitfallEnv(AtariBase):
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
-        self._lives = 3
+        self._lives = 1
         self._screen: int = 0
         self._jumping: bool = False
         self._jump_vy: int = 0
@@ -57,7 +56,7 @@ class PitfallEnv(AtariBase):
         return "glyphbench/atari-pitfall-v0"
 
     def _generate_level(self, seed: int) -> None:
-        self._lives = 3
+        self._lives = 1
         self._screen = 0
         self._jumping = False
         self._jump_vy = 0
@@ -215,12 +214,12 @@ class PitfallEnv(AtariBase):
                     # Check if fell into pit
                     if self._grid_at(self._player_x, self._player_y) == "~":
                         self._on_life_lost()
-                        self._on_point_scored(-100)
-                        reward -= 100
+                        self._on_point_scored(-1)
+                        reward -= 1
                         self._player_x = 5
                         self._player_y = self._HEIGHT - 3
                         self._jumping = False
-                        self._message = "Fell into pit! -100"
+                        self._message = "Fell into pit! -1"
 
         # Screen transitions
         if self._player_x >= self._WIDTH - 1:
@@ -247,9 +246,9 @@ class PitfallEnv(AtariBase):
                 if e.etype == "treasure":
                     e.alive = False
                     self._collected_screens.add(self._screen)
-                    self._on_point_scored(100)
-                    reward += 100
-                    self._message = "Treasure! +100"
+                    self._on_point_scored(3)
+                    reward += 3
+                    self._message = "Treasure! +3"
                 elif e.etype == "enemy":
                     self._on_life_lost()
                     self._player_x = 5
@@ -322,12 +321,12 @@ class PitfallEnv(AtariBase):
             "'=', '#', or 'L'. Screen transitions reset the "
             "position to x=1 or x=W-2 of the new screen.\n\n"
             "SCORING\n"
-            "+100 reward per treasure '$' collected. -100 reward "
+            "+3 reward per treasure '$' collected. -1 reward "
             "when you fall into water (pit 'tilde') which also "
             "costs a life. No per-step reward; the game is also "
             "time-limited.\n\n"
             "TERMINATION\n"
-            "Three lives. Timer runs out (2000 ticks) or lives "
+            ". Timer runs out (2000 ticks) or lives "
             "reach 0 ends the episode. Falling in pit or touching "
             "scorpion/snake costs a life.\n\n"
             "HUD\n"

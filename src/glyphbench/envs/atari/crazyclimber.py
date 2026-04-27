@@ -22,7 +22,6 @@ _WINDOW_CHAR = "W"
 _LEDGE_CHAR = "="
 _FALLING_OBJ = "X"
 
-
 class CrazyClimberEnv(AtariBase):
     """CrazyClimber: climb a building dodging hazards.
 
@@ -30,7 +29,7 @@ class CrazyClimberEnv(AtariBase):
     Windows open/close. Falling objects drop from above.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT
-    Reward: +1 per row climbed, +10 per ledge reached.
+    Reward: +1 per row climbed, +2 per ledge reached.
     """
 
     action_spec = ActionSpec(
@@ -44,7 +43,7 @@ class CrazyClimberEnv(AtariBase):
         ),
     )
 
-    def __init__(self, max_turns: int = 10000) -> None:
+    def __init__(self, max_turns: int = 1000) -> None:
         super().__init__(max_turns=max_turns)
         self._height_reached: int = 0
         self._scroll_offset: int = 0
@@ -171,9 +170,9 @@ class CrazyClimberEnv(AtariBase):
                     == _LEDGE_CHAR
                     and old_by != new_by
                 ):
-                    self._on_point_scored(10)
-                    reward += 10
-                    self._message = "Ledge reached! +10"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = "Ledge reached! +2"
 
         # Spawn falling objects
         self._obj_timer += 1
@@ -293,11 +292,11 @@ class CrazyClimberEnv(AtariBase):
             "chance per step of pushing you 2 rows down.\n\n"
             "SCORING\n"
             "+1 reward per new row you climb above your previous "
-            "maximum height. +10 reward per ledge reached. No per-step "
+            "maximum height. +2 reward per ledge reached. No per-step "
             "penalty. Reaching row 0 advances to the next level with "
             "a taller building.\n\n"
             "TERMINATION\n"
-            "Three lives. Hit by a falling object: lose 1 life and "
+            ". Hit by a falling object: lose 1 life and "
             "drop 3 rows. Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, height reached, and number of "

@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase
 
-
 class DoubleDunkEnv(AtariBase):
     """Double Dunk: basketball game.
 
@@ -74,7 +73,7 @@ class DoubleDunkEnv(AtariBase):
         self._opp_score = 0
         self._quarter = 1
         self._quarter_timer = 0
-        self._lives = 99
+        self._lives = 1
         self._reset_possession(player_has=True)
         self._redraw()
 

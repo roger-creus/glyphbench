@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class AtlantisEnv(AtariBase):
     """Atlantis: defend your city with three turrets.
 
@@ -23,7 +22,7 @@ class AtlantisEnv(AtariBase):
     destroyed.
 
     Actions: NOOP, FIRE_LEFT, FIRE_CENTER, FIRE_RIGHT
-    Reward: +20 per enemy destroyed
+    Reward: +1 per enemy destroyed
     Lives: lost when all buildings destroyed
     """
 
@@ -151,9 +150,9 @@ class AtlantisEnv(AtariBase):
                 ):
                     f.alive = False
                     b.alive = False
-                    self._on_point_scored(20)
-                    reward += 20
-                    self._message = "Enemy destroyed! +20"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Enemy destroyed! +1"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -206,8 +205,8 @@ class AtlantisEnv(AtariBase):
                 self._generate_level(self._level)
                 self._message = "City damaged! Rebuilding..."
 
-        # Level up every 200 points
-        if self._score >= self._level * 200:
+        # Level up every 10 points
+        if self._score >= self._level * 10:
             self._level += 1
 
         self._redraw()
@@ -302,8 +301,8 @@ class AtlantisEnv(AtariBase):
             "below. A bullet within 1 column of a flyer in the same row "
             "kills it.\n\n"
             "SCORING\n"
-            "+20 reward per enemy flyer destroyed. No reward for bombs "
-            "destroying buildings. Every 200 score points increases the "
+            "+1 reward per enemy flyer destroyed. No reward for bombs "
+            "destroying buildings. Every 10 score points increases the "
             "level and spawn rate.\n\n"
             "TERMINATION\n"
             "When every building is destroyed you lose a life and the city "

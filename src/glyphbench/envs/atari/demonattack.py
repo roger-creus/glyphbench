@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class DemonAttackEnv(AtariBase):
     """Demon Attack: destroy demons attacking from above.
 
@@ -22,8 +21,8 @@ class DemonAttackEnv(AtariBase):
     higher levels. Player at bottom.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Reward: +10 per demon, +5 per split demon
-    Lives: 3
+    Reward: +2 per demon, +1 per split demon
+
     """
 
     action_spec = ActionSpec(
@@ -125,9 +124,9 @@ class DemonAttackEnv(AtariBase):
                     tier = dem.data.get("tier", 0)
                     if tier > 0:
                         dem.data["tier"] = tier - 1
-                        self._on_point_scored(5)
-                        reward += 5
-                        self._message = "Demon split! +5"
+                        self._on_point_scored(1)
+                        reward += 1
+                        self._message = "Demon split! +1"
                         # Spawn a split
                         sx = dem.x + 1
                         if sx >= self._WIDTH - 1:
@@ -141,9 +140,9 @@ class DemonAttackEnv(AtariBase):
                         dem.char = "d"
                     else:
                         dem.alive = False
-                        self._on_point_scored(10)
-                        reward += 10
-                        self._message = "Demon destroyed! +10"
+                        self._on_point_scored(2)
+                        reward += 2
+                        self._message = "Demon destroyed! +2"
                     break
         self._demons.extend(new_spawns)
         self._bullets = [b for b in self._bullets if b.alive]
@@ -270,11 +269,11 @@ class DemonAttackEnv(AtariBase):
             "enemy bullets). A demon with tier > 0 survives the first "
             "hit but drops to a smaller 'd' and spawns one offspring.\n\n"
             "SCORING\n"
-            "+10 reward for destroying a full demon. +5 reward for "
+            "+2 reward for destroying a full demon. +1 reward for "
             "the first hit on a splitting demon (the split child can "
-            "still be shot for another +10). No per-step penalty.\n\n"
+            "still be shot for another +2). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Being hit by an enemy bullet, or a demon "
+            ". Being hit by an enemy bullet, or a demon "
             "reaching your row, costs a life. Episode ends at 0 "
             "lives or after max_turns.\n\n"
             "HUD\n"

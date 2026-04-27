@@ -13,7 +13,6 @@ from glyphbench.core.action import ActionSpec
 
 from .base import AtariBase
 
-
 class HeroEnv(AtariBase):
     """H.E.R.O.: Helicopter Emergency Rescue Operation.
 
@@ -22,7 +21,7 @@ class HeroEnv(AtariBase):
 
     Grid: 20x16.
     Actions: NOOP, FIRE, UP, RIGHT, LEFT, DOWN
-    Reward: +75 per wall cleared, +1000 per survivor rescued
+    Reward: +1 per wall cleared, +1 per bat zapped, +10 per survivor rescued
     """
 
     action_spec = ActionSpec(
@@ -172,9 +171,9 @@ class HeroEnv(AtariBase):
             sx, sy = self._survivor_pos
             if self._player_x == sx and self._player_y == sy:
                 self._survivor_alive = False
-                self._on_point_scored(1000)
-                reward += 1000
-                self._message = "Survivor rescued! +1000"
+                self._on_point_scored(10)
+                reward += 10
+                self._message = "Survivor rescued! +10"
                 self._level += 1
                 self._generate_level(self._level + seed_offset(self._level))
 
@@ -210,9 +209,9 @@ class HeroEnv(AtariBase):
                     self._walls.discard((tx, ty))
                     self._set_cell(tx, ty, " ")
                     self._dynamite -= 1
-                    self._on_point_scored(75)
-                    reward += 75
-                    self._message = f"Wall cleared! +75 (dynamite: {self._dynamite})"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = f"Wall cleared! +1 (dynamite: {self._dynamite})"
                 else:
                     self._message = "No dynamite left!"
                 break
@@ -226,9 +225,9 @@ class HeroEnv(AtariBase):
                 and abs(e.y - self._player_y) <= 1
             ):
                 e.alive = False
-                self._on_point_scored(50)
-                reward += 50
-                self._message = "Bat zapped! +50"
+                self._on_point_scored(1)
+                reward += 1
+                self._message = "Bat zapped! +1"
                 break
 
         return reward
@@ -298,11 +297,11 @@ class HeroEnv(AtariBase):
             "you have dynamite, it blows the wall (uses 1 of 6 "
             "dynamites) and also zaps any adjacent bat.\n\n"
             "SCORING\n"
-            "+75 reward per destructible wall cleared with dynamite. "
-            "+50 reward per bat zapped with the laser/dynamite "
-            "blast. +1000 reward for rescuing the survivor.\n\n"
+            "+1 reward per destructible wall cleared with dynamite. "
+            "+1 reward per bat zapped with the laser/dynamite "
+            "blast. +10 reward for rescuing the survivor.\n\n"
             "TERMINATION\n"
-            "Three lives. Stepping on lava or touching a bat costs a "
+            ". Stepping on lava or touching a bat costs a "
             "life and respawns you at the top. Episode ends at 0 "
             "lives or after max_turns.\n\n"
             "HUD\n"
@@ -310,7 +309,6 @@ class HeroEnv(AtariBase):
             "survivor status.\n\n"
             + self.action_spec.render_for_prompt()
         )
-
 
 def seed_offset(level: int) -> int:
     """Deterministic offset for level regeneration."""

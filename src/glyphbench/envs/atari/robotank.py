@@ -14,10 +14,8 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 def _sign(a: int, b: int) -> int:
     return 1 if a > b else (-1 if a < b else 0)
-
 
 class RobotankEnv(AtariBase):
     """Robot Tank: tank combat with damage systems.
@@ -27,7 +25,7 @@ class RobotankEnv(AtariBase):
     a random system. Lose all sensors = lose a life.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +50 per enemy tank destroyed
+    Reward: +2 per enemy tank destroyed
     """
 
     action_spec = ActionSpec(
@@ -165,9 +163,9 @@ class RobotankEnv(AtariBase):
                     if t.data["hp"] <= 0:
                         t.alive = False
                         self._kills += 1
-                        self._on_point_scored(50)
-                        reward += 50
-                        self._message = "Tank destroyed! +50"
+                        self._on_point_scored(2)
+                        reward += 2
+                        self._message = "Tank destroyed! +2"
                     else:
                         self._message = "Tank hit!"
                     break
@@ -230,8 +228,8 @@ class RobotankEnv(AtariBase):
                 t.alive = False
                 self._take_damage()
                 self._kills += 1
-                self._on_point_scored(50)
-                reward += 50
+                self._on_point_scored(2)
+                reward += 2
         # Respawn
         alive = [t for t in self._tanks if t.alive]
         if len(alive) < 2 and self._step_counter % 25 == 0:
@@ -334,10 +332,10 @@ class RobotankEnv(AtariBase):
             "'cannon' stops FIRE; 'treads' stops movement; 'video' "
             "is cosmetic.\n\n"
             "SCORING\n"
-            "+50 reward per enemy tank destroyed (takes 2 bullets). "
+            "+2 reward per enemy tank destroyed (takes 2 bullets). "
             "No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Losing all 4 sensors counts as losing a "
+            ". Losing all 4 sensors counts as losing a "
             "life (sensors reset and tank respawns). Enemy bullet "
             "or collision damages a sensor. Episode ends at 0 "
             "lives or after max_turns.\n\n"

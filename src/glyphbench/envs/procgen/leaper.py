@@ -209,7 +209,7 @@ class LeaperEnv(ProcgenBase):
 
         # Check goal (top row)
         if self._lane_types[self._agent_y] == "goal":
-            reward = 10.0
+            reward = 5.0
             terminated = True
             self._message = "You reached the goal!"
             return reward, terminated, info
@@ -262,7 +262,7 @@ class LeaperEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Cross roads (avoid cars V) and rivers (ride logs \u25ac) to reach "
-            "the goal row (G) at the top for +10 reward. Water (\u2248) is deadly "
+            "the goal row (G) at the top for +5 reward. Water (\u2248) is deadly "
             "unless you stand on a log."
         )
 

@@ -65,10 +65,10 @@ class TestMontezumaRevenge:
         lengths = [len(line) for line in grid_lines]
         assert len(set(lengths)) == 1
 
-    def test_lives_start_at_5(self) -> None:
+    def test_starts_with_one_life(self) -> None:
         env = self._make_env()
         env.reset(0)
-        assert env._lives == 5
+        assert env._lives == 1  # single-life model
 
     def test_movement(self) -> None:
         env = self._make_env()

@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class GopherEnv(AtariBase):
     """Gopher: protect your carrot garden from gophers.
 
@@ -22,7 +21,7 @@ class GopherEnv(AtariBase):
     from below to eat them. Fill holes to block gophers.
 
     Actions: NOOP, LEFT, RIGHT, FILL
-    Reward: +5 per gopher bonked, -10 per carrot lost
+    Reward: +1 per gopher bonked, -1 per carrot lost
     Lives: lost when all carrots eaten
     """
 
@@ -114,9 +113,9 @@ class GopherEnv(AtariBase):
                     and g.y <= self._SURFACE_Y
                 ):
                     g.alive = False
-                    self._on_point_scored(5)
-                    reward += 5
-                    self._message = "Gopher bonked! +5"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Gopher bonked! +1"
 
         # Spawn gophers
         if self._step_counter % self._spawn_interval == 0:
@@ -162,8 +161,8 @@ class GopherEnv(AtariBase):
                         carrot_pos = (g.x, self._SURFACE_Y - 1)
                         if carrot_pos in self._carrots:
                             self._carrots.remove(carrot_pos)
-                            reward -= 10
-                            self._message = "Carrot eaten! -10"
+                            reward -= 1
+                            self._message = "Carrot eaten! -1"
                         g.data["state"] = "retreating"
                 elif state == "retreating":
                     g.y += 1
@@ -177,9 +176,9 @@ class GopherEnv(AtariBase):
                     and (g.x, self._SURFACE_Y) not in self._holes
                 ):
                     g.alive = False
-                    self._on_point_scored(5)
-                    reward += 5
-                    self._message = "Gopher trapped! +5"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Gopher trapped! +1"
 
         self._gophers = [g for g in self._gophers if g.alive]
 
@@ -190,8 +189,8 @@ class GopherEnv(AtariBase):
                 self._message = "Garden lost! Replanting..."
                 self._generate_level(self._level)
 
-        # Level up every 50 points
-        if self._score > 0 and self._score >= self._level * 50:
+        # Level up every 10 points
+        if self._score > 0 and self._score >= self._level * 10:
             self._level += 1
 
         self._redraw()
@@ -275,8 +274,8 @@ class GopherEnv(AtariBase):
             "gopher's hole is filled while it is on the surface it "
             "dies.\n\n"
             "SCORING\n"
-            "+5 reward per gopher bonked or trapped. -10 reward "
-            "each time a gopher eats a carrot. Level up each 50 "
+            "+1 reward per gopher bonked or trapped. -1 reward "
+            "each time a gopher eats a carrot. Level up each 10 "
             "score points (faster spawning).\n\n"
             "TERMINATION\n"
             "When all carrots are eaten you lose a life and the "

@@ -25,7 +25,6 @@ _DIRS = {
     "RIGHT": (1, 0),
 }
 
-
 class KrullEnv(AtariBase):
     """Krull: multi-stage adventure.
 
@@ -34,7 +33,7 @@ class KrullEnv(AtariBase):
     Stage 3: Storm the Black Fortress, rescue princess (P).
 
     Grid: 20x16.
-    Reward: +20 per slayer, +50 per stage, +200 rescue.
+    Reward: +1 per enemy, +3 per stage clear, +10 rescue.
     """
 
     action_spec = ActionSpec(
@@ -51,7 +50,7 @@ class KrullEnv(AtariBase):
         ),
     )
 
-    def __init__(self, max_turns: int = 10000) -> None:
+    def __init__(self, max_turns: int = 1000) -> None:
         super().__init__(max_turns=max_turns)
         self._stage: int = 1
         self._glaive_cooldown: int = 0
@@ -310,11 +309,11 @@ class KrullEnv(AtariBase):
                 if g.x == en.x and g.y == en.y:
                     g.alive = False
                     en.alive = False
-                    self._on_point_scored(20)
-                    reward += 20
+                    self._on_point_scored(1)
+                    reward += 1
                     self._enemies_to_clear -= 1
                     self._message = (
-                        f"{en.etype} destroyed! +20"
+                        f"{en.etype} destroyed! +1"
                     )
 
         # Player-enemy collision
@@ -341,9 +340,9 @@ class KrullEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 e.alive = False
-                self._on_point_scored(200)
-                reward += 200
-                self._message = "Princess rescued! +200"
+                self._on_point_scored(10)
+                reward += 10
+                self._message = "Princess rescued! +10"
                 self._level += 1
                 self._stage = 1
                 self._generate_level(self._level * 6007)
@@ -363,10 +362,10 @@ class KrullEnv(AtariBase):
                 )
                 if enemies_alive == 0:
                     e.alive = False
-                    self._on_point_scored(50)
-                    reward += 50
+                    self._on_point_scored(3)
+                    reward += 3
                     self._stage += 1
-                    self._message = "Stage complete! +50"
+                    self._message = "Stage complete! +3"
                     self._generate_level(
                         self._level * 6007
                         + self._stage
@@ -384,10 +383,10 @@ class KrullEnv(AtariBase):
                 if e.etype in etypes and e.alive
             )
             if enemies_alive == 0:
-                self._on_point_scored(50)
-                reward += 50
+                self._on_point_scored(3)
+                reward += 3
                 self._stage = 2
-                self._message = "Field cleared! +50"
+                self._message = "Field cleared! +3"
                 self._generate_level(
                     self._level * 6007 + self._stage
                 )
@@ -465,13 +464,13 @@ class KrullEnv(AtariBase):
             "Enemies move on a 2-5 step timer toward you along one "
             "axis.\n\n"
             "SCORING\n"
-            "+20 reward per enemy (Slayer/creature/guard) killed by "
-            "your glaive. +50 reward for completing stages 1 or 2 "
+            "+1 reward per enemy (Slayer/creature/guard) killed by "
+            "your glaive. +3 reward for completing stages 1 or 2 "
             "(clearing all enemies; stage 2 also requires reaching "
-            "D). +200 reward for rescuing the princess. No per-step "
+            "D). +10 reward for rescuing the princess. No per-step "
             "penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Enemy contact or sinking in swamp costs a "
+            ". Enemy contact or sinking in swamp costs a "
             "life and respawns at start. Episode ends at 0 lives or "
             "after max_turns.\n\n"
             "HUD\n"

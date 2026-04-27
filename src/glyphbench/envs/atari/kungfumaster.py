@@ -21,7 +21,6 @@ _H = 16
 _FLOOR_Y = 12
 _PLAYER_START_X = 2
 
-
 class KungFuMasterEnv(AtariBase):
     """KungFuMaster: side-scrolling beat-em-up.
 
@@ -30,7 +29,7 @@ class KungFuMasterEnv(AtariBase):
     at the right end of each floor.
 
     Grid: 30x16.
-    Reward: +10 per enemy, +100 per boss defeated.
+    Reward: +1 per enemy, +5 per boss defeated.
     """
 
     action_spec = ActionSpec(
@@ -168,17 +167,17 @@ class KungFuMasterEnv(AtariBase):
                             )
                             if e.data["hp"] <= 0:
                                 e.alive = False
-                                self._on_point_scored(100)
-                                reward += 100
+                                self._on_point_scored(5)
+                                reward += 5
                                 self._message = (
-                                    "Boss defeated! +100"
+                                    "Boss defeated! +5"
                                 )
                         else:
                             e.alive = False
-                            self._on_point_scored(10)
-                            reward += 10
+                            self._on_point_scored(1)
+                            reward += 1
                             self._message = (
-                                f"{e.etype} defeated! +10"
+                                f"{e.etype} defeated! +1"
                             )
 
         # Enemy AI
@@ -394,12 +393,12 @@ class KungFuMasterEnv(AtariBase):
             "throwers throw a 'tilde' projectile toward you every "
             "3-7 steps that travels 1 cell per step horizontally.\n\n"
             "SCORING\n"
-            "+10 reward per Gripper or Knife thrower killed (punch "
-            "or kick landing on them). +100 reward per boss killed "
+            "+1 reward per Gripper or Knife thrower killed (punch "
+            "or kick landing on them). +5 reward per boss killed "
             "(boss has HP = 3 + floor; each hit -1 HP). No per-step "
             "penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Contact with an enemy or a knife costs a "
+            ". Contact with an enemy or a knife costs a "
             "life and respawns you at (2, floor-1). Episode ends at "
             "0 lives or after max_turns.\n\n"
             "HUD\n"

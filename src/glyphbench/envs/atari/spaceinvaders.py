@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class SpaceInvadersEnv(AtariBase):
     """Space Invaders: shoot descending aliens.
 
@@ -22,8 +21,8 @@ class SpaceInvadersEnv(AtariBase):
     Aliens march side-to-side and step down when hitting a wall.
 
     Actions: NOOP, FIRE, LEFT, RIGHT, LEFT_FIRE, RIGHT_FIRE
-    Reward: +10/+20/+30 per alien (by row), +100 mystery ship
-    Lives: 3
+    Reward: +1/+2/+3 per alien (by row), +5 mystery ship.
+
     """
 
     action_spec = ActionSpec(
@@ -45,7 +44,7 @@ class SpaceInvadersEnv(AtariBase):
     _ALIEN_COLS = 11
     _ALIEN_START_Y = 3
     _MYSTERY_INTERVAL = 50
-    _ROW_SCORES = (30, 20, 20, 10, 10)  # top to bottom
+    _ROW_SCORES = (3, 2, 2, 1, 1)  # top to bottom — small reasonable scale
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
@@ -151,7 +150,7 @@ class SpaceInvadersEnv(AtariBase):
                         alien.alive = False
                         self._aliens[row_idx][col_idx] = None
                         b.alive = False
-                        pts = self._ROW_SCORES[row_idx] if row_idx < len(self._ROW_SCORES) else 10
+                        pts = self._ROW_SCORES[row_idx] if row_idx < len(self._ROW_SCORES) else 1
                         self._on_point_scored(pts)
                         reward += pts
                         self._message = f"Alien hit! +{pts}"
@@ -172,9 +171,9 @@ class SpaceInvadersEnv(AtariBase):
                 if e.alive and e.etype == "mystery" and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(100)
-                    reward += 100
-                    self._message = "Mystery ship! +100"
+                    self._on_point_scored(5)
+                    reward += 5
+                    self._message = "Mystery ship hit! +5"
 
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -395,11 +394,11 @@ class SpaceInvadersEnv(AtariBase):
             "3 enemy bullets). Shields are destroyed cell-by-cell "
             "by any bullet hit.\n\n"
             "SCORING\n"
-            "Rewards for shooting aliens: top row +30, row 2 "
-            "+20, row 3 +20, row 4 +10, row 5 +10. +100 reward "
+            "Rewards for shooting aliens: top row +3, row 2 "
+            "+2, row 3 +2, row 4 +1, row 5 +1. +5 reward "
             "for a mystery ship. No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Being hit by an enemy bullet costs a "
+            ". Being hit by an enemy bullet costs a "
             "life and respawns you at center. Aliens reaching row "
             "18 instantly ends the game (game over). Episode also "
             "ends at 0 lives or after max_turns.\n\n"

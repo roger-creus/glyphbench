@@ -126,7 +126,7 @@ class SkiEnv(BaseGlyphEnv):
             elif cell == SYM_FLAG:
                 # Passing through a flag gate
                 self._flags_passed += 1
-                reward = 2.0
+                reward = 1.0
                 self._score += reward
 
         # Check if terrain completed
@@ -197,7 +197,7 @@ class SkiEnv(BaseGlyphEnv):
             f"- Your skier (\u2193) is fixed at row {SKIER_ROW} near the bottom.\n"
             "- Terrain scrolls upward 1 row per step (you move downhill automatically).\n"
             "- Trees (\u2663) and rocks (\u25c6) are obstacles: hitting one ends the game (-1).\n"
-            "- Flag gates (\u2691) appear every 5-8 rows: passing through earns +2.\n"
+            "- Flag gates (\u2691) appear every 5-8 rows: passing through earns +1.\n"
             f"- Complete {TOTAL_TERRAIN_ROWS} rows of terrain to finish.\n"
             "- Move LEFT or RIGHT to dodge obstacles and aim for gates.\n"
             "- Look ahead at upcoming terrain to plan your path!\n\n"

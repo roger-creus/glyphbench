@@ -14,10 +14,8 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 def _sign(a: int, b: int) -> int:
     return 1 if a > b else (-1 if a < b else 0)
-
 
 class SolarisEnv(AtariBase):
     """Solaris: space combat and sector exploration.
@@ -26,8 +24,8 @@ class SolarisEnv(AtariBase):
     protect allied bases. WARP moves to adjacent sectors.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE, WARP
-    Reward: +30 per enemy, +100 per sector cleared
-    Lives: 3
+    Reward: +2 per enemy, +5 per sector cleared
+
     """
 
     action_spec = ActionSpec(
@@ -168,9 +166,9 @@ class SolarisEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(30)
-                    reward += 30
-                    self._message = "Enemy destroyed! +30"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = "Enemy destroyed! +2"
                     break
         # Enemy AI
         for e in self._enemies:
@@ -241,9 +239,9 @@ class SolarisEnv(AtariBase):
         if (not alive_enemies
                 and self._sector not in self._sectors_cleared):
             self._sectors_cleared.add(self._sector)
-            self._on_point_scored(100)
-            reward += 100
-            self._message = f"Sector {self._sector} cleared! +100"
+            self._on_point_scored(5)
+            reward += 5
+            self._message = f"Sector {self._sector} cleared! +5"
             if len(self._sectors_cleared) >= self._NUM_SECTORS:
                 self._level += 1
                 self._sectors_cleared = set()
@@ -335,12 +333,12 @@ class SolarisEnv(AtariBase):
             "(or toward the base 30 percent of the time) along the "
             "dominant axis; they fire every 10 steps.\n\n"
             "SCORING\n"
-            "+30 reward per enemy destroyed. +100 reward for "
+            "+2 reward per enemy destroyed. +5 reward for "
             "first-time clearing a sector (all enemies dead). When "
             "all 4 sectors are cleared: level up (resets the "
             "cleared set). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Being hit by an enemy bullet costs a "
+            ". Being hit by an enemy bullet costs a "
             "life and respawns you near the bottom. Episode ends "
             "at 0 lives or after max_turns.\n\n"
             "HUD\n"

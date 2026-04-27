@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class FreewayEnv(AtariBase):
     """Freeway: guide a chicken across lanes of traffic.
 

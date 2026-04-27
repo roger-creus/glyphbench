@@ -224,12 +224,18 @@ class _RushHourBase(BaseGlyphEnv):
 
     def _reset(self, seed: int) -> GridObservation:
         self._vehicles = _generate_puzzle(self.rng, self._num_other)
-        # Rebuild action spec if puzzle has fewer vehicles than expected
-        actual = len(self._vehicles)
-        if actual != self._total_vehicles:
-            self._total_vehicles = actual
-            self.action_spec = _build_action_spec(self._total_vehicles)
-            self.action_space.__init__(self.action_spec.n)  # type: ignore[misc]
+        # The puzzle generator can return fewer vehicles than the class
+        # default if collision rejection trims it. Rebuilding action_spec
+        # mid-episode would silently desync the system prompt — re-roll
+        # until we hit the expected count instead.
+        attempts = 0
+        while len(self._vehicles) != self._total_vehicles and attempts < 50:
+            self._vehicles = _generate_puzzle(self.rng, self._num_other)
+            attempts += 1
+        if len(self._vehicles) != self._total_vehicles:
+            # Fall back: trim to whatever vehicles we have. Action spec is
+            # left as the original (extra MOVE_* actions become no-ops).
+            self._vehicles = self._vehicles[: self._total_vehicles]
         self._solved = False
         return self._render_current_observation()
 

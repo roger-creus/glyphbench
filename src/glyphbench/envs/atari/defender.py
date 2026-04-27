@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class DefenderEnv(AtariBase):
     """Defender: horizontal scrolling shooter.
 
@@ -22,8 +21,8 @@ class DefenderEnv(AtariBase):
     ground from abducting aliens. Thrust to move faster.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE, THRUST
-    Reward: +15 per alien, +50 per rescue
-    Lives: 3
+    Reward: +1 per alien, +3 per rescue
+
     """
 
     action_spec = ActionSpec(
@@ -169,9 +168,9 @@ class DefenderEnv(AtariBase):
                 ):
                     alien.alive = False
                     laser.alive = False
-                    self._on_point_scored(15)
-                    reward += 15
-                    self._message = "Alien destroyed! +15"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Alien destroyed! +1"
                     # Release any carried humanoid
                     if "carrying" in alien.data:
                         h = alien.data["carrying"]
@@ -247,9 +246,9 @@ class DefenderEnv(AtariBase):
                     h.y = self._GROUND_Y
                     h.data["falling"] = False
                     h.data.pop("carried", None)
-                    self._on_point_scored(50)
-                    reward += 50
-                    self._message = "Humanoid saved! +50"
+                    self._on_point_scored(3)
+                    reward += 3
+                    self._message = "Humanoid saved! +3"
 
         self._aliens = [a for a in self._aliens if a.alive]
 
@@ -367,12 +366,12 @@ class DefenderEnv(AtariBase):
             "Shooting a carrier drops the humanoid (falling) until "
             "it lands on the ground.\n\n"
             "SCORING\n"
-            "+15 reward per alien destroyed. +50 reward when a falling "
+            "+1 reward per alien destroyed. +3 reward when a falling "
             "humanoid lands safely (rescue). No penalty for taking a "
             "hit (beyond losing a life). Clearing all aliens advances "
             "the level.\n\n"
             "TERMINATION\n"
-            "Three lives. Colliding with an alien costs a life and "
+            ". Colliding with an alien costs a life and "
             "respawns you at start. Episode ends at 0 lives or after "
             "max_turns.\n\n"
             "HUD\n"

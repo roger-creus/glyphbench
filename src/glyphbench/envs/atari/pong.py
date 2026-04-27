@@ -15,7 +15,6 @@ from glyphbench.core.glyph_primitives import build_legend, grid_to_string
 from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
 
-
 class PongEnv(BaseGlyphEnv):
     """Atari Pong: paddle vs AI opponent. First to 21 wins.
 

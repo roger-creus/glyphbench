@@ -182,7 +182,7 @@ class CaveFlyerEnv(ProcgenBase):
             self._agent_x == self._exit_x
             and self._agent_y == self._exit_y
         ):
-            reward += 10.0
+            reward += 5.0
             terminated = True
             self._message = "Reached the exit!"
 
@@ -198,10 +198,8 @@ class CaveFlyerEnv(ProcgenBase):
             1 for e in self._entities
             if e.alive and e.etype == "enemy"
         )
-        extra = (
-            f"Enemies: {alive}"
-            f"  Exit: ({self._exit_x},{self._exit_y})"
-        )
+        # Exit coordinates removed — agent must locate the exit visually.
+        extra = f"Enemies remaining: {alive}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,
@@ -212,7 +210,7 @@ class CaveFlyerEnv(ProcgenBase):
         return (
             "Fly your ship (@) through the cave. Reach the exit (>). "
             "FIRE shoots bullets (*) to the right to destroy enemies (E). "
-            "+1 per enemy, +10 for reaching the exit. "
+            "+1 per enemy, +5 for reaching the exit. "
             "Hitting a wall or enemy kills you."
         )
 

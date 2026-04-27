@@ -157,7 +157,7 @@ class WaveDefenseEnv(BaseGlyphEnv):
             nx, ny = self._move_toward_center(ex, ey)
             if nx == CENTER and ny == CENTER:
                 # Enemy reached center
-                reward -= 10.0
+                reward -= 1.0
                 terminated = True
                 self._message = "An enemy reached the center! Game over."
                 info["outcome"] = "enemy_reached_center"
@@ -348,13 +348,13 @@ class WaveDefenseEnv(BaseGlyphEnv):
             "- Enemies spawn at the grid edges every 3 steps and move 1 cell toward "
             "the center each step.\n"
             "- Wave N has N+2 enemies. There are 5 waves total.\n"
-            "- If any enemy reaches the center, you lose (-10 reward).\n"
+            "- If any enemy reaches the center, you lose (-1 reward).\n"
             "- If all 5 waves are cleared, you win (+1 reward).\n\n"
             "REWARDS\n"
             "- +1 per enemy killed\n"
             "- +5 per wave cleared\n"
             "- +1 for clearing all waves (victory)\n"
-            "- -10 if an enemy reaches the center (defeat)\n\n"
+            "- -1 if an enemy reaches the center (defeat)\n\n"
             + self.action_spec.render_for_prompt()
         )
 

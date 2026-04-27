@@ -82,7 +82,7 @@ class TestClimber:
                     env._jump_step = -1
                     right = env.action_spec.index_of("RIGHT")
                     _, reward, terminated, _, _ = env.step(right)
-                    assert reward >= 10.0
+                    assert reward >= 5.0
                     assert terminated
                     return
         pytest.skip("No goal found")

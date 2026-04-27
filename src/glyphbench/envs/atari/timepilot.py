@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class TimePilotEnv(AtariBase):
     """Time Pilot: 360-degree aerial combat.
 
@@ -22,8 +21,8 @@ class TimePilotEnv(AtariBase):
     Player stays roughly centered, enemies swarm in.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE
-    Reward: +10 per enemy, +100 boss
-    Lives: 3
+    Reward: +1 per enemy, +5 boss
+
     """
 
     action_spec = ActionSpec(
@@ -160,10 +159,10 @@ class TimePilotEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
+                    self._on_point_scored(1)
+                    reward += 1
                     self._kills += 1
-                    self._message = "Enemy shot! +10"
+                    self._message = "Enemy shot! +1"
                     break
             # Check boss hit
             if (
@@ -176,9 +175,9 @@ class TimePilotEnv(AtariBase):
                 self._boss.data["hp"] -= 1
                 if self._boss.data["hp"] <= 0:
                     self._boss.alive = False
-                    self._on_point_scored(100)
-                    reward += 100
-                    self._message = "Boss destroyed! +100"
+                    self._on_point_scored(5)
+                    reward += 5
+                    self._message = "Boss destroyed! +5"
                     self._level += 1
                     self._generate_level(self._level)
                     return reward, self._game_over, info
@@ -334,10 +333,10 @@ class TimePilotEnv(AtariBase):
             "(8-direction chase). Boss moves every 2 steps. More "
             "enemies spawn every 8 steps (cap 6).\n\n"
             "SCORING\n"
-            "+10 reward per enemy shot. +100 reward for "
+            "+1 reward per enemy shot. +5 reward for "
             "destroying the boss (level up). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Collision with an enemy or boss costs a "
+            ". Collision with an enemy or boss costs a "
             "life and respawns at center. Episode ends at 0 lives "
             "or after max_turns.\n\n"
             "HUD\n"

@@ -21,7 +21,6 @@ _H = 16
 _GROUND_Y = 13
 _ROAD_Y = 11
 
-
 class RoadRunnerEnv(AtariBase):
     """RoadRunner: collect seeds, outrun the Coyote.
 
@@ -30,7 +29,7 @@ class RoadRunnerEnv(AtariBase):
     Mines (*) can stun the Coyote if he hits them.
 
     Grid: 30x16.
-    Reward: +10 per seed, +50 if Coyote hits mine.
+    Reward: +1 per seed, +3 if Coyote hits mine.
     """
 
     action_spec = ActionSpec(
@@ -175,9 +174,9 @@ class RoadRunnerEnv(AtariBase):
                 and abs(e.y - self._player_y) <= 1
             ):
                 e.alive = False
-                self._on_point_scored(10)
-                reward += 10
-                self._message = "Birdseed! +10"
+                self._on_point_scored(1)
+                reward += 1
+                self._message = "Birdseed! +1"
 
         # Rock collision
         for e in self._entities:
@@ -206,9 +205,9 @@ class RoadRunnerEnv(AtariBase):
                     e.alive = False
                     self._coyote_stun = 20
                     coyote.x = max(1, coyote.x - 8)
-                    self._on_point_scored(50)
-                    reward += 50
-                    self._message = "Coyote hit mine! +50"
+                    self._on_point_scored(3)
+                    reward += 3
+                    self._message = "Coyote hit mine! +3"
 
         # Coyote catches player
         if (
@@ -318,11 +317,11 @@ class RoadRunnerEnv(AtariBase):
             "coyote steps onto a mine, the mine explodes, stunning "
             "the coyote for 20 steps and pushing it 8 cells back.\n\n"
             "SCORING\n"
-            "+10 reward per birdseed collected. +50 reward when "
+            "+1 reward per birdseed collected. +3 reward when "
             "the coyote hits a mine. No per-step penalty. Reaching "
             "100 + 30*level distance advances the level.\n\n"
             "TERMINATION\n"
-            "Three lives. Hitting a rock or being caught by the "
+            ". Hitting a rock or being caught by the "
             "coyote (when not stunned) costs a life and respawns "
             "you at (8, road). Episode ends at 0 lives or after "
             "max_turns.\n\n"

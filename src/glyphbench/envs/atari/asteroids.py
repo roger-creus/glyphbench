@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class AsteroidsEnv(AtariBase):
     """Asteroids: destroy drifting rocks in space.
 
@@ -23,8 +22,8 @@ class AsteroidsEnv(AtariBase):
     Screen wraps on all edges.
 
     Actions: NOOP, LEFT, RIGHT, THRUST, FIRE
-    Reward: +20 large, +50 medium, +100 small asteroid
-    Lives: 3
+    Reward: +1 large, +2 medium, +3 small asteroid
+
     """
 
     action_spec = ActionSpec(
@@ -177,7 +176,7 @@ class AsteroidsEnv(AtariBase):
                     b.alive = False
                     a.alive = False
                     sz = a.data["size"]
-                    pts = {3: 20, 2: 50, 1: 100}.get(sz, 20)
+                    pts = {3: 1, 2: 2, 1: 3}.get(sz, 1)
                     self._on_point_scored(pts)
                     reward += pts
                     self._message = f"Asteroid! +{pts}"
@@ -267,9 +266,9 @@ class AsteroidsEnv(AtariBase):
 
     def _symbol_meaning(self, ch: str) -> str:
         return {
-            "O": "large asteroid (20pts)",
-            "o": "medium asteroid (50pts)",
-            "·": "small asteroid (100pts)",
+            "O": "large asteroid (1pt)",
+            "o": "medium asteroid (2pts)",
+            "·": "small asteroid (3pts)",
             "!": "your bullet",
             " ": "space",
         }.get(ch, ch)
@@ -304,11 +303,11 @@ class AsteroidsEnv(AtariBase):
             "A hit large rock spawns two medium rocks with random "
             "velocities; a medium spawns two small; a small disappears.\n\n"
             "SCORING\n"
-            "+20 reward for a large asteroid, +50 for medium, +100 for "
+            "+1 reward for a large asteroid, +2 for medium, +3 for "
             "small. No per-step penalty. Level clear awards no bonus but "
             "restarts with level+1 asteroids.\n\n"
             "TERMINATION\n"
-            "Three lives. Colliding with any asteroid destroys your ship, "
+            ". Colliding with any asteroid destroys your ship, "
             "respawns it at center, and costs one life. Episode ends when "
             "lives reach 0 or after max_turns.\n\n"
             "HUD\n"

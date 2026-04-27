@@ -132,14 +132,14 @@ class TestCoinRun:
         right = env.action_spec.index_of("RIGHT")
         _, reward, terminated, _, _ = env.step(right)
         if env._agent_x == env._coin_x and env._agent_y == env._coin_y:
-            assert reward == 10.0
+            assert reward == 5.0
             assert terminated
         else:
             # Might need more steps
             for _ in range(3):
                 _, reward, terminated, _, _ = env.step(right)
                 if terminated:
-                    assert reward == 10.0
+                    assert reward == 5.0
                     return
 
     # --- Spec 8.3: window scrolls as agent moves ---
@@ -160,7 +160,7 @@ class TestCoinRun:
         noop = env.action_spec.index_of("NOOP")
         for _ in range(20):
             _, reward, t, tr, _ = env.step(noop)
-            assert reward in (0.0, 10.0), f"Unexpected reward: {reward}"
+            assert reward in (0.0, 5.0), f"Unexpected reward: {reward}"
             if t or tr:
                 break
 

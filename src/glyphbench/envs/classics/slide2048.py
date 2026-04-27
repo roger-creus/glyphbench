@@ -99,12 +99,18 @@ class Slide2048Env(BaseGlyphEnv):
         self._board[r][c] = 2 if self.rng.random() < 0.9 else 4
 
     @staticmethod
-    def _slide_row_left(row: np.ndarray) -> tuple[np.ndarray, int]:
-        """Slide a single row left and merge. Returns (new_row, merge_score)."""
+    def _slide_row_left(row: np.ndarray) -> tuple[np.ndarray, int, int]:
+        """Slide a single row left and merge.
+
+        Returns (new_row, merge_score, num_merges) where merge_score sums the
+        merged tile values (used for HUD score) and num_merges counts merge
+        events (used for reward).
+        """
         # Remove zeros
         tiles = row[row != 0].tolist()
         merged: list[int] = []
         score = 0
+        num_merges = 0
         skip = False
         for i in range(len(tiles)):
             if skip:
@@ -114,42 +120,51 @@ class Slide2048Env(BaseGlyphEnv):
                 val = tiles[i] * 2
                 merged.append(val)
                 score += val
+                num_merges += 1
                 skip = True
             else:
                 merged.append(tiles[i])
         # Pad with zeros
         merged.extend([0] * (SIZE - len(merged)))
-        return np.array(merged, dtype=np.int32), score
+        return np.array(merged, dtype=np.int32), score, num_merges
 
-    def _slide(self, direction: str) -> tuple[bool, int]:
-        """Slide the board in the given direction. Returns (changed, merge_score)."""
+    def _slide(self, direction: str) -> tuple[bool, int, int]:
+        """Slide the board in the given direction.
+
+        Returns (changed, merge_score, num_merges).
+        """
         board = self._board.copy()
         total_score = 0
+        total_merges = 0
 
         if direction == "LEFT":
             for r in range(SIZE):
-                self._board[r], s = self._slide_row_left(self._board[r])
+                self._board[r], s, m = self._slide_row_left(self._board[r])
                 total_score += s
+                total_merges += m
         elif direction == "RIGHT":
             for r in range(SIZE):
                 self._board[r] = self._board[r][::-1]
-                self._board[r], s = self._slide_row_left(self._board[r])
+                self._board[r], s, m = self._slide_row_left(self._board[r])
                 self._board[r] = self._board[r][::-1]
                 total_score += s
+                total_merges += m
         elif direction == "UP":
             for c in range(SIZE):
                 col = self._board[:, c].copy()
-                self._board[:, c], s = self._slide_row_left(col)
+                self._board[:, c], s, m = self._slide_row_left(col)
                 total_score += s
+                total_merges += m
         elif direction == "DOWN":
             for c in range(SIZE):
                 col = self._board[:, c][::-1].copy()
-                new_col, s = self._slide_row_left(col)
+                new_col, s, m = self._slide_row_left(col)
                 self._board[:, c] = new_col[::-1]
                 total_score += s
+                total_merges += m
 
         changed = not np.array_equal(board, self._board)
-        return changed, total_score
+        return changed, total_score, total_merges
 
     def _has_valid_moves(self) -> bool:
         """Check if any move can change the board."""
@@ -186,14 +201,14 @@ class Slide2048Env(BaseGlyphEnv):
         info: dict[str, Any] = {}
         name = self.action_spec.names[action]
 
-        changed, merge_score = self._slide(name)
+        changed, merge_score, num_merges = self._slide(name)
 
         if changed:
             self._spawn_tile()
 
         self._score += merge_score
         self._max_tile = int(np.max(self._board))
-        reward = float(merge_score)
+        reward = float(num_merges)
 
         terminated = not self._has_valid_moves()
 
@@ -248,7 +263,7 @@ class Slide2048Env(BaseGlyphEnv):
             "- Two tiles with the same value merge into one with double the value.\n"
             "- After each valid move, a new tile (2 or 4) spawns on a random empty cell.\n"
             "- If no valid moves remain, the game ends.\n"
-            "- Reward per step equals the sum of merged tile values.\n"
+            "- Reward = +1 per merge event in the step (HUD score still tracks summed tile values).\n"
             "- Tiles: numbers show the value; K = 1024, W = 2048.\n\n"
             + self.action_spec.render_for_prompt()
         )

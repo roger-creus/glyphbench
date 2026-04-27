@@ -25,11 +25,16 @@ SYM_OFF = "\u25cb"   # ○ light off
 
 
 def _make_lightsout_action_spec(size: int) -> ActionSpec:
-    """Create an ActionSpec with PRESS_0 .. PRESS_(size*size-1)."""
+    """Create an ActionSpec with PRESS_0 .. PRESS_(size*size-1).
+
+    Indices are row-major: PRESS_i toggles cell (row=i // size, col=i % size).
+    The previous (col, row) ordering was inconsistent with the env's _step
+    and the system prompt — both use row-major.
+    """
     n = size * size
     names = tuple(f"PRESS_{i}" for i in range(n))
     descriptions = tuple(
-        f"toggle cell ({i % size}, {i // size}) and its orthogonal neighbors"
+        f"toggle cell at row {i // size}, col {i % size} (and its 4-neighbours)"
         for i in range(n)
     )
     return ActionSpec(names=names, descriptions=descriptions)

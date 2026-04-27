@@ -57,12 +57,11 @@ _PLAYER_START = (14, 18)
 
 _FRIGHTENED_DURATION = 20
 
-
 class MsPacManEnv(AtariBase):
     """Ms. Pac-Man: eat pellets, avoid ghosts, use power pellets.
 
     Actions: NOOP, UP, RIGHT, LEFT, DOWN
-    Reward: +10 per pellet, +50 per power pellet, +200 per ghost eaten.
+    Reward: +1 per pellet, +2 per power pellet, +3 per ghost eaten.
     Lives: 3, level complete when all pellets eaten.
     """
 
@@ -77,7 +76,7 @@ class MsPacManEnv(AtariBase):
         ),
     )
 
-    def __init__(self, max_turns: int = 10000) -> None:
+    def __init__(self, max_turns: int = 1000) -> None:
         super().__init__(max_turns=max_turns)
         self._pellet_count: int = 0
         self._frightened_timer: int = 0
@@ -118,13 +117,13 @@ class MsPacManEnv(AtariBase):
             "to 'frightened' for 20 steps; during that time they "
             "move randomly and are edible.\n\n"
             "SCORING\n"
-            "+10 reward per regular pellet. +50 reward per power "
-            "pellet. +200 * combo reward when you eat a frightened "
-            "ghost (combo resets each power pellet). -100 reward "
-            "when a non-frightened ghost catches you. +500 reward "
+            "+1 reward per regular pellet. +2 reward per power "
+            "pellet. +3 * combo reward when you eat a frightened "
+            "ghost (combo resets each power pellet). -1 reward "
+            "when a non-frightened ghost catches you. +5 reward "
             "on level clear.\n\n"
             "TERMINATION\n"
-            "Three lives. Being caught by a chase-mode ghost costs "
+            ". Being caught by a chase-mode ghost costs "
             "a life and resets positions. Episode ends at 0 lives "
             "or after max_turns.\n\n"
             "HUD\n"
@@ -208,13 +207,13 @@ class MsPacManEnv(AtariBase):
         cell = self._grid_at(self._player_x, self._player_y)
         if cell == "·":
             self._set_cell(self._player_x, self._player_y, " ")
-            self._on_point_scored(10)
-            reward += 10.0
+            self._on_point_scored(1)
+            reward += 1.0
             self._pellet_count -= 1
         elif cell == "*":
             self._set_cell(self._player_x, self._player_y, " ")
-            self._on_point_scored(50)
-            reward += 50.0
+            self._on_point_scored(2)
+            reward += 2.0
             self._pellet_count -= 1
             # Frighten ghosts
             self._frightened_timer = _FRIGHTENED_DURATION
@@ -237,7 +236,7 @@ class MsPacManEnv(AtariBase):
             if e.x == self._player_x and e.y == self._player_y:
                 if e.data.get("state") == "frightened":
                     self._ghost_eat_combo += 1
-                    pts = 200 * self._ghost_eat_combo
+                    pts = 3 * self._ghost_eat_combo
                     self._on_point_scored(pts)
                     reward += float(pts)
                     # Respawn ghost
@@ -247,7 +246,7 @@ class MsPacManEnv(AtariBase):
                     e.char = e.data["color"]
                 else:
                     self._on_life_lost()
-                    reward -= 100.0
+                    reward -= 1.0
                     if not self._game_over:
                         # Reset positions
                         self._player_x, self._player_y = _PLAYER_START
@@ -261,9 +260,9 @@ class MsPacManEnv(AtariBase):
 
         # Level complete?
         if self._pellet_count <= 0:
-            self._on_point_scored(500)
-            reward += 500.0
-            self._message = "Level complete! +500"
+            self._on_point_scored(5)
+            reward += 5.0
+            self._message = "Level complete! +5"
             self._level += 1
             self._generate_level(self._level)
 

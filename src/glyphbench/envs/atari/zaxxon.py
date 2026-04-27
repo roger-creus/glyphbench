@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class ZaxxonEnv(AtariBase):
     """Zaxxon: scrolling shooter with fuel.
 
@@ -22,8 +21,8 @@ class ZaxxonEnv(AtariBase):
     dodge walls, manage fuel. Destroy fuel depots to refuel.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +20 per enemy, +10 per fuel depot
-    Lives: 3
+    Reward: +2 per enemy, +1 per fuel depot
+
     """
 
     action_spec = ActionSpec(
@@ -156,13 +155,13 @@ class ZaxxonEnv(AtariBase):
                         self._fuel = min(
                             self._MAX_FUEL, self._fuel + 30
                         )
-                        self._on_point_scored(10)
-                        reward += 10
-                        self._message = "Fuel +30! +10pts"
+                        self._on_point_scored(1)
+                        reward += 1
+                        self._message = "Fuel +30! +1pt"
                     else:
-                        self._on_point_scored(20)
-                        reward += 20
-                        self._message = "Enemy down! +20"
+                        self._on_point_scored(2)
+                        reward += 2
+                        self._message = "Enemy down! +2"
                     break
         # Player-enemy collision
         for e in self._enemies:
@@ -174,8 +173,8 @@ class ZaxxonEnv(AtariBase):
                     self._fuel = min(
                         self._MAX_FUEL, self._fuel + 30
                     )
-                    self._on_point_scored(10)
-                    reward += 10
+                    self._on_point_scored(1)
+                    reward += 1
                     self._message = "Fuel collected!"
                 else:
                     self._on_life_lost()
@@ -285,12 +284,12 @@ class ZaxxonEnv(AtariBase):
             "down. New walls and entities spawn at row 1. Fuel "
             "decreases 1 per step.\n\n"
             "SCORING\n"
-            "+20 reward per enemy 'E' destroyed (shoot or touch). "
-            "+10 reward per fuel depot (shoot or touch; also "
+            "+2 reward per enemy 'E' destroyed (shoot or touch). "
+            "+1 reward per fuel depot (shoot or touch; also "
             "refills +30 fuel, capped at 100). No per-step penalty "
             "beyond the fuel timer.\n\n"
             "TERMINATION\n"
-            "Three lives. Hitting an obstacle wall, colliding with "
+            ". Hitting an obstacle wall, colliding with "
             "an enemy, being crushed by a scrolling wall, or "
             "running out of fuel costs a life and respawns at the "
             "starting position (center, near bottom). Episode ends "

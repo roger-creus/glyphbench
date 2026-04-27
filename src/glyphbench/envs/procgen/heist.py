@@ -71,21 +71,24 @@ class HeistEnv(ProcgenBase):
             # Place key on a floor cell
             kx, ky = floor_cells.pop()
             self._set_cell(kx, ky, key_ch)
-            # Place door: find a corridor cell (has exactly 2 floor neighbors)
+            # Place door: find a corridor cell (has exactly 2 floor neighbors).
+            # Renamed loop var from `dx,dy` (which shadowed the neighbour
+            # delta names below) to `door_x,door_y` \u2014 the prior name collision
+            # caused intermittent same-cell key+door overwrites.
             door_placed = False
-            for i, (dx, dy) in enumerate(floor_cells):
+            for i, (door_x, door_y) in enumerate(floor_cells):
                 adj_floor = 0
-                for ddx, ddy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                    if self._world_at(dx + ddx, dy + ddy) in ("\u00b7", "G", "r", "b", "y"):
+                for ndx, ndy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    if self._world_at(door_x + ndx, door_y + ndy) in ("\u00b7", "G", "r", "b", "y"):
                         adj_floor += 1
                 if adj_floor == 2:
-                    self._set_cell(dx, dy, door_ch)
+                    self._set_cell(door_x, door_y, door_ch)
                     floor_cells.pop(i)
                     door_placed = True
                     break
             if not door_placed and floor_cells:
-                dx, dy = floor_cells.pop()
-                self._set_cell(dx, dy, door_ch)
+                door_x, door_y = floor_cells.pop()
+                self._set_cell(door_x, door_y, door_ch)
 
         # --- Reachability fix: ensure keys are obtainable in sequence ---
         self._fix_key_reachability(w, h)
@@ -233,7 +236,7 @@ class HeistEnv(ProcgenBase):
 
         # Check goal
         if self._agent_x == self._goal_x and self._agent_y == self._goal_y:
-            reward = 10.0
+            reward = 5.0
             terminated = True
             self._message = "You reached the goal!"
 
@@ -250,10 +253,9 @@ class HeistEnv(ProcgenBase):
             )
         else:
             held = "none"
-        extra = (
-            f"Keys: {held}"
-            f"  Goal: ({self._goal_x},{self._goal_y})"
-        )
+        # Goal coordinates removed — the gem is visible on the grid via its
+        # legend glyph, the agent should locate it visually.
+        extra = f"Keys held: {held}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,
@@ -263,7 +265,7 @@ class HeistEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Navigate the maze, collect colored keys (r/b/y) to open matching "
-            "doors (R/B/Y), and reach the goal (G) for +10 reward."
+            "doors (R/B/Y), and reach the goal (G) for +5 reward."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

@@ -823,12 +823,7 @@ class CraftaxDungeonExploreEnv(_SubtaskMixin, CraftaxClassicEnv):
                     symbols_seen.add(TILE_DUNGEON_WALL)
             grid.append(row)
 
-        hud = (
-            f"HP: {self._hp}/{self._max_hp}  "
-            f"Step: {self._turn}\n"
-            f"Facing: {facing_name}\n"
-            f"Position: ({self._agent_x}, {self._agent_y})"
-        )
+        hud = f"HP: {self._hp}/{self._max_hp}  Step: {self._turn}"
 
         tile_meanings: dict[str, str] = {
             TILE_DUNGEON_WALL: "dungeon wall (impassable)",

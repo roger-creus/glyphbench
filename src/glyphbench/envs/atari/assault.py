@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class AssaultEnv(AtariBase):
     """Assault: defend with a turret against descending enemies.
 
@@ -22,8 +21,8 @@ class AssaultEnv(AtariBase):
     at bottom can move left/right and fire upward.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Reward: +10 per enemy, +25 per formation leader
-    Lives: 3
+    Reward: +1 per enemy, +2 per formation leader
+
     """
 
     action_spec = ActionSpec(
@@ -127,7 +126,7 @@ class AssaultEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    pts = 25 if e.etype == "leader" else 10
+                    pts = 2 if e.etype == "leader" else 1
                     self._on_point_scored(pts)
                     reward += pts
                     self._message = f"Enemy hit! +{pts}"
@@ -222,8 +221,8 @@ class AssaultEnv(AtariBase):
     def _symbol_meaning(self, ch: str) -> str:
         return {
             "─": "wall", "│": "wall",
-            "A": "formation leader (25pts)",
-            "a": "enemy (10pts)",
+            "A": "formation leader (2pts)",
+            "a": "enemy (1pt)",
             "!": "your bullet", "↓": "enemy bullet",
             "[": "turret base", "]": "turret base",
             " ": "empty",
@@ -271,10 +270,10 @@ class AssaultEnv(AtariBase):
             "Formations respawn when cleared or every 30 steps; "
             "clearing a formation advances the wave level.\n\n"
             "SCORING\n"
-            "+25 reward for shooting a formation leader ('A'). +10 "
+            "+2 reward for shooting a formation leader ('A'). +1 "
             "reward for a wingman ('a'). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Being hit by an enemy bullet or an enemy "
+            ". Being hit by an enemy bullet or an enemy "
             "reaching your row costs one life and respawns you at "
             "center column. Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

@@ -15,7 +15,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase
 
-
 class BreakoutEnv(AtariBase):
     """Breakout: paddle-and-ball brick-breaker.
 
@@ -24,7 +23,7 @@ class BreakoutEnv(AtariBase):
 
     Actions: NOOP, FIRE, LEFT, RIGHT
     Reward: +1 per brick broken
-    Lives: 3
+
     """
 
     action_spec = ActionSpec(
@@ -208,8 +207,8 @@ class BreakoutEnv(AtariBase):
 
             # Check level clear
             if len(self._bricks) == 0:
-                self._on_point_scored(10)
-                reward += 10
+                self._on_point_scored(5)
+                reward += 5
                 self._message = "Level clear!"
                 self._level += 1
                 self._generate_level(self._level)
@@ -318,11 +317,11 @@ class BreakoutEnv(AtariBase):
             "position (left cell => dx=-1, right cell => dx=+1, middle "
             "keeps dx).\n\n"
             "SCORING\n"
-            "+1 reward per brick broken. +10 bonus when the last brick "
+            "+1 reward per brick broken. +5 bonus when the last brick "
             "is cleared (level-up bonus). Missing the ball gives no "
             "explicit penalty but costs a life.\n\n"
             "TERMINATION\n"
-            "Three lives. If the ball goes past the paddle row, you "
+            ". If the ball goes past the paddle row, you "
             "lose a life and re-serve. Episode ends at 0 lives or "
             "after max_turns.\n\n"
             "HUD\n"

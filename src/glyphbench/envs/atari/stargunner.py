@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class StarGunnerEnv(AtariBase):
     """Star Gunner: side-scrolling space shooter.
 
@@ -22,8 +21,8 @@ class StarGunnerEnv(AtariBase):
     Shoot them before they pass or hit you.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +10 per enemy, +5 bonus item
-    Lives: 3
+    Reward: +1/+2/+3 per enemy by type, +3 wave clear
+
     """
 
     action_spec = ActionSpec(
@@ -97,7 +96,7 @@ class StarGunnerEnv(AtariBase):
         )
         e.data["timer"] = 0
         e.data["fire_cd"] = int(rng.integers(8, 20))
-        e.data["pts"] = (etype + 1) * 10
+        e.data["pts"] = etype + 1
         self._enemies.append(e)
 
     def _game_step(
@@ -141,7 +140,7 @@ class StarGunnerEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    pts = e.data.get("pts", 10)
+                    pts = e.data.get("pts", 1)
                     self._on_point_scored(pts)
                     reward += pts
                     self._enemies_killed += 1
@@ -214,9 +213,9 @@ class StarGunnerEnv(AtariBase):
 
         # Level clear
         if self._enemies_killed >= self._wave_target:
-            self._on_point_scored(50)
-            reward += 50
-            self._message = "Wave cleared! +50"
+            self._on_point_scored(3)
+            reward += 3
+            self._message = "Wave cleared! +3"
             self._level += 1
             self._generate_level(self._level)
 
@@ -302,11 +301,11 @@ class StarGunnerEnv(AtariBase):
             "move dx=-2. Each enemy fires a bullet leftward every "
             "fire_cd steps (8-20, random).\n\n"
             "SCORING\n"
-            "+10 per fighter, +20 per bomber, +30 per ace. +50 "
+            "+1 per fighter, +2 per bomber, +3 per ace. +3 "
             "reward when you reach the wave target (8 + 2*level "
             "kills). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Being hit by an enemy bullet or "
+            ". Being hit by an enemy bullet or "
             "colliding with an enemy costs a life and respawns "
             "you at (3, mid). Episode ends at 0 lives or after "
             "max_turns.\n\n"

@@ -65,7 +65,8 @@ class TestAtariBaseInit:
     def test_initial_state_before_reset(self) -> None:
         env = make_env()
         assert env._score == 0
-        assert env._lives == 3
+        # GlyphBench uses single-life Atari (death = episode terminates).
+        assert env._lives == 1
         assert env._level == 1
         assert env._game_over is False
         assert env._entities == []
@@ -140,13 +141,14 @@ class TestAtariBaseReset:
         env.reset(0)
         # Manually dirty the state
         env._score = 100
-        env._lives = 1
+        env._lives = 0
         env._entities.append(
             AtariEntity(etype="enemy", char="E", x=2, y=2)
         )
         env.reset(0)
         assert env._score == 0
-        assert env._lives == 3
+        # Single-life model: reset re-arms exactly one life.
+        assert env._lives == 1
         assert env._entities == []
 
     def test_reset_determinism(self) -> None:
@@ -181,19 +183,19 @@ class TestAtariBaseObservation:
         env.reset(0)
         obs_obj = env.get_observation()
         hud = obs_obj.hud
+        # Single-life model: HUD has Score + Level (no Lives field).
+        # HUD is computed for info-dict only — never shown to the model.
         assert "Score:" in hud
-        assert "Lives:" in hud
         assert "Level:" in hud
+        assert "Lives" not in hud
 
-    def test_hud_reflects_score_and_lives(self) -> None:
+    def test_hud_reflects_score_and_level(self) -> None:
         env = make_env()
         env.reset(0)
         env._score = 42
-        env._lives = 2
         env._level = 3
         obs_obj = env.get_observation()
         assert "42" in obs_obj.hud
-        assert "2" in obs_obj.hud
         assert "3" in obs_obj.hud
 
     def test_player_shown_as_at_sign(self) -> None:
@@ -226,17 +228,10 @@ class TestAtariBaseScoreAndLives:
         env._on_point_scored(3)
         assert env._score == 8
 
-    def test_on_life_lost_decrements_lives(self) -> None:
+    def test_on_life_lost_terminates_immediately(self) -> None:
+        # Single-life model: any life-loss event ends the episode.
         env = make_env()
         env.reset(0)
-        env._on_life_lost()
-        assert env._lives == 2
-        assert env._game_over is False
-
-    def test_on_life_lost_triggers_game_over(self) -> None:
-        env = make_env()
-        env.reset(0)
-        env._lives = 1
         env._on_life_lost()
         assert env._lives == 0
         assert env._game_over is True
@@ -245,7 +240,6 @@ class TestAtariBaseScoreAndLives:
     def test_game_over_terminates_step(self) -> None:
         env = make_env()
         env.reset(0)
-        env._lives = 1
         env._on_life_lost()
         noop = env.action_spec.index_of("NOOP")
         _, _, terminated, _, _ = env.step(noop)
@@ -310,14 +304,15 @@ class TestAtariBaseEntities:
 
 
 class TestAtariBaseStep:
-    def test_step_info_contains_score_lives_level(self) -> None:
+    def test_step_info_contains_score_and_level(self) -> None:
+        # Single-life model: info no longer carries a "lives" key.
         env = make_env()
         env.reset(0)
         noop = env.action_spec.index_of("NOOP")
         _, _, _, _, info = env.step(noop)
         assert "score" in info
-        assert "lives" in info
         assert "level" in info
+        assert "lives" not in info
 
     def test_step_advances_entities(self) -> None:
         env = make_env()

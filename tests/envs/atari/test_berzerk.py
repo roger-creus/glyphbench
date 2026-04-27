@@ -78,7 +78,7 @@ class TestBerzerk:
             total_reward += r
             if total_reward > 0:
                 break
-        assert total_reward >= 50.0 or env._robots_killed > 0
+        assert total_reward >= 1.0 or env._robots_killed > 0
 
     def test_robot_collision_loses_life(self):
         env = self._make_env()

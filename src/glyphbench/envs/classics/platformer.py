@@ -255,7 +255,7 @@ class PlatformerEnv(BaseGlyphEnv):
         # --- Check flag ---
         if self._px == self._flag_x and self._py == self._flag_y:
             terminated = True
-            reward = 10.0
+            reward = 5.0
             self._message = "Reached the flag! Victory!"
             info["outcome"] = "victory"
             return self._render_current_observation(), reward, terminated, False, info
@@ -323,7 +323,6 @@ class PlatformerEnv(BaseGlyphEnv):
 
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Position: ({self._px}, {self._py})    "
             f"Grounded: {'yes' if self._grounded else 'no'}    "
             f"Progress: {self._px}/{self._flag_x}"
         )
@@ -349,7 +348,7 @@ class PlatformerEnv(BaseGlyphEnv):
             "- Gravity pulls you down 1 cell per step when airborne.\n"
             "- Falling off the bottom of the level ends the game (-1 reward).\n"
             "- Touching an enemy ends the game (-1 reward).\n"
-            "- Reaching the flag wins (+10 reward).\n"
+            "- Reaching the flag wins (+5 reward).\n"
             "- +0.1 reward for each new rightward position reached.\n\n"
             + self.action_spec.render_for_prompt()
         )

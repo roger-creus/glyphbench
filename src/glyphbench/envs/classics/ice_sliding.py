@@ -195,10 +195,7 @@ class _IceSlidingBase(BaseGlyphEnv):
             SYM_WALL: "wall",
         })
 
-        hud = (
-            f"Step: {self._turn} / {self.max_turns}    "
-            f"Position: ({px}, {py})"
-        )
+        hud = f"Step: {self._turn} / {self.max_turns}"
 
         return GridObservation(grid=grid_to_string(grid), legend=legend, hud=hud, message="")
 

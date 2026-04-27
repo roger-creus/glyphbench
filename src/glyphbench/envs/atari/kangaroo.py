@@ -15,7 +15,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase
 
-
 class KangarooEnv(AtariBase):
     """Kangaroo: vertical platformer.
 
@@ -42,9 +41,9 @@ class KangarooEnv(AtariBase):
     _WIDTH = 20
     _HEIGHT = 20
 
-    def __init__(self, max_turns: int = 10000) -> None:
+    def __init__(self, max_turns: int = 1000) -> None:
         super().__init__(max_turns=max_turns)
-        self._lives = 3
+        self._lives = 1
         self._jumping: bool = False
         self._jump_vy: int = 0
         self._fruits_collected: int = 0
@@ -215,9 +214,9 @@ class KangarooEnv(AtariBase):
                     and e.y == self._player_y
                 ):
                     e.alive = False
-                    self._on_point_scored(50)
-                    reward += 50
-                    self._message = "Punched monkey! +50"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = "Punched monkey! +2"
 
         # Enemy bounce
         for e in self._entities:
@@ -242,14 +241,14 @@ class KangarooEnv(AtariBase):
                 elif e.etype == "fruit":
                     e.alive = False
                     self._fruits_collected += 1
-                    self._on_point_scored(100)
-                    reward += 100
-                    self._message = "Fruit! +100"
+                    self._on_point_scored(3)
+                    reward += 3
+                    self._message = "Fruit! +3"
                 elif e.etype == "baby":
                     e.alive = False
-                    self._on_point_scored(200)
-                    reward += 200
-                    self._message = "Baby rescued! +200"
+                    self._on_point_scored(10)
+                    reward += 10
+                    self._message = "Baby rescued! +10"
                     # Next level
                     self._level += 1
                     self._generate_level(self._level)
@@ -322,11 +321,11 @@ class KangarooEnv(AtariBase):
             "a ladder, you fall 1 row per step until you land on a "
             "platform. Monkeys reverse direction at walls/platforms.\n\n"
             "SCORING\n"
-            "+50 reward per monkey punched. +100 reward per fruit "
-            "collected. +200 reward for rescuing the baby (walking "
+            "+2 reward per monkey punched. +3 reward per fruit "
+            "collected. +10 reward for rescuing the baby (walking "
             "onto B). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Touching a monkey (without punching) costs "
+            ". Touching a monkey (without punching) costs "
             "a life and respawns you at (2, ground-1). Rescuing the "
             "baby advances the level. Episode ends at 0 lives or "
             "after max_turns.\n\n"

@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase
 
-
 class QbertEnv(AtariBase):
     """Q*bert: hop on cubes in a pyramid to change their color.
 
@@ -22,7 +21,7 @@ class QbertEnv(AtariBase):
     Mapped to a 15x15 grid. Enemies descend periodically.
 
     Actions: NOOP, UP_RIGHT, UP_LEFT, DOWN_RIGHT, DOWN_LEFT
-    Reward: +25 per cube colored, +100 level clear
+    Reward: +1 per cube colored, +5 level clear
     """
 
     action_spec = ActionSpec(
@@ -132,9 +131,9 @@ class QbertEnv(AtariBase):
                 # Color the cube
                 if not self._cubes[(new_row, new_col)]:
                     self._cubes[(new_row, new_col)] = True
-                    self._on_point_scored(25)
-                    reward += 25
-                    self._message = "Cube colored! +25"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Cube colored! +1"
             else:
                 # Fell off the pyramid
                 self._on_life_lost()
@@ -148,9 +147,9 @@ class QbertEnv(AtariBase):
 
         # Check level complete
         if all(self._cubes.values()):
-            self._on_point_scored(100)
-            reward += 100
-            self._message = "Level clear! +100"
+            self._on_point_scored(5)
+            reward += 5
+            self._message = "Level clear! +5"
             self._level += 1
             self._cubes = {pos: False for pos in self._cube_positions}
 
@@ -266,11 +265,11 @@ class QbertEnv(AtariBase):
             "apex every 8 steps and descend randomly along diagonal "
             "edges one cube at a time.\n\n"
             "SCORING\n"
-            "+25 reward per cube colored (only the first visit to a "
-            "cube counts). +100 reward when every cube is colored "
+            "+1 reward per cube colored (only the first visit to a "
+            "cube counts). +5 reward when every cube is colored "
             "(level clear). No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Falling off the pyramid or landing on an "
+            ". Falling off the pyramid or landing on an "
             "enemy's cube costs a life and respawns at the apex. "
             "Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

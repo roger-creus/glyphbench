@@ -14,7 +14,6 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 class PhoenixEnv(AtariBase):
     """Phoenix: shoot waves of descending birds.
 
@@ -22,8 +21,8 @@ class PhoenixEnv(AtariBase):
     Every 3 waves a boss appears.
 
     Actions: NOOP, LEFT, RIGHT, FIRE, SHIELD
-    Reward: +10 per bird, +50 per boss hit
-    Lives: 3
+    Reward: +1 per bird, +2 per boss hit
+
     """
 
     action_spec = ActionSpec(
@@ -147,9 +146,9 @@ class PhoenixEnv(AtariBase):
                 ):
                     bird.alive = False
                     b.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
-                    self._message = "Bird hit! +10"
+                    self._on_point_scored(1)
+                    reward += 1
+                    self._message = "Bird hit! +1"
                     break
 
         # Bullet-boss collision
@@ -162,8 +161,8 @@ class PhoenixEnv(AtariBase):
                 ):
                     b.alive = False
                     self._boss_hp -= 1
-                    self._on_point_scored(50)
-                    reward += 50
+                    self._on_point_scored(2)
+                    reward += 2
                     if self._boss_hp <= 0:
                         self._boss.alive = False
                         self._message = "Boss destroyed!"
@@ -346,11 +345,11 @@ class PhoenixEnv(AtariBase):
             "steps a random enemy fires a bullet downward (max 3 "
             "enemy bullets).\n\n"
             "SCORING\n"
-            "+10 reward per bird destroyed. +50 reward per boss "
+            "+1 reward per bird destroyed. +2 reward per boss "
             "hit (boss HP = 5 + level; each hit is one point). "
             "No per-step penalty.\n\n"
             "TERMINATION\n"
-            "Three lives. Being hit by an enemy bullet or swooped "
+            ". Being hit by an enemy bullet or swooped "
             "by a bird costs a life (unless shield active). "
             "Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"

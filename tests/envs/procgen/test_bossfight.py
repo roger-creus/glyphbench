@@ -78,7 +78,8 @@ class TestBossFight:
         env._agent_y = env._boss_y + 1
         fire = env.action_spec.index_of("FIRE")
         _, reward, terminated, _, _ = env.step(fire)
-        assert reward >= 10.0
+        # Hit (+1) + boss-defeat bonus (+5) under the standardised scales.
+        assert reward >= 5.0
         assert terminated
 
     def test_random_rollout(self):

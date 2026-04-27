@@ -24,12 +24,11 @@ _UNPAINTED = "·"
 _PAINTED = "="
 _ENEMY_CHAR = "e"
 
-
 class AmidarEnv(AtariBase):
     """Amidar: paint grid segments by walking over them.
 
     Actions: NOOP, UP, RIGHT, LEFT, DOWN
-    Reward: +10 per segment painted, +100 when grid fully painted.
+    Reward: +1 per segment painted, +5 when grid fully painted.
     Enemies patrol segments. Contact = lose a life.
     """
 
@@ -79,12 +78,12 @@ class AmidarEnv(AtariBase):
             "along the tracks, horizontal and vertical; at intersections "
             "they may turn (30 percent chance) or reverse when blocked.\n\n"
             "SCORING\n"
-            "+10 reward per unpainted segment you paint. +100 reward when "
+            "+1 reward per unpainted segment you paint. +5 reward when "
             "you paint the final segment and the level resets with more "
-            "enemies. Colliding with an enemy gives -50 reward and costs "
+            "enemies. Colliding with an enemy gives -1 reward and costs "
             "a life.\n\n"
             "TERMINATION\n"
-            "Three lives; on contact with an enemy you respawn at (1,1) "
+            "; on contact with an enemy you respawn at (1,1) "
             "and lose one life. Episode ends when lives reach 0 or after "
             "max_turns.\n\n"
             "HUD\n"
@@ -184,8 +183,8 @@ class AmidarEnv(AtariBase):
         if cell == _UNPAINTED:
             self._set_cell(self._player_x, self._player_y, _PAINTED)
             self._painted_segments += 1
-            self._on_point_scored(10)
-            reward += 10.0
+            self._on_point_scored(1)
+            reward += 1.0
 
         # Move enemies
         for e in self._entities:
@@ -197,7 +196,7 @@ class AmidarEnv(AtariBase):
         for e in self._entities:
             if e.etype == "enemy" and e.alive and e.x == self._player_x and e.y == self._player_y:
                     self._on_life_lost()
-                    reward -= 50.0
+                    reward -= 1.0
                     if not self._game_over:
                         self._player_x = 1
                         self._player_y = 1
@@ -206,8 +205,8 @@ class AmidarEnv(AtariBase):
         # Check level complete
         terminated = False
         if self._painted_segments >= self._total_segments:
-            self._on_point_scored(100)
-            reward += 100.0
+            self._on_point_scored(5)
+            reward += 5.0
             self._message = "Level complete!"
             self._level += 1
             self._generate_level(self._level * 6173)

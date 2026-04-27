@@ -71,7 +71,8 @@ class Goal(WorldObject):
 class Lava(WorldObject):
     def __post_init__(self) -> None:
         self.obj_type = "lava"
-        self.char = "\u2667"  # ♧ (lava)
+        # Was \u2667 (collided with purple Key). Use \u2668 (hot springs).
+        self.char = "\u2668"  # ♨ (hot springs / lava)
         self.can_overlap = True
         self.can_pickup = False
 
@@ -129,7 +130,7 @@ _DOOR_OPEN_CHARS: dict[str, str] = {
     "red": "\u2524",    # ┤
     "green": "\u251c",  # ├
     "blue": "\u252c",   # ┬
-    "yellow": "\u2534", # ��
+    "yellow": "\u2534", # ┴
     "purple": "\u253c", # ┼
     "grey": "\u2502",   # │
 }

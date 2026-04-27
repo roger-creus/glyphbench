@@ -78,12 +78,17 @@ class ChaserEnv(ProcgenBase):
             (w - 2, h - 2),
         ]
         for ex, ey in enemy_positions:
-            if self._world_at(ex, ey) in (_PELLET, _FLOOR, _POWER):
-                if self._world_at(ex, ey) == _PELLET:
+            tile = self._world_at(ex, ey)
+            if tile in (_PELLET, _FLOOR, _POWER):
+                # If a ghost spawns on a power pellet, leave the pellet
+                # in place (do NOT overwrite with floor — the prior bug
+                # silently erased the only power pellet on most maps).
+                if tile == _PELLET:
                     self._pellet_count -= 1
-                elif self._world_at(ex, ey) == _POWER:
-                    pass  # power pellet stays logically
-                self._set_cell(ex, ey, _FLOOR)
+                    self._set_cell(ex, ey, _FLOOR)
+                elif tile == _FLOOR:
+                    pass
+                # tile == _POWER: keep the cell as _POWER under the ghost.
                 self._add_entity(
                     "ghost", "E", ex, ey,
                     data={"scared": False, "home_x": ex, "home_y": ey},
@@ -227,7 +232,7 @@ class ChaserEnv(ProcgenBase):
 
         # Check level clear
         if self._pellet_count <= 0:
-            reward += 10.0
+            reward += 5.0
             terminated = True
             self._message = "Level cleared!"
 
@@ -256,7 +261,7 @@ class ChaserEnv(ProcgenBase):
             "Collect all pellets (\u00b7) in the maze. Ghosts (E) chase you -- "
             "touching one kills you. Eat a power pellet (O) to make ghosts "
             "scared (F) for 15 steps, allowing you to eat them for +2. "
-            "+0.5 per pellet. +10 for clearing the level."
+            "+0.5 per pellet. +5 for clearing the level."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

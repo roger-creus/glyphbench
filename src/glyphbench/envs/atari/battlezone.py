@@ -14,10 +14,8 @@ from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
-
 def _sign(a: int, b: int) -> int:
     return 1 if a > b else (-1 if a < b else 0)
-
 
 class BattleZoneEnv(AtariBase):
     """BattleZone: top-down tank combat.
@@ -26,8 +24,8 @@ class BattleZoneEnv(AtariBase):
     Obstacles provide cover. Enemies fire back.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +100 per enemy tank destroyed
-    Lives: 3
+    Reward: +2 per enemy tank destroyed
+
     """
 
     action_spec = ActionSpec(
@@ -152,9 +150,9 @@ class BattleZoneEnv(AtariBase):
                 if t.alive and t.x == b.x and t.y == b.y:
                     t.alive = False
                     b.alive = False
-                    self._on_point_scored(100)
-                    reward += 100
-                    self._message = "Tank destroyed! +100"
+                    self._on_point_scored(2)
+                    reward += 2
+                    self._message = "Tank destroyed! +2"
                     break
         # Enemy AI
         for t in self._tanks:
@@ -249,7 +247,7 @@ class BattleZoneEnv(AtariBase):
     def _symbol_meaning(self, ch: str) -> str:
         return {
             "─": "wall", "│": "wall", "█": "obstacle",
-            "T": "enemy tank (100pts)", "*": "your bullet",
+            "T": "enemy tank (2pts)", "*": "your bullet",
             "o": "enemy bullet", " ": "ground",
         }.get(ch, ch)
 
@@ -296,11 +294,11 @@ class BattleZoneEnv(AtariBase):
             "dominant axis. Bullets travel 1 cell per step and die on "
             "walls, obstacles, or edges.\n\n"
             "SCORING\n"
-            "+100 reward for each enemy tank destroyed. No per-step "
+            "+2 reward for each enemy tank destroyed. No per-step "
             "penalty. Up to 3 enemies alive at once; a new one spawns "
             "every 20 steps.\n\n"
             "TERMINATION\n"
-            "Three lives. Being hit by an enemy bullet or colliding with "
+            ". Being hit by an enemy bullet or colliding with "
             "a tank costs one life and respawns you at the starting "
             "position. Episode ends at 0 lives or after max_turns.\n\n"
             "HUD\n"
