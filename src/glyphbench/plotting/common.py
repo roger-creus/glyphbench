@@ -1,7 +1,8 @@
-"""Data loaders and normalization for benchmark results.
+"""Data loaders for benchmark results.
 
 These functions operate on the on-disk parquet format produced by RunStorage.
-No Python imports from runner, providers, harness, or envs.
+``compute_normalized_scores`` is a per-call utility — there is no benchmark-
+wide normalisation. Callers may use it to build their own analyses.
 """
 
 from __future__ import annotations

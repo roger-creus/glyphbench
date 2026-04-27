@@ -9,8 +9,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from glyphbench.plotting.paper_figures.fig_cost_scatter import generate as gen_cost
-from glyphbench.plotting.paper_figures.fig_main_results import generate as gen_main
 from glyphbench.plotting.paper_figures.fig_parse_failures import generate as gen_parse
 from glyphbench.plotting.paper_figures.fig_return_distributions import (
     generate as gen_returns,
@@ -22,7 +20,8 @@ def main(runs_dir: str, output_dir: str) -> None:
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    generators = [gen_main, gen_returns, gen_cost, gen_parse, gen_tokens]
+    # All figures consume RAW per-task per-model returns — no normalisation.
+    generators = [gen_returns, gen_parse, gen_tokens]
     for gen in generators:
         try:
             gen(runs_dir, str(out))
