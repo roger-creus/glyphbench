@@ -12,8 +12,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import re
 import sys
 import time
 from pathlib import Path
@@ -117,6 +115,29 @@ def render_colored(text: str) -> str:
     return "\n".join(output)
 
 
+def _step_memory(step: dict) -> str:
+    """Return stored memory for either legacy step logs or verifiers extras."""
+    extras = step.get("extras")
+    extras_memory = (
+        extras.get("glyphbench_memory") if isinstance(extras, dict) else None
+    )
+    candidates = [
+        step.get("memory"),
+        step.get("stored_memory"),
+        step.get("glyphbench_memory"),
+        extras_memory,
+    ]
+    for candidate in candidates:
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+        if isinstance(candidate, dict):
+            for key in ("stored_memory", "parsed_memory", "memory"):
+                value = candidate.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+    return ""
+
+
 CURSOR_HOME = "\033[H"
 ERASE_TO_END = "\033[J"
 CLEAR_SCREEN = "\033[2J"
@@ -171,10 +192,15 @@ def _step_frame(step: dict, path: Path) -> str:
     ]
     if parse_failed:
         lines.append("\033[1;31m  [PARSE FAILED - fell back to NOOP]\033[0m")
+    observation = step["observation"]
+    memory = _step_memory(step)
+    if memory:
+        observation = f"{observation}\n\n[Memory]\n{memory}"
+
     lines.extend([
         f"\033[1m{'=' * 70}\033[0m",
         "",
-        render_colored(step["observation"]),
+        render_colored(observation),
         "",
     ])
     return "\n".join(lines)
@@ -223,16 +249,13 @@ def export_gif(
         print("ERROR: Pillow required for GIF export. Install with: uv add Pillow")
         sys.exit(1)
 
-    # Strip ANSI codes for image rendering
-    ansi_re = re.compile(r"\033\[[0-9;]*m")
-
     # Try to load a monospace font
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", font_size)
-    except (OSError, IOError):
+    except OSError:
         try:
             font = ImageFont.truetype("DejaVuSansMono.ttf", font_size)
-        except (OSError, IOError):
+        except OSError:
             font = ImageFont.load_default()
 
     char_w = font.getbbox("M")[2]
@@ -257,6 +280,9 @@ def export_gif(
 
     for step in steps:
         obs = step["observation"]
+        memory = _step_memory(step)
+        if memory:
+            obs = f"{obs}\n\n[Memory]\n{memory}"
         turn = step["turn"]
         action = step["action_name"]
         cum_reward = step["cumulative_reward"]

@@ -90,6 +90,42 @@ def test_user_turn_zero_no_history_section(game):
     assert "[Actions]" in text
 
 
+def test_user_turn_omits_memory_by_default(game):
+    frames: deque = deque(maxlen=4)
+    text = render_user_turn(
+        game, frames, current_obs="[Grid]\n.", turn=0, max_output_tokens=512
+    )
+    assert "[Memory]" not in text
+
+
+def test_user_turn_includes_memory_when_provided(game):
+    frames: deque = deque(maxlen=4)
+    text = render_user_turn(
+        game,
+        frames,
+        current_obs="[Grid]\n.",
+        turn=0,
+        max_output_tokens=512,
+        memory="visited start",
+    )
+    assert text.startswith("[Memory]")
+    assert "<memory>\nvisited start\n</memory>" in text
+
+
+def test_user_turn_includes_empty_memory_block_when_enabled(game):
+    frames: deque = deque(maxlen=4)
+    text = render_user_turn(
+        game,
+        frames,
+        current_obs="[Grid]\n.",
+        turn=0,
+        max_output_tokens=512,
+        memory="",
+    )
+    assert text.startswith("[Memory]")
+    assert "<memory>\n\n</memory>" in text
+
+
 def test_user_turn_with_history_dedups_legend(game):
     frames = deque(
         [

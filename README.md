@@ -108,6 +108,7 @@ env = glyphbench.load_environment(
     num_episodes=5,              # default
     n_frames=0,                  # stateless per turn (default)
     max_output_tokens=8192,      # match your --max-tokens
+    use_memory=False,            # optional carried memory scaffold
 )
 ```
 
@@ -122,6 +123,17 @@ Unicode grid. An optional frame-stacked history window is available
 system prompt advertises the output-token budget the eval is run with so the
 model can self-pace its reasoning. All observations are deterministic —
 identical seeds produce identical trajectories.
+
+Set `use_memory=True` to add an opt-in memory scaffold across all environments.
+Each environment step then uses two model generations: one for the action and
+one for a concise memory update conditioned on the action response, reward,
+done flags, and the same HUD-stripped next-observation view used for action
+selection. For RL, those two generations are stored as one trajectory step so
+action tokens and memory-update tokens train together with the same task reward.
+`memory_update_max_tokens` can override only the second generation's token
+limit; by default it reuses the action sampling limit.
+Memory-aware trajectories show previous and updated memory in `glyphbench replay`;
+the standalone trajectory/GIF renderer also includes stored memory when present.
 
 ## Scoring
 

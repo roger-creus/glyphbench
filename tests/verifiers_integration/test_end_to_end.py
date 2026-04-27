@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 import glyphbench
-from glyphbench.core import make_env
 
 
 @pytest.mark.asyncio

@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import re
 from collections import deque
-from typing import Iterable
+from collections.abc import Iterable
 
 from glyphbench.core.base_env import BaseGlyphEnv
 
@@ -91,6 +91,8 @@ def render_user_turn(
     current_obs: str,
     turn: int,
     max_output_tokens: int,
+    *,
+    memory: str | None = None,
 ) -> str:
     """Render the user-turn message for the current timestep.
 
@@ -101,6 +103,7 @@ def render_user_turn(
         current_obs: the full ``GridObservation.render()`` text for this turn.
         turn: the absolute turn number (``game.turn`` after the last step).
         max_output_tokens: per-turn LLM budget, echoed in the footer reminder.
+        memory: optional carried state to show before the current observation.
 
     Returns:
         The user-turn string.
@@ -116,6 +119,15 @@ def render_user_turn(
         legend_lines.setdefault(line, None)
 
     parts: list[str] = []
+    if memory is not None:
+        parts.append(
+            "[Memory]\n"
+            "Use this as carried state from previous turns. The current "
+            "observation is authoritative if it conflicts.\n\n"
+            "<memory>\n"
+            f"{memory}\n"
+            "</memory>"
+        )
     if legend_lines:
         parts.append("[Legend]\n" + "\n".join(legend_lines))
 
@@ -134,7 +146,7 @@ def render_user_turn(
     # 5. Per-turn format reminder. Stays short — the full response-format
     # rules are in the system prompt; this just nudges the model to emit
     # the action tag now.
-    parts.append(f"Now emit your move as `<action>ACTION_NAME</action>`.")
+    parts.append("Now emit your move as `<action>ACTION_NAME</action>`.")
 
     return "\n\n".join(parts)
 

@@ -4,20 +4,28 @@ from __future__ import annotations
 
 import json
 from collections import deque
+from contextlib import suppress
 from typing import Any
 
 import verifiers as vf
 from datasets import Dataset
+from verifiers.types import Response, TrajectoryStep, TrajectoryStepTokens
+from verifiers.utils.response_utils import parse_response_message, parse_response_tokens
 
 from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.registry import REGISTRY, all_glyphbench_env_ids, make_env
+from glyphbench.verifiers_integration.memory import (
+    build_memory_update_user,
+    extract_memory_update,
+    memory_sampling_args,
+    merge_memory_step_tokens,
+)
 from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
 from glyphbench.verifiers_integration.prompting import (
     build_system_prompt,
     render_user_turn,
 )
 from glyphbench.verifiers_integration.rubric import EpisodicReturnRubric
-
 
 DEFAULT_MAX_OUTPUT_TOKENS = 512
 # Stateless per turn by default — every observation must be readable off
@@ -34,6 +42,8 @@ def load_environment(
     max_turns: int | None = None,
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
     seed: int = DEFAULT_BASE_SEED,
+    use_memory: bool = False,
+    memory_update_max_tokens: int | None = None,
     **kwargs: Any,
 ) -> vf.Environment:
     """Entry point consumed by ``vf-eval`` and ``prime-rl`` orchestrator.
@@ -51,6 +61,11 @@ def load_environment(
                 the system prompt.
         seed: base seed; each episode uses ``seed + episode_idx`` as the
                 per-rollout seed.
+        use_memory: when true, each environment step uses an action generation
+                followed by a memory-update generation, stored as one trainable
+                trajectory segment.
+        memory_update_max_tokens: optional generation limit for the memory
+                update call. ``None`` reuses the action sampling limit.
 
     ``**kwargs`` is intentional: verifiers' generic loader injects
     ``env_id="<package-name>"``. We absorb it (and reject anything else) so
@@ -79,6 +94,8 @@ def load_environment(
         n_frames=n_frames,
         max_turns_override=max_turns,
         max_output_tokens=max_output_tokens,
+        use_memory=use_memory,
+        memory_update_max_tokens=memory_update_max_tokens,
     )
 
 
@@ -92,10 +109,7 @@ def _ensure_envs_loaded() -> None:
 def _resolve_env_ids(env_id: str | list[str] | None) -> list[str]:
     if env_id is None:
         return [i for i in all_glyphbench_env_ids() if "__dummy" not in i]
-    if isinstance(env_id, str):
-        ids = [env_id]
-    else:
-        ids = list(env_id)
+    ids = [env_id] if isinstance(env_id, str) else list(env_id)
     missing = [i for i in ids if i not in REGISTRY]
     if missing:
         raise KeyError(
@@ -137,6 +151,8 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         n_frames: int,
         max_turns_override: int | None,
         max_output_tokens: int,
+        use_memory: bool = False,
+        memory_update_max_tokens: int | None = None,
         **kwargs: Any,
     ) -> None:
         effective_max_turns = max_turns_override if max_turns_override is not None else -1
@@ -150,6 +166,12 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         self.n_frames = int(n_frames)
         self._max_turns_override = max_turns_override
         self._max_output_tokens = int(max_output_tokens)
+        self._use_memory = bool(use_memory)
+        self._memory_update_max_tokens = (
+            None
+            if memory_update_max_tokens is None
+            else int(memory_update_max_tokens)
+        )
         self.parser: GlyphbenchXMLParser = parser  # narrow type
 
     async def setup_state(self, state: dict[str, Any]) -> dict[str, Any]:
@@ -173,36 +195,71 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         state["truncated"] = False
         state["parse_failures"] = 0
         state["episode_return"] = 0.0
+        state["memory_enabled"] = self._use_memory
+        state["memory"] = ""
 
         # Populate the prompt now that we have the game instance.
         system_text = build_system_prompt(game, self._max_output_tokens)
-        initial_user_text = render_user_turn(
-            game,
-            frames=state["frames"],
-            current_obs=obs_text,
-            turn=0,
-            max_output_tokens=self._max_output_tokens,
-        )
+        initial_user_text = self._render_action_user(game, state, turn=0)
         state["prompt"] = [
             vf.SystemMessage(content=system_text),
             vf.UserMessage(content=initial_user_text),
         ]
         return await super().setup_state(state)
 
-    async def env_response(
+    def _render_action_user(
+        self, game: BaseGlyphEnv, state: dict[str, Any], *, turn: int
+    ) -> str:
+        memory = state.get("memory", "") if self._use_memory else None
+        return self._render_observation_user(game, state, turn=turn, memory=memory)
+
+    def _render_observation_user(
+        self,
+        game: BaseGlyphEnv,
+        state: dict[str, Any],
+        *,
+        turn: int,
+        memory: str | None,
+    ) -> str:
+        return render_user_turn(
+            game,
+            frames=state["frames"],
+            current_obs=state["current_obs"],
+            turn=turn,
+            max_output_tokens=self._max_output_tokens,
+            memory=memory,
+        )
+
+    def _last_assistant_text(self, messages: list[dict[str, Any]]) -> str:
+        for m in reversed(messages):
+            if m.get("role") == "assistant":
+                content = m.get("content", "") or ""
+                return content if isinstance(content, str) else str(content)
+        return ""
+
+    def _last_assistant_transcript_text(self, messages: list[dict[str, Any]]) -> str:
+        for m in reversed(messages):
+            if m.get("role") != "assistant":
+                continue
+            content_raw = m.get("content", "") or ""
+            content = content_raw if isinstance(content_raw, str) else str(content_raw)
+            reasoning = m.get("reasoning_content")
+            if (
+                isinstance(reasoning, str)
+                and reasoning.strip()
+                and "<think" not in content.lower()
+            ):
+                return f"<think>\n{reasoning.strip()}\n</think>\n{content}".strip()
+            return content
+        return ""
+
+    def _apply_action_response(
         self,
         messages: list[dict[str, Any]],
         state: dict[str, Any],
-        **kwargs: Any,
-    ) -> list[dict[str, Any]]:
+    ) -> dict[str, Any]:
         game: BaseGlyphEnv = state["game"]
-
-        # The last message in `messages` is the assistant's reply.
-        last_assistant = ""
-        for m in reversed(messages):
-            if m.get("role") == "assistant":
-                last_assistant = m.get("content", "") or ""
-                break
+        last_assistant = self._last_assistant_text(messages)
 
         action_idx, action_name, parse_failed = self.parser.parse_action(
             last_assistant, game.action_spec, noop=game.noop_action_name
@@ -220,19 +277,34 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         state["truncated"] = bool(trunc)
         state["done"] = bool(term or trunc)
 
+        return {
+            "action_idx": action_idx,
+            "action_name": action_name,
+            "parse_failed": parse_failed,
+            "pre_obs": pre_obs,
+            "next_obs": obs_text,
+            "reward": float(reward),
+            "terminated": bool(term),
+            "truncated": bool(trunc),
+        }
+
+    async def env_response(
+        self,
+        messages: list[dict[str, Any]],
+        state: dict[str, Any],
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        game: BaseGlyphEnv = state["game"]
+
+        result = self._apply_action_response(messages, state)
+
         # Set the per-turn reward on the trajectory step verifiers appended
         # before calling env_response.
         traj = state.get("trajectory", [])
         if traj:
-            traj[-1]["reward"] = float(reward)
+            traj[-1]["reward"] = float(result["reward"])
 
-        next_user = render_user_turn(
-            game,
-            frames=state["frames"],
-            current_obs=obs_text,
-            turn=game.turn,
-            max_output_tokens=self._max_output_tokens,
-        )
+        next_user = self._render_action_user(game, state, turn=game.turn)
         response_msg = [vf.UserMessage(content=next_user)]
         if state["done"]:
             # Game ended this turn — signal the rollout loop to skip the
@@ -242,6 +314,13 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
 
     async def get_prompt_messages(self, state: dict[str, Any]) -> list[Any]:
         """Stateless prompt: each turn the LLM sees only [system, current_user_obs]."""
+        if self._use_memory:
+            if len(state["trajectory"]) == 0:
+                return state["prompt"]
+            game: BaseGlyphEnv = state["game"]
+            system_msg = state["prompt"][0]
+            next_user = self._render_action_user(game, state, turn=game.turn)
+            return [system_msg, vf.UserMessage(content=next_user)]
         if len(state["trajectory"]) == 0:
             return state["prompt"]
         prev = state["trajectory"][-1]
@@ -249,6 +328,112 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         new_user = await self.env_response(messages, state)
         system_msg = prev["prompt"][0]
         return [system_msg] + list(new_user)
+
+    async def add_model_response(
+        self,
+        state: dict[str, Any],
+        prompt_messages: list[Any],
+        response: Response,
+    ) -> None:
+        if not self._use_memory:
+            await super().add_model_response(state, prompt_messages, response)
+            return
+
+        action_completion = await parse_response_message(response)
+        action_tokens = await parse_response_tokens(response, self.max_seq_len)
+        response_is_truncated = response.message.is_truncated or False
+        action_is_truncated = response_is_truncated or (
+            action_tokens is not None and bool(action_tokens.get("is_truncated"))
+        )
+        temp_step = TrajectoryStep(
+            prompt=prompt_messages,
+            completion=action_completion,
+            response=response,
+            tokens=action_tokens,
+            reward=None,
+            advantage=None,
+            is_truncated=action_is_truncated,
+            trajectory_id=state["trajectory_id"],
+            extras={},
+        )
+        state["trajectory"].append(temp_step)
+
+        messages_for_action = list(prompt_messages) + list(action_completion)
+        action_result = self._apply_action_response(messages_for_action, state)
+        temp_step["reward"] = float(action_result["reward"])
+
+        previous_memory = state.get("memory", "")
+        action_response_text = self._last_assistant_transcript_text(
+            messages_for_action
+        )
+        game: BaseGlyphEnv = state["game"]
+        next_observation = self._render_observation_user(
+            game,
+            state,
+            turn=game.turn,
+            memory=None,
+        )
+        memory_user = build_memory_update_user(
+            previous_memory=previous_memory,
+            action_response=action_response_text,
+            parsed_action=action_result["action_name"],
+            reward=float(action_result["reward"]),
+            terminated=bool(action_result["terminated"]),
+            truncated=bool(action_result["truncated"]),
+            next_observation=next_observation,
+        )
+        memory_prompt_messages = messages_for_action + [memory_user]
+        memory_response = await self.get_model_response(
+            state,
+            memory_prompt_messages,
+            sampling_args=memory_sampling_args(
+                state.get("sampling_args"), self._memory_update_max_tokens
+            ),
+        )
+        memory_completion = await parse_response_message(memory_response)
+        memory_tokens = await parse_response_tokens(memory_response, self.max_seq_len)
+        memory_response_text = self._last_assistant_text(memory_completion)
+        extraction = extract_memory_update(memory_response_text)
+        state["memory"] = extraction.memory
+
+        memory_response_is_truncated = memory_response.message.is_truncated or False
+        memory_is_truncated = memory_response_is_truncated or (
+            memory_tokens is not None and bool(memory_tokens.get("is_truncated"))
+        )
+        merged_tokens: TrajectoryStepTokens | None = merge_memory_step_tokens(
+            action_tokens=action_tokens,
+            memory_tokens=memory_tokens,
+        )
+        combined_step = TrajectoryStep(
+            prompt=prompt_messages,
+            completion=action_completion + [memory_user] + memory_completion,
+            response=memory_response,
+            tokens=merged_tokens,
+            reward=float(action_result["reward"]),
+            advantage=None,
+            is_truncated=bool(action_is_truncated or memory_is_truncated),
+            trajectory_id=state["trajectory_id"],
+            extras={
+                "glyphbench_memory": {
+                    "enabled": True,
+                    "previous_memory": previous_memory,
+                    "action_prompt": prompt_messages,
+                    "action_response": action_completion,
+                    "memory_update_prompt": memory_prompt_messages,
+                    "memory_update_response": memory_completion,
+                    "parsed_memory": extraction.memory,
+                    "stored_memory": state["memory"],
+                    "extraction_mode": extraction.mode,
+                    "memory_update_was_truncated": bool(memory_is_truncated),
+                }
+            },
+        )
+        state["trajectory"][-1] = combined_step
+
+        if state["done"]:
+            game: BaseGlyphEnv = state["game"]
+            final_user = self._render_action_user(game, state, turn=game.turn)
+            state["final_env_response"] = [vf.UserMessage(content=final_user)]
 
     async def render_completion(self, state: dict[str, Any]) -> None:
         """Stitch full rollout from trajectory (each step's prompt is stateless)."""
@@ -272,7 +457,5 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
     async def close_game(self, state: dict[str, Any]) -> None:
         game = state.pop("game", None)
         if game is not None:
-            try:
+            with suppress(AttributeError, OSError, RuntimeError):
                 game.close()
-            except (AttributeError, OSError, RuntimeError):
-                pass

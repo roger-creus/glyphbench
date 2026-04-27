@@ -19,9 +19,11 @@ import re
 import subprocess
 import sys
 import tarfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
+
+from glyphbench.verifiers_integration.memory import extract_memory_update
 
 ALL_SUITES = ["minigrid", "minihack", "atari", "procgen", "craftax", "classics"]
 
@@ -70,7 +72,7 @@ def _bundle_dir(results_dir: Path, tar_output: Path | None) -> Path:
     model = agg.get("model", "unknown")
     harness = results_dir.name
     model_slug = _slug_model(model)
-    date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date = datetime.now(UTC).strftime("%Y-%m-%d")
 
     meta = {
         "model": model,
@@ -209,7 +211,7 @@ def _suite_of(env_id: str) -> str:
     return env_id.split("/", 1)[-1].split("-", 1)[0]
 
 
-def _iter_rollouts(files: list[Path]) -> "list[tuple[Path, dict]]":
+def _iter_rollouts(files: list[Path]) -> list[tuple[Path, dict]]:
     """Yield (results_file, rollout_dict) for every parseable row."""
     out: list[tuple[Path, dict]] = []
     for f in files:
@@ -263,23 +265,102 @@ def _filter_rollouts(
     return out
 
 
-def _build_turns(rollout: dict) -> list[tuple[str, str]]:
-    """Walk the rollout into [(user_content, assistant_content), …] in order."""
+def _content_from_role(messages: list[dict], role: str) -> str:
+    msg = next((m for m in messages if m.get("role") == role), None)
+    return (msg or {}).get("content") or ""
+
+
+def _is_memory_update_user(msg: dict) -> bool:
+    return (
+        msg.get("role") == "user"
+        and (msg.get("content") or "").lstrip().startswith("[Memory Update]")
+    )
+
+
+def _extract_prompt_memory(content: str) -> str:
+    match = re.search(
+        r"<\s*memory\s*>(.*?)<\s*/\s*memory\s*>",
+        content or "",
+        re.DOTALL | re.IGNORECASE,
+    )
+    return match.group(1).strip() if match else ""
+
+
+def _attach_memory_update(turn: dict, memory_user: dict, memory_assistant: dict) -> None:
+    memory_text = extract_memory_update(memory_assistant.get("content") or "").memory
+    turn["memory"] = {
+        "previous_memory": _extract_prompt_memory(turn.get("user") or ""),
+        "stored_memory": memory_text,
+        "memory_update_prompt": [memory_user],
+        "memory_update_response": [memory_assistant],
+    }
+
+
+def _build_memory_turns(rollout: dict) -> list[dict] | None:
+    trajectory = rollout.get("trajectory") or []
+    turns: list[dict] = []
+    saw_memory = False
+    for step in trajectory:
+        memory = (step.get("extras") or {}).get("glyphbench_memory")
+        if not memory:
+            continue
+        saw_memory = True
+        prompt = step.get("prompt") or []
+        action_response = memory.get("action_response") or step.get("completion") or []
+        turns.append(
+            {
+                "user": _content_from_role(prompt, "user"),
+                "assistant": _content_from_role(action_response, "assistant"),
+                "memory": memory,
+            }
+        )
+    return turns if saw_memory else None
+
+
+def _build_turns(rollout: dict) -> list[dict]:
+    """Walk the rollout into per-environment-turn display records."""
+    memory_turns = _build_memory_turns(rollout)
+    if memory_turns is not None:
+        return memory_turns
+
     prompt_msgs = rollout.get("prompt") or []
     completion = rollout.get("completion") or []
     initial_user = next((m for m in prompt_msgs if m.get("role") == "user"), None)
-    turns: list[tuple[str, str]] = []
+    turns: list[dict] = []
     i = 0
     if initial_user is not None and completion and completion[0].get("role") == "assistant":
-        turns.append((initial_user.get("content") or "", completion[0].get("content") or ""))
+        turns.append(
+            {
+                "user": initial_user.get("content") or "",
+                "assistant": completion[0].get("content") or "",
+                "memory": None,
+            }
+        )
         i = 1
     while i < len(completion):
         if completion[i].get("role") != "user":
             i += 1
             continue
+        if _is_memory_update_user(completion[i]):
+            if (
+                turns
+                and i + 1 < len(completion)
+                and completion[i + 1].get("role") == "assistant"
+            ):
+                _attach_memory_update(turns[-1], completion[i], completion[i + 1])
+                i += 2
+            else:
+                i += 1
+            continue
         u = completion[i]
         a = completion[i + 1] if i + 1 < len(completion) and completion[i + 1].get("role") == "assistant" else None
-        turns.append((u.get("content") or "", (a or {}).get("content") or ""))
+        turns.append(
+            {
+                "user": u.get("content") or "",
+                "assistant": (a or {}).get("content") or "",
+                "memory": None,
+            }
+        )
         i += 2 if a is not None else 1
     return turns
 
@@ -347,7 +428,10 @@ def _render_rollout_rich(
             break
 
     def render_frame(t_idx: int) -> Layout:
-        u_content, a_content = turns[t_idx - 1]
+        turn = turns[t_idx - 1]
+        u_content = turn["user"]
+        a_content = turn["assistant"]
+        memory = turn.get("memory")
         grid = _extract_grid(u_content) or "(no [Grid] block in this turn)"
         if grid_scale_x > 1 or grid_scale_y > 1:
             grid = _scale_grid(grid, grid_scale_x, grid_scale_y)
@@ -401,7 +485,7 @@ def _render_rollout_rich(
             rollout_state.append(Text(f" stop={stop_cond} ", style="bold black on cyan"))
         if rollout_state:
             sub = Table.grid(expand=False, padding=(0, 1))
-            for s in rollout_state:
+            for _s in rollout_state:
                 sub.add_column()
             sub.add_row(*rollout_state)
             header_block = Group(hdr, sub)
@@ -419,6 +503,16 @@ def _render_rollout_rich(
 
         # ---- right: HUD + reasoning + action + env feedback ----
         right_blocks: list = []
+        if memory and memory.get("previous_memory"):
+            right_blocks.append(
+                Panel(
+                    Text(str(memory.get("previous_memory", "")).strip(), style="cyan"),
+                    title="previous memory",
+                    title_align="left",
+                    border_style="cyan",
+                    padding=(0, 1),
+                )
+            )
         if hud:
             right_blocks.append(
                 Panel(Text(hud.strip(), style="cyan"),
@@ -452,6 +546,18 @@ def _render_rollout_rich(
                 Panel(Group(*footer_lines), title="env feedback",
                       title_align="left", border_style="yellow", padding=(0, 1))
             )
+        if memory is not None:
+            stored_memory = str(memory.get("stored_memory") or "").strip()
+            if stored_memory:
+                right_blocks.append(
+                    Panel(
+                        Text(stored_memory, style="bright_cyan"),
+                        title="updated memory",
+                        title_align="left",
+                        border_style="bright_cyan",
+                        padding=(0, 1),
+                    )
+                )
 
         # ---- compose layout ----
         body = Layout(name="body")
@@ -498,7 +604,8 @@ def _read_one_key() -> str:
     """Read a single keypress from stdin without echo. Returns '' on EOF."""
     import sys
     try:
-        import termios, tty
+        import termios
+        import tty
     except ImportError:
         # Non-POSIX (Windows): fall back to line input.
         try:
@@ -579,13 +686,15 @@ def _cmd_replay(args: argparse.Namespace) -> int:
                 sys.stdout.write(clear + header + "\n\n")
                 sys.stdout.flush()
                 time.sleep(min(args.delay * 4, 1.0))
-            for m in (list(rollout.get("prompt", [])) + list(rollout.get("completion", []))):
-                if m.get("role") != "user":
-                    continue
-                grid = _extract_grid(m.get("content") or "")
+            for turn in _build_turns(rollout):
+                grid = _extract_grid(turn["user"])
                 if grid is None:
                     continue
-                sys.stdout.write(clear + grid + "\n")
+                memory = turn.get("memory")
+                suffix = ""
+                if memory and memory.get("stored_memory"):
+                    suffix = "\n\n[Memory]\n" + str(memory["stored_memory"]).strip()
+                sys.stdout.write(clear + grid + suffix + "\n")
                 sys.stdout.flush()
                 time.sleep(args.delay)
         return 0

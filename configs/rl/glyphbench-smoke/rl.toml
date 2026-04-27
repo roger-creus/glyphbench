@@ -24,6 +24,8 @@ rollouts_per_example = 2
 [[orchestrator.train.env]]
 id = "glyphbench"
 name = "glyphbench-minigrid-5x5"
+# Memory-mode example:
+# args = { task_id = "glyphbench/minigrid-empty-5x5-v0", num_episodes = 4, n_frames = 4, max_turns = 30, use_memory = true, memory_update_max_tokens = 512 }
 args = { task_id = "glyphbench/minigrid-empty-5x5-v0", num_episodes = 4, n_frames = 4, max_turns = 30 }
 
 [orchestrator.train.sampling]

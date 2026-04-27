@@ -9,7 +9,7 @@ Add an opt-in memory scaffold to GlyphBench's `verifiers` integration that works
 When enabled, each environment step uses two model generations:
 
 1. an action generation that sees the previous memory plus the current observation, and
-2. a memory-update generation that sees the full action-selection exchange, environment feedback, and next observation.
+2. a memory-update generation that sees the full action-selection exchange, environment feedback, and the HUD-stripped next-observation view.
 
 These two generations together remain one environment turn for episode length, rewards, metrics, saved rollouts, visualization, and RL training.
 
@@ -84,7 +84,8 @@ After parsing the action and stepping the environment, GlyphBench prompts the sa
 - parsed action name,
 - reward from the just-applied action,
 - terminated/truncated flags,
-- next observation.
+- the HUD-stripped next-observation view that matches the action prompt
+  observation surface.
 
 The model-facing instruction asks it to keep memory concise, but does not mention exact token limits.
 
@@ -138,7 +139,9 @@ Extraction order:
 
 1. If one or more `<memory>...</memory>` blocks are present, concatenate their contents with blank lines and store that text.
 2. Otherwise, if `</think>` appears, store the text after the final `</think>`.
-3. Otherwise, strip any think tags and store the remaining assistant text.
+3. Otherwise, if an opening `<think>` appears without a closing tag, store only
+   text before that tag, so truncated thinking is not carried as memory.
+4. Otherwise, strip any stray think tags and store the remaining assistant text.
 
 Stored memory excludes the memory-update thinking. Raw memory-update responses remain available in trajectory metadata for audit and replay.
 
@@ -210,7 +213,7 @@ Each memory-enabled combined `TrajectoryStep["extras"]` should include:
         "memory_update_response": list[dict],
         "parsed_memory": str,
         "stored_memory": str,
-        "extraction_mode": "tag" | "post_think" | "stripped_text",
+        "extraction_mode": "tag" | "post_think" | "unterminated_think" | "stripped_text",
         "memory_update_was_truncated": bool,
     }
 }
@@ -235,7 +238,11 @@ Plain replay remains grid-first. It can include concise memory/update text when 
 
 Existing non-memory rollouts must render exactly as before.
 
-The older `scripts/replay_trajectory.py` and `scripts/record_random_gifs.py` operate on a random-agent JSONL schema rather than model `results.jsonl`; they do not need memory support for this feature.
+The older `scripts/replay_trajectory.py` operates on a random-agent JSONL
+schema rather than model `results.jsonl`, but should still display stored
+memory when a compatible memory field is present. `scripts/record_random_gifs.py`
+does not need memory support for this feature because it records random-agent
+environment steps without model memory metadata.
 
 ## Error Handling
 
@@ -252,7 +259,8 @@ Unit tests:
 - Initial action prompt includes an empty `[Memory]` block when memory is enabled.
 - Later action prompt includes the memory parsed from the prior memory update.
 - Memory extraction handles `<memory>` tags, post-`</think>` text, and stripped text fallback.
-- Memory-update prompt includes full action response, parsed action, reward, done flags, and next observation.
+- Memory-update prompt includes full action response, parsed action, reward,
+  done flags, and the HUD-stripped next-observation view.
 - One environment step produces one trajectory item in memory mode.
 - Combined completion masks train action assistant tokens and memory-update assistant tokens while masking memory-update user prompt tokens.
 - Empty or malformed action responses still produce a memory-update prompt after fallback action application.
@@ -284,7 +292,9 @@ If full dependency installation is unavailable locally, run the focused tests th
 - Full RL support is required in the first implementation.
 - Memory-update assistant tokens are trained end to end with task rewards.
 - Memory-update user prompt tokens are visible conditioning context but masked for loss.
-- Memory update is conditioned on environment feedback and next observation.
+- Memory update is conditioned on environment feedback and the HUD-stripped
+  next-observation view.
 - Memory update is also conditioned on full action-selection thinking.
 - Model-facing prompt says keep memory concise and does not expose exact token budgets.
-- If `<memory>` tags exist, parse tag contents. Otherwise use post-think text or stripped assistant text.
+- If `<memory>` tags exist, parse tag contents. Otherwise use post-think text,
+  avoid storing unterminated thinking, or fall back to stripped assistant text.

@@ -32,6 +32,8 @@ load_environment(
                                               # to the model in the system
                                               # prompt — match your --max-tokens)
     seed: int = 42,
+    use_memory: bool = False,                 # opt-in carried memory scaffold
+    memory_update_max_tokens: int | None = None,
 )
 ```
 
@@ -53,6 +55,15 @@ vf-eval glyphbench \
 > **Tip.** Always pass `max_output_tokens` matching your `--max-tokens`. The
 > system prompt advertises this value to the model so it can self-pace its
 > reasoning; mismatched budgets cause premature self-truncation.
+
+`use_memory=True` enables a two-generation environment turn: action selection
+followed by a concise memory update conditioned on the action response and
+environment feedback, including the HUD-stripped next-observation view. In
+saved trajectories and RL training this remains one environment step; the
+memory-update user prompt is context only, while the action assistant and
+memory-update assistant tokens both receive the same task reward.
+`memory_update_max_tokens` optionally changes only the second generation's token
+limit.
 
 ## Results
 

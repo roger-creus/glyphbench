@@ -89,3 +89,97 @@ def test_bundle_custom_output_path(tmp_path: Path):
     rc = cli.main(["bundle", str(harness_dir), "--output", str(custom)])
     assert rc == 0
     assert custom.exists()
+
+
+def test_build_turns_preserves_non_memory_grouping():
+    rollout = {
+        "prompt": [{"role": "user", "content": "u0"}],
+        "completion": [
+            {"role": "assistant", "content": "a0"},
+            {"role": "user", "content": "u1"},
+            {"role": "assistant", "content": "a1"},
+        ],
+    }
+
+    turns = cli._build_turns(rollout)
+
+    assert turns == [
+        {"user": "u0", "assistant": "a0", "memory": None},
+        {"user": "u1", "assistant": "a1", "memory": None},
+    ]
+
+
+def test_build_turns_groups_memory_trajectory_steps():
+    rollout_completion = [
+        {
+            "role": "assistant",
+            "content": "<think>go</think><action>EAST</action>",
+        },
+        {"role": "user", "content": "[Memory Update]\n..."},
+        {"role": "assistant", "content": "<think>update</think>moved east"},
+    ]
+    memory = {
+        "previous_memory": "start seen",
+        "stored_memory": "moved east",
+        "action_response": [rollout_completion[0]],
+        "memory_update_response": [rollout_completion[2]],
+        "extraction_mode": "post_think",
+    }
+    rollout = {
+        "prompt": [
+            {"role": "system", "content": "system"},
+            {"role": "user", "content": "[Grid]\n@..\n..G"},
+        ],
+        "completion": [
+            {"role": "assistant", "content": "<think>go</think><action>EAST</action>"},
+            {"role": "user", "content": "[Memory Update]\n..."},
+            {"role": "assistant", "content": "<think>update</think>moved east"},
+        ],
+        "trajectory": [
+            {
+                "prompt": [
+                    {"role": "system", "content": "system"},
+                    {"role": "user", "content": "[Grid]\n@..\n..G"},
+                ],
+                "completion": rollout_completion,
+                "extras": {"glyphbench_memory": memory},
+            }
+        ],
+    }
+
+    turns = cli._build_turns(rollout)
+
+    assert len(turns) == 1
+    assert turns[0]["user"] == "[Grid]\n@..\n..G"
+    assert turns[0]["assistant"] == "<think>go</think><action>EAST</action>"
+    assert turns[0]["memory"]["previous_memory"] == "start seen"
+    assert turns[0]["memory"]["stored_memory"] == "moved east"
+
+
+def test_build_turns_groups_memory_update_pairs_without_trajectory_extras():
+    rollout = {
+        "prompt": [
+            {
+                "role": "user",
+                "content": "[Memory]\n<memory>\nstart seen\n</memory>\n\n[Grid]\n@..",
+            }
+        ],
+        "completion": [
+            {"role": "assistant", "content": "<action>EAST</action>"},
+            {"role": "user", "content": "[Memory Update]\n..."},
+            {"role": "assistant", "content": "<think>u</think><memory>moved east</memory>"},
+            {"role": "user", "content": "[Memory]\n<memory>\nmoved east\n</memory>\n\n[Grid]\n.@."},
+            {"role": "assistant", "content": "<action>EAST</action>"},
+        ],
+    }
+
+    turns = cli._build_turns(rollout)
+
+    assert len(turns) == 2
+    assert turns[0]["user"].endswith("[Grid]\n@..")
+    assert turns[0]["assistant"] == "<action>EAST</action>"
+    assert turns[0]["memory"]["previous_memory"] == "start seen"
+    assert turns[0]["memory"]["stored_memory"] == "moved east"
+    assert turns[1]["user"].endswith("[Grid]\n.@.")
+    assert turns[1]["assistant"] == "<action>EAST</action>"
+    assert turns[1]["memory"] is None
