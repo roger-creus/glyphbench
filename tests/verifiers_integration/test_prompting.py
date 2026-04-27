@@ -63,7 +63,9 @@ def test_system_prompt_declares_budget(game):
 
 def test_system_prompt_documents_xml_format(game):
     sp = build_system_prompt(game, max_output_tokens=512)
-    assert "<think>" in sp and "</think>" in sp
+    # Thinking-mode chat templates (Qwen3.5) prefill <think> on the model's
+    # behalf, so the system prompt no longer asks the model to emit it
+    # itself. Only the <action> tag is contractually required.
     assert "<action>" in sp and "</action>" in sp
 
 
@@ -114,10 +116,11 @@ def test_user_turn_history_window_respected(game):
     assert text.count("chose ") == 4
 
 
-def test_user_turn_reminds_format_and_budget(game):
+def test_user_turn_reminds_format(game):
     frames: deque = deque(maxlen=4)
     text = render_user_turn(
         game, frames, current_obs="[Grid]\n.", turn=0, max_output_tokens=512
     )
+    # Per-turn reminder asks for the action tag. The full budget statement
+    # lives in the (cached) system prompt; we don't echo it every turn.
     assert "<action>" in text
-    assert "512" in text

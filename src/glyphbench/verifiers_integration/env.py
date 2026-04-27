@@ -20,8 +20,10 @@ from glyphbench.verifiers_integration.rubric import EpisodicReturnRubric
 
 
 DEFAULT_MAX_OUTPUT_TOKENS = 512
-DEFAULT_N_FRAMES = 4
-DEFAULT_NUM_EPISODES = 10
+# Stateless per turn by default — every observation must be readable off
+# the current grid alone. Frame stacking is opt-in via load_environment.
+DEFAULT_N_FRAMES = 0
+DEFAULT_NUM_EPISODES = 5
 DEFAULT_BASE_SEED = 42
 
 
@@ -182,8 +184,8 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             max_output_tokens=self._max_output_tokens,
         )
         state["prompt"] = [
-            {"role": "system", "content": system_text},
-            {"role": "user", "content": initial_user_text},
+            vf.SystemMessage(content=system_text),
+            vf.UserMessage(content=initial_user_text),
         ]
         return await super().setup_state(state)
 
@@ -231,7 +233,36 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             turn=game.turn,
             max_output_tokens=self._max_output_tokens,
         )
-        return [{"role": "user", "content": next_user}]
+        response_msg = [vf.UserMessage(content=next_user)]
+        if state["done"]:
+            # Game ended this turn — signal the rollout loop to skip the
+            # otherwise-wasted final model call.
+            state["final_env_response"] = response_msg
+        return response_msg
+
+    async def get_prompt_messages(self, state: dict[str, Any]) -> list[Any]:
+        """Stateless prompt: each turn the LLM sees only [system, current_user_obs]."""
+        if len(state["trajectory"]) == 0:
+            return state["prompt"]
+        prev = state["trajectory"][-1]
+        messages = list(prev["prompt"]) + list(prev["completion"])
+        new_user = await self.env_response(messages, state)
+        system_msg = prev["prompt"][0]
+        return [system_msg] + list(new_user)
+
+    async def render_completion(self, state: dict[str, Any]) -> None:
+        """Stitch full rollout from trajectory (each step's prompt is stateless)."""
+        if len(state["trajectory"]) == 0:
+            state["completion"] = []
+            return
+        parts: list[Any] = []
+        for i, step in enumerate(state["trajectory"]):
+            if i > 0:
+                parts.extend(list(step["prompt"])[1:])
+            parts.extend(list(step["completion"]))
+        if state.get("final_env_response"):
+            parts.extend(list(state["final_env_response"]))
+        state["completion"] = parts
 
     @vf.stop
     async def is_done(self, state: dict[str, Any]) -> bool:

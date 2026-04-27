@@ -51,13 +51,15 @@ _MESSAGE_RE = re.compile(r"\[Message\]\n(.*?)(?=\n\n\[|\Z)", re.DOTALL)
 
 RESPONSE_FORMAT_BLOCK_TMPL = (
     "RESPONSE FORMAT\n"
-    "Respond with exactly two XML tags, in this order:\n"
-    "  <think>your reasoning — keep it concise; plan your next move</think>\n"
+    "Pick the next move and emit exactly one tag:\n"
     "  <action>ACTION_NAME</action>\n"
     "\n"
-    "Your TOTAL response budget is {budget} tokens (thinking + action combined). "
-    "Any text outside these two tags is ignored. If the <action> tag is missing "
-    "or contains an unknown action name, the {noop} action is applied instead."
+    "ACTION_NAME must be one of the names in the per-turn [Actions] list. "
+    "Read the grid directly — the player glyph shows your position and "
+    "orientation. Total response budget: {budget} tokens (reasoning + "
+    "action combined). Anything outside the <action> tag is ignored. If "
+    "the <action> tag is missing or contains an unknown name, the {noop} "
+    "action is applied automatically."
 )
 
 
@@ -72,8 +74,15 @@ def build_system_prompt(game: BaseGlyphEnv, max_output_tokens: int) -> str:
         budget=max_output_tokens,
         noop=game.noop_action_name,
     )
-    actions_block = game.action_spec.render_for_prompt()
-    return f"{header}\n\n---\n{actions_block}\n\n---\n{fmt}"
+    # Most env classes already append `action_spec.render_for_prompt()` in
+    # their own `system_prompt()` (see e.g. minigrid/base.py, procgen/base.py,
+    # most atari/*.py). Only inject an extra Actions block here when the
+    # header doesn't already contain it — avoids the duplicate "Actions"
+    # listing the user flagged on 2026-04-25.
+    actions_block = game.action_spec.render_for_prompt().strip()
+    if actions_block and actions_block not in header:
+        return f"{header}\n\n---\n{actions_block}\n\n---\n{fmt}"
+    return f"{header}\n\n---\n{fmt}"
 
 
 def render_user_turn(
@@ -97,7 +106,6 @@ def render_user_turn(
         The user-turn string.
     """
     frames_list = list(frames)
-    budget = int(max_output_tokens)
 
     # 1. Build merged legend across history + current.
     legend_lines: dict[str, None] = {}  # ordered-set via dict
@@ -118,15 +126,15 @@ def render_user_turn(
     # 3. Current observation — strip legend, keep HUD + grid + message.
     parts.append(_render_current_block(current_obs, turn))
 
-    # 4. Actions enumerated.
+    # 4. Actions enumerated (names-only — full descriptions are in the
+    # stable system prompt; this is just a per-turn reminder).
     action_list = ", ".join(game.action_spec.names)
     parts.append(f"[Actions]\nChoose one: [{action_list}]")
 
-    # 5. Budget reminder.
-    parts.append(
-        f"Respond with <think>...</think><action>NAME</action>. "
-        f"Total response budget: {budget} tokens."
-    )
+    # 5. Per-turn format reminder. Stays short — the full response-format
+    # rules are in the system prompt; this just nudges the model to emit
+    # the action tag now.
+    parts.append(f"Now emit your move as `<action>ACTION_NAME</action>`.")
 
     return "\n\n".join(parts)
 
@@ -162,28 +170,28 @@ def _render_history(frames_list: list[tuple[str, str, float]], current_turn: int
     n = len(frames_list)
     lines = [f"[History — last {n} turn{'s' if n != 1 else ''}]"]
     # Number each historical turn from T-N .. T-1 (T is the current turn).
+    # Deliberately omit the [HUD] block — it leaks privileged state
+    # (positions, counts, intents) that the agent must instead read off the
+    # Unicode glyphs. See the user policy in DECISIONS.md (HUD ban).
     for i, (obs, action, reward) in enumerate(frames_list):
         past_turn = current_turn - (n - i)
         grid = _extract_grid(obs)
-        hud = _extract_hud(obs)
-        hud_line = f"  {hud}" if hud else ""
         lines.append(
             f"(turn {past_turn})\n"
             f"{grid}\n"
-            f"{hud_line}\n"
             f"chose {action} → reward {reward:+.3f}".replace("  \n", "").replace("\n\n", "\n")
         )
     return "\n".join(lines)
 
 
 def _render_current_block(current_obs: str, turn: int) -> str:
-    # Strip the legend section since it's rendered globally at the top.
+    # Drop legend (rendered globally above) and HUD (per design: every
+    # game-relevant fact must be readable off the Unicode grid). Envs
+    # may still compute a HUD for their own internal use (debugging,
+    # info-dict reporting), but it is NOT shown to the model.
     grid = _extract_grid(current_obs)
-    hud = _extract_hud(current_obs)
     msg = _extract_message(current_obs)
     parts = [f"[Current Observation — turn {turn}]"]
-    if hud:
-        parts.append(f"[HUD]\n{hud}")
     if grid:
         parts.append(f"[Grid]\n{grid}")
     if msg:

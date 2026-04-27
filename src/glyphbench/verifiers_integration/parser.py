@@ -66,7 +66,7 @@ class GlyphbenchXMLParser(vf.XMLParser):
         parse failure or unknown action name we fall back to ``noop`` and
         flag ``parse_failed=True``.
         """
-        candidate = self._extract_candidate(raw_text or "")
+        candidate = self._extract_candidate_with_spec(raw_text or "", spec)
         if candidate is None:
             return self._noop(spec, noop)
         try:
@@ -76,16 +76,21 @@ class GlyphbenchXMLParser(vf.XMLParser):
         return idx, spec.names[idx], False
 
     def _extract_candidate(self, text: str) -> str | None:
+        return self._extract_candidate_with_spec(text, None)
+
+    def _extract_candidate_with_spec(
+        self, text: str, spec: ActionSpec | None
+    ) -> str | None:
         # 1. Complete <action>...</action> — take the last occurrence.
         matches = _XML_ACTION_RE.findall(text)
         if matches:
             return matches[-1].strip()
 
-        # 2. Unclosed <action>... — tolerant.
+        # 2. Unclosed <action>... — tolerant (covers Qwen3.5 thinking mode
+        # truncation right after the agent emitted the opening tag).
         open_match = _XML_ACTION_OPEN_RE.search(text)
         if open_match:
             cand = open_match.group(1).strip()
-            # Only use if it looks like a plain action name (no nested XML).
             if cand and "<" not in cand and len(cand) < 64:
                 return cand
 
@@ -98,11 +103,19 @@ class GlyphbenchXMLParser(vf.XMLParser):
             if isinstance(obj, dict) and isinstance(obj.get("action"), str):
                 return obj["action"].strip()
 
-        # 4. Bare uppercase-token fallback — take the last one.
+        # 4. Bare-token fallback. When we know the spec, restrict to the LAST
+        # token that's actually a valid action name — this avoids matching
+        # incidental uppercase words from the CoT (e.g. "MOVE", "OK", "GRID")
+        # that would otherwise win the fallback and route to noop.
         bare = _BARE_NAME_RE.findall(text)
-        if bare:
+        if not bare:
+            return None
+        if spec is None:
             return bare[-1].strip()
-
+        valid = {n.casefold() for n in spec.names}
+        for tok in reversed(bare):
+            if tok.strip().casefold() in valid:
+                return tok.strip()
         return None
 
     @staticmethod

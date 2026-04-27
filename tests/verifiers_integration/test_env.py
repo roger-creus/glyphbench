@@ -74,7 +74,12 @@ async def test_setup_state_creates_game_and_initial_obs():
 
 @pytest.mark.asyncio
 async def test_env_response_applies_action_and_updates_state():
-    env = load_environment(task_id="glyphbench/__dummy-v0", num_episodes=1)
+    # Pass n_frames=4 explicitly so the test exercises the frame-stacking
+    # accumulator. The harness default is n_frames=0 (stateless per turn),
+    # which would silently drop appended frames via deque(maxlen=0).
+    env = load_environment(
+        task_id="glyphbench/__dummy-v0", num_episodes=1, n_frames=4
+    )
     row = env.dataset[0]
     state: dict = {
         "info": row["info"],
