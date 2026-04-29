@@ -692,13 +692,17 @@ def _render_rollout_rich(
         return root
 
     # Live: clean in-place screen (alternate buffer if TTY); each frame
-    # fully replaces the previous one.
+    # fully replaces the previous one. auto_refresh=False — we drive
+    # refreshes ourselves via live.update(..., refresh=True), so the
+    # background ticker can't race with the raw-mode stdin read in
+    # pause-mode (which would otherwise cause flickering / partial
+    # frames after each keypress).
     is_tty = console.is_terminal
-    with Live(render_frame(1), console=console, refresh_per_second=24,
+    with Live(render_frame(1), console=console, auto_refresh=False,
               screen=is_tty, transient=False, redirect_stdout=False,
               redirect_stderr=False) as live:
         for t_idx in range(1, len(turns) + 1):
-            live.update(render_frame(t_idx))
+            live.update(render_frame(t_idx), refresh=True)
             if pause and is_tty:
                 # Wait for a single keypress: any → next, q → quit rollout.
                 ch = _read_one_key()
