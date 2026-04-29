@@ -852,7 +852,15 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return r
 
     def _mob_ai(self) -> None:
-        """Move mobs on current floor and handle attacks."""
+        """Move mobs on current floor and handle attacks.
+
+        Turn order: attack-then-move, so a player who steps out of
+        melee range on the just-completed agent step is not damaged
+        this turn (otherwise mobs of equal speed are unbeatable —
+        they cover the same distance the player flees, every turn).
+        Ranged attackers (skeleton_archer, ranged bosses) still hit at
+        their attack range from the mob's start-of-turn position.
+        """
         fsize = self._floor_size()
         walkable = self._walkable_set()
         for mob in list(self._mobs):
@@ -865,8 +873,39 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
             mx, my = mob["x"], mob["y"]
             mtype = mob["type"]
-            ddx, ddy = 0, 0
 
+            # 1. ATTACK (hostile mobs only). Adjacency is measured at
+            # mob's pre-move position so the player escaping melee on
+            # the agent's turn breaks the damage chain this turn.
+            if mtype != "cow":
+                start_adj = (
+                    abs(mx - self._agent_x) + abs(my - self._agent_y)
+                )
+                if mob["is_boss"]:
+                    bdef = _BOSS_DEFS.get(mob["floor"], {})
+                    dmg = bdef.get("damage", 3)
+                    is_ranged = bdef.get("ranged", False)
+                else:
+                    dmg = _MOB_STATS.get(
+                        mtype, {"damage": 1}
+                    )["damage"]
+                    is_ranged = mtype == "skeleton_archer"
+
+                if start_adj <= 1:
+                    self._take_damage(dmg)
+                    if not self._message:
+                        self._message = (
+                            f"A {mtype} hits you for {dmg}!"
+                        )
+                elif is_ranged and start_adj <= 4:
+                    self._take_damage(max(1, dmg // 2))
+                    if not self._message:
+                        self._message = (
+                            f"A {mtype} shoots you!"
+                        )
+
+            # 2. MOVE.
+            ddx, ddy = 0, 0
             if mtype == "cow":
                 d = int(self.rng.integers(0, 5))
                 ddx, ddy = [
@@ -874,13 +913,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     (0, 1), (0, -1),
                 ][d]
             elif mtype == "bat":
-                # Erratic movement
                 d = int(self.rng.integers(0, 4))
                 ddx, ddy = [
                     (1, 0), (-1, 0), (0, 1), (0, -1),
                 ][d]
             else:
-                # Chase player
                 dist_x = self._agent_x - mx
                 dist_y = self._agent_y - my
                 if abs(dist_x) + abs(dist_y) <= 8:
@@ -905,38 +942,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
             ):
                 mob["x"] = nx
                 mob["y"] = ny
-
-            # Melee attack if adjacent
-            adj = (
-                abs(mob["x"] - self._agent_x)
-                + abs(mob["y"] - self._agent_y)
-            )
-            if mtype == "cow":
-                continue
-
-            if mob["is_boss"]:
-                bdef = _BOSS_DEFS.get(mob["floor"], {})
-                dmg = bdef.get("damage", 3)
-                is_ranged = bdef.get("ranged", False)
-            else:
-                dmg = _MOB_STATS.get(
-                    mtype, {"damage": 1}
-                )["damage"]
-                is_ranged = mtype == "skeleton_archer"
-
-            if adj <= 1:
-                self._take_damage(dmg)
-                if not self._message:
-                    self._message = (
-                        f"A {mtype} hits you for {dmg}!"
-                    )
-            elif is_ranged and adj <= 4:
-                # Ranged attack at half damage
-                self._take_damage(max(1, dmg // 2))
-                if not self._message:
-                    self._message = (
-                        f"A {mtype} shoots you!"
-                    )
 
     def _spawn_night_mobs(self) -> None:
         if self._current_floor != 0:

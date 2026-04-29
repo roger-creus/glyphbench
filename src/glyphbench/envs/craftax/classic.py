@@ -451,11 +451,33 @@ class CraftaxClassicEnv(BaseGlyphEnv):
         return reward
 
     def _mob_ai(self) -> None:
-        """Move mobs and handle mob attacks on the player."""
+        """Move mobs and handle mob attacks on the player.
+
+        Turn order: attack-then-move. A hostile mob deals damage only if
+        it WAS adjacent to the player at the start of its turn (i.e.,
+        the player did not break adjacency on the just-completed
+        agent step). If the player stepped out of melee range, the mob
+        chases this turn but cannot also damage — otherwise mobs of
+        equal speed are unbeatable: they cover the same distance the
+        player flees, every turn forever.
+        """
         for mob in list(self._mobs):
             mx, my = mob["x"], mob["y"]
             mob_type = mob["type"]
 
+            # 1. ATTACK if already adjacent (hostile mobs only). Done
+            # BEFORE the chase step so a player that just walked away
+            # avoids damage this turn.
+            if (
+                mob_type != "cow"
+                and abs(mx - self._agent_x) + abs(my - self._agent_y) <= 1
+            ):
+                dmg = _MOB_STATS[mob_type]["damage"]
+                self._hp = max(0, self._hp - dmg)
+                if not self._message:
+                    self._message = f"A {mob_type} hits you for {dmg} damage!"
+
+            # 2. MOVE.
             if mob_type == "cow":
                 # Passive: random walk
                 direction = int(self.rng.integers(0, 5))  # 0=stay, 1-4=move
@@ -483,16 +505,6 @@ class CraftaxClassicEnv(BaseGlyphEnv):
             ):
                 mob["x"] = nx
                 mob["y"] = ny
-
-            # Attack player if adjacent (hostile mobs only)
-            if (
-                mob_type != "cow"
-                and abs(mob["x"] - self._agent_x) + abs(mob["y"] - self._agent_y) <= 1
-            ):
-                dmg = _MOB_STATS[mob_type]["damage"]
-                self._hp = max(0, self._hp - dmg)
-                if not self._message:
-                    self._message = f"A {mob_type} hits you for {dmg} damage!"
 
     def _spawn_night_mobs(self) -> None:
         """Spawn 2-4 hostile mobs near the player at nightfall."""
