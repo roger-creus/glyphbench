@@ -703,9 +703,33 @@ def _render_rollout_rich(
                       border_style="cyan", padding=(0, 1)),
                 memory_cap + 2,
             ))
-        if hud:
-            hud_lines = max(2, min(6, hud.strip().count("\n") + 1))
-            hud_txt = _clip_to_lines(hud.strip(), hud_lines, mode="tail",
+        # Split the HUD into a dedicated `step` panel (the `Step: T / N`
+        # progress indicator that every env now emits) and a residual
+        # HUD panel (HP / food / score / etc.). Keeping them separate
+        # lets the viewer track turn budget at a glance without having
+        # to scan the rest of the HUD line.
+        step_text = ""
+        hud_residual = hud.strip() if hud else ""
+        if hud_residual:
+            m_step = re.search(r"Step:\s*\d+\s*/\s*\d+", hud_residual)
+            if m_step:
+                step_text = m_step.group(0)
+                hud_residual = (
+                    hud_residual[: m_step.start()]
+                    + hud_residual[m_step.end():]
+                )
+                hud_residual = re.sub(r"\s{2,}", "    ", hud_residual)
+                hud_residual = hud_residual.strip(" \t\n,;|")
+        if step_text:
+            right_entries.append((
+                Panel(Text(step_text, style="bold yellow"),
+                      title="step", title_align="left",
+                      border_style="yellow", padding=(0, 1)),
+                3,
+            ))
+        if hud_residual:
+            hud_lines = max(2, min(6, hud_residual.count("\n") + 1))
+            hud_txt = _clip_to_lines(hud_residual, hud_lines, mode="tail",
                                      max_line_width=line_width_cap)
             right_entries.append((
                 Panel(Text(hud_txt, style="cyan", overflow="fold"),
@@ -725,6 +749,11 @@ def _render_rollout_rich(
                       border_style="bright_cyan", padding=(0, 1)),
                 legend_cap + 2,
             ))
+        # Reasoning panel is rendered separately on the LEFT column,
+        # below the grid box, so that the unused vertical space the
+        # grid would otherwise leave empty gets reclaimed for chain
+        # of thought. See body layout below.
+        reasoning_panel: Panel | None = None
         if think:
             reasoning_border = "red" if think_missing else "grey50"
             reasoning_title = "reasoning" + (" (no <think> tag)" if think_missing else "")
@@ -732,12 +761,11 @@ def _render_rollout_rich(
                 think.strip(), reasoning_cap, mode="tail",
                 max_line_width=line_width_cap,
             )
-            right_entries.append((
-                Panel(Text(think_txt, style="italic grey78", overflow="fold"),
-                      title=reasoning_title, title_align="left",
-                      border_style=reasoning_border, padding=(0, 1)),
-                reasoning_cap + 2,
-            ))
+            reasoning_panel = Panel(
+                Text(think_txt, style="italic grey78", overflow="fold"),
+                title=reasoning_title, title_align="left",
+                border_style=reasoning_border, padding=(0, 1),
+            )
         action_color = "green" if (action and strict_action) else ("yellow" if action else "red")
         action_title = "action" + (
             " (PARSE FAIL)" if action_failed
@@ -779,11 +807,27 @@ def _render_rollout_rich(
                 ))
 
         # ---- compose layout ----
+        # Left column: sized grid panel on top, reasoning fills the
+        # rest of the column (so the empty space the grid would have
+        # left at the bottom now hosts the chain-of-thought instead of
+        # going to waste). Right column stacks the remaining panels at
+        # explicit row sizes.
+        grid_panel_height = grid.count("\n") + 1 + 2  # +2 for borders
         body = Layout(name="body")
         body.split_row(
-            Layout(grid_panel, name="left", ratio=2),
+            Layout(name="left", ratio=2),
             Layout(name="right", ratio=3),
         )
+        if reasoning_panel is not None:
+            body["left"].split_column(
+                Layout(grid_panel, name="grid", size=grid_panel_height),
+                Layout(reasoning_panel, name="reasoning"),
+            )
+        else:
+            # No reasoning this turn — give the grid the whole left
+            # column so it doesn't sit pinned to the top with empty
+            # space below.
+            body["left"].update(grid_panel)
         body["right"].split_column(
             *[Layout(panel, size=size) for panel, size in right_entries]
         )

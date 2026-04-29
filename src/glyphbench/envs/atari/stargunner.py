@@ -292,7 +292,7 @@ class StarGunnerEnv(AtariBase):
             "for decoration. Three enemy types: 'V' fighter (10 "
             "pts), 'W' bomber (20 pts), 'X' ace (30 pts, moves "
             "faster). Your bullets '->', enemy bullets '<-'. You "
-            "are an arrow glyph constrained to x in 1..W/2.\n\n"
+            "are confined to the left half of the screen.\n\n"
             "MECHANICS\n"
             "LEFT/RIGHT/UP/DOWN move 1 cell. FIRE launches a "
             "bullet traveling right with dx=2 (max 4 alive). "

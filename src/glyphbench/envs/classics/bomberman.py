@@ -290,7 +290,7 @@ class BombermanEnv(BaseGlyphEnv):
         return (
             f"You are playing {self.env_id()} -- Bomberman.\n\n"
             "RULES\n"
-            f"The grid is {_SIZE}x{_SIZE}. You start at the top-left.\n"
+            f"The grid is {_SIZE}x{_SIZE}.\n"
             "Indestructible walls form a grid pattern. Destructible crates fill "
             "~40% of open cells. An exit is hidden behind one crate.\n\n"
             "BOMBS\n"

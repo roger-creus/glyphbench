@@ -47,10 +47,10 @@ class MiniGridEmpty5x5Env(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            f"Navigate a 5x5 room from the top-left corner to the goal {_GOAL_GLYPH} in the "
-            "bottom-right corner. You earn a reward based on how quickly you reach "
-            "the goal: reward = 1 - 0.9 * (steps_taken / 100). The faster you "
-            "reach the goal, the higher your reward."
+            f"Navigate a 5x5 room to reach the goal {_GOAL_GLYPH}. "
+            "You earn a reward based on how quickly you reach the goal: "
+            "reward = 1 - 0.9 * (steps_taken / 100). The faster you reach "
+            "the goal, the higher your reward."
         )
 
 
@@ -74,9 +74,9 @@ class MiniGridEmpty6x6Env(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            f"Navigate a 6x6 room from the top-left corner to the goal {_GOAL_GLYPH} in the "
-            "bottom-right corner. You earn a reward based on how quickly you reach "
-            "the goal: reward = 1 - 0.9 * (steps_taken / max_steps). The faster "
+            f"Navigate a 6x6 room to reach the goal {_GOAL_GLYPH}. "
+            "You earn a reward based on how quickly you reach the goal: "
+            "reward = 1 - 0.9 * (steps_taken / max_steps). The faster "
             "you reach the goal, the higher your reward."
         )
 
@@ -101,9 +101,9 @@ class MiniGridEmpty8x8Env(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            f"Navigate an 8x8 room from the top-left corner to the goal {_GOAL_GLYPH} in the "
-            "bottom-right corner. You earn a reward based on how quickly you reach "
-            "the goal: reward = 1 - 0.9 * (steps_taken / max_steps). The faster "
+            f"Navigate an 8x8 room to reach the goal {_GOAL_GLYPH}. "
+            "You earn a reward based on how quickly you reach the goal: "
+            "reward = 1 - 0.9 * (steps_taken / max_steps). The faster "
             "you reach the goal, the higher your reward."
         )
 
@@ -128,9 +128,9 @@ class MiniGridEmpty16x16Env(MiniGridBase):
 
     def _task_description(self) -> str:
         return (
-            f"Navigate a 16x16 room from the top-left corner to the goal {_GOAL_GLYPH} in the "
-            "bottom-right corner. You earn a reward based on how quickly you reach "
-            "the goal: reward = 1 - 0.9 * (steps_taken / max_steps). The faster "
+            f"Navigate a 16x16 room to reach the goal {_GOAL_GLYPH}. "
+            "You earn a reward based on how quickly you reach the goal: "
+            "reward = 1 - 0.9 * (steps_taken / max_steps). The faster "
             "you reach the goal, the higher your reward."
         )
 

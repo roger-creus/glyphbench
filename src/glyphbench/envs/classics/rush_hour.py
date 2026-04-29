@@ -357,7 +357,7 @@ class _RushHourBase(BaseGlyphEnv):
             "Slide vehicles on a 6x6 grid to clear a path for your car to exit "
             "through the right edge. This is the classic Rush Hour puzzle.\n\n"
             "RULES\n"
-            "- Your car (marked with \u25c6) is on row 3 and must exit through the right edge (\u21e8).\n"
+            "- Your car (marked with \u25c6) must exit through the right edge (\u21e8).\n"
             "- Each vehicle can only slide along its orientation (horizontal = left/right, "
             "vertical = up/down).\n"
             "- Vehicles cannot pass through each other.\n"

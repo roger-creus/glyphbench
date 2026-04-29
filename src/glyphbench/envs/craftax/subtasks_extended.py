@@ -1056,8 +1056,7 @@ class CraftaxMineIronEnv(CraftaxClassicEnv):
     def system_prompt(self) -> str:
         return (
             "CRAFTAX MINE IRON\n\n"
-            "Iron deposits (I) are placed adjacent to you. You have a "
-            "stone pickaxe.\n"
+            "Iron deposits (I) are nearby. You have a stone pickaxe.\n"
             "GOAL: Mine 3 iron ore.\n"
             "Face iron tiles (I) and use DO to mine.\n"
             "Requires stone pickaxe or better.\n"

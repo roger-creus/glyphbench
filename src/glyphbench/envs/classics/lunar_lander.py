@@ -231,7 +231,7 @@ class LunarLanderEnv(BaseGlyphEnv):
             "Land your spacecraft on the landing pad at the bottom center of the screen.\n\n"
             "RULES\n"
             f"- The grid is {WIDTH} wide x {HEIGHT} tall.\n"
-            f"- Landing pad (\u25ac) is {PAD_WIDTH} cells wide at the bottom center.\n"
+            f"- Landing pad (\u25ac) is {PAD_WIDTH} cells wide; its location is shown on the [Grid].\n"
             f"- Gravity pulls the craft down by {GRAVITY} per step.\n"
             "- Thrusters add velocity in the chosen direction.\n"
             f"- You start with {MAX_FUEL} fuel. Each thrust costs {THRUST_COST} fuel.\n"

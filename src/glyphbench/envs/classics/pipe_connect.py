@@ -367,7 +367,7 @@ class _PipeConnectBase(BaseGlyphEnv):
             "TASK\n"
             "Rotate pipe pieces to create a connected path from the source to the sink.\n\n"
             "RULES\n"
-            f"- The grid is {s}x{s}. Source is on the left edge, sink on the right edge.\n"
+            f"- The grid is {s}x{s}. Source and sink positions are visible on the [Grid].\n"
             "- Each action rotates one pipe piece 90 degrees clockwise.\n"
             "- Pipes connect when adjacent pipes have openings facing each other.\n"
             "- Win by creating a continuous connection from source to sink (+1 reward).\n"

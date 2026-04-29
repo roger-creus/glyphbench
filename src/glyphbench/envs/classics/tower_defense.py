@@ -300,10 +300,10 @@ class TowerDefenseEnv(BaseGlyphEnv):
         return (
             f"You are playing {self.env_id()}.\n\n"
             "TASK\n"
-            "Place towers along a winding path to stop waves of enemies from reaching "
-            "your base on the right side of the map.\n\n"
+            "Place towers along the winding path to stop waves of enemies from "
+            "reaching your base.\n\n"
             "RULES\n"
-            f"- The grid is {GRID_SIZE}x{GRID_SIZE}. Enemies walk along a fixed winding path from left to right.\n"
+            f"- The grid is {GRID_SIZE}x{GRID_SIZE}. The path's start, end, and shape are visible on the [Grid].\n"
             f"- You start with {STARTING_GOLD} gold. Each tower costs {TOWER_COST} gold.\n"
             f"- Towers shoot the nearest enemy within range ({TOWER_RANGE} cells, Manhattan distance) for 1 damage each step.\n"
             "- Enemies have 2-3 HP depending on the wave.\n"

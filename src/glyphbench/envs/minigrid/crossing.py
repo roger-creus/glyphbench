@@ -54,8 +54,8 @@ class _CrossingBase(MiniGridBase):
             danger = " Stepping on lava ends the episode with zero reward."
         goal = Goal().render_char()
         return (
-            f"Navigate upward through {self._num_strips} horizontal strip(s) of "
-            f"{obs_name} to reach the goal ({goal}) at the top. Each strip has one gap "
+            f"Navigate through {self._num_strips} horizontal strip(s) of "
+            f"{obs_name} to reach the goal ({goal}). Each strip has one gap "
             f"you can pass through.{danger} "
             f"Reward = 1 - 0.9 * (steps / max_steps)."
         )

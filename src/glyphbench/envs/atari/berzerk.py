@@ -80,7 +80,7 @@ class BerzerkEnv(AtariBase):
             "20x16 room. Border and random interior walls are '#' and "
             "are lethal on contact. The exit door 'D' is in the right "
             "wall at a random row. Robots are 'r'. Bullets (yours or "
-            "theirs) are '!'. You spawn at (2, 13) bottom-left and are "
+            "theirs) are '!'. You spawn somewhere on the floor and are "
             "an arrow glyph showing facing direction.\n\n"
             "MECHANICS\n"
             "Each step you pick one of: NOOP, FIRE, a move direction, or "

@@ -250,7 +250,7 @@ class BeamRiderEnv(AtariBase):
             "BOARD\n"
             "20x20 field with wall borders. Nine evenly spaced vertical "
             "beams drawn as ':' run from row 1 to row 18. Your ship is "
-            "an arrow that sits at row 18 on one of the 9 beam columns. "
+            "an arrow at the bottom of one beam column. "
             "Enemies are 'V', 'W', or 'X' (type 1/2/3). Your torpedoes "
             "are '!'.\n\n"
             "MECHANICS\n"

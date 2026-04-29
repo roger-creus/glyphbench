@@ -245,7 +245,7 @@ class SkiingEnv(AtariBase):
             "20 columns by 24 rows. Snow '.' background, tree 'T' "
             "at side walls and scattered through the course. Each "
             "gate '[ ]' spans 5 columns, placed every 6 rows down. "
-            "You are an arrow glyph near the top (row 3). The "
+            "You are an arrow glyph fixed near the top of the viewport. The "
             "viewport scrolls down as you descend.\n\n"
             "MECHANICS\n"
             "You only have lateral controls. LEFT / RIGHT steers "

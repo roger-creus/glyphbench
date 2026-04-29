@@ -296,7 +296,7 @@ class MirrorLaserEnv(BaseGlyphEnv):
             "Rotate mirrors to direct a laser beam from the source to the target.\n\n"
             "RULES\n"
             f"- The grid is {GRID_SIZE}x{GRID_SIZE}.\n"
-            "- The laser source is on the left edge, emitting a beam to the right.\n"
+            "- A laser source emits a beam from one edge of the grid (see [Grid]).\n"
             "- Mirrors reflect the beam:\n"
             "  - / mirror: reflects right->up, left->down, up->right, down->left\n"
             "  - \\ mirror: reflects right->down, left->up, up->left, down->right\n"

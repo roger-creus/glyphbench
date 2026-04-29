@@ -245,7 +245,7 @@ class FroggerEnv(BaseGlyphEnv):
             "TASK\n"
             "Guide a frog from the bottom of the screen to the goal at the top.\n\n"
             "RULES\n"
-            f"- The grid is {WIDTH}x{HEIGHT}. The top row is the goal, the bottom row is the start.\n"
+            f"- The grid is {WIDTH}x{HEIGHT}.\n"
             "- Middle rows alternate between road lanes and river lanes, with a safe zone in the middle.\n"
             "- Road lanes have cars that scroll horizontally. Touching a car kills you (-1 reward).\n"
             "- River lanes have logs that scroll horizontally. You must land on a log to cross.\n"
