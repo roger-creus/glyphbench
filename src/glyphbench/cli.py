@@ -803,24 +803,94 @@ def _render_rollout_rich(
     with Live(render_frame(1), console=console, auto_refresh=False,
               screen=is_tty, transient=False, redirect_stdout=False,
               redirect_stderr=False) as live:
-        for t_idx in range(1, len(turns) + 1):
-            live.update(render_frame(t_idx), refresh=True)
-            if pause and is_tty:
-                # Wait for a single keypress: any → next, q → quit rollout.
+        if pause and is_tty:
+            t_idx = 1
+            n_turns = len(turns)
+            while 1 <= t_idx <= n_turns:
+                live.update(render_frame(t_idx), refresh=True)
                 ch = _read_one_key()
                 if ch == "q":
                     break
-            elif delay > 0:
-                time.sleep(delay)
-        if is_tty and not pause:
-            # Hold the final frame visible so the user sees the outcome.
-            time.sleep(min(2.0, max(0.5, delay * 8)))
+                # Pager hotkeys: stop Live, dump full content through
+                # $PAGER, restart Live, redraw current frame.
+                pager_text: str | None = None
+                if ch == "s":
+                    pager_text = sys_text or "(no system prompt)"
+                elif ch == "r":
+                    full_think, _ = _split_assistant(turns[t_idx - 1]["assistant"])
+                    pager_text = full_think or "(no reasoning)"
+                elif ch == "m":
+                    mem = turns[t_idx - 1].get("memory") or {}
+                    prev_m = (mem.get("previous_memory") or "").strip()
+                    cur_m = (mem.get("stored_memory") or "").strip()
+                    pager_text = (
+                        f"PREVIOUS MEMORY (carried into turn {t_idx}):\n\n"
+                        + (prev_m or "(empty)")
+                        + "\n\n"
+                        + "=" * 60
+                        + f"\n\nUPDATED MEMORY (written at end of turn {t_idx}):\n\n"
+                        + (cur_m or "(empty)")
+                    )
+                if pager_text is not None:
+                    live.stop()
+                    _show_in_pager(pager_text)
+                    live.start()
+                    live.update(render_frame(t_idx), refresh=True)
+                    continue
+                # Navigation: left arrow → previous, right arrow / any
+                # other key → next.
+                if ch == "\x1b[D":
+                    t_idx = max(1, t_idx - 1)
+                elif ch == "\x1b[C":
+                    t_idx = min(n_turns, t_idx + 1)
+                else:
+                    t_idx += 1
+        else:
+            for t_idx in range(1, len(turns) + 1):
+                live.update(render_frame(t_idx), refresh=True)
+                if delay > 0:
+                    time.sleep(delay)
+            if is_tty:
+                # Hold the final frame so the viewer sees the outcome.
+                time.sleep(min(2.0, max(0.5, delay * 8)))
+
+
+def _show_in_pager(text: str) -> None:
+    """Open ``text`` in the user's $PAGER (less -R by default).
+
+    Used by replay's pause mode so the viewer can scroll over content
+    that's been clipped in the live frame (system prompt, full
+    reasoning chain, full memory state). Falls back to a plain stdout
+    dump if no pager is available.
+    """
+    import os
+    import subprocess
+
+    pager_env = os.environ.get("PAGER", "less -R")
+    cmd = pager_env.split() if pager_env else []
+    if not cmd:
+        sys.stdout.write(text + "\n")
+        sys.stdout.flush()
+        return
+    try:
+        subprocess.run(cmd, input=text, text=True, check=False)
+    except (FileNotFoundError, OSError):
+        sys.stdout.write(text + "\n")
+        sys.stdout.flush()
 
 
 def _read_one_key() -> str:
-    """Read a single keypress from stdin without echo. Returns '' on EOF."""
+    """Read a single keypress (or short escape sequence) from stdin
+    without echo. Returns ``''`` on EOF.
+
+    Recognised escape sequences are returned verbatim with the leading
+    ``\\x1b``: arrow keys come back as ``\\x1b[A`` (up) / ``\\x1b[B``
+    (down) / ``\\x1b[C`` (right) / ``\\x1b[D`` (left). Plain ASCII
+    keys are returned lowercased.
+    """
     import sys
     try:
+        import select
         import termios
         import tty
     except ImportError:
@@ -836,9 +906,22 @@ def _read_one_key() -> str:
     try:
         tty.setraw(fd)
         ch = sys.stdin.read(1)
+        if ch == "\x1b":
+            # Possible CSI / arrow sequence — drain up to 2 more bytes,
+            # non-blocking, so a lone ESC doesn't hang and a 3-byte arrow
+            # sequence ("\x1b[X") comes back whole.
+            for _ in range(2):
+                ready, _, _ = select.select([fd], [], [], 0.02)
+                if not ready:
+                    break
+                ch += sys.stdin.read(1)
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    return ch.lower() if ch else ""
+    if not ch:
+        return ""
+    if ch.startswith("\x1b"):
+        return ch  # raw escape sequence (preserve case in CSI byte)
+    return ch.lower()
 
 
 def _cmd_replay(args: argparse.Namespace) -> int:
@@ -990,8 +1073,12 @@ def _build_parser() -> argparse.ArgumentParser:
                     help="Don't play anything; print the (model, env_id, seed) "
                          "index of what matches the filters and exit.")
     pr.add_argument("--pause", action="store_true",
-                    help="Step turn-by-turn: any key → next frame, q → skip "
-                         "to next rollout. Overrides --delay.")
+                    help="Step turn-by-turn. Keys: → / any → next frame; "
+                         "← → previous frame; q → next rollout; "
+                         "s → open full system prompt in $PAGER; "
+                         "r → open full reasoning chain in $PAGER; "
+                         "m → open full previous + updated memory in "
+                         "$PAGER. Overrides --delay.")
     pr.add_argument("--delay", type=float, default=0.15,
                     help="Seconds between turns. Default: 0.15")
     pr.set_defaults(func=_cmd_replay)
