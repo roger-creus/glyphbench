@@ -75,6 +75,31 @@ def test_system_prompt_lists_actions(game):
         assert name in sp
 
 
+def test_system_prompt_describes_observation_conventions(game):
+    sp = build_system_prompt(game, max_output_tokens=512)
+    assert "OBSERVATION CONVENTIONS" in sp
+    assert "[Legend]" in sp
+    assert "Step: T / N" in sp
+
+
+def test_system_prompt_omits_memory_block_when_not_in_memory_mode(game):
+    sp = build_system_prompt(game, max_output_tokens=512, use_memory=False)
+    assert "MEMORY MODE" not in sp
+
+
+def test_system_prompt_includes_memory_block_when_in_memory_mode(game):
+    sp = build_system_prompt(
+        game, max_output_tokens=8192,
+        use_memory=True, memory_update_max_tokens=4096,
+    )
+    assert "MEMORY MODE" in sp
+    assert "<memory>" in sp
+    assert "</memory>" in sp
+    # The block should also tell the agent the memory budget so it can
+    # plan its memory length.
+    assert "4096" in sp
+
+
 def test_user_turn_zero_no_history_section(game):
     frames: deque = deque(maxlen=4)
     text = render_user_turn(
@@ -87,7 +112,10 @@ def test_user_turn_zero_no_history_section(game):
     assert "[History" not in text
     assert "[Legend]" in text
     assert "[Current Observation" in text or "[Observation" in text
-    assert "[Actions]" in text
+    # The action spec now lives ONLY in the cached system prompt; the
+    # per-turn user content just nudges the model to emit a tag now.
+    assert "[Actions]" not in text
+    assert "Now emit your move" in text
 
 
 def test_user_turn_omits_memory_by_default(game):

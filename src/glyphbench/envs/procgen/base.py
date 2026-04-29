@@ -274,8 +274,8 @@ class ProcgenBase(BaseGlyphEnv):
         jump_info = "grounded" if on_ground else "airborne"
 
         hud = (
+            f"Step: {self._turn} / {self.max_turns}    "
             f"Score: {self._score:.0f}    "
-            f"Turn: {self._turn}    "
             f"Pos: ({self._agent_x},{self._agent_y})    "
             f"State: {jump_info}"
         )

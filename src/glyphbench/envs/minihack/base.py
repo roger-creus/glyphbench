@@ -462,9 +462,9 @@ class MiniHackBase(BaseGlyphEnv):
             self._wielding.name if self._wielding else "fists"
         )
         hud = (
+            f"Step: {self._turn} / {self.max_turns}    "
             f"Dlvl: 1    "
             f"HP: {self._player_hp}/{self._player_max_hp}    "
-            f"Turn: {self._turn}    "
             f"Pos: ({px},{py}){dark_note}    "
             f"Wielding: {wield_str}    "
             f"Inv: {inv_str}"

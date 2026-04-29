@@ -2222,7 +2222,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             f"Facing: {facing_name}  "
             f"Floor: {floor_str}  "
             f"Time: {time_str}  "
-            f"Step: {self._turn}\n"
+            f"Step: {self._turn} / {self.max_turns}\n"
             f"Next drain: food in {food_drain}, "
             f"water in {water_drain}, "
             f"energy in {energy_drain}\n"

@@ -164,10 +164,12 @@ class AtariBase(BaseGlyphEnv):
                 self._player_dir, "none"
             )
             symbols[pch] = f"you (facing {dname})"
-        # HUD is computed for the env's info dict only — it is NOT shown to
-        # the model (see verifiers_integration/prompting.py). Single-life
-        # model: no Lives field.
+        # HUD shown to the model on every turn. Single-life model: no
+        # Lives field. ``Step: T / N`` is required by the prompt
+        # convention (see OBSERVATION_CONVENTIONS_BLOCK in
+        # verifiers_integration/prompting.py).
         hud = (
+            f"Step: {self._turn} / {self.max_turns}    "
             f"Score: {self._score}    "
             f"Level: {self._level}"
         )

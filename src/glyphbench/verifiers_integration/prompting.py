@@ -62,18 +62,50 @@ RESPONSE_FORMAT_BLOCK_TMPL = (
     "action is applied automatically."
 )
 
+OBSERVATION_CONVENTIONS_BLOCK = (
+    "OBSERVATION CONVENTIONS\n"
+    "Each turn you receive a [Grid] (ASCII), a [Legend] mapping each glyph "
+    "to its meaning for this turn, a [HUD] line that always contains "
+    "`Step: T / N` (current turn / per-episode budget), and a per-turn "
+    "[Actions] list. Treat the [Grid] as authoritative for spatial state "
+    "and the [Legend] as authoritative for glyph meaning."
+)
 
-def build_system_prompt(game: BaseGlyphEnv, max_output_tokens: int) -> str:
-    """Compose the system prompt: game rules + standard response-format block.
+MEMORY_BLOCK_TMPL = (
+    "MEMORY MODE (active for this run)\n"
+    "Each environment turn is followed by a memory-update turn. After "
+    "you emit the action above, you'll get a [Memory Update] prompt "
+    "containing your previous memory, your action response, the env's "
+    "feedback, and the next observation. Reply ONLY with "
+    "`<memory>...your concise updated memory...</memory>` — do not emit "
+    "an <action> tag in the memory turn. The text inside <memory> is "
+    "carried into the next turn's observation as a [Memory] block "
+    "(authoritative source for state you want to track across turns; the "
+    "current observation still wins on conflicts). Cap the memory at "
+    "{memory_budget} tokens; anything beyond will be truncated."
+)
 
-    The output is stable across turns — verifiers reuses the cached tokenisation
-    as long as this content doesn't change.
+
+def build_system_prompt(
+    game: BaseGlyphEnv,
+    max_output_tokens: int,
+    *,
+    use_memory: bool = False,
+    memory_update_max_tokens: int | None = None,
+) -> str:
+    """Compose the system prompt: game rules + standard response-format
+    block + observation conventions (+ memory block when memory mode is
+    on).
+
+    The output is stable across turns — verifiers reuses the cached
+    tokenisation as long as this content doesn't change.
     """
     header = game.system_prompt().rstrip()
     fmt = RESPONSE_FORMAT_BLOCK_TMPL.format(
         budget=max_output_tokens,
         noop=game.noop_action_name,
     )
+    blocks: list[str] = [header, OBSERVATION_CONVENTIONS_BLOCK]
     # Most env classes already append `action_spec.render_for_prompt()` in
     # their own `system_prompt()` (see e.g. minigrid/base.py, procgen/base.py,
     # most atari/*.py). Only inject an extra Actions block here when the
@@ -81,8 +113,13 @@ def build_system_prompt(game: BaseGlyphEnv, max_output_tokens: int) -> str:
     # listing the user flagged on 2026-04-25.
     actions_block = game.action_spec.render_for_prompt().strip()
     if actions_block and actions_block not in header:
-        return f"{header}\n\n---\n{actions_block}\n\n---\n{fmt}"
-    return f"{header}\n\n---\n{fmt}"
+        blocks.append(actions_block)
+    blocks.append(fmt)
+    if use_memory:
+        blocks.append(MEMORY_BLOCK_TMPL.format(
+            memory_budget=memory_update_max_tokens or 4096,
+        ))
+    return "\n\n---\n".join(blocks)
 
 
 def render_user_turn(
@@ -138,14 +175,9 @@ def render_user_turn(
     # 3. Current observation — strip legend, keep HUD + grid + message.
     parts.append(_render_current_block(current_obs, turn))
 
-    # 4. Actions enumerated (names-only — full descriptions are in the
-    # stable system prompt; this is just a per-turn reminder).
-    action_list = ", ".join(game.action_spec.names)
-    parts.append(f"[Actions]\nChoose one: [{action_list}]")
-
-    # 5. Per-turn format reminder. Stays short — the full response-format
-    # rules are in the system prompt; this just nudges the model to emit
-    # the action tag now.
+    # 4. Per-turn nudge — the full action list with descriptions is in
+    # the cached system prompt, so we don't repeat it here. This line
+    # only re-asserts the response format the agent must use right now.
     parts.append("Now emit your move as `<action>ACTION_NAME</action>`.")
 
     return "\n\n".join(parts)

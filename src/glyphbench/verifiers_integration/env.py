@@ -199,7 +199,12 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         state["memory"] = ""
 
         # Populate the prompt now that we have the game instance.
-        system_text = build_system_prompt(game, self._max_output_tokens)
+        system_text = build_system_prompt(
+            game,
+            self._max_output_tokens,
+            use_memory=self._use_memory,
+            memory_update_max_tokens=self._memory_update_max_tokens,
+        )
         initial_user_text = self._render_action_user(game, state, turn=0)
         state["prompt"] = [
             vf.SystemMessage(content=system_text),

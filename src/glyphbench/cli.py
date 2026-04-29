@@ -579,6 +579,7 @@ def _render_rollout_rich(
         # so the cell ends up roughly square in a typical 2:1 font.
         grid = _scale_grid(grid, 2, 1)
         hud = _extract_block(u_content, "[HUD]") or ""
+        legend = _extract_block(u_content, "[Legend]") or ""
         reward_block = _extract_block(u_content, "[Reward]") or ""
         status = _extract_block(u_content, "[Status]") or ""
         think, _ = _split_assistant(a_content)
@@ -712,6 +713,18 @@ def _render_rollout_rich(
                       border_style="cyan", padding=(0, 1)),
                 hud_lines + 2,
             ))
+        if legend:
+            legend_cap = max(4, min(memory_cap, console_h // 5))
+            legend_txt = _clip_to_lines(
+                legend.strip(), legend_cap, mode="head",
+                max_line_width=line_width_cap,
+            )
+            right_entries.append((
+                Panel(Text(legend_txt, style="bright_cyan", overflow="fold"),
+                      title="legend", title_align="left",
+                      border_style="bright_cyan", padding=(0, 1)),
+                legend_cap + 2,
+            ))
         if think:
             reasoning_border = "red" if think_missing else "grey50"
             reasoning_title = "reasoning" + (" (no <think> tag)" if think_missing else "")
@@ -819,6 +832,11 @@ def _render_rollout_rich(
                 elif ch == "r":
                     full_think, _ = _split_assistant(turns[t_idx - 1]["assistant"])
                     pager_text = full_think or "(no reasoning)"
+                elif ch == "l":
+                    full_legend = (
+                        _extract_block(turns[t_idx - 1]["user"], "[Legend]") or ""
+                    ).strip()
+                    pager_text = full_legend or "(no legend in this turn)"
                 elif ch == "m":
                     mem = turns[t_idx - 1].get("memory") or {}
                     prev_m = (mem.get("previous_memory") or "").strip()
@@ -1093,6 +1111,7 @@ def _build_parser() -> argparse.ArgumentParser:
                          "← → previous frame; q → next rollout; "
                          "s → open full system prompt in $PAGER; "
                          "r → open full reasoning chain in $PAGER; "
+                         "l → open full legend (glyph table) in $PAGER; "
                          "m → open full previous + updated memory in "
                          "$PAGER. Overrides --delay.")
     pr.add_argument("--delay", type=float, default=0.15,
