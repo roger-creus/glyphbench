@@ -16,6 +16,7 @@ from glyphbench.envs.craftax.base import (
     TILE_BAT,
     TILE_BOSS,
     TILE_BOSS_DOOR,
+    TILE_COAL,
     TILE_COW,
     TILE_DIAMOND,
     TILE_DUNGEON_FLOOR,
@@ -413,19 +414,23 @@ class CraftaxSurviveHungerEnv(CraftaxClassicEnv):
     def system_prompt(self) -> str:
         return (
             "CRAFTAX SURVIVE HUNGER\n\n"
-            "You are starving! Food is at 2/9.\n"
+            "You are starving! Food is at 1/9.\n"
             "GOAL: Find food before you starve. Survive 100 steps.\n"
             "- Kill a cow (c) with DO to get +5 food.\n"
             "- Eat a ripe plant (*) with EAT_PLANT for +3 food.\n"
             "- Food drains 1 every 50 steps. At 0 food: -1 HP/step.\n"
-            "REWARD: +1 per food source eaten, +10 for surviving 100 steps.\n"
+            "REWARD: +1 per food source eaten, +10 for surviving 100 steps "
+            "(only granted if you actually ate at least one food source).\n"
             "You have a wood sword to help fight cows.\n\n"
             + self.action_spec.render_for_prompt()
         )
 
     def _reset(self, seed: int) -> GridObservation:
         obs = super()._reset(seed)
-        self._food = 2
+        # Food=1 so the first drain at step 50 hits 0; damage starts at
+        # step 51 and the HP-9 agent dies at step 60 if no food is
+        # found. Forces real food acquisition before max_turns=100.
+        self._food = 1
         self._food_eaten = 0
         # Remove nearby food sources (ripe plants)
         cx, cy = self._agent_x, self._agent_y
@@ -452,8 +457,9 @@ class CraftaxSurviveHungerEnv(CraftaxClassicEnv):
             food_reward = gained / 3.0  # normalize: +1 per ~3 food gained
             reward += food_reward
             self._food_eaten += 1
-        # Survival bonus at end
-        if truncated and self._hp > 0:
+        # Survival bonus at end — only if the agent actually ate at
+        # least one food source. NOOP-spam can't game it.
+        if truncated and self._hp > 0 and self._food_eaten >= 1:
             reward += 10.0
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -589,9 +595,17 @@ class CraftaxSurviveWildEnv(CraftaxClassicEnv):
         obs = super()._reset(seed)
         self._inventory = {}
         self._hp = 9
-        self._food = _MAX_FOOD
-        self._water = _MAX_WATER
+        # Start food/water below max so the survival drains actually
+        # bite during a 200-step episode (full pools survive 200 steps
+        # of NOOP otherwise).
+        self._food = 4
+        self._water = 4
         self._energy = _MAX_ENERGY
+        # Begin near nightfall so the day/night transition happens mid
+        # episode and forces engagement with shelter/sleep/combat.
+        # _DAY_LENGTH=200 means day phase runs 0..199; setting counter
+        # to 170 puts nightfall at step ~30 of the episode.
+        self._day_counter = 170
         return self._render_current_observation()
 
     def _step(
@@ -1022,24 +1036,28 @@ class CraftaxCraftIronSetEnv(CraftaxClassicEnv):
         return obs, reward, terminated, truncated, info
 
 
-class CraftaxSmeltIronEnv(CraftaxClassicEnv):
-    """Start with iron ore + coal + furnace nearby.
-    Goal: smelt 3 iron bars. Max 30 steps.
+class CraftaxMineIronEnv(CraftaxClassicEnv):
+    """Stone pickaxe in inventory; iron deposits are placed adjacent to
+    the agent. Goal: mine 3 iron ore in a max-30-step window.
 
-    Note: In this Craftax implementation, iron ore IS iron (no smelting step).
-    This task instead requires mining 3 iron ore with the right pickaxe.
-    """
+    (Renamed from CraftaxSmeltIronEnv. The old env id was misleading —
+    the Craftax implementation does not have a separate smelting step;
+    DO on an iron tile with a stone pickaxe directly produces an
+    ``iron`` inventory entry, treated as the smelted bar by the
+    crafting recipes. The env id was changed to reflect what the env
+    actually checks.)"""
 
     def __init__(self, max_turns: int = 30) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
-        return "glyphbench/craftax-smelt-iron-v0"
+        return "glyphbench/craftax-mine-iron-v0"
 
     def system_prompt(self) -> str:
         return (
             "CRAFTAX MINE IRON\n\n"
-            "Iron deposits are nearby. You have a stone pickaxe.\n"
+            "Iron deposits (I) are placed adjacent to you. You have a "
+            "stone pickaxe.\n"
             "GOAL: Mine 3 iron ore.\n"
             "Face iron tiles (I) and use DO to mine.\n"
             "Requires stone pickaxe or better.\n"
@@ -1455,6 +1473,349 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
                 terminated = True
                 info["subtask_success"] = True
         info["deepest_floor"] = self._deepest_floor
+        return obs, reward, terminated, truncated, info
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap / chain tasks — start from nothing and force the agent through
+# the full Craftax mining + crafting dependency chain.
+# ---------------------------------------------------------------------------
+
+
+def _resource_field(env: CraftaxClassicEnv, layout: dict[tuple[int, int], str]) -> None:
+    """Helper for bootstrap-task ``_reset``: clear a small arena around
+    the agent and stamp specific tiles at given offsets relative to the
+    agent. ``layout`` maps (dx, dy) → tile char.
+    """
+    cx, cy = env._agent_x, env._agent_y
+    for dx in range(-7, 8):
+        for dy in range(-7, 8):
+            x, y = cx + dx, cy + dy
+            if 0 <= x < env._WORLD_SIZE and 0 <= y < env._WORLD_SIZE:
+                env._world[y][x] = TILE_GRASS
+    for (dx, dy), tile in layout.items():
+        x, y = cx + dx, cy + dy
+        if 0 <= x < env._WORLD_SIZE and 0 <= y < env._WORLD_SIZE:
+            env._world[y][x] = tile
+
+
+class CraftaxIronBootstrapEnv(CraftaxClassicEnv):
+    """Empty inventory, blank meadow with ONE cluster of trees, stone,
+    coal and iron ore. Goal: walk the full bootstrap chain — chop wood
+    → place a crafting table → craft a wood pickaxe → mine stone →
+    place a furnace → craft a stone pickaxe → mine 1 iron ore. Termination
+    fires when both ``inventory["iron"] >= 1`` AND a furnace tile
+    exists in the curated arena (so the agent really did place one,
+    not just inherit it).
+    """
+
+    def __init__(self, max_turns: int = 200) -> None:
+        super().__init__(max_turns=max_turns)
+        self._reached_iron: bool = False
+        self._placed_furnace_count: int = 0
+
+    def env_id(self) -> str:
+        return "glyphbench/craftax-iron-bootstrap-v0"
+
+    def system_prompt(self) -> str:
+        return (
+            "CRAFTAX IRON BOOTSTRAP\n\n"
+            "You start with NOTHING. The arena around you contains "
+            "trees (♣), stone (S), coal (C), and iron ore (I).\n"
+            "GOAL: mine 1 iron ore AND place 1 furnace. Termination "
+            "checks both.\n"
+            "Required chain (no shortcuts):\n"
+            "  1) DO on a tree to chop wood (no tool needed).\n"
+            "  2) PLACE_TABLE (2 wood) — then stand adjacent to it.\n"
+            "  3) MAKE_WOOD_PICKAXE (1 wood, table-adjacent).\n"
+            "  4) DO on stone with the wood pickaxe.\n"
+            "  5) PLACE_FURNACE (4 stone) — adjacent to the table.\n"
+            "  6) MAKE_STONE_PICKAXE (1 wood + 1 stone, table+furnace).\n"
+            "  7) DO on iron ore with the stone pickaxe.\n"
+            "REWARD shaping: +1 first wood, +1 first table, +1 first "
+            "wood pickaxe, +1 first stone, +1 first furnace, +1 first "
+            "stone pickaxe, +5 first iron, +5 success bonus.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
+    def _reset(self, seed: int) -> GridObservation:
+        obs = super()._reset(seed)
+        self._mobs = []
+        self._inventory = {}
+        self._hp = 9
+        self._food = _MAX_FOOD
+        self._water = _MAX_WATER
+        self._energy = _MAX_ENERGY
+        # Set up curated arena: trees N+NE, stone S, coal SE, iron W.
+        # Plenty of redundancy so the agent has slack.
+        layout: dict[tuple[int, int], str] = {}
+        for dy in (-3, -2, -1):
+            layout[(0, dy)] = TILE_TREE
+        for dy in (-3, -2):
+            layout[(1, dy)] = TILE_TREE
+        for dx in (1, 2, 3):
+            layout[(dx, 1)] = TILE_STONE
+            layout[(dx, 2)] = TILE_STONE
+        for dx in (1, 2):
+            layout[(dx, 3)] = TILE_COAL
+        for dx in (-3, -2, -1):
+            layout[(dx, 0)] = TILE_IRON
+        _resource_field(self, layout)
+        # Reset progress flags so reward shaping doesn't double-count
+        # across episode resets.
+        self._reached_iron = False
+        self._placed_furnace_count = 0
+        self._milestones: set[str] = set()
+        return self._render_current_observation()
+
+    def _count_furnaces(self) -> int:
+        n = 0
+        for row in self._world:
+            for ch in row:
+                if ch == TILE_FURNACE:
+                    n += 1
+        return n
+
+    def _milestone(self, key: str, points: float) -> float:
+        if key in self._milestones:
+            return 0.0
+        self._milestones.add(key)
+        return float(points)
+
+    def _step(
+        self, action: int,
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        obs, reward, terminated, truncated, info = super()._step(action)
+        inv = self._inventory
+        if inv.get("wood", 0) >= 1:
+            reward += self._milestone("wood", 1.0)
+        if inv.get("stone", 0) >= 1:
+            reward += self._milestone("stone", 1.0)
+        if inv.get("wood_pickaxe", 0) >= 1:
+            reward += self._milestone("wood_pickaxe", 1.0)
+        if inv.get("stone_pickaxe", 0) >= 1:
+            reward += self._milestone("stone_pickaxe", 1.0)
+        # Detect placement events by counting tiles (cheap on a small
+        # curated arena).
+        if "table" not in self._milestones:
+            for row in self._world:
+                if TILE_TABLE in row:
+                    reward += self._milestone("table", 1.0)
+                    break
+        if "furnace" not in self._milestones:
+            if self._count_furnaces() >= 1:
+                reward += self._milestone("furnace", 1.0)
+        if inv.get("iron", 0) >= 1:
+            reward += self._milestone("iron_first", 5.0)
+            self._reached_iron = True
+
+        if (
+            self._reached_iron
+            and self._count_furnaces() >= 1
+            and not terminated
+        ):
+            reward += 5.0
+            terminated = True
+            info["subtask_success"] = True
+        return obs, reward, terminated, truncated, info
+
+
+class CraftaxDiamondBootstrapEnv(CraftaxIronBootstrapEnv):
+    """Same arena as the iron bootstrap plus a diamond cluster, longer
+    walltime, and the goal extended one more rung up the tool tree:
+    forge an iron pickaxe and mine a diamond. Inherits all reward
+    shaping from the iron bootstrap; adds two more milestones for
+    iron-pickaxe craft and the first diamond. Termination fires on
+    ``inventory["diamond"] >= 1``.
+    """
+
+    def __init__(self, max_turns: int = 250) -> None:
+        super().__init__(max_turns=max_turns)
+        self._reached_diamond: bool = False
+
+    def env_id(self) -> str:
+        return "glyphbench/craftax-diamond-bootstrap-v0"
+
+    def system_prompt(self) -> str:
+        return (
+            "CRAFTAX DIAMOND BOOTSTRAP\n\n"
+            "Like iron-bootstrap, but you must go one rung further up "
+            "the tool tree: forge an iron pickaxe and mine a diamond.\n"
+            "GOAL: mine 1 diamond. The arena contains trees, stone, "
+            "coal, iron ore, AND a small diamond (D) cluster. Diamond "
+            "needs an iron pickaxe.\n"
+            "Required chain:\n"
+            "  wood → table → wood pickaxe → stone → furnace → stone "
+            "pickaxe → iron ore → iron pickaxe (1 wood + 1 iron, table"
+            "+furnace) → DO on diamond.\n"
+            "REWARD shaping: same as iron-bootstrap, plus +3 first "
+            "iron pickaxe, +10 first diamond, +10 success bonus.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
+    def _reset(self, seed: int) -> GridObservation:
+        obs = super()._reset(seed)
+        # Inherit iron-bootstrap arena, then add a diamond cluster.
+        cx, cy = self._agent_x, self._agent_y
+        for dx in (-3, -2):
+            x, y = cx + dx, cy - 3
+            if 0 <= x < self._WORLD_SIZE and 0 <= y < self._WORLD_SIZE:
+                self._world[y][x] = TILE_DIAMOND
+        self._reached_diamond = False
+        return self._render_current_observation()
+
+    def _step(
+        self, action: int,
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        # Run the parent shaping but suppress its terminal-on-iron
+        # behaviour; we want the run to continue until diamond is
+        # collected.
+        was_iron_done = (
+            self._reached_iron and self._count_furnaces() >= 1
+        )
+        obs, reward, terminated, truncated, info = super()._step(action)
+        # Iron-bootstrap parent flips terminated=True the FIRST step
+        # iron+furnace co-exist; undo that for the extended task.
+        if (
+            terminated
+            and not was_iron_done
+            and not self._reached_diamond
+            and self._hp > 0
+        ):
+            terminated = False
+            info.pop("subtask_success", None)
+        if self._inventory.get("iron_pickaxe", 0) >= 1:
+            reward += self._milestone("iron_pickaxe", 3.0)
+        if self._inventory.get("diamond", 0) >= 1:
+            reward += self._milestone("diamond_first", 10.0)
+            if not self._reached_diamond and not terminated:
+                reward += 10.0
+                terminated = True
+                info["subtask_success"] = True
+            self._reached_diamond = True
+        return obs, reward, terminated, truncated, info
+
+
+# ---------------------------------------------------------------------------
+# Wave Defense — survive scripted zombie waves with limited stone for
+# walls and a stone sword for fighting.
+# ---------------------------------------------------------------------------
+
+
+class CraftaxWaveDefenseEnv(CraftaxClassicEnv):
+    """Three scripted zombie waves over a 150-step episode. Agent
+    starts with a stone sword and 6 stone for placing walls. Waves
+    spawn at steps 0, 50, 100; each wave drops a small ring of zombies
+    in the agent's vicinity. Success: alive at the end of step 150.
+    """
+
+    _WAVE_STEPS = (1, 50, 100)
+    _WAVE_SIZES = (3, 4, 5)
+
+    def __init__(self, max_turns: int = 150) -> None:
+        super().__init__(max_turns=max_turns)
+        self._waves_spawned: int = 0
+        self._wave_kills: int = 0
+
+    def env_id(self) -> str:
+        return "glyphbench/craftax-wave-defense-v0"
+
+    def system_prompt(self) -> str:
+        return (
+            "CRAFTAX WAVE DEFENSE\n\n"
+            "Three zombie waves will spawn near you at steps 1, 50 and "
+            "100 (sizes 3, 4, 5). You have a stone sword (DO to attack "
+            "an adjacent zombie) and 6 stone (PLACE_STONE to wall off "
+            "approaches). Survival 9 HP, no armor.\n"
+            "GOAL: be alive at step 150.\n"
+            "REWARD: +1 per kill, +0.05 per step alive after spawn-1, "
+            "+15 success bonus on full survival.\n\n"
+            + self.action_spec.render_for_prompt()
+        )
+
+    def _reset(self, seed: int) -> GridObservation:
+        obs = super()._reset(seed)
+        self._mobs = []
+        # Clear a wide grass arena so spawn placement always works.
+        cx, cy = self._agent_x, self._agent_y
+        for dx in range(-6, 7):
+            for dy in range(-6, 7):
+                x, y = cx + dx, cy + dy
+                if 0 <= x < self._WORLD_SIZE and 0 <= y < self._WORLD_SIZE:
+                    self._world[y][x] = TILE_GRASS
+        self._inventory = {"stone_sword": 1, "stone": 6}
+        self._hp = 9
+        self._food = _MAX_FOOD
+        self._water = _MAX_WATER
+        self._energy = _MAX_ENERGY
+        # Disable day/night drains so the episode is purely combat.
+        self._disable_survival_drain = True  # type: ignore[attr-defined]
+        self._disable_day_night = True  # type: ignore[attr-defined]
+        self._waves_spawned = 0
+        self._wave_kills = 0
+        return self._render_current_observation()
+
+    def _spawn_wave(self, n_zombies: int) -> None:
+        cx, cy = self._agent_x, self._agent_y
+        # Try Manhattan-ring positions in a deterministic order so a
+        # crowded arena still yields valid spawns.
+        offsets = []
+        for r in (3, 4, 5, 6):
+            for dx in range(-r, r + 1):
+                dy = r - abs(dx)
+                if dy >= 0:
+                    offsets.append((dx, dy))
+                    offsets.append((dx, -dy))
+        placed = 0
+        for (dx, dy) in offsets:
+            if placed >= n_zombies:
+                break
+            x, y = cx + dx, cy + dy
+            if not (0 <= x < self._WORLD_SIZE and 0 <= y < self._WORLD_SIZE):
+                continue
+            if self._world[y][x] not in CLASSIC_WALKABLE:
+                continue
+            if (x, y) == (cx, cy) or self._mob_at(x, y):
+                continue
+            mob: ClassicMob = {
+                "type": "zombie",
+                "x": x,
+                "y": y,
+                "hp": CLASSIC_MOB_STATS["zombie"]["hp"],
+                "max_hp": CLASSIC_MOB_STATS["zombie"]["hp"],
+            }
+            self._mobs.append(mob)
+            placed += 1
+
+    def _step(
+        self, action: int,
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        # Spawn pending waves at the configured step count BEFORE the
+        # parent step runs so the new mobs are part of this turn's
+        # _mob_ai pass.
+        for idx, step in enumerate(self._WAVE_STEPS):
+            if idx >= self._waves_spawned and self._turn >= step:
+                self._spawn_wave(self._WAVE_SIZES[idx])
+                self._waves_spawned = idx + 1
+        prev_total_kills = sum(
+            CLASSIC_MOB_STATS[m["type"]]["hp"] - m["hp"]
+            for m in self._mobs
+            if m["type"] in CLASSIC_MOB_STATS
+        )
+        prev_alive = len([m for m in self._mobs if m["type"] != "cow"])
+        obs, reward, terminated, truncated, info = super()._step(action)
+        cur_alive = len([m for m in self._mobs if m["type"] != "cow"])
+        if cur_alive < prev_alive:
+            kills = prev_alive - cur_alive
+            self._wave_kills += kills
+            reward += float(kills)
+        if not terminated and self._waves_spawned >= 1:
+            reward += 0.05
+        if truncated and self._hp > 0 and self._waves_spawned == len(self._WAVE_STEPS):
+            reward += 15.0
+            info["subtask_success"] = True
+        info["wave_kills"] = self._wave_kills
+        info["waves_spawned"] = self._waves_spawned
         return obs, reward, terminated, truncated, info
 
 

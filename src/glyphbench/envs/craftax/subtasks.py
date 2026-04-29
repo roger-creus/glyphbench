@@ -134,10 +134,14 @@ class _SubtaskMixin:
         # Run the full Classic step machinery
         obs, reward, terminated, truncated, info = super()._step(action)  # type: ignore[misc]
 
-        if not terminated:
-            extra_reward, done = self._subtask_check(reward, info)  # type: ignore[attr-defined]
-            reward += extra_reward
-            terminated = done
+        # Always invoke the subtask check, even when the parent already
+        # terminated the episode (e.g. the agent died). Otherwise per-
+        # subtask death-penalty branches are unreachable. The check is
+        # responsible for keeping `terminated` True when the parent
+        # already set it.
+        extra_reward, done = self._subtask_check(reward, info)  # type: ignore[attr-defined]
+        reward += extra_reward
+        terminated = bool(terminated) or bool(done)
 
         return obs, reward, terminated, truncated, info
 
