@@ -227,3 +227,95 @@ def test_clip_to_lines_truncates_overlong_individual_lines():
     line = out.splitlines()[0]
     assert len(line) <= 80
     assert line.endswith("…")
+
+
+def test_split_assistant_chat_template_prefill_no_opening_think_tag():
+    text = (
+        "I should move forward to reach the goal.\n"
+        "The cow is at row 3.\n"
+        "</think>\n\n<action>MOVE_FORWARD</action>"
+    )
+    think, action = cli._split_assistant(text)
+    assert "I should move forward" in think
+    assert "row 3" in think
+    assert action == "MOVE_FORWARD"
+
+
+def test_split_assistant_takes_last_action_match():
+    text = (
+        "<think>I will emit `<action>ACTION_NAME</action>` to move.</think>\n"
+        "<action>MOVE_LEFT</action>"
+    )
+    think, action = cli._split_assistant(text)
+    assert action == "MOVE_LEFT"
+    assert "ACTION_NAME" in think
+
+
+def test_split_assistant_cleans_malformed_action_with_keyvalue():
+    text = "<think>plan</think>\n<action>ACTION_NAME=MOVE_FORWARD</action>"
+    _, action = cli._split_assistant(text)
+    assert action == "MOVE_FORWARD"
+
+
+def test_split_assistant_cleans_action_with_embedded_backtick():
+    text = "<think>plan</think>\n<action>`MOVE_FORWARD`</action>"
+    _, action = cli._split_assistant(text)
+    assert action == "MOVE_FORWARD"
+
+
+def test_split_assistant_residual_only_when_no_think_close():
+    text = "I think I will move. <action>NORTH</action>"
+    think, action = cli._split_assistant(text)
+    assert "I think I will move" in think
+    assert action == "NORTH"
+
+
+def test_split_assistant_empty_when_only_action():
+    text = "<action>NORTH</action>"
+    think, action = cli._split_assistant(text)
+    assert think == ""
+    assert action == "NORTH"
+
+
+def test_resolve_action_without_env_id_falls_back_to_split_assistant():
+    text = "<think>plan</think>\n<action>MOVE_LEFT</action>"
+    action, parse_failed = cli._resolve_action(text, env_id=None)
+    assert action == "MOVE_LEFT"
+    assert parse_failed is False
+
+
+def test_resolve_action_without_env_id_marks_parse_failed_when_no_action():
+    text = "<think>just thinking</think>"
+    action, parse_failed = cli._resolve_action(text, env_id=None)
+    assert action == ""
+    assert parse_failed is True
+
+
+def test_resolve_action_with_known_env_id_canonicalises_via_spec():
+    # minigrid-empty-5x5 always loads cheaply (no native deps); pick its
+    # noop action name (DONE on most minigrid envs) from the live spec
+    # so the assertion isn't sensitive to the exact action set.
+    cli._spec_for_env_id.cache_clear()
+    spec_info = cli._spec_for_env_id("glyphbench/minigrid-empty-5x5-v0")
+    assert spec_info is not None, "minigrid-empty-5x5 should always load"
+    spec, noop = spec_info
+    valid_name = spec.names[0]
+    text = f"<action>{valid_name}</action>"
+    action, parse_failed = cli._resolve_action(
+        text, env_id="glyphbench/minigrid-empty-5x5-v0"
+    )
+    assert action == valid_name
+    assert parse_failed is False
+
+
+def test_resolve_action_with_env_id_returns_noop_when_action_unknown():
+    cli._spec_for_env_id.cache_clear()
+    spec_info = cli._spec_for_env_id("glyphbench/minigrid-empty-5x5-v0")
+    assert spec_info is not None
+    _, noop_name = spec_info
+    text = "<action>NOT_A_REAL_ACTION</action>"
+    action, parse_failed = cli._resolve_action(
+        text, env_id="glyphbench/minigrid-empty-5x5-v0"
+    )
+    assert action == noop_name
+    assert parse_failed is True

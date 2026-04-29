@@ -14,6 +14,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import re
 import subprocess
@@ -24,6 +25,16 @@ from importlib import metadata
 from pathlib import Path
 
 from glyphbench.verifiers_integration.memory import extract_memory_update
+from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
+
+# Singleton parser instance used by the canonical eval pipeline; we route
+# CLI replay action extraction through it so the displayed action matches
+# what the verifiers eval actually scored. Spec is unavailable at replay
+# time (we'd have to re-load the env), so spec-aware bare-name validation
+# is best-effort: the parser returns the last candidate token, then the
+# CLI applies a malformed-content cleanup pass to recover from things
+# like ``ACTION_NAME=MOVE_FORWARD``.
+_REPLAY_PARSER = GlyphbenchXMLParser()
 
 ALL_SUITES = ["minigrid", "minihack", "atari", "procgen", "craftax", "classics"]
 
@@ -142,40 +153,121 @@ def _extract_grid(content: str) -> str | None:
     return _extract_block(content, "[Grid]")
 
 
-_THINK_RE_LOCAL = re.compile(r"<think>(.*?)</think>", re.DOTALL | re.IGNORECASE)
-_ACTION_RE_LOCAL = re.compile(r"<action>(.*?)</action>", re.DOTALL | re.IGNORECASE)
-# Match any orphan <think>/<-/think> tag — Qwen3.5 chat template prefills
-# <think>\n\n</think>\n\n so the assistant's own response often *starts*
-# with a stray </think> (the closer of the prefill). Strip it cleanly.
-_ORPHAN_THINK_TAG_RE = re.compile(r"</?\s*think\s*>", re.IGNORECASE)
+_THINK_OPEN_RE = re.compile(r"<\s*think\s*>", re.IGNORECASE)
+_THINK_CLOSE_RE = re.compile(r"<\s*/\s*think\s*>", re.IGNORECASE)
+_THINK_RE_LOCAL = re.compile(
+    r"<\s*think\s*>(.*?)<\s*/\s*think\s*>", re.DOTALL | re.IGNORECASE
+)
+_ACTION_RE_LOCAL = re.compile(
+    r"<\s*action\s*>(.*?)<\s*/\s*action\s*>", re.DOTALL | re.IGNORECASE
+)
+_ACTION_OPEN_RE = re.compile(
+    r"<\s*action\s*>(.*?)(?:<|\Z)", re.DOTALL | re.IGNORECASE
+)
+_BARE_NAME_RE = re.compile(r"\b([A-Z][A-Z0-9_]{1,})\b")
 
 
 def _split_assistant(content: str) -> tuple[str, str]:
-    """Split an assistant turn into (reasoning, action). Reasoning falls back
-    to anything-not-action if there is no <think> tag; action falls back to a
-    bare uppercase token at the end (matching the parser's leniency)."""
+    """Split an assistant turn into (reasoning, action).
+
+    Mirrors the tolerance of ``verifiers_integration.parser`` so the
+    replay panel shows the same action the eval actually scored:
+
+    * Reasoning is the segment ending at the LAST ``</think>``. Qwen3.5's
+      chat template prefills ``<think>\\n``, so the stored content
+      commonly starts mid-thinking with no opener; treat start-of-string
+      as an implicit opener when only a closer is present.
+    * Action is the LAST ``<action>…</action>`` (the model often quotes
+      the template ``<action>ACTION_NAME</action>`` inside its CoT before
+      emitting the real one — first-match would grab that placeholder).
+      Fall back to an unclosed ``<action>…`` and finally to the LAST
+      bare uppercase token.
+    * If the captured action is malformed (``<``, ``=``, whitespace),
+      pluck out the last bare-name token inside it — e.g. a model
+      writing ``<action>ACTION_NAME=MOVE_FORWARD</action>`` should
+      surface as ``MOVE_FORWARD``.
+    """
     text = content or ""
-    think = ""
-    m = _THINK_RE_LOCAL.search(text)
-    if m:
-        think = m.group(1).strip()
-    action = ""
-    m = _ACTION_RE_LOCAL.search(text)
-    if m:
-        action = m.group(1).strip()
-    if not think:
-        residual = _ACTION_RE_LOCAL.sub("", text)
-        residual = _THINK_RE_LOCAL.sub("", residual)
-        # Strip any orphan <think> / </think> closers (chat-template prefill
-        # leftovers) so they don't show up as standalone "reasoning".
-        residual = _ORPHAN_THINK_TAG_RE.sub("", residual).strip()
-        if residual:
-            think = residual
-    if not action:
-        bare = re.findall(r"\b([A-Z][A-Z0-9_]{1,})\b", text)
+
+    # ---- reasoning ----
+    closes = list(_THINK_CLOSE_RE.finditer(text))
+    if closes:
+        last_close = closes[-1]
+        opens_before = [
+            m for m in _THINK_OPEN_RE.finditer(text)
+            if m.end() <= last_close.start()
+        ]
+        start = opens_before[-1].end() if opens_before else 0
+        think = text[start:last_close.start()].strip()
+        post_think = text[last_close.end():]
+    else:
+        think = ""
+        post_think = text
+
+    # ---- action: route through the canonical eval parser, then apply
+    # a CLI-side cleanup pass for malformed candidates (the parser
+    # would have routed them to noop via spec validation; we don't have
+    # a spec at replay time so we rescue the bare-name token).
+    candidate = _REPLAY_PARSER._extract_candidate(text) or ""
+    action = candidate.strip()
+    if action and any(
+        ch in action for ch in ("<", "=", "/", "?", "`", "\n", "\t", " ")
+    ):
+        bare = _BARE_NAME_RE.findall(action)
         if bare:
             action = bare[-1]
+
+    # Reasoning residual fallback — only fires when there was no </think>
+    # at all (genuine leak, not chat-template prefill).
+    if not think and not closes:
+        residual = _ACTION_RE_LOCAL.sub("", text)
+        residual = _THINK_OPEN_RE.sub("", residual).strip()
+        if residual:
+            think = residual
+
     return think, action
+
+
+@functools.lru_cache(maxsize=None)
+def _spec_for_env_id(env_id: str) -> tuple[object, str] | None:
+    """Look up (ActionSpec, noop_action_name) for an env id.
+
+    Cached; returns ``None`` when the env can't be instantiated (e.g.
+    optional native dep missing on this machine). Used by
+    ``_resolve_action`` to canonicalise the displayed action through
+    the same path the eval used.
+    """
+    try:
+        from glyphbench.core.registry import make_env
+        env = make_env(env_id)
+        return env.action_spec, env.noop_action_name
+    except Exception:
+        return None
+
+
+def _resolve_action(text: str, env_id: str | None) -> tuple[str, bool]:
+    """Return (display_name, parse_failed) for an assistant message.
+
+    When the env can be loaded, this calls ``GlyphbenchXMLParser.parse_action``
+    with the env's ActionSpec — exactly the entry point the eval used —
+    so the displayed action is the canonicalised name (or the env's
+    noop on parse failure). Otherwise falls back to ``_split_assistant``
+    which is the same parser fallback chain without spec validation.
+    """
+    raw = text or ""
+    if env_id:
+        spec_info = _spec_for_env_id(env_id)
+        if spec_info is not None:
+            spec, noop = spec_info
+            try:
+                _idx, canonical, failed = _REPLAY_PARSER.parse_action(
+                    raw, spec, noop=noop,
+                )
+                return canonical, failed
+            except Exception:
+                pass
+    _, action = _split_assistant(raw)
+    return action, not bool(action)
 
 
 def _clip_to_lines(
@@ -489,15 +581,23 @@ def _render_rollout_rich(
         hud = _extract_block(u_content, "[HUD]") or ""
         reward_block = _extract_block(u_content, "[Reward]") or ""
         status = _extract_block(u_content, "[Status]") or ""
-        think, action = _split_assistant(a_content)
+        think, _ = _split_assistant(a_content)
+        # Action is resolved through the canonical eval parser so the
+        # displayed name matches what the eval scored (canonicalised
+        # via ActionSpec when the env can be loaded; on parse failure
+        # the env's noop name is shown, exactly as in eval rollouts).
+        action, action_parse_failed = _resolve_action(a_content, info.get("env_id"))
 
         # per-turn flags
         a_text = a_content or ""
         strict_action = bool(_ACTION_RE_LOCAL.search(a_text))
-        strict_think = bool(_THINK_RE_LOCAL.search(a_text))
+        # Presence of </think> alone is sufficient: Qwen3.5's chat template
+        # prefills the opener so it's almost never visible in the stored
+        # assistant content.
+        strict_think = bool(_THINK_CLOSE_RE.search(a_text))
         max_tokens_hit = a_text and not strict_action and len(a_text) > 1500
         flags: list[Text] = []
-        if not action:
+        if action_parse_failed:
             flags.append(Text(" PARSE FAIL ", style="bold white on red"))
         elif not strict_action:
             flags.append(Text(" parse-fallback ", style="bold black on yellow"))
@@ -544,9 +644,11 @@ def _render_rollout_rich(
             header_block = hdr
 
         # Per-turn errors that should be highlighted in red on the
-        # affected panel.
-        action_failed = not action  # parser saw nothing usable
-        action_fallback = bool(action) and not strict_action  # bare-name fallback fired
+        # affected panel. ``action_parse_failed`` is authoritative — it
+        # comes from the same parser the eval used, with spec validation
+        # when available.
+        action_failed = action_parse_failed
+        action_fallback = bool(action) and not strict_action and not action_parse_failed
         think_missing = think and not strict_think  # raw text leaked instead of <think>
         think_absent = not think and not strict_action  # nothing parseable at all
         turn_has_error = action_failed or think_missing or think_absent or max_tokens_hit
