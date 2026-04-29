@@ -873,6 +873,44 @@ def _render_rollout_rich(
                 time.sleep(min(2.0, max(0.5, delay * 8)))
 
 
+def _restore_terminal_sane() -> None:
+    """Reset the controlling terminal to a sane cooked mode.
+
+    Called both around each pager subprocess and on every exit path of
+    the rich replay command. The rich Live + raw-mode keypress reads +
+    a pager subprocess can leave the terminal with echo and line
+    buffering disabled if anything goes sideways; this is the
+    nuclear option that always recovers shell usability.
+    """
+    if not sys.stdout.isatty():
+        return
+    import subprocess
+    try:
+        subprocess.run(["stty", "sane"], check=False)
+    except (FileNotFoundError, OSError):
+        # No stty available (Windows, stripped image): try a termios
+        # restore from the saved state we cached at module import.
+        if _SAVED_TTY_STATE is not None:
+            try:
+                import termios
+                fd = sys.stdin.fileno()
+                if sys.stdin.isatty():
+                    termios.tcsetattr(fd, termios.TCSADRAIN, _SAVED_TTY_STATE)
+            except Exception:
+                pass
+
+
+# Capture the inbound terminal state at import time. Used by
+# _restore_terminal_sane as a fallback when ``stty`` isn't available.
+_SAVED_TTY_STATE: object | None = None
+try:
+    if sys.stdin.isatty():
+        import termios as _termios
+        _SAVED_TTY_STATE = _termios.tcgetattr(sys.stdin.fileno())
+except Exception:
+    _SAVED_TTY_STATE = None
+
+
 def _show_in_pager(text: str) -> None:
     """Open ``text`` in the user's $PAGER (less -R by default).
 
@@ -885,7 +923,9 @@ def _show_in_pager(text: str) -> None:
     that file as a positional argument — NOT via subprocess input
     piping — so the pager keeps stdin connected to the TTY and
     keyboard commands (``q`` to quit, arrow keys, ``/`` to search)
-    actually reach it.
+    actually reach it. Terminal state is restored before AND after the
+    subprocess so a misbehaving pager can't leave the user's shell in
+    a non-cooked mode.
     """
     import os
     import subprocess
@@ -901,11 +941,14 @@ def _show_in_pager(text: str) -> None:
     try:
         with os.fdopen(fd, "w") as f:
             f.write(text)
+        _restore_terminal_sane()
         try:
             subprocess.run(cmd + [path], check=False)
         except (FileNotFoundError, OSError):
             sys.stdout.write(text + "\n")
             sys.stdout.flush()
+        finally:
+            _restore_terminal_sane()
     finally:
         try:
             os.unlink(path)
@@ -1008,40 +1051,48 @@ def _cmd_replay(args: argparse.Namespace) -> int:
             return 2
         filtered = [filtered[args.episode]]
 
+    # Wrap the actual playback in try/finally so that no exit path —
+    # normal end, KeyboardInterrupt, an exception inside the rich Live
+    # context, or a misbehaving pager subprocess — leaves the user's
+    # shell in a non-cooked terminal mode (which would manifest as
+    # missing keystroke echo and a dead readline history).
     use_rich = sys.stdout.isatty()
-    if not use_rich:
-        clear = "\x1b[2J\x1b[H"
+    try:
+        if not use_rich:
+            clear = "\x1b[2J\x1b[H"
+            for f, rollout, info in filtered:
+                model = _model_from_jsonl_path(f) or "?"
+                header = (f"=== model={model}  env={info.get('env_id', '?')}  "
+                          f"seed={info.get('seed', '?')}  reward={rollout.get('reward')} ===")
+                sys.stdout.write(clear + header + "\n\n")
+                sys.stdout.flush()
+                time.sleep(min(args.delay * 4, 1.0))
+                for turn in _build_turns(rollout):
+                    grid = _extract_grid(turn["user"])
+                    if grid is None:
+                        continue
+                    memory = turn.get("memory")
+                    suffix = ""
+                    if memory and memory.get("stored_memory"):
+                        suffix = "\n\n[Memory]\n" + _clip_to_lines(
+                            str(memory["stored_memory"]).strip(),
+                            8, mode="tail", max_line_width=200,
+                        )
+                    sys.stdout.write(clear + grid + suffix + "\n")
+                    sys.stdout.flush()
+                    time.sleep(args.delay)
+            return 0
+
         for f, rollout, info in filtered:
             model = _model_from_jsonl_path(f) or "?"
-            header = (f"=== model={model}  env={info.get('env_id', '?')}  "
-                      f"seed={info.get('seed', '?')}  reward={rollout.get('reward')} ===")
-            sys.stdout.write(clear + header + "\n\n")
-            sys.stdout.flush()
-            time.sleep(min(args.delay * 4, 1.0))
-            for turn in _build_turns(rollout):
-                grid = _extract_grid(turn["user"])
-                if grid is None:
-                    continue
-                memory = turn.get("memory")
-                suffix = ""
-                if memory and memory.get("stored_memory"):
-                    suffix = "\n\n[Memory]\n" + _clip_to_lines(
-                        str(memory["stored_memory"]).strip(),
-                        8, mode="tail", max_line_width=200,
-                    )
-                sys.stdout.write(clear + grid + suffix + "\n")
-                sys.stdout.flush()
-                time.sleep(args.delay)
+            _render_rollout_rich(
+                rollout, info, model_id=model,
+                delay=args.delay,
+                pause=args.pause,
+            )
         return 0
-
-    for f, rollout, info in filtered:
-        model = _model_from_jsonl_path(f) or "?"
-        _render_rollout_rich(
-            rollout, info, model_id=model,
-            delay=args.delay,
-            pause=args.pause,
-        )
-    return 0
+    finally:
+        _restore_terminal_sane()
 
 
 # ---------------------------------------------------------------------------
