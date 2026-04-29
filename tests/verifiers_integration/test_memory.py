@@ -64,6 +64,8 @@ def test_build_memory_update_user_mentions_feedback():
     assert "Terminated: true" in text
     assert "Truncated: false" in text
     assert "[Grid]\nG" in text
+    assert "<memory>" in text and "</memory>" in text
+    assert "Do not emit an <action> tag" in text
 
 
 def test_memory_sampling_args_defaults_to_existing_action_args():
@@ -71,11 +73,40 @@ def test_memory_sampling_args_defaults_to_existing_action_args():
 
 
 def test_memory_sampling_args_overrides_existing_limit_name():
-    assert memory_sampling_args({"max_completion_tokens": 32}, 7) == {
-        "max_completion_tokens": 7
+    expected_no_think = {
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": False}}
     }
-    assert memory_sampling_args({"max_tokens": 32}, 9) == {"max_tokens": 9}
-    assert memory_sampling_args({}, 11) == {"max_tokens": 11}
+    assert memory_sampling_args({"max_completion_tokens": 32}, 7) == {
+        "max_completion_tokens": 7,
+        **expected_no_think,
+    }
+    assert memory_sampling_args({"max_tokens": 32}, 9) == {
+        "max_tokens": 9,
+        **expected_no_think,
+    }
+    assert memory_sampling_args({}, 11) == {
+        "max_tokens": 11,
+        **expected_no_think,
+    }
+
+
+def test_memory_sampling_args_disables_thinking_when_action_args_have_it():
+    action_args = {
+        "max_tokens": 8192,
+        "temperature": 1.0,
+        "extra_body": {
+            "top_k": 20,
+            "min_p": 0.0,
+            "chat_template_kwargs": {"enable_thinking": True},
+        },
+    }
+    out = memory_sampling_args(action_args, 4096)
+    assert out["max_tokens"] == 4096
+    assert out["temperature"] == 1.0
+    extra = out["extra_body"]
+    assert extra["top_k"] == 20
+    assert extra["min_p"] == 0.0
+    assert extra["chat_template_kwargs"]["enable_thinking"] is False
 
 
 def test_merge_tokens_masks_memory_update_user_bridge():

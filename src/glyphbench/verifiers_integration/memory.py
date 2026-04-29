@@ -73,7 +73,10 @@ def build_memory_update_user(
         f"Truncated: {str(bool(truncated)).lower()}\n\n"
         "[Next Observation]\n"
         f"{next_observation}\n\n"
-        "Write the updated memory."
+        "Write the updated memory inside <memory>...</memory> tags. "
+        "Do not emit an <action> tag in this response — this is a memory "
+        "update, not an action turn. Anything outside the <memory> tag is "
+        "discarded."
     )
     return vf.UserMessage(content=content)
 
@@ -82,7 +85,15 @@ def memory_sampling_args(
     sampling_args: SamplingArgs | None,
     memory_update_max_tokens: int | None,
 ) -> SamplingArgs | None:
-    """Return sampling args for the memory-update generation."""
+    """Return sampling args for the memory-update generation.
+
+    Always disables thinking-mode for the memory-update call when an
+    `extra_body.chat_template_kwargs` slot is present (Qwen3/Qwen3.5).
+    The action turn's RESPONSE FORMAT block conditions the model to emit
+    ``<action>...</action>`` after ``</think>``; if we left thinking on for
+    the memory update the model would default to that habit and our parser
+    would store the action tag as the memory.
+    """
     if memory_update_max_tokens is None:
         return None
     args: dict[str, Any] = dict(sampling_args or {})
@@ -92,6 +103,11 @@ def memory_sampling_args(
         args["max_tokens"] = int(memory_update_max_tokens)
     else:
         args["max_tokens"] = int(memory_update_max_tokens)
+    extra_body = dict(args.get("extra_body") or {})
+    chat_kwargs = dict(extra_body.get("chat_template_kwargs") or {})
+    chat_kwargs["enable_thinking"] = False
+    extra_body["chat_template_kwargs"] = chat_kwargs
+    args["extra_body"] = extra_body
     return args
 
 

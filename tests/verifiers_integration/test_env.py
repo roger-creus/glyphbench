@@ -241,7 +241,10 @@ async def test_memory_add_model_response_combines_action_and_memory_turn(monkeyp
 
     assert len(state["trajectory"]) == 1
     assert state["memory"] == "moved east once"
-    assert seen["sampling_args"] == {"max_tokens": 3}
+    assert seen["sampling_args"] == {
+        "max_tokens": 3,
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+    }
     assert seen["prompt"][-1]["role"] == "user"
     memory_update_prompt = seen["prompt"][-1]["content"]
     assert "Parsed action: EAST" in memory_update_prompt
