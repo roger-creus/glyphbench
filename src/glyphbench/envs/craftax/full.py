@@ -1466,9 +1466,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return 0.0
 
     def _handle_make_stone_pickaxe(self) -> float:
+        # Stone tier needs a table only (upstream Craftax recipe);
+        # furnace is tier-3+ (iron and beyond).
         if (
             self._near_table()
-            and self._near_furnace()
             and self._inventory.get("wood", 0) >= 1
             and self._inventory.get("stone", 0) >= 1
         ):
@@ -1533,9 +1534,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return 0.0
 
     def _handle_make_stone_sword(self) -> float:
+        # Stone tier needs a table only (upstream Craftax recipe).
         if (
             self._near_table()
-            and self._near_furnace()
             and self._inventory.get("wood", 0) >= 1
             and self._inventory.get("stone", 0) >= 1
         ):
@@ -1600,9 +1601,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return 0.0
 
     def _handle_make_stone_armor(self) -> float:
+        # Stone tier needs a table only.
         if (
             self._near_table()
-            and self._near_furnace()
             and self._inventory.get("stone", 0) >= 2
         ):
             self._inventory["stone"] -= 2

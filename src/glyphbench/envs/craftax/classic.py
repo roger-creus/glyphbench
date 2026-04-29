@@ -204,20 +204,20 @@ class CraftaxClassicEnv(BaseGlyphEnv):
             "- PLACE_STONE: costs 1 stone.\n"
             "- PLACE_PLANT: costs 1 sapling. Becomes ripe (*) after 20 steps.\n"
             "- Crafting: MAKE_WOOD_PICKAXE (1 wood, table), "
-            "MAKE_STONE_PICKAXE (1 wood + 1 stone, table+furnace), "
+            "MAKE_STONE_PICKAXE (1 wood + 1 stone, table), "
             "MAKE_IRON_PICKAXE (1 wood + 1 iron, table+furnace), "
             "MAKE_WOOD_SWORD (1 wood, table), "
-            "MAKE_STONE_SWORD (1 wood + 1 stone, table+furnace), "
+            "MAKE_STONE_SWORD (1 wood + 1 stone, table), "
             "MAKE_IRON_SWORD (1 wood + 1 iron, table+furnace).\n\n"
             "TECH TREE\n"
             "1. Chop trees for wood (+ saplings)\n"
-            "2. Place table (2 wood) -> craft wood pickaxe (1 wood)\n"
-            "3. Mine stone -> place furnace (4 stone)\n"
-            "4. Craft stone pickaxe (1 wood + 1 stone, table+furnace)\n"
+            "2. Place table (2 wood) -> craft wood pickaxe (1 wood, table)\n"
+            "3. Mine stone -> craft stone pickaxe (1 wood + 1 stone, table)\n"
+            "4. Mine more stone -> place furnace (4 stone)\n"
             "5. Mine iron/coal with stone pickaxe\n"
             "6. Craft iron pickaxe (1 wood + 1 iron, table+furnace)\n"
             "7. Mine diamond with iron pickaxe\n"
-            "8. Craft swords for combat\n"
+            "8. Craft swords for combat (stone sword: table; iron sword: table+furnace)\n"
             "9. Plant saplings, eat ripe plants, drink water, sleep\n\n"
             + self.action_spec.render_for_prompt()
         )
@@ -958,10 +958,13 @@ class CraftaxClassicEnv(BaseGlyphEnv):
         return 0.0
 
     def _handle_craft_stone_pickaxe(self) -> float:
-        """Handle MAKE_STONE_PICKAXE action."""
+        """Handle MAKE_STONE_PICKAXE action.
+
+        Stone tools only need a crafting table — matches the upstream
+        Craftax recipe. The furnace is a tier-3 (iron+) requirement.
+        """
         if (
             self._near_table()
-            and self._near_furnace()
             and self._inventory.get("wood", 0) >= 1
             and self._inventory.get("stone", 0) >= 1
         ):
@@ -1003,10 +1006,13 @@ class CraftaxClassicEnv(BaseGlyphEnv):
         return 0.0
 
     def _handle_craft_stone_sword(self) -> float:
-        """Handle MAKE_STONE_SWORD action."""
+        """Handle MAKE_STONE_SWORD action.
+
+        Stone tools only need a crafting table — matches the upstream
+        Craftax recipe. The furnace is a tier-3 (iron+) requirement.
+        """
         if (
             self._near_table()
-            and self._near_furnace()
             and self._inventory.get("wood", 0) >= 1
             and self._inventory.get("stone", 0) >= 1
         ):
