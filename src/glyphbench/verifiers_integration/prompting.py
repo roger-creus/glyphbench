@@ -65,10 +65,12 @@ RESPONSE_FORMAT_BLOCK_TMPL = (
 OBSERVATION_CONVENTIONS_BLOCK = (
     "OBSERVATION CONVENTIONS\n"
     "Each turn you receive a [Grid] (ASCII), a [Legend] mapping each glyph "
-    "to its meaning for this turn, a [HUD] line that always contains "
-    "`Step: T / N` (current turn / per-episode budget), and a per-turn "
-    "[Actions] list. Treat the [Grid] as authoritative for spatial state "
-    "and the [Legend] as authoritative for glyph meaning."
+    "to its meaning for this turn, and a [HUD] line that always contains "
+    "`Step: T / N` (current turn / per-episode budget). Optionally a "
+    "[Message] block with one-shot env feedback (last action result, etc.). "
+    "Treat the [Grid] as authoritative for spatial state and the [Legend] "
+    "as authoritative for glyph meaning. The full action list is in this "
+    "system prompt and does not repeat per turn."
 )
 
 MEMORY_BLOCK_TMPL = (
