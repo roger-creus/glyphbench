@@ -183,3 +183,47 @@ def test_build_turns_groups_memory_update_pairs_without_trajectory_extras():
     assert turns[1]["user"].endswith("[Grid]\n.@.")
     assert turns[1]["assistant"] == "<action>EAST</action>"
     assert turns[1]["memory"] is None
+
+
+def test_clip_to_lines_short_input_passes_through():
+    text = "a\nb\nc"
+    assert cli._clip_to_lines(text, 10) == text
+
+
+def test_clip_to_lines_tail_keeps_last_lines_and_marks_drop():
+    text = "\n".join(str(i) for i in range(10))
+    out = cli._clip_to_lines(text, 4, mode="tail")
+    lines = out.splitlines()
+    assert len(lines) == 4
+    assert lines[0].startswith("[…")
+    assert "lines clipped" in lines[0]
+    assert lines[1:] == ["7", "8", "9"]
+
+
+def test_clip_to_lines_head_keeps_first_lines_and_marks_drop():
+    text = "\n".join(str(i) for i in range(10))
+    out = cli._clip_to_lines(text, 4, mode="head")
+    lines = out.splitlines()
+    assert len(lines) == 4
+    assert lines[:3] == ["0", "1", "2"]
+    assert lines[-1].startswith("[…")
+
+
+def test_clip_to_lines_middle_keeps_head_and_tail():
+    text = "\n".join(str(i) for i in range(10))
+    out = cli._clip_to_lines(text, 5, mode="middle")
+    lines = out.splitlines()
+    assert len(lines) == 5
+    assert lines[0] == "0"
+    assert lines[1] == "1"
+    assert lines[2].startswith("[…")
+    assert lines[3] == "8"
+    assert lines[4] == "9"
+
+
+def test_clip_to_lines_truncates_overlong_individual_lines():
+    long = "x" * 500
+    out = cli._clip_to_lines(long, 5, mode="tail", max_line_width=80)
+    line = out.splitlines()[0]
+    assert len(line) <= 80
+    assert line.endswith("…")

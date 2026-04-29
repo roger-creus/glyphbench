@@ -178,6 +178,53 @@ def _split_assistant(content: str) -> tuple[str, str]:
     return think, action
 
 
+def _clip_to_lines(
+    text: str,
+    max_lines: int,
+    *,
+    mode: str = "tail",
+    max_line_width: int = 0,
+) -> str:
+    """Clip a text block to at most ``max_lines`` logical lines.
+
+    ``mode`` is one of:
+      * ``"tail"``   — keep the last lines (best for chain-of-thought,
+        where the conclusion lives at the end).
+      * ``"head"``   — keep the first lines.
+      * ``"middle"`` — keep first half + last half with a "lines clipped"
+        marker between them.
+
+    When clipping happens the first/last/middle line of the result is a
+    ``[... N lines clipped ...]`` marker, so the caller always knows how
+    much was hidden. ``max_line_width`` truncates each LOGICAL line to
+    that many characters (a defence against single-line walls of text
+    that would otherwise wrap into many visual rows inside a Rich panel
+    and overflow the layout). ``0`` disables per-line truncation.
+    """
+    raw = text or ""
+    if max_lines <= 0:
+        return ""
+    lines = raw.splitlines()
+    if max_line_width and max_line_width > 4:
+        cut = max_line_width - 1
+        lines = [
+            (ln[:cut] + "…") if len(ln) > max_line_width else ln
+            for ln in lines
+        ]
+    if len(lines) <= max_lines:
+        return "\n".join(lines)
+    dropped = len(lines) - (max_lines - 1)
+    marker = f"[… {dropped} lines clipped …]"
+    if mode == "head":
+        return "\n".join(lines[: max_lines - 1] + [marker])
+    if mode == "middle":
+        keep = max_lines - 1
+        head = keep // 2
+        tail = keep - head
+        return "\n".join(lines[:head] + [marker] + (lines[-tail:] if tail else []))
+    return "\n".join([marker] + lines[-(max_lines - 1):])
+
+
 def _model_from_jsonl_path(path: Path) -> str | None:
     """Recover the HF model id from `<root>/.../glyphbench--<owner>--<rest>/<hash>/results.jsonl`."""
     meta = path.parent / "metadata.json"
@@ -388,10 +435,7 @@ def _render_rollout_rich(
     info: dict,
     model_id: str,
     delay: float,
-    show_system: bool,
     pause: bool = False,
-    grid_scale_x: int = 2,
-    grid_scale_y: int = 1,
 ) -> None:
     """Render one rollout in a clean, in-place fullscreen layout: header
     bar at top, system prompt panel underneath (collapsible), then a per-turn
@@ -411,6 +455,12 @@ def _render_rollout_rich(
     if not turns:
         console.print(Text("(no turns to render)", style="red"))
         return
+
+    console_h = console.size.height or 40
+    reasoning_cap = max(8, console_h // 4)
+    memory_cap = max(5, console_h // 6)
+    sys_cap = max(4, console_h // 8)
+    line_width_cap = 200
 
     # rollout-level flags we'll surface in the header on every frame
     overall_truncated = bool(rollout.get("is_truncated") or rollout.get("truncated_flag"))
@@ -433,8 +483,9 @@ def _render_rollout_rich(
         a_content = turn["assistant"]
         memory = turn.get("memory")
         grid = _extract_grid(u_content) or "(no [Grid] block in this turn)"
-        if grid_scale_x > 1 or grid_scale_y > 1:
-            grid = _scale_grid(grid, grid_scale_x, grid_scale_y)
+        # Fixed 2x1 visual scale: each glyph occupies 2 terminal columns
+        # so the cell ends up roughly square in a typical 2:1 font.
+        grid = _scale_grid(grid, 2, 1)
         hud = _extract_block(u_content, "[HUD]") or ""
         reward_block = _extract_block(u_content, "[Reward]") or ""
         status = _extract_block(u_content, "[Status]") or ""
@@ -492,48 +543,99 @@ def _render_rollout_rich(
         else:
             header_block = hdr
 
-        # ---- left: grid only ----
+        # Per-turn errors that should be highlighted in red on the
+        # affected panel.
+        action_failed = not action  # parser saw nothing usable
+        action_fallback = bool(action) and not strict_action  # bare-name fallback fired
+        think_missing = think and not strict_think  # raw text leaked instead of <think>
+        think_absent = not think and not strict_action  # nothing parseable at all
+        turn_has_error = action_failed or think_missing or think_absent or max_tokens_hit
+
+        # ---- left: grid (red border if this turn has a generation error) ----
+        grid_border = "red" if turn_has_error else "bright_white"
         grid_panel = Panel(
             Text(grid, style="bright_white"),
-            title="grid",
+            title="grid" + ("  (turn error)" if turn_has_error else ""),
             title_align="left",
-            border_style="bright_white",
+            border_style=grid_border,
             padding=(0, 1),
         )
 
-        # ---- right: HUD + reasoning + action + env feedback ----
-        right_blocks: list = []
-        if memory and memory.get("previous_memory"):
-            right_blocks.append(
+        # ---- right: HUD + reasoning + action + env feedback (sized so
+        # nothing in the column overflows the terminal). Each entry is
+        # (panel, fixed-row-budget). The text inside is pre-clipped to
+        # those budgets via _clip_to_lines, with mode="tail" for
+        # reasoning + memory (the conclusion / latest update is what the
+        # viewer cares about).
+        right_entries: list[tuple[object, int]] = []
+        if turn_has_error:
+            err_msgs: list[str] = []
+            if action_failed:
+                err_msgs.append("no <action> parsed")
+            elif action_fallback:
+                err_msgs.append("action parsed via bare-name fallback")
+            if think_missing:
+                err_msgs.append("reasoning leaked outside <think>")
+            if think_absent:
+                err_msgs.append("no reasoning + no action")
+            if max_tokens_hit:
+                err_msgs.append("response likely truncated by max_tokens")
+            right_entries.append((
                 Panel(
-                    Text(str(memory.get("previous_memory", "")).strip(), style="cyan"),
-                    title="previous memory",
-                    title_align="left",
-                    border_style="cyan",
-                    padding=(0, 1),
-                )
+                    Text("\n".join(err_msgs), style="bold white on red",
+                         overflow="fold"),
+                    title="turn errors", title_align="left",
+                    border_style="red", padding=(0, 1),
+                ),
+                len(err_msgs) + 2,
+            ))
+        if memory and memory.get("previous_memory"):
+            prev_txt = _clip_to_lines(
+                str(memory.get("previous_memory", "")).strip(),
+                memory_cap, mode="tail", max_line_width=line_width_cap,
             )
+            right_entries.append((
+                Panel(Text(prev_txt, style="cyan", overflow="fold"),
+                      title="previous memory", title_align="left",
+                      border_style="cyan", padding=(0, 1)),
+                memory_cap + 2,
+            ))
         if hud:
-            right_blocks.append(
-                Panel(Text(hud.strip(), style="cyan"),
+            hud_lines = max(2, min(6, hud.strip().count("\n") + 1))
+            hud_txt = _clip_to_lines(hud.strip(), hud_lines, mode="tail",
+                                     max_line_width=line_width_cap)
+            right_entries.append((
+                Panel(Text(hud_txt, style="cyan", overflow="fold"),
                       title="HUD", title_align="left",
-                      border_style="cyan", padding=(0, 1))
-            )
+                      border_style="cyan", padding=(0, 1)),
+                hud_lines + 2,
+            ))
         if think:
-            right_blocks.append(
-                Panel(Text(think.strip(), style="italic grey78"),
-                      title="reasoning", title_align="left",
-                      border_style="grey50", padding=(0, 1))
+            reasoning_border = "red" if think_missing else "grey50"
+            reasoning_title = "reasoning" + (" (no <think> tag)" if think_missing else "")
+            think_txt = _clip_to_lines(
+                think.strip(), reasoning_cap, mode="tail",
+                max_line_width=line_width_cap,
             )
+            right_entries.append((
+                Panel(Text(think_txt, style="italic grey78", overflow="fold"),
+                      title=reasoning_title, title_align="left",
+                      border_style=reasoning_border, padding=(0, 1)),
+                reasoning_cap + 2,
+            ))
         action_color = "green" if (action and strict_action) else ("yellow" if action else "red")
-        right_blocks.append(
-            Panel(
-                Text(action or "(no action parsed)",
-                     style=f"bold {action_color}"),
-                title="action", title_align="left",
-                border_style=action_color, padding=(0, 1),
-            )
+        action_title = "action" + (
+            " (PARSE FAIL)" if action_failed
+            else " (fallback)" if action_fallback else ""
         )
+        right_entries.append((
+            Panel(
+                Text(action or "(no action parsed)", style=f"bold {action_color}"),
+                title=action_title, title_align="left",
+                border_style=action_color, padding=(0, 1),
+            ),
+            3,
+        ))
         if reward_block or status:
             footer_lines: list = []
             if reward_block:
@@ -542,40 +644,49 @@ def _render_rollout_rich(
             if status:
                 footer_lines.append(Text.assemble(("status: ", "bold"),
                                                   (status.strip(), "magenta")))
-            right_blocks.append(
+            right_entries.append((
                 Panel(Group(*footer_lines), title="env feedback",
-                      title_align="left", border_style="yellow", padding=(0, 1))
-            )
+                      title_align="left", border_style="yellow", padding=(0, 1)),
+                len(footer_lines) + 2,
+            ))
         if memory is not None:
             stored_memory = str(memory.get("stored_memory") or "").strip()
             if stored_memory:
-                right_blocks.append(
-                    Panel(
-                        Text(stored_memory, style="bright_cyan"),
-                        title="updated memory",
-                        title_align="left",
-                        border_style="bright_cyan",
-                        padding=(0, 1),
-                    )
+                stored_txt = _clip_to_lines(
+                    stored_memory, memory_cap, mode="tail",
+                    max_line_width=line_width_cap,
                 )
+                right_entries.append((
+                    Panel(Text(stored_txt, style="bright_cyan", overflow="fold"),
+                          title="updated memory", title_align="left",
+                          border_style="bright_cyan", padding=(0, 1)),
+                    memory_cap + 2,
+                ))
 
         # ---- compose layout ----
         body = Layout(name="body")
         body.split_row(
             Layout(grid_panel, name="left", ratio=2),
-            Layout(Group(*right_blocks), name="right", ratio=3),
+            Layout(name="right", ratio=3),
+        )
+        body["right"].split_column(
+            *[Layout(panel, size=size) for panel, size in right_entries]
         )
 
         root = Layout(name="root")
         sub_layouts = [Layout(Panel(header_block, border_style="cyan", padding=(0, 1)),
                               name="hdr", size=4 + (1 if rollout_state else 0))]
-        if show_system and sys_text:
+        if sys_text:
+            clipped_sys = _clip_to_lines(
+                sys_text, sys_cap, mode="head",
+                max_line_width=line_width_cap,
+            )
             sys_panel = Panel(
-                Text(sys_text, style="dim", overflow="fold"),
+                Text(clipped_sys, style="dim", overflow="fold"),
                 title="system prompt", title_align="left",
                 border_style="grey39", padding=(0, 1),
             )
-            sub_layouts.append(Layout(sys_panel, name="sys", size=8))
+            sub_layouts.append(Layout(sys_panel, name="sys", size=sys_cap + 2))
         sub_layouts.append(body)
         root.split_column(*sub_layouts)
         return root
@@ -673,19 +784,17 @@ def _cmd_replay(args: argparse.Namespace) -> int:
                   file=sys.stderr)
             return 2
         filtered = [filtered[args.episode]]
-    elif args.limit is not None:
-        filtered = filtered[: args.limit]
 
-    if args.plain:
+    use_rich = sys.stdout.isatty()
+    if not use_rich:
         clear = "\x1b[2J\x1b[H"
         for f, rollout, info in filtered:
-            if not args.no_header:
-                model = _model_from_jsonl_path(f) or "?"
-                header = (f"=== model={model}  env={info.get('env_id', '?')}  "
-                          f"seed={info.get('seed', '?')}  reward={rollout.get('reward')} ===")
-                sys.stdout.write(clear + header + "\n\n")
-                sys.stdout.flush()
-                time.sleep(min(args.delay * 4, 1.0))
+            model = _model_from_jsonl_path(f) or "?"
+            header = (f"=== model={model}  env={info.get('env_id', '?')}  "
+                      f"seed={info.get('seed', '?')}  reward={rollout.get('reward')} ===")
+            sys.stdout.write(clear + header + "\n\n")
+            sys.stdout.flush()
+            time.sleep(min(args.delay * 4, 1.0))
             for turn in _build_turns(rollout):
                 grid = _extract_grid(turn["user"])
                 if grid is None:
@@ -693,7 +802,10 @@ def _cmd_replay(args: argparse.Namespace) -> int:
                 memory = turn.get("memory")
                 suffix = ""
                 if memory and memory.get("stored_memory"):
-                    suffix = "\n\n[Memory]\n" + str(memory["stored_memory"]).strip()
+                    suffix = "\n\n[Memory]\n" + _clip_to_lines(
+                        str(memory["stored_memory"]).strip(),
+                        8, mode="tail", max_line_width=200,
+                    )
                 sys.stdout.write(clear + grid + suffix + "\n")
                 sys.stdout.flush()
                 time.sleep(args.delay)
@@ -703,10 +815,8 @@ def _cmd_replay(args: argparse.Namespace) -> int:
         model = _model_from_jsonl_path(f) or "?"
         _render_rollout_rich(
             rollout, info, model_id=model,
-            delay=args.delay, show_system=not args.no_system,
+            delay=args.delay,
             pause=args.pause,
-            grid_scale_x=args.grid_scale_x,
-            grid_scale_y=args.grid_scale_y,
         )
     return 0
 
@@ -750,44 +860,32 @@ def _build_parser() -> argparse.ArgumentParser:
                     help="Tarball path (default: sibling of results_dir).")
     pb.set_defaults(func=_cmd_bundle)
 
-    pr = subs.add_parser("replay", help="Stream saved episodes as an animated grid")
+    pr = subs.add_parser(
+        "replay",
+        help="Animate saved rollouts (rich panels in a TTY, plain text "
+             "otherwise). Memory mode is rendered automatically when the "
+             "rollout was produced with use_memory=True.",
+    )
     pr.add_argument("runs_dir", type=Path,
                     help="Dir tree containing results.jsonl files (e.g. "
                          "cluster_manager/results, or a single run-hash dir).")
     pr.add_argument("--env", action="append",
-                    help="Filter by env_id (repeat for multiple, e.g. "
-                         "--env glyphbench/atari-pong-v0). AND-combined with --suite/--model/--seed.")
+                    help="Filter by env_id. Repeatable. AND-combined with "
+                         "--suite/--model/--seed.")
     pr.add_argument("--suite", action="append",
-                    help="Filter by suite name (repeat for multiple, e.g. --suite atari).")
+                    help="Filter by suite name. Repeatable.")
     pr.add_argument("--model", action="append",
-                    help="Filter by HF model id (repeat for multiple).")
+                    help="Filter by HF model id. Repeatable.")
     pr.add_argument("--seed", action="append", type=int,
-                    help="Filter by seed integer (repeat for multiple).")
+                    help="Filter by seed integer. Repeatable.")
     pr.add_argument("--episode", type=int, default=None,
-                    help="0-indexed pick from the filtered set. Plays only that one.")
-    pr.add_argument("--limit", type=int, default=None,
-                    help="Cap on rollouts to play after filtering.")
+                    help="0-indexed pick from the filtered set; plays only that one.")
     pr.add_argument("--list", action="store_true",
-                    help="Don't play anything — print the (model, env_id, seed) "
+                    help="Don't play anything; print the (model, env_id, seed) "
                          "index of what matches the filters and exit.")
-    pr.add_argument("--plain", action="store_true",
-                    help="Old grid-only renderer (no rich panels). Useful for "
-                         "piping or sub-100-column terminals.")
-    pr.add_argument("--no-system", action="store_true",
-                    help="Suppress the per-rollout system-prompt panel.")
-    pr.add_argument("--no-header", action="store_true",
-                    help="(plain mode) suppress the per-rollout header banner.")
     pr.add_argument("--pause", action="store_true",
-                    help="Step turn-by-turn: wait for a keypress between frames "
-                         "(any key → next, q → next rollout). Overrides --delay.")
-    pr.add_argument("--grid-scale-x", type=int, default=2, metavar="N",
-                    dest="grid_scale_x",
-                    help="Pad each glyph with N-1 trailing spaces so each "
-                         "cell occupies N terminal columns. Default 2 "
-                         "(~square cell on most terminals). 1 disables.")
-    pr.add_argument("--grid-scale-y", type=int, default=1, metavar="N",
-                    dest="grid_scale_y",
-                    help="Repeat each grid row N times vertically. Default 1.")
+                    help="Step turn-by-turn: any key → next frame, q → skip "
+                         "to next rollout. Overrides --delay.")
     pr.add_argument("--delay", type=float, default=0.15,
                     help="Seconds between turns. Default: 0.15")
     pr.set_defaults(func=_cmd_replay)
