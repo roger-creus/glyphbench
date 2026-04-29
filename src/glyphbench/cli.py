@@ -862,9 +862,16 @@ def _show_in_pager(text: str) -> None:
     that's been clipped in the live frame (system prompt, full
     reasoning chain, full memory state). Falls back to a plain stdout
     dump if no pager is available.
+
+    The text is written to a temp file and the pager is launched with
+    that file as a positional argument — NOT via subprocess input
+    piping — so the pager keeps stdin connected to the TTY and
+    keyboard commands (``q`` to quit, arrow keys, ``/`` to search)
+    actually reach it.
     """
     import os
     import subprocess
+    import tempfile
 
     pager_env = os.environ.get("PAGER", "less -R")
     cmd = pager_env.split() if pager_env else []
@@ -872,11 +879,20 @@ def _show_in_pager(text: str) -> None:
         sys.stdout.write(text + "\n")
         sys.stdout.flush()
         return
+    fd, path = tempfile.mkstemp(prefix="gb-replay-", suffix=".txt")
     try:
-        subprocess.run(cmd, input=text, text=True, check=False)
-    except (FileNotFoundError, OSError):
-        sys.stdout.write(text + "\n")
-        sys.stdout.flush()
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        try:
+            subprocess.run(cmd + [path], check=False)
+        except (FileNotFoundError, OSError):
+            sys.stdout.write(text + "\n")
+            sys.stdout.flush()
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
 
 
 def _read_one_key() -> str:
