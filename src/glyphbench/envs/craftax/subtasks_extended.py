@@ -346,7 +346,7 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
             "You have diamond sword, diamond armor, spells, and potions.\n"
             "REWARD: +10 for defeating the boss.\n"
             "Use DO facing the boss to attack. Use CAST_FIREBALL for area damage.\n"
-            "Use DRINK_POTION to restore HP.\n\n"
+            "Use DRINK_POTION_RED/GREEN/BLUE/PINK/CYAN/YELLOW to drink a potion (effects vary per game).\n\n"
             + self.action_spec.render_for_prompt()
         )
 

@@ -1,4 +1,4 @@
-"""Craftax Full environment (78 achievements).
+"""Craftax Full environment (80 achievements, phase β).
 
 Extends Craftax Classic with multi-floor dungeons, magic, bosses,
 armor, enchantments, potions, and new mob types.
@@ -299,7 +299,7 @@ class Mob(TypedDict):
 class CraftaxFullEnv(BaseGlyphEnv):
     """Craftax Full: survival crafting with dungeons and magic.
 
-    78 achievements spanning resource gathering, crafting, combat,
+    80 achievements spanning resource gathering, crafting, combat,
     dungeon exploration, magic, bosses, and survival milestones.
 
     Surface: 64x64, Dungeons: 32x32 per floor, 5 floors.
@@ -355,8 +355,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._pending_step_reward: float = 0.0
         # Plants
         self._plants: dict[tuple[int, int], int] = {}
-        # Potions
-        self._potions: list[str] = []
+        # Potions — phase β: per-color dict + hidden per-episode mapping
+        self._potions: list[str] = []  # legacy field kept for forward-compat; superseded by potions dict in inventory
+        self._potion_mapping: tuple[int, ...] = (0, 1, 2, 3, 4, 5)  # will be set in _reset
         # Active effects
         self._speed_turns: int = 0
         # Milestone counters
@@ -1423,7 +1424,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "torch": 0,
             "sapphire": 0,
             "ruby": 0,
+            "potions": {"red": 0, "green": 0, "blue": 0, "pink": 0, "cyan": 0, "yellow": 0},
         }
+        # Phase β T08β: hidden per-episode color->effect mapping.
+        from glyphbench.envs.craftax.mechanics.potions import make_potion_mapping
+        self._potion_mapping = make_potion_mapping(seed)
         self._achievements_unlocked = set()
         self._achievements_phase_beta = {n: False for n in UPSTREAM_ACHIEVEMENT_NAMES}
         self._message = ""
@@ -1437,7 +1442,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._day_night = "day"
         self._night_count = 0
         self._plants = {}
-        self._potions = []
+        self._potions = []  # legacy list — unused in phase β
         self._speed_turns = 0
         self._weapon_enchanted = False
         self._armor_enchanted = False
@@ -2176,23 +2181,47 @@ class CraftaxFullEnv(BaseGlyphEnv):
             reward += self._try_unlock("defeat_bat")
         return reward
 
-    # -- Potions --
+    # -- Potions (phase β: 6 color-keyed handlers) --
 
-    def _handle_drink_potion(self) -> float:
-        if not self._potions:
-            self._message = "No potions to drink."
+    def _handle_drink_potion_color(self, color: str, color_idx: int) -> float:
+        """Shared implementation for all DRINK_POTION_* handlers.
+
+        *color* is lowercase (e.g. "red"), *color_idx* is the index into
+        POTION_COLORS (0=RED, 1=GREEN, …).  The actual effect is determined
+        by looking up self._potion_mapping[color_idx] into POTION_EFFECTS —
+        this mapping is hidden and never exposed in the observation.
+        """
+        from glyphbench.envs.craftax.mechanics.potions import (
+            POTION_EFFECTS, apply_potion_effect,
+        )
+        potions_dict = self._inventory.get("potions", {})
+        if potions_dict.get(color, 0) < 1:
+            self._message = f"No {color} potion."
             return 0.0
-        potion = self._potions.pop(0)
-        reward = 0.0
-        if potion == "health":
-            self._hp = min(self._max_hp, self._hp + 5)
-            self._message = "Drank health potion! (+5 HP)"
-            reward += self._try_unlock("drink_health_potion")
-        elif potion == "speed":
-            self._speed_turns = 20
-            self._message = "Drank speed potion!"
-            reward += self._try_unlock("drink_speed_potion")
-        return reward
+        potions_dict[color] -= 1
+        effect_idx = self._potion_mapping[color_idx]
+        effect = POTION_EFFECTS[effect_idx]
+        apply_potion_effect(self, effect)
+        self._message = f"You drank a {color} potion."
+        return self._try_unlock("drink_potion")
+
+    def _handle_drink_potion_red(self) -> float:
+        return self._handle_drink_potion_color("red", 0)
+
+    def _handle_drink_potion_green(self) -> float:
+        return self._handle_drink_potion_color("green", 1)
+
+    def _handle_drink_potion_blue(self) -> float:
+        return self._handle_drink_potion_color("blue", 2)
+
+    def _handle_drink_potion_pink(self) -> float:
+        return self._handle_drink_potion_color("pink", 3)
+
+    def _handle_drink_potion_cyan(self) -> float:
+        return self._handle_drink_potion_color("cyan", 4)
+
+    def _handle_drink_potion_yellow(self) -> float:
+        return self._handle_drink_potion_color("yellow", 5)
 
     # -- Eat / drink --
 
@@ -2384,7 +2413,12 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "MAKE_DIAMOND_ARMOR": _handle_make_diamond_armor,
         "CAST_FIREBALL": _handle_cast_fireball,
         "CAST_ICEBALL": _handle_cast_iceball,
-        "DRINK_POTION": _handle_drink_potion,
+        "DRINK_POTION_RED": _handle_drink_potion_red,
+        "DRINK_POTION_GREEN": _handle_drink_potion_green,
+        "DRINK_POTION_BLUE": _handle_drink_potion_blue,
+        "DRINK_POTION_PINK": _handle_drink_potion_pink,
+        "DRINK_POTION_CYAN": _handle_drink_potion_cyan,
+        "DRINK_POTION_YELLOW": _handle_drink_potion_yellow,
         "EAT_PLANT": _handle_eat_plant,
         "DRINK_WATER": _handle_drink_water,
         "DESCEND": _handle_descend,
@@ -2510,9 +2544,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
             if abs(dx) <= half_w and abs(dy) <= half_h:
                 visible_mobs.append(mob)
 
-        # Inventory string
+        # Inventory string (skip nested dicts like "potions"; those are shown separately)
         inv_parts: list[str] = []
         for item, count in sorted(self._inventory.items()):
+            if isinstance(count, dict):
+                continue  # "potions" sub-dict rendered separately
             if count > 0:
                 inv_parts.append(f"{item} x{count}")
         inv_str = (
@@ -2555,10 +2591,14 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         ach_count = len(self._achievements_unlocked)
         total_ach = len(self._ALL_ACHIEVEMENTS)
-        potions_str = (
-            ", ".join(self._potions) if self._potions
-            else "none"
-        )
+        # Phase β: per-color potion inventory (never reveal effect mapping)
+        potions_dict = self._inventory.get("potions", {})
+        potion_parts = [
+            f"{color} x{cnt}"
+            for color, cnt in potions_dict.items()
+            if cnt > 0
+        ]
+        potions_str = ", ".join(potion_parts) if potion_parts else "none"
 
         # Day/night cycle position
         cycle_pos = self._day_counter % _CYCLE_LENGTH

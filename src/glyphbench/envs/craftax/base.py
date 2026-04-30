@@ -42,7 +42,12 @@ CRAFTAX_ACTION_SPEC = ActionSpec(
     ),
 )
 
-# Full Craftax action spec (37 actions)
+# Full Craftax action spec (42 actions)
+# Phase β: DRINK_POTION (generic) dropped; 6 DRINK_POTION_* color actions added.
+# Index breakdown: 0-6 noop/movement/do/sleep, 7-11 placement, 12-23 crafting,
+# 24-25 spells, 26-27 eat/drink, 28-29 stairs, 30-31 enchant,
+# 32-33 make_arrow/make_torch, 34 shoot_arrow, 35 rest,
+# 36-41 drink_potion_{red,green,blue,pink,cyan,yellow}.
 CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
     names=(
         "NOOP", "MOVE_LEFT", "MOVE_RIGHT", "MOVE_UP", "MOVE_DOWN",
@@ -56,13 +61,19 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "MAKE_WOOD_ARMOR", "MAKE_STONE_ARMOR",
         "MAKE_IRON_ARMOR", "MAKE_DIAMOND_ARMOR",
         "CAST_FIREBALL", "CAST_ICEBALL",
-        "DRINK_POTION", "EAT_PLANT", "DRINK_WATER",
+        "EAT_PLANT", "DRINK_WATER",
         "DESCEND", "ASCEND",
         "ENCHANT_WEAPON", "ENCHANT_ARMOR",
         "MAKE_ARROW",
         "MAKE_TORCH",
         "SHOOT_ARROW",
         "REST",
+        "DRINK_POTION_RED",
+        "DRINK_POTION_GREEN",
+        "DRINK_POTION_BLUE",
+        "DRINK_POTION_PINK",
+        "DRINK_POTION_CYAN",
+        "DRINK_POTION_YELLOW",
     ),
     descriptions=(
         "do nothing this turn",
@@ -91,7 +102,6 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "craft diamond armor (1 diamond+1 iron, table+furnace)",
         "cast fireball (2 mana, single-target projectile)",
         "cast iceball (2 mana, single-target projectile)",
-        "drink a potion from inventory",
         "eat a ripe plant you face to restore food",
         "drink water you face to restore thirst",
         "descend stairs (\u21e3) to next dungeon floor",
@@ -102,6 +112,12 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "craft 4 torches (1 wood + 1 coal, requires adjacent table)",
         "shoot an arrow in your facing direction (requires bow + 1 arrow)",
         "rest in place to recover HP (wakes on full HP, 0 food, or 0 drink)",
+        "drink a red potion (effect determined by per-game shuffle)",
+        "drink a green potion (effect determined by per-game shuffle)",
+        "drink a blue potion (effect determined by per-game shuffle)",
+        "drink a pink potion (effect determined by per-game shuffle)",
+        "drink a cyan potion (effect determined by per-game shuffle)",
+        "drink a yellow potion (effect determined by per-game shuffle)",
     ),
 )
 
@@ -199,7 +215,7 @@ ALL_CLASSIC_ACHIEVEMENTS = (
     "eat_cow",
 )
 
-# All 81 Craftax Full achievements
+# All 80 Craftax Full achievements (phase β: 3 legacy potion entries → 1 unified)
 ALL_FULL_ACHIEVEMENTS = (
     # -- Classic 22 --
     "collect_wood",
@@ -237,10 +253,8 @@ ALL_FULL_ACHIEVEMENTS = (
     # -- Magic (2) --
     "cast_fireball",
     "cast_iceball",
-    # -- Potions (3) --
-    "drink_health_potion",
-    "drink_fire_resist_potion",
-    "drink_speed_potion",
+    # -- Potions (1; phase β: unified drink_potion replaces 3 legacy entries) --
+    "drink_potion",
     # -- Enchantments (2) --
     "enchant_weapon",
     "enchant_armor",
@@ -304,7 +318,7 @@ ALL_FULL_ACHIEVEMENTS = (
     # -- Phase β gem ores (2) --
     "collect_sapphire",
     "collect_ruby",
-    # -- Total: 82 --
+    # -- Total: 80 (phase β: 3 legacy potion achievements consolidated to 1) --
 )
 
 # Visible window dimensions

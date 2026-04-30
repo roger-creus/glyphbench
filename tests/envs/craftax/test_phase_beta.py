@@ -79,14 +79,14 @@ def test_achievements_phase_beta_independent_of_unlocked(env):
 # T02β: REST action + _is_resting state machine
 # ---------------------------------------------------------------------------
 
-_REST_ACTION = 36   # index of REST in CRAFTAX_FULL_ACTION_SPEC
+_REST_ACTION = 35   # index of REST in CRAFTAX_FULL_ACTION_SPEC (phase β: 42 actions)
 _NOOP_ACTION = 0    # index of NOOP
 
 
 def test_rest_action_in_spec():
-    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 36 (spec is now 37 actions)."""
+    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 35 (phase β spec is 42 actions)."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
-    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 37
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 42
     assert CRAFTAX_FULL_ACTION_SPEC.names[_REST_ACTION] == "REST"
 
 
@@ -586,3 +586,218 @@ def test_multiple_lava_ticks_drain_hp_linearly():
     assert e._hp == 14, (
         f"Expected HP=14 after 3 lava ticks (20 - 6), got {e._hp}"
     )
+
+
+# ---------------------------------------------------------------------------
+# T08β: 6-color potion infrastructure
+# ---------------------------------------------------------------------------
+
+def test_make_potion_mapping_returns_6_permutation():
+    """make_potion_mapping(seed=0) returns a tuple that is a permutation of (0..5)."""
+    from glyphbench.envs.craftax.mechanics.potions import make_potion_mapping
+    perm = make_potion_mapping(seed=0)
+    assert isinstance(perm, tuple), "make_potion_mapping must return a tuple"
+    assert len(perm) == 6, f"Expected length 6, got {len(perm)}"
+    assert set(perm) == {0, 1, 2, 3, 4, 5}, f"Not a permutation of 0-5: {perm}"
+
+
+def test_make_potion_mapping_is_deterministic():
+    """Same seed always produces the same mapping."""
+    from glyphbench.envs.craftax.mechanics.potions import make_potion_mapping
+    perm_a = make_potion_mapping(seed=42)
+    perm_b = make_potion_mapping(seed=42)
+    assert perm_a == perm_b, "Same seed must produce same mapping"
+
+
+def test_make_potion_mapping_varies_across_seeds():
+    """At least 2 distinct mappings exist among 5 different seeds."""
+    from glyphbench.envs.craftax.mechanics.potions import make_potion_mapping
+    mappings = {make_potion_mapping(seed=s) for s in range(5)}
+    assert len(mappings) >= 2, (
+        f"Expected >= 2 distinct mappings across 5 seeds, got {len(mappings)}"
+    )
+
+
+def test_six_drink_potion_actions_in_spec():
+    """All 6 DRINK_POTION_* actions are present in the full action spec."""
+    from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
+    colors = ("RED", "GREEN", "BLUE", "PINK", "CYAN", "YELLOW")
+    for color in colors:
+        name = f"DRINK_POTION_{color}"
+        assert name in CRAFTAX_FULL_ACTION_SPEC.names, (
+            f"{name} missing from CRAFTAX_FULL_ACTION_SPEC"
+        )
+
+
+def test_drink_potion_red_noop_when_no_potion(env):
+    """Drinking a red potion when red == 0 is a no-op (count unchanged)."""
+    env._inventory["potions"]["red"] = 0
+    env._hp = 1  # below full to prevent full_health achievement noise
+    env._mana = 0
+    env._energy = 0
+    dr_idx = env.action_spec.names.index("DRINK_POTION_RED")
+    obs, reward, *_ = env.step(dr_idx)
+    assert env._inventory["potions"]["red"] == 0
+    assert reward == 0.0, f"No-op drink should give 0 reward, got {reward}"
+
+
+def test_drink_potion_red_consumes_one_red_potion(env):
+    """Drinking a red potion reduces red count by exactly 1."""
+    env._inventory["potions"]["red"] = 3
+    dr_idx = env.action_spec.names.index("DRINK_POTION_RED")
+    env.step(dr_idx)
+    assert env._inventory["potions"]["red"] == 2
+
+
+def test_drink_potion_does_not_touch_other_colors(env):
+    """Drinking a red potion leaves other colors unchanged."""
+    for color in ("green", "blue", "pink", "cyan", "yellow"):
+        env._inventory["potions"][color] = 5
+    env._inventory["potions"]["red"] = 1
+    dr_idx = env.action_spec.names.index("DRINK_POTION_RED")
+    env.step(dr_idx)
+    for color in ("green", "blue", "pink", "cyan", "yellow"):
+        assert env._inventory["potions"][color] == 5, (
+            f"{color} potion count changed after drinking red"
+        )
+
+
+def test_potion_mapping_exists_after_reset(env):
+    """_potion_mapping is set after reset and has length 6."""
+    assert hasattr(env, "_potion_mapping")
+    assert len(env._potion_mapping) == 6
+    assert set(env._potion_mapping) == {0, 1, 2, 3, 4, 5}
+
+
+def test_potion_mapping_hidden_from_observation(env):
+    """Rendered observation text never contains '_potion_mapping'."""
+    obs, *_ = env.step(0)  # NOOP to get observation
+    obs_text = str(obs)
+    assert "_potion_mapping" not in obs_text, (
+        "Hidden mapping must not appear in rendered observation"
+    )
+    # Also check the HUD field specifically.
+    if hasattr(obs, "hud"):
+        assert "_potion_mapping" not in obs.hud
+
+
+# ---------------------------------------------------------------------------
+# T09β: Potion effect handlers — stat deltas
+# ---------------------------------------------------------------------------
+
+def _make_env_with_red_mapped_to(effect_name: str) -> CraftaxFullEnv:
+    """Return a freshly reset env whose RED potion maps to *effect_name*."""
+    from glyphbench.envs.craftax.mechanics.potions import make_potion_mapping, POTION_EFFECTS
+    # Seeds discovered to give RED -> each effect:
+    _seed_for_effect = {
+        "heal_8": 3,
+        "poison_3": 5,
+        "mana_8": 1,
+        "mana_drain_3": 4,
+        "energy_8": 0,
+        "energy_drain_3": 8,
+    }
+    seed = _seed_for_effect[effect_name]
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=seed)
+    # Verify the mapping is as expected.
+    perm = make_potion_mapping(seed)
+    assert POTION_EFFECTS[perm[0]] == effect_name, (
+        f"Seed {seed} RED effect mismatch: expected {effect_name}, "
+        f"got {POTION_EFFECTS[perm[0]]}"
+    )
+    return e
+
+
+def test_potion_effect_heal_8():
+    """heal_8 effect: +8 HP capped at max_hp."""
+    e = _make_env_with_red_mapped_to("heal_8")
+    e._inventory["potions"]["red"] = 1
+    e._hp = 1
+    e._mana = 0
+    e._energy = 0
+    # Strip armor so take_damage path is clean if needed.
+    for k in ("wood_armor", "stone_armor", "iron_armor", "diamond_armor"):
+        e._inventory[k] = 0
+    hp_before = e._hp
+    dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
+    e.step(dr_idx)
+    expected = min(e._max_hp, hp_before + 8)
+    assert e._hp == expected, f"heal_8: expected HP={expected}, got {e._hp}"
+
+
+def test_potion_effect_poison_3():
+    """poison_3 effect: -3 HP (via _take_damage, armor applies)."""
+    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    e = _make_env_with_red_mapped_to("poison_3")
+    e._inventory["potions"]["red"] = 1
+    # Strip armor for predictability.
+    for k in ("wood_armor", "stone_armor", "iron_armor", "diamond_armor"):
+        e._inventory[k] = 0
+    e._hp = 9
+    e._max_hp = 9
+    e._mana = 0
+    e._energy = _MAX_ENERGY
+    # poison_3 uses _take_damage(3); with no armor actual = max(1, 3-0) = 3.
+    dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
+    e.step(dr_idx)
+    assert e._hp == 6, f"poison_3: expected HP=6, got {e._hp}"
+
+
+def test_potion_effect_mana_8():
+    """mana_8 effect: +8 mana capped at max mana."""
+    from glyphbench.envs.craftax.full import _MAX_MANA
+    e = _make_env_with_red_mapped_to("mana_8")
+    e._inventory["potions"]["red"] = 1
+    e._mana = 0
+    e._energy = 0
+    dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
+    e.step(dr_idx)
+    expected = min(_MAX_MANA, 0 + 8)
+    assert e._mana == expected, f"mana_8: expected mana={expected}, got {e._mana}"
+
+
+def test_potion_effect_mana_drain_3():
+    """mana_drain_3 effect: -3 mana clamped to 0."""
+    e = _make_env_with_red_mapped_to("mana_drain_3")
+    e._inventory["potions"]["red"] = 1
+    e._mana = 5
+    e._energy = 0
+    dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
+    e.step(dr_idx)
+    assert e._mana == 2, f"mana_drain_3: expected mana=2, got {e._mana}"
+
+
+def test_potion_effect_mana_drain_3_clamps_to_zero():
+    """mana_drain_3 cannot reduce mana below 0."""
+    e = _make_env_with_red_mapped_to("mana_drain_3")
+    e._inventory["potions"]["red"] = 1
+    e._mana = 1
+    e._energy = 0
+    dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
+    e.step(dr_idx)
+    assert e._mana == 0, f"mana_drain_3 clamp: expected mana=0, got {e._mana}"
+
+
+def test_potion_effect_energy_8():
+    """energy_8 effect: +8 energy capped at max energy."""
+    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    e = _make_env_with_red_mapped_to("energy_8")
+    e._inventory["potions"]["red"] = 1
+    e._energy = 0
+    e._mana = 0
+    dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
+    e.step(dr_idx)
+    expected = min(_MAX_ENERGY, 0 + 8)
+    assert e._energy == expected, f"energy_8: expected energy={expected}, got {e._energy}"
+
+
+def test_potion_effect_energy_drain_3():
+    """energy_drain_3 effect: -3 energy clamped to 0."""
+    e = _make_env_with_red_mapped_to("energy_drain_3")
+    e._inventory["potions"]["red"] = 1
+    e._energy = 5
+    e._mana = 0
+    dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
+    e.step(dr_idx)
+    assert e._energy == 2, f"energy_drain_3: expected energy=2, got {e._energy}"
