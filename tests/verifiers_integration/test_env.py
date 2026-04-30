@@ -122,6 +122,23 @@ def test_load_environment_multiple_env_ids():
     assert len(env.dataset) == 2
 
 
+def test_load_environment_dataset_task_matches_env_id():
+    env = load_environment(task_id="glyphbench/__dummy-v0", num_episodes=2)
+    for row in env.dataset:
+        assert row["task"] == "glyphbench/__dummy-v0"
+        info = json.loads(row["info"]) if isinstance(row["info"], str) else row["info"]
+        assert row["task"] == info["env_id"]
+
+    env_multi = load_environment(
+        task_id=["glyphbench/__dummy-v0"], num_episodes=2
+    )
+    for row in env_multi.dataset:
+        info = (
+            json.loads(row["info"]) if isinstance(row["info"], str) else row["info"]
+        )
+        assert row["task"] == info["env_id"]
+
+
 def test_load_environment_rejects_unknown_id():
     with pytest.raises(KeyError):
         load_environment(task_id="glyphbench/does-not-exist-v0", num_episodes=1)

@@ -126,6 +126,7 @@ def _build_dataset(env_ids: list[str], num_episodes: int, base_seed: int) -> Dat
             rows.append(
                 {
                     "info": json.dumps({"env_id": env_id, "seed": seed_val}),
+                    "task": env_id,
                     # Placeholder — filled in setup_state (verifiers allows
                     # dynamic prompt construction via state["prompt"] mutation).
                     "prompt": [
