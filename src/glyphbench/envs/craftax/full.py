@@ -338,8 +338,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._water: int = _MAX_WATER
         self._energy: int = _MAX_ENERGY
         self._mana: int = _MAX_MANA
-        # Spells learned
-        self._spells_learned: int = 0
+        # Spells learned (per-spell dict; T10β)
+        self._learned_spells: dict[str, bool] = {"fireball": False, "iceball": False}
         # Day/night
         self._day_counter: int = 0
         self._day_night: str = "day"
@@ -984,8 +984,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         )
         if all_loot:
             r += self._try_unlock("collect_all_boss_loot")
-        # Spells learned (3+ scrolls means all spells)
-        if self._spells_learned >= 3:
+        # Spells learned — all spells known
+        if all(self._learned_spells.values()):
             r += self._try_unlock("learn_all_spells")
         # Clear dungeon floor (no mobs on current floor)
         if self._current_floor > 0:
@@ -1424,6 +1424,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "torch": 0,
             "sapphire": 0,
             "ruby": 0,
+            "book": 0,
             "potions": {"red": 0, "green": 0, "blue": 0, "pink": 0, "cyan": 0, "yellow": 0},
         }
         # Phase β T08β: hidden per-episode color->effect mapping.
@@ -1437,7 +1438,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._water = _MAX_WATER
         self._energy = _MAX_ENERGY
         self._mana = _MAX_MANA
-        self._spells_learned = 0
+        self._learned_spells = {"fireball": False, "iceball": False}
         self._day_counter = 0
         self._day_night = "day"
         self._night_count = 0
@@ -2061,7 +2062,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             ProjectileType,
         )
 
-        if self._spells_learned < 1:
+        if not self._learned_spells["fireball"]:
             self._message = "No spells learned yet."
             return 0.0
         if self._mana < 2:
@@ -2096,7 +2097,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             ProjectileType,
         )
 
-        if self._spells_learned < 1:
+        if not self._learned_spells["iceball"]:
             self._message = "No spells learned yet."
             return 0.0
         if self._mana < 2:
@@ -2115,6 +2116,28 @@ class CraftaxFullEnv(BaseGlyphEnv):
         )
         self._message = "You cast an iceball."
         return self._try_unlock("cast_iceball")
+
+    def _handle_read_book(self) -> float:
+        """Read a book to learn an unlearned spell (T11β).
+
+        Consumes 1 book from inventory. Picks a random unlearned spell from
+        _learned_spells and marks it True. Fires the learn_<spell> achievement.
+        No-ops if the player has no book or already knows all spells.
+        """
+        if self._inventory.get("book", 0) < 1:
+            self._message = "No book to read."
+            return 0.0
+        unlearned = [
+            spell for spell, known in self._learned_spells.items() if not known
+        ]
+        if not unlearned:
+            self._message = "You already know all spells."
+            return 0.0
+        chosen = unlearned[int(self.rng.integers(0, len(unlearned)))]
+        self._learned_spells[chosen] = True
+        self._inventory["book"] -= 1
+        self._message = f"You read the book. Learned {chosen}!"
+        return self._try_unlock(f"learn_{chosen}")
 
     def _handle_shoot_arrow(self) -> float:
         """Spawn an arrow projectile at the player's tile.
@@ -2429,6 +2452,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "MAKE_TORCH": _handle_make_torch,
         "SHOOT_ARROW": _handle_shoot_arrow,
         "REST": _handle_rest,
+        "READ_BOOK": _handle_read_book,
     }
 
     # ---------------------------------------------------------------
@@ -2649,13 +2673,12 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         f", Dmg: {bdef['damage']})"
                     )
 
-        # Spells learned
-        learned = min(self._spells_learned, len(_SPELL_NAMES))
-        if learned > 0:
-            names = ", ".join(_SPELL_NAMES[:learned])
-            spells_str = f"{names} ({learned}/3)"
-        else:
-            spells_str = "none (0/3)"
+        # Spells learned (per-spell dict; T10β)
+        spell_parts = [
+            f"{spell}: {'known' if known else 'unknown'}"
+            for spell, known in self._learned_spells.items()
+        ]
+        spells_str = ", ".join(spell_parts) if spell_parts else "none"
 
         # Active potion effects
         effects: list[str] = []

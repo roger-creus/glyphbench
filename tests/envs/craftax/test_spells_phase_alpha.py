@@ -16,7 +16,8 @@ def test_cast_iceball_spawns_projectile_entity_no_freeze() -> None:
     env = CraftaxFullEnv()
     env.reset(seed=0)
     env._mana = 5
-    env._spells_learned = 1
+    env._learned_spells["fireball"] = True
+    env._learned_spells["iceball"] = True
     env._facing = (0, 1)
     env._agent_x, env._agent_y = 5, 5
 
@@ -34,7 +35,7 @@ def test_cast_iceball_spawns_projectile_entity_no_freeze() -> None:
 def test_cast_iceball_no_op_without_spells_learned() -> None:
     env = CraftaxFullEnv()
     env.reset(seed=0)
-    env._spells_learned = 0
+    # After reset, _learned_spells is all False — no need to set
     env._mana = 5
     initial_mana = env._mana
 
@@ -47,7 +48,7 @@ def test_cast_iceball_no_op_without_spells_learned() -> None:
 def test_cast_iceball_no_op_without_enough_mana() -> None:
     env = CraftaxFullEnv()
     env.reset(seed=0)
-    env._spells_learned = 1
+    env._learned_spells["iceball"] = True
     env._mana = 1
     initial_mana = env._mana
 
@@ -64,7 +65,7 @@ def test_cast_fireball_spawns_projectile_entity_no_aoe() -> None:
     env = CraftaxFullEnv()
     env.reset(seed=0)
     env._mana = 5
-    env._spells_learned = 1
+    env._learned_spells["fireball"] = True
     env._facing = (1, 0)
     env._agent_x, env._agent_y = 5, 5
 
@@ -82,7 +83,7 @@ def test_cast_fireball_spawns_projectile_entity_no_aoe() -> None:
 def test_cast_fireball_no_op_without_spells_learned() -> None:
     env = CraftaxFullEnv()
     env.reset(seed=0)
-    env._spells_learned = 0
+    # After reset, _learned_spells is all False — no need to set
     env._mana = 5
     initial_mana = env._mana
 
@@ -95,7 +96,7 @@ def test_cast_fireball_no_op_without_spells_learned() -> None:
 def test_cast_fireball_no_op_without_enough_mana() -> None:
     env = CraftaxFullEnv()
     env.reset(seed=0)
-    env._spells_learned = 1
+    env._learned_spells["fireball"] = True
     env._mana = 1  # below the 2-mana cost
     initial_mana = env._mana
 
@@ -120,7 +121,7 @@ def test_player_projectile_damages_adjacent_zombie_on_cast_step() -> None:
     env = CraftaxFullEnv()
     env.reset(seed=0)
     env._mana = 5
-    env._spells_learned = 1
+    env._learned_spells["fireball"] = True
     env._facing = (1, 0)
     env._agent_x, env._agent_y = 5, 5
     env._mobs.append({

@@ -79,14 +79,14 @@ def test_achievements_phase_beta_independent_of_unlocked(env):
 # T02β: REST action + _is_resting state machine
 # ---------------------------------------------------------------------------
 
-_REST_ACTION = 35   # index of REST in CRAFTAX_FULL_ACTION_SPEC (phase β: 42 actions)
+_REST_ACTION = 35   # index of REST in CRAFTAX_FULL_ACTION_SPEC (phase β: 43 actions with T11β)
 _NOOP_ACTION = 0    # index of NOOP
 
 
 def test_rest_action_in_spec():
-    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 35 (phase β spec is 42 actions)."""
+    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 35 (phase β spec is 43 actions with T11β)."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
-    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 42
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 43
     assert CRAFTAX_FULL_ACTION_SPEC.names[_REST_ACTION] == "REST"
 
 
@@ -801,3 +801,153 @@ def test_potion_effect_energy_drain_3():
     dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
     e.step(dr_idx)
     assert e._energy == 2, f"energy_drain_3: expected energy=2, got {e._energy}"
+
+
+# ---------------------------------------------------------------------------
+# T10β: Per-spell _learned_spells dict
+# ---------------------------------------------------------------------------
+
+def test_learned_spells_dict_exists_after_reset(env):
+    """_learned_spells dict exists with both spell keys set to False after reset."""
+    assert hasattr(env, "_learned_spells")
+    assert isinstance(env._learned_spells, dict)
+    assert "fireball" in env._learned_spells
+    assert "iceball" in env._learned_spells
+    assert env._learned_spells["fireball"] is False
+    assert env._learned_spells["iceball"] is False
+
+
+def test_old_spells_learned_attr_gone(env):
+    """The legacy _spells_learned integer attribute must not exist."""
+    assert not hasattr(env, "_spells_learned"), (
+        "_spells_learned (integer) should have been replaced by _learned_spells dict"
+    )
+
+
+def test_cast_fireball_bails_when_fireball_not_learned(env):
+    """CAST_FIREBALL is a no-op when _learned_spells['fireball'] is False."""
+    env._mana = 5
+    env._learned_spells["fireball"] = False
+    initial_mana = env._mana
+    env._handle_cast_fireball()
+    assert env._player_projectiles == []
+    assert env._mana == initial_mana, "Mana must not be consumed when fireball not learned"
+
+
+def test_cast_fireball_works_when_fireball_learned(env):
+    """CAST_FIREBALL spawns a projectile when _learned_spells['fireball'] is True."""
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+    env._mana = 5
+    env._learned_spells["fireball"] = True
+    env._facing = (1, 0)
+    env._agent_x, env._agent_y = 5, 5
+    env._handle_cast_fireball()
+    assert len(env._player_projectiles) == 1
+    assert env._player_projectiles[0].kind == ProjectileType.FIREBALL
+
+
+def test_cast_iceball_bails_when_iceball_not_learned(env):
+    """CAST_ICEBALL is a no-op when _learned_spells['iceball'] is False."""
+    env._mana = 5
+    env._learned_spells["iceball"] = False
+    initial_mana = env._mana
+    env._handle_cast_iceball()
+    assert env._player_projectiles == []
+    assert env._mana == initial_mana, "Mana must not be consumed when iceball not learned"
+
+
+def test_cast_iceball_works_when_iceball_learned(env):
+    """CAST_ICEBALL spawns a projectile when _learned_spells['iceball'] is True."""
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+    env._mana = 5
+    env._learned_spells["iceball"] = True
+    env._facing = (1, 0)
+    env._agent_x, env._agent_y = 5, 5
+    env._handle_cast_iceball()
+    assert len(env._player_projectiles) == 1
+    assert env._player_projectiles[0].kind == ProjectileType.ICEBALL
+
+
+# ---------------------------------------------------------------------------
+# T11β: READ_BOOK action + book inventory
+# ---------------------------------------------------------------------------
+
+def test_read_book_action_in_spec():
+    """READ_BOOK is present in CRAFTAX_FULL_ACTION_SPEC (43 actions total)."""
+    from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
+    assert "READ_BOOK" in CRAFTAX_FULL_ACTION_SPEC.names
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 43
+
+
+def test_book_inventory_key_exists_after_reset(env):
+    """_inventory has 'book' key equal to 0 after reset."""
+    assert "book" in env._inventory
+    assert env._inventory["book"] == 0
+
+
+def test_read_book_noop_when_no_book(env):
+    """READ_BOOK with book count = 0 is a no-op: no spell learned, message set."""
+    env._inventory["book"] = 0
+    reward = env._handle_read_book()
+    assert reward == 0.0
+    assert env._learned_spells["fireball"] is False
+    assert env._learned_spells["iceball"] is False
+    assert env._inventory["book"] == 0
+    assert "no book" in env._message.lower()
+
+
+def test_read_book_consumes_one_book_and_learns_a_spell(env):
+    """READ_BOOK with book=1 consumes the book and learns exactly one unlearned spell."""
+    env._inventory["book"] = 1
+    env._learned_spells["fireball"] = False
+    env._learned_spells["iceball"] = False
+    env._handle_read_book()
+    assert env._inventory["book"] == 0, "Book should be consumed"
+    learned_count = sum(env._learned_spells.values())
+    assert learned_count == 1, f"Exactly 1 spell should be learned, got {learned_count}"
+
+
+def test_read_book_twice_teaches_both_spells(env):
+    """Two READ_BOOK calls teach both fireball and iceball."""
+    env._inventory["book"] = 2
+    env._learned_spells["fireball"] = False
+    env._learned_spells["iceball"] = False
+    env._handle_read_book()
+    env._handle_read_book()
+    assert env._learned_spells["fireball"] is True
+    assert env._learned_spells["iceball"] is True
+    assert env._inventory["book"] == 0
+
+
+def test_read_book_noop_when_all_spells_known(env):
+    """READ_BOOK when all spells already known is a no-op (book not consumed)."""
+    env._inventory["book"] = 1
+    env._learned_spells["fireball"] = True
+    env._learned_spells["iceball"] = True
+    reward = env._handle_read_book()
+    assert reward == 0.0
+    assert env._inventory["book"] == 1, "Book should not be consumed"
+    assert "already know" in env._message.lower()
+
+
+def test_learn_fireball_achievement_fires(env):
+    """learn_fireball achievement fires when READ_BOOK teaches fireball."""
+    # Force fireball to be the only unlearned spell.
+    env._inventory["book"] = 1
+    env._learned_spells["fireball"] = False
+    env._learned_spells["iceball"] = True
+    env._handle_read_book()
+    assert "learn_fireball" in env._achievements_unlocked, (
+        "learn_fireball achievement should fire after learning fireball"
+    )
+
+
+def test_learn_iceball_achievement_fires(env):
+    """learn_iceball achievement fires when READ_BOOK teaches iceball."""
+    env._inventory["book"] = 1
+    env._learned_spells["fireball"] = True
+    env._learned_spells["iceball"] = False
+    env._handle_read_book()
+    assert "learn_iceball" in env._achievements_unlocked, (
+        "learn_iceball achievement should fire after learning iceball"
+    )

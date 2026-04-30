@@ -184,7 +184,7 @@ def test_player_projectile_blocks_on_plant_tile() -> None:
     env._agent_x, env._agent_y = 5, 5
     env._facing = (1, 0)
     env._mana = 5
-    env._spells_learned = 1
+    env._learned_spells["fireball"] = True
     grid = env._current_grid()
     # Place a ripe plant at (7, 5) — projectile from (5, 5) east.
     from glyphbench.envs.craftax.base import TILE_RIPE_PLANT

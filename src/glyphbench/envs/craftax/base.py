@@ -42,12 +42,13 @@ CRAFTAX_ACTION_SPEC = ActionSpec(
     ),
 )
 
-# Full Craftax action spec (42 actions)
+# Full Craftax action spec (43 actions)
 # Phase β: DRINK_POTION (generic) dropped; 6 DRINK_POTION_* color actions added.
+# T11β: READ_BOOK appended at index 42.
 # Index breakdown: 0-6 noop/movement/do/sleep, 7-11 placement, 12-23 crafting,
 # 24-25 spells, 26-27 eat/drink, 28-29 stairs, 30-31 enchant,
 # 32-33 make_arrow/make_torch, 34 shoot_arrow, 35 rest,
-# 36-41 drink_potion_{red,green,blue,pink,cyan,yellow}.
+# 36-41 drink_potion_{red,green,blue,pink,cyan,yellow}, 42 read_book.
 CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
     names=(
         "NOOP", "MOVE_LEFT", "MOVE_RIGHT", "MOVE_UP", "MOVE_DOWN",
@@ -74,6 +75,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "DRINK_POTION_PINK",
         "DRINK_POTION_CYAN",
         "DRINK_POTION_YELLOW",
+        "READ_BOOK",
     ),
     descriptions=(
         "do nothing this turn",
@@ -118,6 +120,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "drink a pink potion (effect determined by per-game shuffle)",
         "drink a cyan potion (effect determined by per-game shuffle)",
         "drink a yellow potion (effect determined by per-game shuffle)",
+        "read a book to learn fireball or iceball (random)",
     ),
 )
 
@@ -318,7 +321,11 @@ ALL_FULL_ACHIEVEMENTS = (
     # -- Phase β gem ores (2) --
     "collect_sapphire",
     "collect_ruby",
-    # -- Total: 80 (phase β: 3 legacy potion achievements consolidated to 1) --
+    # -- Phase β spells + items (3) --
+    "learn_fireball",
+    "learn_iceball",
+    "find_book",
+    # -- Total: 83 (phase β: 3 legacy potion achievements consolidated to 1; +3 spell/book) --
 )
 
 # Visible window dimensions
