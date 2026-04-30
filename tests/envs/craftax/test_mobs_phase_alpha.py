@@ -207,24 +207,38 @@ def test_full_env_zombie_uses_cooldown_via_mob_ai() -> None:
 
 def test_sleeping_player_takes_3_5x_melee_damage() -> None:
     """T22: melee damage is multiplied by 3.5 when the player is asleep
-    (upstream game_logic.py:1100-1291; multiplier 1 + 2.5*is_sleeping)."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    (upstream game_logic.py:1100-1291; multiplier 1 + 2.5*is_sleeping).
+
+    Phase β update: SLEEP is now a continuous state machine. We must keep
+    _energy below _MAX_ENERGY so sleep does NOT exit before the zombie attacks.
+    HP is set within _max_hp range so the per-tick +2 regen cap doesn't mask
+    the result.
+    """
+    from glyphbench.envs.craftax.full import CraftaxFullEnv, _MAX_ENERGY
 
     env = CraftaxFullEnv()
     env.reset(seed=0)
     env._agent_x, env._agent_y = 5, 5
-    env._hp = 100
+    env._hp = env._max_hp         # start at max HP within valid range
+    env._energy = 1               # keep below max so sleep doesn't exit this tick
     env._is_sleeping = True
     env._mobs.append({
         "type": "zombie", "x": 5, "y": 6,
         "hp": 5, "max_hp": 5, "is_boss": False,
         "floor": env._current_floor, "attack_cooldown": 0,
     })
-    initial_hp = env._hp
+    # Sleep regen adds +2 HP (capped at max) — record HP after regen but
+    # before the mob hits so we can isolate the damage delta.
+    # The zombie attacks AFTER the sleep-regen tick, so we compare against
+    # the post-regen HP.
     # NOOP triggers the mob_ai → step_melee_mob path; zombie deals base 1 dmg
     # (per _MOB_STATS) which becomes round(1 * 3.5) = 4 with sleep multiplier.
     env.step(env.action_spec.names.index("NOOP"))
-    delta = initial_hp - env._hp
+    # The sleep block fired first (+2 HP clamped to max, +2 energy → energy=3),
+    # sleep stays True (energy 3 < 9). Then zombie hits for round(1*3.5)=4, minus
+    # 0 armor. Net HP change relative to pre-step max HP:
+    # HP after step = max_hp + 0 (already at max) - 4 = max_hp - 4.
+    delta = env._max_hp - env._hp
     # Zombie's base damage is 1 (per _MOB_STATS); 1 * 3.5 = 3.5 → round to 4.
     # Subtract 0 armor (initial inventory has none), so delta should be 4.
     # If our impl uses floor instead, delta would be 3. Both are accepted as long

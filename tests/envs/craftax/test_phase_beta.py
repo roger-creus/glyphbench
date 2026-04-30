@@ -120,3 +120,58 @@ def test_rest_exits_on_damage(env):
     env._hp = 5
     env._take_damage(1)
     assert env._is_resting is False
+
+
+# ---------------------------------------------------------------------------
+# T03β: SLEEP continuous state machine
+# ---------------------------------------------------------------------------
+
+_SLEEP_ACTION = 6   # index of SLEEP in CRAFTAX_FULL_ACTION_SPEC
+_NOOP_ACTION_IDX = 0
+
+
+def test_sleep_action_sets_is_sleeping(env):
+    """SLEEP action sets _is_sleeping = True."""
+    assert env._is_sleeping is False
+    env.step(_SLEEP_ACTION)
+    assert env._is_sleeping is True
+
+
+def test_sleep_regens_hp_plus2_per_tick(env):
+    """While sleeping, HP increases by 2 each tick."""
+    env._is_sleeping = True
+    env._hp = 3
+    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    # Drain energy so sleep doesn't exit on first tick.
+    env._energy = 1
+    env.step(_NOOP_ACTION_IDX)
+    assert env._hp == 5
+
+
+def test_sleep_increases_energy_per_tick(env):
+    """While sleeping, energy increases each tick."""
+    env._is_sleeping = True
+    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    env._energy = 0
+    env.step(_NOOP_ACTION_IDX)
+    assert env._energy > 0
+
+
+def test_sleep_exits_on_energy_full_and_fires_wake_up(env):
+    """Sleep exits when energy reaches max and fires the wake_up achievement."""
+    env._is_sleeping = True
+    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    # Set energy just below max so one tick tips it over.
+    env._energy = _MAX_ENERGY - 1
+    env.step(_NOOP_ACTION_IDX)
+    assert env._is_sleeping is False
+    assert "wake_up" in env._achievements_unlocked
+
+
+def test_sleep_exits_on_damage_no_wake_up(env):
+    """Sleep exits on damage and does NOT fire the wake_up achievement."""
+    env._is_sleeping = True
+    env._hp = 9
+    env._take_damage(1)
+    assert env._is_sleeping is False
+    assert "wake_up" not in env._achievements_unlocked

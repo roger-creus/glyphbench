@@ -866,8 +866,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
             raw = int(round(raw * 3.5))
         actual = max(1, raw - defense)
         self._hp = max(0, self._hp - actual)
-        # Phase β: damage cancels REST state.
+        # Phase β: damage cancels REST and SLEEP states.
         self._is_resting = False
+        self._is_sleeping = False
 
     def _attack_mob(self, mob: Mob) -> float:
         damage = 1 + self._best_weapon_bonus()
@@ -1446,6 +1447,20 @@ class CraftaxFullEnv(BaseGlyphEnv):
             ):
                 self._is_resting = False
 
+        # Phase β: SLEEP state machine — continuous sleep with +2 HP/tick and
+        # +2 energy/tick.  Runs BEFORE the action handler so that each tick
+        # while sleeping applies regen regardless of what action is dispatched
+        # (action handlers are effectively NOOPs while sleeping because the
+        # agent should not issue another SLEEP while sleeping, and any movement
+        # etc. issued by an external driver is irrelevant — the sleep loop is
+        # the intended game-play path).
+        if self._is_sleeping:
+            self._hp = min(self._max_hp, self._hp + 2)
+            self._energy = min(_MAX_ENERGY, self._energy + 2)
+            if self._energy >= _MAX_ENERGY:
+                self._is_sleeping = False
+                reward += self._try_unlock("wake_up")
+
         handler = self._ACTION_DISPATCH.get(name)
         if handler is not None:
             reward += handler(self)
@@ -1638,22 +1653,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return r
 
     def _handle_sleep(self) -> float:
-        reward = 0.0
-        self._energy = _MAX_ENERGY
-        if not self._has_shelter() and self.rng.random() < 0.5:
-            dmg = int(self.rng.integers(1, 4))
-            self._hp = max(0, self._hp - dmg)
-            self._message = (
-                f"Attacked while sleeping! Lost {dmg} HP."
-            )
-        else:
-            self._message = "You sleep and wake refreshed."
-        for _ in range(49):
-            self._advance_day_counter()
-            self._apply_survival_drain()
-            self._tick_plants()
-        reward += self._try_unlock("wake_up")
-        return reward
+        """Phase β: enters continuous sleep state. Regen and energy restore
+        happen each tick in _step; this action just sets the flag."""
+        self._is_sleeping = True
+        self._message = "You fall asleep."
+        return 0.0
 
     # -- Placement --
 
