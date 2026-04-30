@@ -130,6 +130,7 @@ GLYPH_TO_ANCHORS: dict[str, frozenset[str]] = {
     # Mobs - overworld
     "z": frozenset({"legend:mobs:overworld"}),
     "c": frozenset({"legend:mobs:overworld"}),
+    "k": frozenset({"legend:mobs:overworld"}),  # classic skeleton
     "a": frozenset({"legend:mobs:overworld", "legend:mobs:dungeon"}),  # skeleton + knight_archer
 
     # Mobs - dungeon

@@ -29,6 +29,7 @@ from glyphbench.envs.craftax.base import (
     TILE_ZOMBIE,
     VIEW_HEIGHT,
     VIEW_WIDTH,
+    _CraftaxTutorialMixin,
 )
 from glyphbench.envs.craftax.classic import (
     WALKABLE_TILES,
@@ -181,19 +182,24 @@ class CraftaxChopTreesEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 70
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-choptrees-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Chop Trees.\n\n"
-            "TASK\n"
-            "Collect 5 wood by chopping trees. Face a tree and use DO.\n"
-            "Reward: +1 per wood collected.  Episode ends when you have 5 wood "
-            "or after 70 steps.\n\n"
-            "WORLD\n"
-            "A small meadow surrounded by trees.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Collect 5 wood by chopping trees. Face a tree and use DO. "
+            "Reward: +1 per wood collected. Episode ends when you have 5 wood "
+            "or after 70 steps."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -247,20 +253,24 @@ class CraftaxMineStoneEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 70
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-minestone-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Mine Stone.\n\n"
-            "TASK\n"
-            "Mine 5 stone.  You start with a wood pickaxe.  Face stone (S) "
-            "and use DO to mine.\n"
-            "Reward: +1 per stone mined.  Episode ends when you have 5 stone "
-            "or after 70 steps.\n\n"
-            "WORLD\n"
-            "A small area with many stone deposits.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Mine 5 stone. You start with a wood pickaxe. Face stone (S) and use "
+            "DO to mine. Reward: +1 per stone mined. Episode ends when you have "
+            "5 stone or after 70 steps."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -306,23 +316,23 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 110
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-gatherresources-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Gather Resources.\n\n"
-            "TASK\n"
-            "Collect at least 3 wood AND 3 stone.  You start empty-handed.\n"
-            "Steps: chop trees for wood -> place crafting table (2 wood) -> "
-            "craft wood pickaxe (1 wood, near table) -> mine stone.\n"
-            "Reward: +1 per resource collected.  +5 bonus on goal completion.\n"
-            "Episode ends when you have >= 3 wood AND >= 3 stone, "
-            "or after 110 steps.\n\n"
-            "WORLD\n"
-            "A meadow with trees and stone deposits, plus space to place "
-            "a crafting table.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Gather wood (5+), stone (5+), and one each of coal, iron, and "
+            "diamond. Reward: +1 per first-time resource collected."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -376,18 +386,24 @@ class CraftaxCraftPickaxeEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 30
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-craftpickaxe-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Craft Pickaxe.\n\n"
-            "TASK\n"
-            "Craft a wood pickaxe.  You start with 1 wood in your inventory "
-            "and are next to a crafting table.\n"
-            "Use MAKE_WOOD_PICKAXE while adjacent to the table.\n"
-            "Reward: +10 on success.  Episode ends on craft or after 30 steps.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Craft an iron pickaxe. Requires the full tech chain: wood -> table "
+            "-> wood pickaxe -> stone -> stone pickaxe -> coal+iron -> furnace "
+            "-> iron pickaxe. Reward: +1 on each tier crafted."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -418,18 +434,24 @@ class CraftaxCraftSwordEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 30
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-craftsword-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Craft Sword.\n\n"
-            "TASK\n"
-            "Craft a stone sword.  You start with 2 wood + 1 stone.\n"
-            "Use MAKE_STONE_SWORD while adjacent to BOTH a crafting table "
-            "and a furnace.\n"
-            "Reward: +10 on success.  Episode ends on craft or after 30 steps.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Craft an iron sword. Requires the full tech chain: wood -> table "
+            "-> wood sword -> stone sword -> coal+iron -> furnace -> iron sword. "
+            "Reward: +1 on each tier crafted."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -463,31 +485,24 @@ class CraftaxCraftChainEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 120
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-craftchain-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Craft Chain.\n\n"
-            "TASK\n"
-            "Complete a chain of crafts:\n"
-            "1. Chop trees for wood\n"
-            "2. Place a crafting table (2 wood) and a furnace (4 stone)\n"
-            "   -- OR use the pre-placed table and gather stone once you "
-            "have a pickaxe\n"
-            "3. Craft a wood pickaxe (1 wood, adjacent to table)\n"
-            "4. Mine stone with the pickaxe\n"
-            "5. Place a furnace if needed (4 stone, but you can use less: "
-            "craft stone sword needs table + furnace)\n"
-            "6. Craft a stone sword (1 wood + 1 stone, adjacent to "
-            "table + furnace)\n\n"
-            "Reward: +3 per milestone (pickaxe crafted, stone mined, "
-            "sword crafted).  +5 bonus on final goal.\n"
-            "Episode ends when you have a stone sword or after 120 steps.\n\n"
-            "WORLD\n"
-            "A meadow with trees, stone, a crafting table, and a furnace "
-            "already placed nearby.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Craft the full tech chain: wood pickaxe, stone pickaxe, iron "
+            "pickaxe, wood sword, stone sword, iron sword. Reward: +1 per "
+            "first-time craft."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -551,19 +566,24 @@ class CraftaxFightZombieEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 30
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-fightzombie-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Fight Zombie.\n\n"
-            "TASK\n"
-            "Kill the zombie (z) without dying.  You have a stone sword "
-            "(+2 damage, total 3 per hit).\n"
-            "Face the zombie and use DO to attack.\n"
-            "Reward: +10 for killing it.  -10 if you die.\n"
-            "Episode ends on kill or death (or 30 steps).\n\n"
-            + self.action_spec.render_for_prompt()
+            "Fight one zombie spawned next to you on the overworld. Kill it with "
+            "DO while facing it. Reward: +1 on kill, -10 on death. Episode ends "
+            "on either."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -599,19 +619,24 @@ class CraftaxSurviveHordeEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 50
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-survivehorde-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Survive the Horde.\n\n"
-            "TASK\n"
-            "Kill all 5 hostile mobs (3 zombies + 2 skeletons) without dying.\n"
-            "You have an iron sword (+3 damage, total 4 per hit).\n"
-            "Reward: +5 per mob killed, +10 bonus for clearing all.\n"
-            "-10 if you die.\n"
-            "Episode ends when all hostiles are dead, you die, or 50 steps.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Survive a wave of hostile mobs. Use DO to fight, place stone for "
+            "shelter, sleep when safe to recover energy. Reward: +1 per turn "
+            "survived; -10 on death."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -672,22 +697,26 @@ class CraftaxDungeonExploreEnv(_SubtaskMixin, CraftaxClassicEnv):
     _subtask_max_turns = 100
     _WORLD_SIZE = 24  # slightly larger for dungeon layout
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0", "floors:1", "floors:navigation",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-dungeonexplore-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Dungeon Explore.\n\n"
-            "TASK\n"
-            "Explore the dungeon and find the stairs down (\u21e3).\n"
-            "No enemies -- pure navigation challenge.\n"
-            "Reward: +10 for reaching the stairs.\n"
-            "Episode ends when you step on stairs or after 100 steps.\n\n"
-            "TILES\n"
-            "\u2588 = dungeon wall (impassable)\n"
-            "\u25aa = dungeon floor (walkable)\n"
-            "\u21e3 = stairs down (goal)\n\n"
-            + self.action_spec.render_for_prompt()
+            "Explore the dungeon (floor 1). Find the stairs down (⇣) by "
+            "navigating rooms and corridors. Reward shaped on dungeon entry "
+            "and exploration progress."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -861,23 +890,26 @@ class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
     _subtask_max_turns = 120
     _WORLD_SIZE = 24
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0", "floors:1", "floors:navigation",
+    )
+
     def env_id(self) -> str:
         return "glyphbench/craftax-dungeonclear-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "You are playing Craftax: Dungeon Clear.\n\n"
-            "TASK\n"
-            "Kill all enemies on the dungeon floor.\n"
-            "You have an iron sword (+3 damage, total 4 per hit).\n"
-            "Reward: +5 per kill, +10 bonus for clearing the floor.\n"
-            "-10 if you die.\n"
-            "Episode ends when all enemies are dead, you die, or 120 steps.\n\n"
-            "TILES\n"
-            "\u2588 = dungeon wall (impassable)\n"
-            "\u25aa = dungeon floor (walkable)\n"
-            "z = zombie, k = skeleton\n\n"
-            + self.action_spec.render_for_prompt()
+            "Clear all hostile mobs on dungeon floor 1. Reward: +1 per mob "
+            "killed; -10 on death. Episode ends when all mobs are dead or you "
+            "die."
         )
 
     def _setup_world(self, seed: int) -> None:
