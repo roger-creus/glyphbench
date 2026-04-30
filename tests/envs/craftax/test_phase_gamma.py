@@ -135,10 +135,10 @@ def test_action_spec_missing_wood_stone_armor():
     assert "MAKE_STONE_ARMOR" not in CRAFTAX_FULL_ACTION_SPEC.names
 
 
-def test_action_spec_has_41_actions():
-    """Action spec has exactly 41 actions post-T03γ (43 - 2 removed = 41)."""
+def test_action_spec_has_44_actions():
+    """Action spec has exactly 44 actions post-T08γ (41 + 3 LEVEL_UP = 44)."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
-    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 41
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 44
 
 
 # ---------------------------------------------------------------------------
@@ -208,3 +208,158 @@ def test_take_damage_legacy_scalar_no_armor():
     hp_before = env._hp
     env._take_damage(3)
     assert env._hp == hp_before - 3
+
+
+# ---------------------------------------------------------------------------
+# T05γ: Boss-floor 1.5× damage multiplier
+# ---------------------------------------------------------------------------
+
+def _make_env_on_boss_floor() -> "CraftaxFullEnv":  # type: ignore[name-defined]
+    """Return an env positioned on floor 5 with a live boss mob (triggers _is_in_boss_fight)."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._current_floor = 5
+    # Inject a boss mob on the current floor so _is_in_boss_fight() returns True.
+    env._mobs.append({
+        "type": "boss",
+        "x": 5, "y": 5,
+        "hp": 10, "max_hp": 10,
+        "floor": 5,
+        "is_boss": True,
+        "attack_cooldown": 0,
+        "facing": (1, 0),
+    })
+    return env
+
+
+def test_take_damage_off_boss_floor_no_multiplier():
+    """On floor 0 (no boss), _take_damage(4) → 4 damage (no boss multiplier)."""
+    env = _make_env()  # floor 0, no boss
+    hp_before = env._hp
+    env._take_damage(4)
+    assert env._hp == hp_before - 4
+
+
+def test_take_damage_on_boss_floor_1_5x():
+    """On boss floor with live boss, _take_damage(4) → 6 damage (4 × 1.5 = 6)."""
+    env = _make_env_on_boss_floor()
+    hp_before = env._hp
+    env._take_damage(4)
+    assert env._hp == hp_before - 6
+
+
+# ---------------------------------------------------------------------------
+# T06γ: XP state field + first-floor-entry grants
+# ---------------------------------------------------------------------------
+
+def test_xp_starts_at_zero():
+    """_xp is 0 after reset."""
+    env = _make_env()
+    assert env._xp == 0
+
+
+def test_xp_attributes_start_at_one():
+    """_dex, _str, _int_attr all start at 1 after reset."""
+    env = _make_env()
+    assert env._dex == 1
+    assert env._str == 1
+    assert env._int_attr == 1
+
+
+def _teleport_to_floor1_stairs(env) -> None:
+    """Place the player on the stairs-down tile of floor 0 so DESCEND works."""
+    pos = env._stairs_down_pos.get(0)
+    if pos:
+        env._agent_x, env._agent_y = pos
+    else:
+        # Find stairs-down manually
+        grid = env._floors[0]
+        from glyphbench.envs.craftax.base import TILE_STAIRS_DOWN
+        for y, row in enumerate(grid):
+            for x, cell in enumerate(row):
+                if cell == TILE_STAIRS_DOWN:
+                    env._agent_x, env._agent_y = x, y
+                    return
+
+
+def test_descend_to_floor1_grants_1_xp():
+    """First descent to floor 1 grants +1 XP."""
+    env = _make_env()
+    assert env._xp == 0
+    _teleport_to_floor1_stairs(env)
+    env._handle_descend()
+    assert env._xp == 1
+
+
+def test_descend_to_floor1_twice_no_double_grant():
+    """Re-descending to floor 1 (ascend then descend again) does NOT grant more XP."""
+    env = _make_env()
+    _teleport_to_floor1_stairs(env)
+    env._handle_descend()
+    assert env._xp == 1
+    # Ascend back to surface
+    env._handle_ascend()
+    # Descend again
+    _teleport_to_floor1_stairs(env)
+    env._handle_descend()
+    # Still only 1 XP
+    assert env._xp == 1
+
+
+# ---------------------------------------------------------------------------
+# T08γ: LEVEL_UP_DEXTERITY/STRENGTH/INTELLIGENCE actions
+# ---------------------------------------------------------------------------
+
+def test_level_up_dexterity_action_exists():
+    """LEVEL_UP_DEXTERITY must be in the action spec."""
+    from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
+    assert "LEVEL_UP_DEXTERITY" in CRAFTAX_FULL_ACTION_SPEC.names
+    assert "LEVEL_UP_STRENGTH" in CRAFTAX_FULL_ACTION_SPEC.names
+    assert "LEVEL_UP_INTELLIGENCE" in CRAFTAX_FULL_ACTION_SPEC.names
+
+
+def test_level_up_dexterity_no_xp_is_noop():
+    """LEVEL_UP_DEXTERITY with _xp = 0 is a no-op (dex unchanged, no XP spent)."""
+    env = _make_env()
+    env._xp = 0
+    env._handle_level_up_dexterity()
+    assert env._dex == 1
+    assert env._xp == 0
+
+
+def test_level_up_dexterity_consumes_xp_and_raises_dex():
+    """LEVEL_UP_DEXTERITY with _xp = 1 consumes 1 XP and raises _dex to 2."""
+    env = _make_env()
+    env._xp = 1
+    env._handle_level_up_dexterity()
+    assert env._dex == 2
+    assert env._xp == 0
+
+
+def test_level_up_dexterity_at_cap_is_noop():
+    """LEVEL_UP_DEXTERITY when _dex = 5 is a no-op (cap enforced)."""
+    env = _make_env()
+    env._dex = 5
+    env._xp = 3
+    env._handle_level_up_dexterity()
+    assert env._dex == 5
+    assert env._xp == 3  # XP not consumed
+
+
+def test_level_up_strength_works():
+    """LEVEL_UP_STRENGTH with _xp = 1 raises _str from 1 to 2."""
+    env = _make_env()
+    env._xp = 1
+    env._handle_level_up_strength()
+    assert env._str == 2
+    assert env._xp == 0
+
+
+def test_level_up_intelligence_works():
+    """LEVEL_UP_INTELLIGENCE with _xp = 1 raises _int_attr from 1 to 2."""
+    env = _make_env()
+    env._xp = 1
+    env._handle_level_up_intelligence()
+    assert env._int_attr == 2
+    assert env._xp == 0

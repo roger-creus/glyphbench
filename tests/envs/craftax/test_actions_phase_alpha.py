@@ -239,9 +239,10 @@ def test_full_action_spec_size_and_ordering_post_phase_alpha() -> None:
     adds 6 DRINK_POTION_* color actions (net +5) → 42.
     Phase β T11β adds READ_BOOK (+1) → 43.
     Phase γ T03γ removes MAKE_WOOD_ARMOR + MAKE_STONE_ARMOR (-2) → 41.
+    Phase γ T08γ adds LEVEL_UP_DEXTERITY/STRENGTH/INTELLIGENCE (+3) → 44.
     """
     spec = CRAFTAX_FULL_ACTION_SPEC
-    assert len(spec.names) == 41, f"expected 41, got {len(spec.names)}: {spec.names}"
+    assert len(spec.names) == 44, f"expected 44, got {len(spec.names)}: {spec.names}"
     # Required new names present (T14/T15/T17):
     for name in ("SHOOT_ARROW", "MAKE_ARROW", "MAKE_TORCH"):
         assert name in spec.names, f"missing required action {name!r}"

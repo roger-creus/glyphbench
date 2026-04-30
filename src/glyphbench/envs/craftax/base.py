@@ -42,14 +42,16 @@ CRAFTAX_ACTION_SPEC = ActionSpec(
     ),
 )
 
-# Full Craftax action spec (41 actions)
+# Full Craftax action spec (44 actions)
 # Phase β: DRINK_POTION (generic) dropped; 6 DRINK_POTION_* color actions added.
 # T11β: READ_BOOK appended at index 42.
 # Phase γ T03γ: MAKE_WOOD_ARMOR + MAKE_STONE_ARMOR removed (43 → 41).
+# Phase γ T08γ: LEVEL_UP_DEXTERITY/STRENGTH/INTELLIGENCE appended (41 → 44).
 # Index breakdown: 0-6 noop/movement/do/sleep, 7-11 placement, 12-21 crafting,
 # 22-23 spells, 24-25 eat/drink, 26-27 stairs, 28-29 enchant,
 # 30-31 make_arrow/make_torch, 32 shoot_arrow, 33 rest,
-# 34-39 drink_potion_{red,green,blue,pink,cyan,yellow}, 40 read_book.
+# 34-39 drink_potion_{red,green,blue,pink,cyan,yellow}, 40 read_book,
+# 41-43 level_up_{dexterity,strength,intelligence}.
 CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
     names=(
         "NOOP", "MOVE_LEFT", "MOVE_RIGHT", "MOVE_UP", "MOVE_DOWN",
@@ -76,6 +78,9 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "DRINK_POTION_CYAN",
         "DRINK_POTION_YELLOW",
         "READ_BOOK",
+        "LEVEL_UP_DEXTERITY",
+        "LEVEL_UP_STRENGTH",
+        "LEVEL_UP_INTELLIGENCE",
     ),
     descriptions=(
         "do nothing this turn",
@@ -119,6 +124,9 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "drink a cyan potion (effect determined by per-game shuffle)",
         "drink a yellow potion (effect determined by per-game shuffle)",
         "read a book to learn fireball or iceball (random)",
+        "spend 1 XP to raise dexterity (cap 5)",
+        "spend 1 XP to raise strength (cap 5)",
+        "spend 1 XP to raise intelligence (cap 5)",
     ),
 )
 
@@ -341,7 +349,11 @@ ALL_FULL_ACHIEVEMENTS = (
     # -- Phase β chest system (2; T12-T14β) --
     "open_chest",
     "find_bow",
-    # -- Total: 85 (phase β: +2 chest achievements) --
+    # -- Phase γ attribute levelling (3; T08γ) --
+    "level_up_dexterity",
+    "level_up_strength",
+    "level_up_intelligence",
+    # -- Total: 88 (phase γ T08γ: +3 level-up achievements) --
 )
 
 # Visible window dimensions

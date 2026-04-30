@@ -400,6 +400,15 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._chests_opened: dict[int, set[tuple[int, int]]] = {}
         # First-chest gating (T14β): per-floor bool for first-chest bonus.
         self._first_chest_opened: dict[int, bool] = {}
+        # Phase γ T06γ: experience points gained by first-floor-entry grants.
+        self._xp: int = 0
+        # Tracks which floors have already granted XP (first-visit gate).
+        self._xp_floors_visited: set[int] = set()
+        # Phase γ T07γ: 3 RPG attributes (cap 5 each; initial value 1).
+        # Use _int_attr to avoid shadowing Python builtin `int`.
+        self._dex: int = 1
+        self._str: int = 1
+        self._int_attr: int = 1
 
     # ---------------------------------------------------------------
     # Identity
@@ -1097,6 +1106,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # game_logic.py:1100-1291). Applied after armour reduction.
         if self._is_sleeping:
             actual = int(round(actual * 3.5))
+        # Phase γ T05γ: 1.5× multiplier on boss floor (stacks with sleep).
+        if self._is_in_boss_fight():
+            actual = int(round(actual * 1.5))
         actual = max(0, actual)
         self._hp = max(0, self._hp - actual)
         # Phase β: damage cancels REST and SLEEP states.
@@ -1704,6 +1716,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._total_blocks_placed = 0
         self._total_plants_eaten = 0
         self._total_water_drunk = 0
+        # Phase γ T06γ: XP resets each episode.
+        self._xp = 0
+        self._xp_floors_visited = set()
+        # Phase γ T07γ: attributes reset to baseline.
+        self._dex = 1
+        self._str = 1
+        self._int_attr = 1
 
         self._spawn_initial_cows()
         # Compute initial lightmaps for all generated floors.
@@ -2743,6 +2762,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
         elif new_floor == 5:
             self._message = "Reached floor 5."
             reward += self._try_unlock("reach_floor_5")
+        # Phase γ T06γ: first entry to any new floor grants +1 XP.
+        if new_floor not in self._xp_floors_visited:
+            self._xp_floors_visited.add(new_floor)
+            self._xp += 1
         return reward
 
     def _handle_ascend(self) -> float:
@@ -2833,6 +2856,47 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._message = "You rest."
         return 0.0
 
+    # -- Phase γ T08γ: LEVEL_UP attribute actions --
+
+    def _handle_level_up_dexterity(self) -> float:
+        """Spend 1 XP to raise dexterity (cap 5)."""
+        if self._xp < 1:
+            self._message = "Not enough XP to level up."
+            return 0.0
+        if self._dex >= 5:
+            self._message = "Dexterity is already at maximum (5)."
+            return 0.0
+        self._xp -= 1
+        self._dex += 1
+        self._message = f"Dexterity raised to {self._dex}!"
+        return self._try_unlock("level_up_dexterity")
+
+    def _handle_level_up_strength(self) -> float:
+        """Spend 1 XP to raise strength (cap 5)."""
+        if self._xp < 1:
+            self._message = "Not enough XP to level up."
+            return 0.0
+        if self._str >= 5:
+            self._message = "Strength is already at maximum (5)."
+            return 0.0
+        self._xp -= 1
+        self._str += 1
+        self._message = f"Strength raised to {self._str}!"
+        return self._try_unlock("level_up_strength")
+
+    def _handle_level_up_intelligence(self) -> float:
+        """Spend 1 XP to raise intelligence (cap 5)."""
+        if self._xp < 1:
+            self._message = "Not enough XP to level up."
+            return 0.0
+        if self._int_attr >= 5:
+            self._message = "Intelligence is already at maximum (5)."
+            return 0.0
+        self._xp -= 1
+        self._int_attr += 1
+        self._message = f"Intelligence raised to {self._int_attr}!"
+        return self._try_unlock("level_up_intelligence")
+
     # -- Action dispatch table --
 
     _ACTION_DISPATCH: dict[str, Any] = {  # method refs
@@ -2876,6 +2940,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "SHOOT_ARROW": _handle_shoot_arrow,
         "REST": _handle_rest,
         "READ_BOOK": _handle_read_book,
+        "LEVEL_UP_DEXTERITY": _handle_level_up_dexterity,
+        "LEVEL_UP_STRENGTH": _handle_level_up_strength,
+        "LEVEL_UP_INTELLIGENCE": _handle_level_up_intelligence,
     }
 
     # ---------------------------------------------------------------
