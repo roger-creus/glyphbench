@@ -1,4 +1,5 @@
 """Phase-α projectile entity + container tests."""
+from glyphbench.envs.craftax.full import CraftaxFullEnv
 from glyphbench.envs.craftax.mechanics.projectiles import (
     ProjectileEntity,
     ProjectileType,
@@ -48,9 +49,6 @@ def test_projectile_advances_one_tile_per_step() -> None:
     assert (p.x, p.y) == (6, 7)
     p.advance()
     assert (p.x, p.y) == (7, 7)
-
-
-from glyphbench.envs.craftax.full import CraftaxFullEnv
 
 
 def test_full_env_has_projectile_lists_after_reset() -> None:
