@@ -1,28 +1,44 @@
 # Craftax — Magic
 
-## Overview
+> Canonical anchors (locked API): `magic:books`, `magic:spells`, `magic:enchants`.
 
-The agent can learn two spells: **fireball** and **iceball**. Spells must be learned before use. Each spell fires a single-target traveling projectile and costs **2 mana**. Spell damage scales with the INT attribute.
+The agent can learn two spells: fireball and iceball. Spells must be learned (via READ_BOOK) before they can be cast. Each spell costs 2 mana and fires a single-target traveling projectile.
 
-## Spell list
+<!-- :section magic:books -->
+## Books and READ_BOOK
 
-| Spell | Action | Mana cost | Element | Projectile glyph |
+Books are quest items that teach spells. They are not craftable; they appear from chest grants:
+
+- Floor 3 first chest: grants 1 book (achievement `find_book`).
+- Floor 4 first chest: grants 1 book if floor 3's first chest was not yet opened.
+
+Books are stored in `inventory["book"]`.
+
+**READ_BOOK** action:
+- Consumes 1 book from inventory.
+- Randomly teaches one **unlearned** spell (fireball or iceball).
+- If both spells are already known, the book is consumed with no benefit. Check `_learned_spells` before reading.
+
+Achievements: `learn_fireball`, `learn_iceball` fire on first learning. There is no way to obtain additional books once first-chest grants are exhausted.
+<!-- :end -->
+
+<!-- :section magic:spells -->
+## CAST_FIREBALL and CAST_ICEBALL
+
+| Spell | Action | Mana cost | Element | Player projectile glyph |
 |---|---|---|---|---|
-| Fireball | CAST_FIREBALL | 2 | Fire | `●` (or `◉` for mob variant) |
-| Iceball | CAST_ICEBALL | 2 | Ice | `○` (or `◎` for mob variant) |
+| Fireball | CAST_FIREBALL | 2 | Fire | `●` |
+| Iceball | CAST_ICEBALL | 2 | Ice | `○` |
 
 Both spells:
 - Spawn a projectile at the player's tile facing in the current direction.
-- The projectile travels 1 tile per turn.
+- Travel 1 tile per turn.
 - Collision is checked at pre-advance and post-advance positions each tick.
-- Projectile is consumed on hitting a mob, a solid tile, or leaving bounds.
-- Deal damage of the matching element — bypasses mobs immune to the opposite element.
+- Are consumed on hitting a mob, a solid tile, or leaving bounds.
 
-Use fireball against ice-realm mobs (frost_troll, ice_elemental). Use iceball against fire-realm mobs (pigman, fire_elemental). Physical weapons are nearly ineffective against floors 6 and 7.
+CAST_FIREBALL is gated on `_learned_spells["fireball"]`. CAST_ICEBALL is gated on `_learned_spells["iceball"]`.
 
-## Damage scaling
-
-Spell damage (base scalar) is multiplied by `1.0 + 0.05 × (INT - 1)`.
+**Damage scaling:** spell damage × `(1.0 + 0.05 × (INT - 1))`.
 
 | INT | Multiplier |
 |---|---|
@@ -32,37 +48,30 @@ Spell damage (base scalar) is multiplied by `1.0 + 0.05 × (INT - 1)`.
 | 4 | 1.15× |
 | 5 | 1.20× |
 
-The scaled damage is applied as a fire or ice 3-vector `(0, damage, 0)` or `(0, 0, damage)`. Per-mob fire/ice immunity (defense = 1.0) blocks this damage entirely. See `combat.md` for the defense formula.
+The scaled damage is applied as `(0, dmg, 0)` (fire) or `(0, 0, dmg)` (ice). Per-mob fire/ice immunity (defense = 1.0) blocks this damage entirely. Use fireball against ice-realm mobs (frost_troll, ice_elemental); use iceball against fire-realm mobs (pigman, fire_elemental). Physical attacks are nearly ineffective on floors 6 and 7.
 
-## Learning spells
+**Mana management:**
+- Base max mana: 10. INT 5 → 22.
+- Regen: 1 per 20 steps × `(1.0 + 0.25 × (INT - 1))`. INT 5 → 1 per 10 steps.
+- A spell costs 2 mana; an enchant costs 9 mana.
+<!-- :end -->
 
-Spells are learned via the **READ_BOOK** action:
+<!-- :section magic:enchants -->
+## Enchanting
 
-1. Obtain a book from a chest (see `items.md` for chest loot gating).
-2. With the book in inventory, perform READ_BOOK.
-3. READ_BOOK consumes 1 book and randomly teaches one **unlearned** spell.
-4. If both spells are already known, READ_BOOK has no effect.
+Enchanting requires adjacency to an enchantment table, a gemstone, and 9 mana.
 
-The `_learned_spells` dict tracks per-spell flags: `{"fireball": bool, "iceball": bool}`. CAST_FIREBALL is gated on `_learned_spells["fireball"]`; CAST_ICEBALL is gated on `_learned_spells["iceball"]`.
+| Action | Inputs | Prerequisite | Effect |
+|---|---|---|---|
+| ENCHANT_WEAPON | 1 ruby (fire) OR 1 sapphire (ice) + 9 mana | adjacent `Ⓔ` (floor 4) OR `Ⓘ` (floor 3) | Sets sword enchantment to fire or ice |
+| ENCHANT_ARMOR | 1 ruby OR 1 sapphire + 9 mana | adjacent `Ⓔ` OR `Ⓘ` | Adds fire/ice enchant to lowest unenchanted armor slot |
+| ENCHANT_BOW | 1 ruby OR 1 sapphire + 9 mana | adjacent `Ⓔ` OR `Ⓘ` (bow required in inventory) | Sets bow enchantment to fire or ice |
 
-Achievements: `learn_fireball` and `learn_iceball` fire on first learning. `cast_fireball` and `cast_iceball` fire on first cast.
+- Ruby (`▲`) → fire enchantment.
+- Sapphire (`♦`) → ice enchantment.
+- Enchanted sword adds `0.5 × physical_damage` in the enchanted element.
+- Each enchanted armor slot grants 0.2 resistance to the matching element.
+- Enchanted bow adds the elemental component to fired arrows.
 
-## Mana management
-
-- Mana starts at max (10 base; +3 per INT point above 1).
-- Mana regenerates passively: 1 per 20 steps × `(1.0 + 0.25 × (INT - 1))` regen multiplier.
-- Enchanting consumes 9 mana. Two spells in rapid succession cost 4 mana total.
-- Track mana in the HUD before casting. With INT 1 at base 10 mana, you can cast 5 times before exhausting mana; regen at INT 1 = 1/20 steps means ~100 steps to recharge from empty.
-- At INT 5: max mana = 10 + 12 = 22; regen multiplier = 2.0 (1 per 10 steps).
-
-## Books
-
-Books are found in chests with a floor-gated priority:
-
-- Floor 1 first chest: grants **bow** (not book). See `items.md`.
-- Floor 3 first chest: grants **book**. Achievement: `find_book`.
-- Floor 4 first chest: grants **book** (if floor 3 chest has not yet been opened).
-
-Books are stored in the `book` inventory key. The READ_BOOK action decrements `book` by 1 and teaches a spell.
-
-There is no way to obtain additional books once the first-chest grants are exhausted. If you use READ_BOOK and already know both spells, the book is consumed with no benefit, so check `_learned_spells` before acting.
+Achievements: `enchant_sword`, `enchant_armor`, `enchant_bow`. Floor 6 (Fire Realm) requires ice enchants/spells; floor 7 (Ice Realm) requires fire enchants/spells.
+<!-- :end -->
