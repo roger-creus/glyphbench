@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
 from glyphbench.envs.craftax.full import CraftaxFullEnv, UPSTREAM_ACHIEVEMENT_NAMES
 
 
@@ -1760,4 +1761,101 @@ def test_fountain_do_on_full_water_is_noop():
     assert e._water == _MAX_WATER, "Water should remain at max when already full"
     assert "collect_drink" not in e._achievements_unlocked, (
         "collect_drink should NOT fire when fountain is used at full water"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T20β: Floor 4 (Vaults) skeleton + TILE_ENCHANT_FIRE
+# ---------------------------------------------------------------------------
+
+def test_tile_enchant_fire_is_single_codepoint():
+    """TILE_ENCHANT_FIRE must be exactly 1 Unicode code point."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+    assert len(TILE_ENCHANT_FIRE) == 1, (
+        f"TILE_ENCHANT_FIRE must be a single codepoint, got len={len(TILE_ENCHANT_FIRE)!r}"
+    )
+
+
+def test_tile_enchant_fire_disjoint_from_palette():
+    """TILE_ENCHANT_FIRE must not collide with any other tile constant."""
+    from glyphbench.envs.craftax import base as _base
+    all_tiles = {
+        name: getattr(_base, name)
+        for name in dir(_base)
+        if name.startswith("TILE_") and name != "TILE_ENCHANT_FIRE"
+    }
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+    for name, glyph in all_tiles.items():
+        assert glyph != TILE_ENCHANT_FIRE, (
+            f"TILE_ENCHANT_FIRE collides with {name} (both = {TILE_ENCHANT_FIRE!r})"
+        )
+
+
+def test_floor_4_exists_after_reset():
+    """After reset, floor 4 must be present in env._floors."""
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=42)
+    assert 4 in e._floors, "Floor 4 should be generated during reset"
+
+
+def test_floor_4_has_enchant_fire_tile():
+    """Floor 4 must contain at least 1 TILE_ENCHANT_FIRE tile after reset."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=42)
+
+    floor4_grid = e._floors[4]
+    found = any(
+        cell == TILE_ENCHANT_FIRE
+        for row in floor4_grid
+        for cell in row
+    )
+    assert found, (
+        "Floor 4 (Vaults) should have at least 1 TILE_ENCHANT_FIRE tile"
+    )
+
+
+def test_floor_4_has_stairs_down_from_floor_3():
+    """Floor 3 must have a TILE_STAIRS_DOWN leading to floor 4 after reset."""
+    from glyphbench.envs.craftax.base import TILE_STAIRS_DOWN
+
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=42)
+
+    floor3_grid = e._floors[3]
+    found = any(
+        cell == TILE_STAIRS_DOWN
+        for row in floor3_grid
+        for cell in row
+    )
+    assert found, (
+        "Floor 3 must have a TILE_STAIRS_DOWN tile so the player can descend to floor 4"
+    )
+
+
+def test_player_can_descend_to_floor_4():
+    """Player standing on floor 3's TILE_STAIRS_DOWN + DESCEND action enters floor 4."""
+    from glyphbench.envs.craftax.base import TILE_STAIRS_DOWN
+
+    # DESCEND action index
+    _DESCEND_ACTION = CRAFTAX_FULL_ACTION_SPEC.names.index("DESCEND")
+
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=42)
+
+    # Warp player to floor 3 stairs-down position.
+    e._current_floor = 3
+    down_pos = e._stairs_down_pos.get(3)
+    assert down_pos is not None, "Floor 3 should have a stairs-down position recorded"
+    e._agent_x, e._agent_y = down_pos
+
+    assert e._floors[3][e._agent_y][e._agent_x] == TILE_STAIRS_DOWN, (
+        "Agent should be standing on the stairs-down tile"
+    )
+
+    e.step(_DESCEND_ACTION)
+
+    assert e._current_floor == 4, (
+        f"After DESCEND from floor 3, player should be on floor 4, got {e._current_floor}"
     )

@@ -53,6 +53,7 @@ from glyphbench.envs.craftax.base import (
     TILE_KOBOLD,
     TILE_RUBY,
     TILE_SAPPHIRE,
+    TILE_ENCHANT_FIRE,
     TILE_STAIRS_DOWN,
     TILE_STAIRS_UP,
     TILE_STONE,
@@ -442,7 +443,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "DUNGEONS\n"
             "DESCEND on > goes deeper. ASCEND on < goes up. "
             "Dungeons are dark; PLACE_TORCH (consumes 1 crafted torch) for light. "
-            "Each floor has a boss (W behind B door).\n\n"
+            "Each floor has a boss (W behind B door). "
+            "Floor 4 (Vaults) contains a fire enchantment table (Ⓔ); "
+            "enchantment-table interaction is unlocked in phase γ.\n\n"
             + self.action_spec.render_for_prompt()
         )
 
@@ -628,12 +631,12 @@ class CraftaxFullEnv(BaseGlyphEnv):
         Floors 2, 4, 5 continue to use the original generator (floor 2 has
         sapphire/ruby ore; floors 4-5 will get full biome treatment in phase γ).
         """
-        # ---- Phase-β biome generator for floors 1 and 3 (T18β / T19β) ----
-        if floor in (1, 3):
+        # ---- Phase-β biome generator for floors 1, 3, and 4 (T18β/T19β/T20β) ----
+        if floor in (1, 3, 4):
             self._generate_dungeon_floor_biome(floor)
             return
 
-        # ---- Legacy generator for floors 2, 4, 5 ----
+        # ---- Legacy generator for floors 2, 5 ----
         size = _DUNGEON_SIZE
         grid = [
             [TILE_DUNGEON_WALL for _ in range(size)]
@@ -808,12 +811,17 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._torches[floor] = set()
 
     def _generate_dungeon_floor_biome(self, floor: int) -> None:
-        """Generate floors 1 and 3 using the phase-β dungeon-room biome generator.
+        """Generate floors 1, 3, and 4 using the phase-β dungeon-room biome generator.
 
         Uses ``mechanics.world_gen.generate_dungeon_floor`` to create a grid
         with 8 rooms, L-shaped corridors, 1 chest per room, and ~50% fountain
         probability per room.  Boss, mob spawning, and resource scattering are
         then layered on top of the generated grid.
+
+        Floor 4 (Vaults) additionally receives 1 ``TILE_ENCHANT_FIRE`` tile
+        placed in the middle of the second room (deterministic position given
+        the seeded generator).  Phase γ will wire the enchantment-table
+        interaction semantics; this task only places the tile.
         """
         from glyphbench.envs.craftax.mechanics.world_gen import generate_dungeon_floor
 
@@ -886,6 +894,25 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 if grid[ry][rx] == TILE_DUNGEON_FLOOR:
                     grid[ry][rx] = res
                     break
+
+        # T20β: Floor 4 (Vaults) — place 1 TILE_ENCHANT_FIRE tile.
+        # We scan the grid in row-major order and place it on the first
+        # TILE_DUNGEON_FLOOR cell that is not a stair or reserved position.
+        # This gives a deterministic location for a given seed.
+        if floor == 4:
+            _reserved = {stairs_up_pos, stairs_down_pos}
+            _placed_enchant = False
+            for _ey in range(size):
+                if _placed_enchant:
+                    break
+                for _ex in range(size):
+                    if (
+                        grid[_ey][_ex] == TILE_DUNGEON_FLOOR
+                        and (_ex, _ey) not in _reserved
+                    ):
+                        grid[_ey][_ex] = TILE_ENCHANT_FIRE
+                        _placed_enchant = True
+                        break
 
         # Spawn dungeon mobs (avoid tiles already occupied).
         mob_types = ["skeleton", "kobold", "bat"]
