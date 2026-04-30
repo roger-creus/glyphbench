@@ -6,21 +6,30 @@
 # CUDA 11.5 (no sm_90 support).
 #
 # Why 12.6 and not 12.8: the GPU driver here (NVIDIA 565.57.01) caps out
-# at CUDA 12.7. nvcc 12.8 emits host calls into TMA encoding APIs that
-# only exist in CUDA 12.8 driver — 12.7 driver returns error 999
-# "Failed to initialize the TMA descriptor" at runtime. nvcc 12.6 stays
-# inside the API surface the 12.7 driver supports.
+# at CUDA 12.7. Emits host calls into TMA encoding APIs that only exist
+# in CUDA 12.8 driver were rejected with error 999 at runtime.
 #
 # Output: $CUDA_HOME (default /home/roger/cuda-12.6) populated with
 #   bin/{nvcc,ptxas,cudafe++,fatbinary,nvlink,bin2c}
+#   bin/crt/{link.stub,prelink.stub}              (from system /usr/lib/nvidia-cuda-toolkit)
+#   include/crt/{host_defines.h, ...}             (from CUDA 12.8 fallback — version-stable)
+#   include/<runtime + cccl headers>              (from cu12 pip wheels)
+#   lib64/libcudart.so{,.12} -> venv libcudart.12 (so JIT links against cu12 runtime,
+#                                                  NOT system /usr/lib's libcudart 11.5,
+#                                                  whose cudaGetDriverEntryPoint can't
+#                                                  resolve cuTensorMapEncode* and so
+#                                                  flashinfer's gdn TMA encode fails)
+#   lib64/stubs/libcuda.so -> /usr/lib/.../libcuda.so.1
 #   nvvm/{bin/cicc,lib64/libnvvm.so*}
-#   include/* (cuda runtime + cccl/cub/thrust + libcudacxx)
 #
 # Sources:
 #   - NVIDIA's nvidia/linux-64 conda channel for nvcc/nvvm binaries
 #   - pip wheels for cccl + cuda-runtime headers (the 12.6 conda
 #     cuda-cccl is a license-only stub; the actual headers ship in the
 #     pip nvidia-cuda-cccl-cu12 wheel only)
+#   - System /usr/lib/nvidia-cuda-toolkit for crt link stubs
+#   - CUDA 12.8 install for crt header set (12.6 conda doesn't ship them)
+#   - venv's nvidia-cuda-runtime-cu12 wheel for libcudart.so.12
 
 set -euo pipefail
 
@@ -109,6 +118,55 @@ extract_pip_headers "nvidia-cuda-cccl-cu12" "$CUDART_VERSION" "cuda_cccl"
 
 echo "Extracting cuda-runtime headers (cuda_fp8.h, cuda_runtime.h, etc.) from pip wheel..."
 extract_pip_headers "nvidia-cuda-runtime-cu12" "$CUDART_VERSION" "cuda_runtime"
+
+# crt/host_defines.h (etc.) — defines __grid_constant__ and other
+# host-side preprocessor macros. The 12.6 conda packages don't ship
+# these; fall back to a CUDA 12.8 install if one already exists, or
+# error out telling the user to install one manually.
+CRT_FALLBACK=${CRT_FALLBACK:-/home/roger/cuda-12.8/include/crt}
+if [ -d "$CRT_FALLBACK" ]; then
+    echo "Copying crt/ headers from $CRT_FALLBACK..."
+    cp -r "$CRT_FALLBACK" "$CUDA_HOME/include/"
+else
+    echo "WARNING: $CRT_FALLBACK missing — flashinfer JIT will fail to find" >&2
+    echo "  __grid_constant__. Install a 12.x toolkit there or set CRT_FALLBACK." >&2
+fi
+
+# bin/crt/{link,prelink}.stub — needed for nvcc host linking. Pull from
+# the system /usr/lib/nvidia-cuda-toolkit if available (Ubuntu ships
+# them with the apt nvidia-cuda-toolkit package even on hosts where the
+# rest of CUDA is unusable).
+SYS_NVCC_CRT=${SYS_NVCC_CRT:-/usr/lib/nvidia-cuda-toolkit/bin/crt}
+if [ -d "$SYS_NVCC_CRT" ]; then
+    echo "Copying nvcc bin/crt/ stubs from $SYS_NVCC_CRT..."
+    mkdir -p "$CUDA_HOME/bin/crt"
+    cp -p "$SYS_NVCC_CRT/"* "$CUDA_HOME/bin/crt/"
+fi
+
+# Symlink venv's libcudart.so.12 into our toolkit lib64. Flashinfer's
+# JIT links with `-L$cuda_home/lib64 -lcudart`. If lib64 has no
+# libcudart, the linker resolves -lcudart against the SYSTEM
+# /usr/lib/x86_64-linux-gnu/libcudart.so.11.5 (Ubuntu's CUDA 11.5),
+# whose cudaGetDriverEntryPoint table doesn't know about
+# cuTensorMapEncodeTiled — so cute's TMA descriptor wrapper returns
+# CUDA_ERROR_UNKNOWN (999) and the gdn kernel can't run.
+VENV_CUDART=${VENV_CUDART:-/home/roger/glyphbench/.worktrees/rl-pipeline-v1/.venv/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12}
+if [ -f "$VENV_CUDART" ]; then
+    echo "Symlinking $VENV_CUDART into $CUDA_HOME/lib64/..."
+    ln -sf "$VENV_CUDART" "$CUDA_HOME/lib64/libcudart.so"
+    ln -sf "$VENV_CUDART" "$CUDA_HOME/lib64/libcudart.so.12"
+else
+    echo "WARNING: $VENV_CUDART missing — set VENV_CUDART or run uv sync first" >&2
+fi
+
+# stubs/libcuda.so — nvcc's link line uses `-L$cuda_home/lib64/stubs`.
+# The driver lib (libcuda.so.1) is provided by the host kernel module;
+# the stub is just an import library so symbols resolve at link time.
+mkdir -p "$CUDA_HOME/lib64/stubs"
+SYS_LIBCUDA=${SYS_LIBCUDA:-/usr/lib/x86_64-linux-gnu/libcuda.so.1}
+if [ -f "$SYS_LIBCUDA" ]; then
+    ln -sf "$SYS_LIBCUDA" "$CUDA_HOME/lib64/stubs/libcuda.so"
+fi
 
 # Smoke-test
 "$CUDA_HOME/bin/nvcc" --version
