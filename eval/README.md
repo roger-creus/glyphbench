@@ -1,80 +1,174 @@
-# GlyphBench evaluation
+# eval/
 
-GlyphBench exposes a verifiers environment with entry point
-`glyphbench.load_environment`. Eval runs via the standard `vf-eval` CLI
-against any OpenAI-compatible inference endpoint (we use vLLM).
+Verifiers-driven evaluation of every GlyphBench env against any
+OpenAI-compatible endpoint. Scoring is raw episodic return per (env, model)
+— no benchmark-wide normalised aggregate.
 
 ## Quick start
 
 ```bash
-# 1) start a vLLM server
-uv run vllm serve Qwen/Qwen3.5-4B --port 8000
-
-# 2) smoke test (1 env × 2 episodes)
+# Wire-check: 1 env, 2 episodes
 bash eval/run_debug.sh
 
-# 3) full eval (300 envs × N episodes)
+# Full sweep: all 300 envs, configurable via env vars
 bash eval/run_full.sh
 ```
 
-## `load_environment` arguments
+Both scripts assume an OpenAI-compatible server is reachable at
+`http://localhost:8000/v1`. Easiest local server:
+
+```bash
+vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 8192
+```
+
+## CLI flags
+
+Both scripts are driven entirely by environment variables. Set them before
+calling the script or prefix inline.
+
+### Shared variables (both scripts)
+
+| Variable | Default | Description |
+|---|---|---|
+| `MODEL` | `Qwen/Qwen3.5-4B` | HF model ID passed to `--model`. |
+| `VLLM_BASE_URL` | `http://localhost:8000/v1` | OpenAI-compatible base URL. |
+| `API_KEY_VAR` | `OPENAI_API_KEY_LOCAL` | Name of the env var holding the API key (vLLM accepts any non-empty value). |
+| `N_FRAMES` | `0` | Frame-stack history window. `0` = stateless per turn. |
+| `MAX_TOKENS` | `8192` | Per-turn output token budget (`--max-tokens`). Also forwarded as `max_output_tokens` to the env. |
+
+### `run_debug.sh` — additional variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `NUM_EPISODES` | `2` | Episodes per env (passed as `-n` and into `num_episodes`). |
+| `ROLLOUTS_PER_EXAMPLE` | `1` | Repeated rollouts per (env, seed) row. |
+| `TASK_IDS` | `["glyphbench/minigrid-empty-5x5-v0"]` | JSON array of task IDs to evaluate (single-env smoke test). |
+| `TEMPERATURE` | `1.0` | Sampling temperature. |
+| `SAMPLING_ARGS` | `{"top_p":0.95,...}` | JSON blob forwarded to `--sampling-args` (Qwen3.5 thinking profile). |
+| `AUTO_START_VLLM` | `0` | Set to `1` to let the script launch vLLM in the background and wait up to 10 min. |
+| `VLLM_LOG` | `/tmp/glyphbench-vllm.log` | Log path when `AUTO_START_VLLM=1`. |
+
+### `run_full.sh` — additional variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `EPISODES` | `5` | Episodes per env (`-n` and `num_episodes`). |
+
+**Examples:**
+
+```bash
+# Debug: different model, 4 episodes, custom task
+MODEL=Qwen/Qwen3-1.7B NUM_EPISODES=4 TASK_IDS='["glyphbench/atari-pong-v0"]' bash eval/run_debug.sh
+
+# Debug: let the script start vLLM automatically
+AUTO_START_VLLM=1 bash eval/run_debug.sh
+
+# Full: 10 episodes, no frame stack
+EPISODES=10 N_FRAMES=0 bash eval/run_full.sh
+
+# Full: remote server
+VLLM_BASE_URL=http://gpu-host:8000/v1 bash eval/run_full.sh
+```
+
+Results are written to `~/.prime/evals/`. View with `prime eval tui`.
+
+## Running a single env from Python
+
+```python
+import glyphbench
+vf_env = glyphbench.load_environment(
+    task_id="glyphbench/minigrid-empty-5x5-v0",
+    num_episodes=5,
+    n_frames=0,
+    max_output_tokens=8192,  # match your --max-tokens
+    use_memory=False,
+)
+```
+
+The returned `verifiers.Environment` plugs into `prime eval run` or any
+RL trainer that consumes verifiers envs.
+
+Full signature:
 
 ```python
 load_environment(
-    task_id: str | list[str] | None = None,  # single id, list, or None=all
+    task_id: str | list[str] | None = None,  # single id, list, or None = all envs
     num_episodes: int = 5,                    # rollouts per env
-    n_frames: int = 0,                        # history window (default 0 =
-                                              # stateless per turn — every
-                                              # observation must be readable
-                                              # off the current grid alone)
-    max_turns: int | None = None,             # None = use each env's own max
-    max_output_tokens: int = 512,             # LLM budget per turn (advertised
-                                              # to the model in the system
-                                              # prompt — match your --max-tokens)
+    n_frames: int = 0,                        # history window (0 = stateless)
+    max_turns: int | None = None,             # None = use each env's own budget
+    max_output_tokens: int = 512,             # LLM token budget per turn
     seed: int = 42,
     use_memory: bool = False,                 # opt-in carried memory scaffold
-    memory_update_max_tokens: int | None = None,
+    memory_update_max_tokens: int | None = None,  # token cap for memory update only
 )
 ```
 
 `task_id` (not `env_id`) — verifiers reserves `env_id` for the package
-name passed via `vf.load_environment`; using `task_id` for the per-game
-selector avoids the kwarg collision.
+name; `task_id` is the per-game selector and avoids the kwarg collision.
 
-Pass as JSON to `-a` / `--env-args`:
+Always pass `max_output_tokens` matching your server's `--max-tokens`. The
+system prompt advertises this value so the model can self-pace its reasoning;
+mismatched values cause premature self-truncation.
 
-```bash
-vf-eval glyphbench \
-  -m Qwen/Qwen3.5-4B \
-  -b http://localhost:8000/v1 \
-  -k OPENAI_API_KEY_LOCAL \
-  -n 5 --max-tokens 8192 \
-  -a '{"task_id":"glyphbench/atari-pong-v0","num_episodes":5,"n_frames":0,"max_output_tokens":8192}'
+`use_memory=True` enables a two-generation turn: action selection followed by
+a concise memory update. `memory_update_max_tokens` caps only the second
+generation's output. See `docs/OBSERVATION_FORMAT.md` for full memory-mode
+behaviour.
+
+## Random-agent baseline
+
+A reproducible zero-skill reference is shipped at `eval/random_baseline.json`.
+It contains the expected return per env under uniform-random action selection
+at each env's natural `max_turns` budget.
+
+Schema per entry:
+
+```json
+{
+  "glyphbench/atari-alien-v0": {
+    "env_id": "glyphbench/atari-alien-v0",
+    "n_episodes": 5,
+    "mean_return": 82.0,
+    "std_return": 56.36,
+    "min_return": 10.0,
+    "max_return": 170.0,
+    "median_return": 60.0,
+    "mean_length": 110.8,
+    "per_episode_returns": [60.0, 120.0, 170.0, 10.0, 50.0]
+  }
+}
 ```
 
-> **Tip.** Always pass `max_output_tokens` matching your `--max-tokens`. The
-> system prompt advertises this value to the model so it can self-pace its
-> reasoning; mismatched budgets cause premature self-truncation.
-
-`use_memory=True` enables a two-generation environment turn: action selection
-followed by a concise memory update conditioned on the action response and
-environment feedback, including the HUD-stripped next-observation view. In
-saved trajectories and RL training this remains one environment step; the
-memory-update user prompt is context only, while the action assistant and
-memory-update assistant tokens both receive the same task reward.
-`memory_update_max_tokens` optionally changes only the second generation's token
-limit.
-
-## Results
-
-Verifiers writes per-rollout JSON records and aggregate metrics under
-`~/.prime/evals/…` by default. View with `prime eval tui` or replay with
-`glyphbench replay <results-dir>`.
-
-## Random baseline
-
-`eval/random_baseline.json` is a zero-skill reference. Regenerate with:
+Regenerate with:
 
 ```bash
-uv run python eval/random_baseline.py --episodes 25 --output eval/random_baseline.json
+uv run python eval/random_baseline.py
+# options:
+#   --episodes 25          episodes per env (default 25)
+#   --suites minigrid atari  filter to specific suites
+#   --max-turns N          override env-native budget (default: None = use env's own)
+#   --output eval/random_baseline.json
 ```
+
+The shipped file uses `--episodes 25` with each env's natural max_turns.
+Passing `--max-turns` distorts the reference for envs whose difficulty
+depends on their step budget, so the default leaves it unset.
+
+## Scoring
+
+GlyphBench reports **raw episodic return per (env, model)**. There is no
+benchmark-wide normalised score: per-task per-model means are published
+raw and downstream analyses choose their own aggregation. The leaderboard
+site under `docs/leaderboard/` aggregates submitted results; see the
+project root README for how to submit.
+
+## Files
+
+| File | Description |
+|---|---|
+| `run_debug.sh` | Smoke eval: 1 env, 2 episodes, optional auto-start vLLM. |
+| `run_full.sh` | Full sweep: all 300 envs, configurable episodes and model. |
+| `random_baseline.json` | Pre-computed zero-skill reference: mean/std/min/max return per env under uniform-random action selection. |
+| `random_baseline.py` | Script to regenerate `random_baseline.json`. Accepts `--episodes`, `--suites`, `--max-turns`, `--output`. |
+| `plot_results.ipynb` | Notebook for per-suite result visualisation. |
+| `eval/figures/` | Auto-regenerated per-suite plots (gitignored). |
