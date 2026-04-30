@@ -335,7 +335,16 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # Inventory and equipment
         self._inventory: dict[str, int] = {}
         self._weapon_enchanted: bool = False
-        self._armor_enchanted: bool = False
+        # Phase γ T03γ: 4-slot armour state (replaces legacy _armor_enchanted bool
+        # and inventory keys wood_armor/stone_armor/iron_armor/diamond_armor).
+        # Per-slot tier: 0=none, 1=iron, 2=diamond.
+        # Per-slot enchant element: 0=none, 1=fire, 2=ice.
+        self._armor_slots: dict[str, int] = {
+            "helmet": 0, "chest": 0, "legs": 0, "boots": 0
+        }
+        self._armor_enchants: dict[str, int] = {
+            "helmet": 0, "chest": 0, "legs": 0, "boots": 0
+        }
         # Achievements
         self._achievements_unlocked: set[str] = set()
         # Phase-β parallel bitmap keyed by upstream Achievement enum names.
@@ -1061,22 +1070,34 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return best
 
     def _best_armor_defense(self) -> int:
-        best = 0
-        for armor, defense in _ARMOR_DEFENSE.items():
-            if self._inventory.get(armor, 0) > 0 and defense > best:
-                best = defense
-        if self._armor_enchanted:
-            best += 1
-        return best
+        """Return a scalar defense value for legacy callers (e.g., defeat_boss_no_armor check).
 
-    def _take_damage(self, raw: int) -> None:
-        defense = self._best_armor_defense()
+        Phase γ T03γ: derived from per-slot tier dict.  Returns 0 iff all slots
+        are tier 0 (no armour equipped).  T04γ replaces the actual damage
+        reduction with the multiplicative per-element formula; this method is
+        kept only for the no-armor achievement gate.
+        """
+        return sum(1 for t in self._armor_slots.values() if t > 0)
+
+    def _take_damage(self, raw: int, damage_vec=None) -> None:
+        """Take damage. Accepts a scalar (legacy, treated as physical) OR a 3-vec.
+
+        Phase γ T04γ: 3-vector damage with per-slot armour + per-slot enchant
+        reduction.  Legacy scalar callers (lava, potions, etc.) pass a plain
+        int which is treated as pure physical damage.
+
+        Sleep multiplier: phase α 3.5× still applies after armour reduction.
+        """
+        from glyphbench.envs.craftax.mechanics.damage import damage_dealt_to_player
+        if damage_vec is None:
+            # Legacy scalar path: treat as physical damage.
+            damage_vec = (float(raw), 0.0, 0.0)
+        actual = damage_dealt_to_player(self._armor_slots, self._armor_enchants, damage_vec)
         # Phase α: 3.5× damage multiplier while sleeping (upstream
-        # game_logic.py:1100-1291). Mob projectiles also call this
-        # path, so they inherit the multiplier consistently.
+        # game_logic.py:1100-1291). Applied after armour reduction.
         if self._is_sleeping:
-            raw = int(round(raw * 3.5))
-        actual = max(1, raw - defense)
+            actual = int(round(actual * 3.5))
+        actual = max(0, actual)
         self._hp = max(0, self._hp - actual)
         # Phase β: damage cancels REST and SLEEP states.
         self._is_resting = False
@@ -1671,7 +1692,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._potions = []  # legacy list — unused in phase β
         self._speed_turns = 0
         self._weapon_enchanted = False
-        self._armor_enchanted = False
+        # Phase γ T03γ: reset 4-slot armour state.
+        self._armor_slots = {
+            "helmet": 0, "chest": 0, "legs": 0, "boots": 0
+        }
+        self._armor_enchants = {
+            "helmet": 0, "chest": 0, "legs": 0, "boots": 0
+        }
         self._total_kills = 0
         self._total_crafts = 0
         self._total_blocks_placed = 0
@@ -2352,35 +2379,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return 0.0
 
     # -- Crafting: armor --
-
-    def _handle_make_wood_armor(self) -> float:
-        if (
-            self._near_table()
-            and self._inventory.get("wood", 0) >= 2
-        ):
-            self._inventory["wood"] -= 2
-            self._inventory["wood_armor"] = (
-                self._inventory.get("wood_armor", 0) + 1
-            )
-            self._message = "Crafted wood armor."
-            r = self._try_unlock("make_wood_armor")
-            return r + self._craft_increment()
-        return 0.0
-
-    def _handle_make_stone_armor(self) -> float:
-        # Stone tier needs a table only.
-        if (
-            self._near_table()
-            and self._inventory.get("stone", 0) >= 2
-        ):
-            self._inventory["stone"] -= 2
-            self._inventory["stone_armor"] = (
-                self._inventory.get("stone_armor", 0) + 1
-            )
-            self._message = "Crafted stone armor."
-            r = self._try_unlock("make_stone_armor")
-            return r + self._craft_increment()
-        return 0.0
+    # Phase γ T03γ: MAKE_WOOD_ARMOR and MAKE_STONE_ARMOR removed (upstream
+    # only has iron + diamond tiers). Their action indices are retired.
 
     def _handle_make_arrow(self) -> float:
         if (
@@ -2413,21 +2413,39 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return 0.0
 
     def _handle_make_iron_armor(self) -> float:
+        # Phase γ T03γ: place tier-1 armour into the lowest-tier empty slot.
+        _SLOTS = ("helmet", "chest", "legs", "boots")
+        target_slot = None
+        for s in _SLOTS:
+            if self._armor_slots.get(s, 0) < 1:
+                target_slot = s
+                break
+        if target_slot is None:
+            self._message = "All armour slots already iron+."
+            return 0.0
         if (
             self._near_table()
             and self._near_furnace()
             and self._inventory.get("iron", 0) >= 2
         ):
             self._inventory["iron"] -= 2
-            self._inventory["iron_armor"] = (
-                self._inventory.get("iron_armor", 0) + 1
-            )
-            self._message = "Crafted iron armor."
+            self._armor_slots[target_slot] = 1
+            self._message = f"Crafted iron armor ({target_slot})."
             r = self._try_unlock("make_iron_armor")
             return r + self._craft_increment()
         return 0.0
 
     def _handle_make_diamond_armor(self) -> float:
+        # Phase γ T03γ: upgrade the lowest-tier slot (strict < 2) to tier 2.
+        _SLOTS = ("helmet", "chest", "legs", "boots")
+        target_slot = None
+        for s in _SLOTS:
+            if self._armor_slots.get(s, 0) < 2:
+                target_slot = s
+                break
+        if target_slot is None:
+            self._message = "All armour slots already diamond."
+            return 0.0
         if (
             self._near_table()
             and self._near_furnace()
@@ -2436,10 +2454,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         ):
             self._inventory["diamond"] -= 1
             self._inventory["iron"] -= 1
-            self._inventory["diamond_armor"] = (
-                self._inventory.get("diamond_armor", 0) + 1
-            )
-            self._message = "Crafted diamond armor."
+            self._armor_slots[target_slot] = 2
+            self._message = f"Crafted diamond armor ({target_slot})."
             r = self._try_unlock("make_diamond_armor")
             return r + self._craft_increment()
         return 0.0
@@ -2784,8 +2800,16 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return 0.0
 
     def _handle_enchant_armor(self) -> float:
-        if self._armor_enchanted:
-            self._message = "Armor already enchanted."
+        # Phase γ T03γ: enchant the first unenchanted slot (helmet first).
+        # Legacy cost (diamond+coal) retained until T11γ rewires to ruby/sapphire.
+        _SLOTS = ("helmet", "chest", "legs", "boots")
+        target_slot = None
+        for s in _SLOTS:
+            if self._armor_enchants.get(s, 0) == 0 and self._armor_slots.get(s, 0) > 0:
+                target_slot = s
+                break
+        if target_slot is None:
+            self._message = "No unenchanted armour slot to enchant."
             return 0.0
         if (
             self._near_table()
@@ -2795,8 +2819,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         ):
             self._inventory["diamond"] -= 1
             self._inventory["coal"] -= 1
-            self._armor_enchanted = True
-            self._message = "Enchanted armor! (+1 defense)"
+            # Legacy enchant: element defaults to fire (1) until T11γ.
+            self._armor_enchants[target_slot] = 1
+            self._message = f"Enchanted armor ({target_slot})!"
             return self._try_unlock("enchant_armor")
         return 0.0
 
@@ -2830,8 +2855,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "MAKE_STONE_SWORD": _handle_make_stone_sword,
         "MAKE_IRON_SWORD": _handle_make_iron_sword,
         "MAKE_DIAMOND_SWORD": _handle_make_diamond_sword,
-        "MAKE_WOOD_ARMOR": _handle_make_wood_armor,
-        "MAKE_STONE_ARMOR": _handle_make_stone_armor,
         "MAKE_IRON_ARMOR": _handle_make_iron_armor,
         "MAKE_DIAMOND_ARMOR": _handle_make_diamond_armor,
         "CAST_FIREBALL": _handle_cast_fireball,
@@ -2987,19 +3010,18 @@ class CraftaxFullEnv(BaseGlyphEnv):
         else:
             wpn_str = "none"
 
-        best_arm = "none"
-        best_arm_def = 0
-        for a in reversed(list(_ARMOR_DEFENSE.keys())):
-            if self._inventory.get(a, 0) > 0:
-                best_arm = a.replace("_", " ")
-                best_arm_def = _ARMOR_DEFENSE[a]
-                break
-        if best_arm != "none":
-            arm_str = f"{best_arm} (def {best_arm_def})"
-            if self._armor_enchanted:
-                arm_str += " [enchanted +1]"
-        else:
-            arm_str = "none"
+        # Phase γ T03γ: per-slot armour HUD.
+        _TIER_NAMES = {0: "none", 1: "iron", 2: "diamond"}
+        _ENCHANT_NAMES = {0: "", 1: "[fire]", 2: "[ice]"}
+        slot_parts = []
+        for _slot in ("helmet", "chest", "legs", "boots"):
+            _tier = self._armor_slots.get(_slot, 0)
+            _ench = self._armor_enchants.get(_slot, 0)
+            _s = f"{_slot}={_TIER_NAMES[_tier]}"
+            if _ench:
+                _s += _ENCHANT_NAMES[_ench]
+            slot_parts.append(_s)
+        arm_str = ", ".join(slot_parts)
 
         floor_str = (
             "Surface" if self._current_floor == 0

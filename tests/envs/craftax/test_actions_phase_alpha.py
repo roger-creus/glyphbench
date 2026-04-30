@@ -238,18 +238,18 @@ def test_full_action_spec_size_and_ordering_post_phase_alpha() -> None:
     Phase β T02β adds REST (+1) → 37. Phase β T08β drops DRINK_POTION and
     adds 6 DRINK_POTION_* color actions (net +5) → 42.
     Phase β T11β adds READ_BOOK (+1) → 43.
-    Phase γ will add LEVEL_UP_* (3) + ENCHANT_BOW.
+    Phase γ T03γ removes MAKE_WOOD_ARMOR + MAKE_STONE_ARMOR (-2) → 41.
     """
     spec = CRAFTAX_FULL_ACTION_SPEC
-    assert len(spec.names) == 43, f"expected 43, got {len(spec.names)}: {spec.names}"
+    assert len(spec.names) == 41, f"expected 41, got {len(spec.names)}: {spec.names}"
     # Required new names present (T14/T15/T17):
     for name in ("SHOOT_ARROW", "MAKE_ARROW", "MAKE_TORCH"):
         assert name in spec.names, f"missing required action {name!r}"
     # Spell + place actions retained (semantics changed but names same):
     for name in ("CAST_FIREBALL", "CAST_ICEBALL", "PLACE_TORCH"):
         assert name in spec.names, f"missing required action {name!r}"
-    # Removed names absent (T04/T05):
-    for name in ("CAST_HEAL", "MAKE_SPELL_SCROLL"):
+    # Removed names absent (T04/T05 + T03γ):
+    for name in ("CAST_HEAL", "MAKE_SPELL_SCROLL", "MAKE_WOOD_ARMOR", "MAKE_STONE_ARMOR"):
         assert name not in spec.names, f"removed action {name!r} still in spec"
     # Names tuple length matches descriptions tuple length.
     assert len(spec.names) == len(spec.descriptions), (

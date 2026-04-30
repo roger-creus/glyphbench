@@ -250,10 +250,12 @@ class CraftaxFloor2Env(CraftaxFullEnv):
             self._agent_y = _DUNGEON_SIZE // 2
         self._inventory = {
             "iron_sword": 1,
-            "iron_armor": 1,
             "wood": 5,
             "coal": 5,
         }
+        # Phase γ T03γ: armour tracked in _armor_slots (4-slot dict).
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 1  # all iron tier
         self._hp = 9
         self._food = _MAX_FOOD
         self._water = _MAX_WATER
@@ -303,10 +305,12 @@ class CraftaxFloor3Env(CraftaxFullEnv):
             self._agent_y = _DUNGEON_SIZE // 2
         self._inventory = {
             "iron_sword": 1,
-            "iron_armor": 1,
             "wood": 5,
             "coal": 5,
         }
+        # Phase γ T03γ: armour tracked in _armor_slots (4-slot dict).
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 1  # all iron tier
         self._spells_learned = 3
         self._potions = ["health", "health"]
         self._hp = 9
@@ -362,12 +366,13 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
             self._agent_y = _DUNGEON_SIZE // 2
         self._inventory = {
             "diamond_sword": 1,
-            "diamond_armor": 1,
             "wood": 3,
             "coal": 3,
         }
         self._weapon_enchanted = True
-        self._armor_enchanted = True
+        # Phase γ T03γ: armour tracked in _armor_slots (4-slot dict).
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 2  # all diamond tier
         self._spells_learned = 3
         self._potions = ["health", "health", "health"]
         self._hp = 9
@@ -1444,12 +1449,13 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
             self._agent_y = entrance[1]
         self._inventory = {
             "diamond_sword": 1,
-            "diamond_armor": 1,
             "wood": 10,
             "coal": 10,
         }
         self._weapon_enchanted = True
-        self._armor_enchanted = True
+        # Phase γ T03γ: armour tracked in _armor_slots (4-slot dict).
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 2  # all diamond tier
         self._spells_learned = 3
         self._potions = ["health", "health", "speed"]
         self._hp = 9

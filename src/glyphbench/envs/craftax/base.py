@@ -42,13 +42,14 @@ CRAFTAX_ACTION_SPEC = ActionSpec(
     ),
 )
 
-# Full Craftax action spec (43 actions)
+# Full Craftax action spec (41 actions)
 # Phase β: DRINK_POTION (generic) dropped; 6 DRINK_POTION_* color actions added.
 # T11β: READ_BOOK appended at index 42.
-# Index breakdown: 0-6 noop/movement/do/sleep, 7-11 placement, 12-23 crafting,
-# 24-25 spells, 26-27 eat/drink, 28-29 stairs, 30-31 enchant,
-# 32-33 make_arrow/make_torch, 34 shoot_arrow, 35 rest,
-# 36-41 drink_potion_{red,green,blue,pink,cyan,yellow}, 42 read_book.
+# Phase γ T03γ: MAKE_WOOD_ARMOR + MAKE_STONE_ARMOR removed (43 → 41).
+# Index breakdown: 0-6 noop/movement/do/sleep, 7-11 placement, 12-21 crafting,
+# 22-23 spells, 24-25 eat/drink, 26-27 stairs, 28-29 enchant,
+# 30-31 make_arrow/make_torch, 32 shoot_arrow, 33 rest,
+# 34-39 drink_potion_{red,green,blue,pink,cyan,yellow}, 40 read_book.
 CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
     names=(
         "NOOP", "MOVE_LEFT", "MOVE_RIGHT", "MOVE_UP", "MOVE_DOWN",
@@ -59,7 +60,6 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "MAKE_IRON_PICKAXE", "MAKE_DIAMOND_PICKAXE",
         "MAKE_WOOD_SWORD", "MAKE_STONE_SWORD",
         "MAKE_IRON_SWORD", "MAKE_DIAMOND_SWORD",
-        "MAKE_WOOD_ARMOR", "MAKE_STONE_ARMOR",
         "MAKE_IRON_ARMOR", "MAKE_DIAMOND_ARMOR",
         "CAST_FIREBALL", "CAST_ICEBALL",
         "EAT_PLANT", "DRINK_WATER",
@@ -98,10 +98,8 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "craft stone sword (1 wood+1 stone, table)",
         "craft iron sword (1 wood+1 iron, table+furnace)",
         "craft diamond sword (1 wood+1 diamond, table+furnace)",
-        "craft wood armor (2 wood, table)",
-        "craft stone armor (2 stone, table)",
-        "craft iron armor (2 iron, table+furnace)",
-        "craft diamond armor (1 diamond+1 iron, table+furnace)",
+        "craft iron armor piece (2 iron, table+furnace; fills lowest-tier slot)",
+        "craft diamond armor piece (1 diamond+1 iron, table+furnace; upgrades lowest slot)",
         "cast fireball (2 mana, single-target projectile)",
         "cast iceball (2 mana, single-target projectile)",
         "eat a ripe plant you face to restore food",

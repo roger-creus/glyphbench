@@ -80,14 +80,14 @@ def test_achievements_phase_beta_independent_of_unlocked(env):
 # T02β: REST action + _is_resting state machine
 # ---------------------------------------------------------------------------
 
-_REST_ACTION = 35   # index of REST in CRAFTAX_FULL_ACTION_SPEC (phase β: 43 actions with T11β)
+_REST_ACTION = 33   # index of REST in CRAFTAX_FULL_ACTION_SPEC (phase γ T03γ: 41 actions)
 _NOOP_ACTION = 0    # index of NOOP
 
 
 def test_rest_action_in_spec():
-    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 35 (phase β spec is 43 actions with T11β)."""
+    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 33 (phase γ T03γ: 41 actions)."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
-    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 43
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 41
     assert CRAFTAX_FULL_ACTION_SPEC.names[_REST_ACTION] == "REST"
 
 
@@ -560,11 +560,12 @@ def test_lava_tile_is_walkable():
 
 
 def test_standing_on_lava_deals_2_damage_per_tick():
-    """Standing on lava deals exactly 2 damage per tick (armour-reduced by max(1, 2-def))."""
+    """Standing on lava deals exactly 2 damage per tick (no armour equipped = full phys dmg)."""
     e = _setup_lava_test()
-    # Strip all armor so damage = max(1, 2 - 0) = 2.
-    for armor_key in ("wood_armor", "stone_armor", "iron_armor", "diamond_armor"):
-        e._inventory[armor_key] = 0
+    # Phase γ T03γ: armour is now tracked in _armor_slots (all 0 after reset).
+    # Ensure all slots are bare for clarity.
+    for slot in ("helmet", "chest", "legs", "boots"):
+        e._armor_slots[slot] = 0
     hp_before = e._hp
     noop_idx = e.action_spec.names.index("NOOP")
     e.step(noop_idx)
@@ -576,8 +577,8 @@ def test_standing_on_lava_deals_2_damage_per_tick():
 def test_multiple_lava_ticks_drain_hp_linearly():
     """Three ticks on lava drain HP by 6 total (2 per tick, no armor)."""
     e = _setup_lava_test()
-    for armor_key in ("wood_armor", "stone_armor", "iron_armor", "diamond_armor"):
-        e._inventory[armor_key] = 0
+    for slot in ("helmet", "chest", "legs", "boots"):
+        e._armor_slots[slot] = 0
     # Set HP high enough to survive 3 ticks.
     e._hp = 20
     e._max_hp = 20
@@ -717,9 +718,9 @@ def test_potion_effect_heal_8():
     e._hp = 1
     e._mana = 0
     e._energy = 0
-    # Strip armor so take_damage path is clean if needed.
-    for k in ("wood_armor", "stone_armor", "iron_armor", "diamond_armor"):
-        e._inventory[k] = 0
+    # Phase γ T03γ: armour tracked in _armor_slots (all 0 after reset).
+    for slot in ("helmet", "chest", "legs", "boots"):
+        e._armor_slots[slot] = 0
     hp_before = e._hp
     dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
     e.step(dr_idx)
@@ -728,18 +729,22 @@ def test_potion_effect_heal_8():
 
 
 def test_potion_effect_poison_3():
-    """poison_3 effect: -3 HP (via _take_damage, armor applies)."""
+    """poison_3 effect: -3 HP (via _take_damage, armour applies).
+
+    Phase γ T04γ: new formula — with all slots at tier 0, phys defense = 0.0,
+    so damage = round(3.0 * (1 - 0.0)) = 3.
+    """
     from glyphbench.envs.craftax.full import _MAX_ENERGY
     e = _make_env_with_red_mapped_to("poison_3")
     e._inventory["potions"]["red"] = 1
-    # Strip armor for predictability.
-    for k in ("wood_armor", "stone_armor", "iron_armor", "diamond_armor"):
-        e._inventory[k] = 0
+    # Ensure all armour slots are bare for predictability.
+    for slot in ("helmet", "chest", "legs", "boots"):
+        e._armor_slots[slot] = 0
     e._hp = 9
     e._max_hp = 9
     e._mana = 0
     e._energy = _MAX_ENERGY
-    # poison_3 uses _take_damage(3); with no armor actual = max(1, 3-0) = 3.
+    # poison_3 uses _take_damage(3); with no armor actual = 3.
     dr_idx = e.action_spec.names.index("DRINK_POTION_RED")
     e.step(dr_idx)
     assert e._hp == 6, f"poison_3: expected HP=6, got {e._hp}"
@@ -874,10 +879,10 @@ def test_cast_iceball_works_when_iceball_learned(env):
 # ---------------------------------------------------------------------------
 
 def test_read_book_action_in_spec():
-    """READ_BOOK is present in CRAFTAX_FULL_ACTION_SPEC (43 actions total)."""
+    """READ_BOOK is present in CRAFTAX_FULL_ACTION_SPEC (41 actions post-T03γ)."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
     assert "READ_BOOK" in CRAFTAX_FULL_ACTION_SPEC.names
-    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 43
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 41
 
 
 def test_book_inventory_key_exists_after_reset(env):
