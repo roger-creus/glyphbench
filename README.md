@@ -33,17 +33,41 @@ All environments use single-codepoint Unicode glyphs (`→↓←↑` for player 
 
 ## Browse the suites
 
-| **MiniGrid · DoorKey** | **MiniGrid · MultiRoom** | **MiniHack · Room-Monster** |
-|:---:|:---:|:---:|
-| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minigrid-doorkey-6x6-v0.gif" width="150" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minigrid-multiroom-n4-s5-v0.gif" width="150" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minihack-room-monster-15x15-v0.gif" width="150" /> |
+### MiniGrid
 
-| **MiniHack · Corridor-R3** | **Atari · Pong** | **Atari · Breakout** |
+| **DoorKey-6x6** | **MultiRoom-N4** | **LavaGap-S6** |
 |:---:|:---:|:---:|
-| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minihack-corridor-r3-v0.gif" width="150" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__atari-pong-v0.gif" width="150" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__atari-breakout-v0.gif" width="150" /> |
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minigrid-doorkey-6x6-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minigrid-multiroom-n4-s5-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minigrid-lavagap-s6-v0.gif" width="130" /> |
 
-| **Classics · Snake** | **Craftax · Classic** | **Procgen · CoinRun** |
+### MiniHack
+
+| **Room-Monster** | **Corridor-R3** | **LavaCross** |
 |:---:|:---:|:---:|
-| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__classics-snake-medium-v0.gif" width="150" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-classic-v0.gif" width="150" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-coinrun-v0.gif" width="150" /> |
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minihack-room-monster-15x15-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minihack-corridor-r3-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minihack-lavacross-full-v0.gif" width="130" /> |
+
+### Atari
+
+| **Pong** | **Breakout** | **SpaceInvaders** |
+|:---:|:---:|:---:|
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__atari-pong-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__atari-breakout-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__atari-spaceinvaders-v0.gif" width="130" /> |
+
+### Classics
+
+| **Snake** | **Sokoban** | **Minesweeper** |
+|:---:|:---:|:---:|
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__classics-snake-medium-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__classics-sokoban-easy-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__classics-minesweeper-v0.gif" width="130" /> |
+
+### Craftax
+
+| **Classic** | **FightCow** | **ChopTrees** |
+|:---:|:---:|:---:|
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-classic-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-fight-cow-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-choptrees-v0.gif" width="130" /> |
+
+### Procgen
+
+| **CoinRun** | **Maze** | **Bigfish** |
+|:---:|:---:|:---:|
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-coinrun-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-maze-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-bigfish-v0.gif" width="130" /> |
 
 → [Browse all 300 environments on the leaderboard gallery](https://roger-creus.github.io/glyphbench/leaderboard/)
 
