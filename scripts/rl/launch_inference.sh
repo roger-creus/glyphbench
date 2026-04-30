@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+# Non-interactive SSH does NOT source .bashrc, so $HOME/.local/bin (where
+# `uv` lives by default) isn't on PATH. Prepend it explicitly.
+export PATH="$HOME/.local/bin:$PATH"
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 

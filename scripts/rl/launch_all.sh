@@ -40,14 +40,25 @@ echo "==> health check"
 bash scripts/rl/health_check.sh --skip-vllm
 
 # 2. Start vLLM on each inference node, propagating MODEL + MAX_MODEL_LEN.
+# Notes:
+#   - We pre-create outputs/inference-logs/ on the remote BEFORE tee opens
+#     its file (otherwise tee fails silently and the tmux session exits).
+#   - We pass MODEL + MAX_MODEL_LEN via tmux's -e flag so the inner shell
+#     (which is what runs launch_inference.sh) has them in env. tmux 3.0+
+#     supports `-e KEY=VALUE`.
 for h in "${INFERENCE_NODES[@]}"; do
     echo "==> starting vLLM on $h (model=$MODEL, repo=$REMOTE_REPO_ROOT)"
     ssh -o BatchMode=yes "$h" "
+        export PATH=\"\$HOME/.local/bin:\$PATH\"
         cd '$REMOTE_REPO_ROOT' || { echo 'repo not found at $REMOTE_REPO_ROOT on $h' >&2; exit 1; }
-        export MODEL='$MODEL'
-        export MAX_MODEL_LEN='$MAX_MODEL_LEN'
+        mkdir -p outputs/inference-logs
         tmux kill-session -t vllm-$h 2>/dev/null || true
-        tmux new-session -d -s vllm-$h 'MODEL=\"$MODEL\" MAX_MODEL_LEN=\"$MAX_MODEL_LEN\" bash scripts/rl/launch_inference.sh 2>&1 | tee outputs/inference-logs/$h.log'
+        tmux new-session -d -s vllm-$h \
+            -e MODEL='$MODEL' \
+            -e MAX_MODEL_LEN='$MAX_MODEL_LEN' \
+            'bash scripts/rl/launch_inference.sh 2>&1 | tee outputs/inference-logs/$h.log'
+        echo \"[$h] tmux new-session exit=\$?\"
+        tmux ls 2>&1 | grep vllm-$h || echo \"[$h] WARN: vllm-$h tmux session not visible\"
     "
 done
 
