@@ -36,6 +36,7 @@ from glyphbench.envs.craftax.base import (
     TILE_DUNGEON_WALL,
     TILE_FIREBALL,
     TILE_FIREBALL2,
+    TILE_FOUNTAIN,
     TILE_FURNACE,
     TILE_GRASS,
     TILE_ICEBALL,
@@ -618,7 +619,21 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._floors[0] = grid
 
     def _generate_dungeon_floor(self, floor: int) -> None:
-        """Generate a dungeon floor with rooms and corridors."""
+        """Generate a dungeon floor with rooms and corridors.
+
+        Floors 1 and 3 use the phase-β dungeon-room biome generator
+        (``mechanics/world_gen.generate_dungeon_floor``) which places 8
+        non-overlapping rooms with chests and fountains.
+
+        Floors 2, 4, 5 continue to use the original generator (floor 2 has
+        sapphire/ruby ore; floors 4-5 will get full biome treatment in phase γ).
+        """
+        # ---- Phase-β biome generator for floors 1 and 3 (T18β / T19β) ----
+        if floor in (1, 3):
+            self._generate_dungeon_floor_biome(floor)
+            return
+
+        # ---- Legacy generator for floors 2, 4, 5 ----
         size = _DUNGEON_SIZE
         grid = [
             [TILE_DUNGEON_WALL for _ in range(size)]
@@ -764,6 +779,115 @@ class CraftaxFullEnv(BaseGlyphEnv):
                             grid[ry][rx] = TILE_RUBY
 
         # Spawn dungeon mobs
+        mob_types = ["skeleton", "kobold", "bat"]
+        num_mobs = floor + 2
+        for _ in range(num_mobs):
+            mtype = str(self.rng.choice(mob_types))
+            for _att in range(30):
+                mx = int(self.rng.integers(1, size - 1))
+                my = int(self.rng.integers(1, size - 1))
+                if (
+                    grid[my][mx] == TILE_DUNGEON_FLOOR
+                    and not self._mob_at(mx, my, floor)
+                ):
+                    stats = _MOB_STATS[mtype]
+                    mob: Mob = {
+                        "type": mtype,
+                        "x": mx,
+                        "y": my,
+                        "hp": stats["hp"],
+                        "max_hp": stats["hp"],
+                        "is_boss": False,
+                        "floor": floor,
+                        "attack_cooldown": 0,
+                    }
+                    self._mobs.append(mob)
+                    break
+
+        self._floors[floor] = grid
+        self._torches[floor] = set()
+
+    def _generate_dungeon_floor_biome(self, floor: int) -> None:
+        """Generate floors 1 and 3 using the phase-β dungeon-room biome generator.
+
+        Uses ``mechanics.world_gen.generate_dungeon_floor`` to create a grid
+        with 8 rooms, L-shaped corridors, 1 chest per room, and ~50% fountain
+        probability per room.  Boss, mob spawning, and resource scattering are
+        then layered on top of the generated grid.
+        """
+        from glyphbench.envs.craftax.mechanics.world_gen import generate_dungeon_floor
+
+        size = _DUNGEON_SIZE
+
+        (
+            grid,
+            _chest_positions,
+            _fountain_positions,
+            stairs_down_pos,
+            stairs_up_pos,
+            _agent_spawn,
+        ) = generate_dungeon_floor(
+            self.rng,
+            size,
+            num_rooms=8,
+            with_chests=True,
+            with_fountains=True,
+        )
+
+        # Wire stair positions into env state.
+        self._stairs_up_pos[floor] = stairs_up_pos
+        if floor < _NUM_DUNGEON_FLOORS:
+            self._stairs_down_pos[floor] = stairs_down_pos
+
+        # Place boss in a random interior floor cell (avoid stair positions).
+        skip_positions = {stairs_up_pos, stairs_down_pos}
+        boss_x, boss_y = size // 2, size // 2  # fallback
+        bdef = _BOSS_DEFS[floor]
+        for _att in range(50):
+            bx = int(self.rng.integers(size // 4, 3 * size // 4))
+            by = int(self.rng.integers(size // 4, 3 * size // 4))
+            if (
+                grid[by][bx] == TILE_DUNGEON_FLOOR
+                and (bx, by) not in skip_positions
+            ):
+                boss_x, boss_y = bx, by
+                break
+
+        # Place boss door adjacent to boss (one cell to the left).
+        door_x = boss_x - 1
+        door_y = boss_y
+        if (
+            0 <= door_x < size
+            and grid[door_y][door_x] == TILE_DUNGEON_FLOOR
+            and (door_x, door_y) not in skip_positions
+        ):
+            grid[door_y][door_x] = TILE_BOSS_DOOR
+
+        boss_mob: Mob = {
+            "type": bdef["name"],
+            "x": boss_x,
+            "y": boss_y,
+            "hp": bdef["hp"],
+            "max_hp": bdef["hp"],
+            "is_boss": True,
+            "floor": floor,
+            "attack_cooldown": 0,
+        }
+        self._mobs.append(boss_mob)
+        self._bosses_alive[floor] = True
+
+        # Scatter dungeon-specific resources on floor cells.
+        num_res = int(self.rng.integers(3, 6))
+        for _ in range(num_res):
+            res = str(self.rng.choice([TILE_STONE, TILE_COAL, TILE_IRON]))
+            for _att in range(20):
+                rx = int(self.rng.integers(1, size - 1))
+                ry = int(self.rng.integers(1, size - 1))
+                if grid[ry][rx] == TILE_DUNGEON_FLOOR:
+                    grid[ry][rx] = res
+                    break
+
+        # Spawn dungeon mobs (avoid tiles already occupied).
         mob_types = ["skeleton", "kobold", "bat"]
         num_mobs = floor + 2
         for _ in range(num_mobs):
@@ -1697,6 +1821,21 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 self._message = "This chest is already open."
                 return 0.0
             reward += self._open_chest(fx, fy, floor)
+            return reward
+
+        # ---- Fountain interaction (T18β) ----
+        # Drinking from a fountain refills water to max. The tile is NOT
+        # consumed — fountains are reusable.
+        if tile == TILE_FOUNTAIN:
+            if self._water >= _MAX_WATER:
+                self._message = "The fountain is full — you are not thirsty."
+                return 0.0
+            self._water = _MAX_WATER
+            self._total_water_drunk += 1
+            self._message = "You drink deeply from the fountain. Water restored!"
+            reward += self._try_unlock("collect_drink")
+            if self._total_water_drunk >= 10:
+                reward += self._try_unlock("drink_10_water")
             return reward
 
         if tile in INTERACTABLE_TILES:
@@ -2973,6 +3112,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
             TILE_DUNGEON_WALL: "dungeon wall",
             TILE_DUNGEON_FLOOR: "dungeon floor",
             TILE_BOSS_DOOR: "boss door",
+            # Phase β dungeon features (T18β)
+            TILE_CHEST: "chest (DO to open — 1 chest per room)",
+            TILE_FOUNTAIN: "fountain (DO to refill water)",
             # Projectiles (phase α — T26)
             TILE_ARROW: "arrow projectile",
             TILE_ARROW2: "arrow2 projectile",

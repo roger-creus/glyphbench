@@ -184,6 +184,10 @@ TILE_RUBY = "▲"      # ▲ U+25B2 black up-pointing triangle — ruby ore
 # existing palette.
 TILE_CHEST = "$"  # $ dollar sign — chest (interactable loot container)
 
+# Phase β fountain tile (T18β). "⊙" U+2299 is single-codepoint and disjoint
+# from the existing palette.
+TILE_FOUNTAIN = "⊙"  # ⊙ U+2299 circled dot — dungeon fountain (refills water)
+
 # Stage 0 achievements (first 8, kept for backward compatibility)
 STAGE0_ACHIEVEMENTS = (
     "collect_wood",

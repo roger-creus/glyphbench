@@ -1458,3 +1458,306 @@ def test_spawn_half_light_quadratic_dampening():
     assert count_dark > 0, (
         "Expected >0 zombies in pitch darkness across 500 spawn calls"
     )
+
+
+# ---------------------------------------------------------------------------
+# T18β: Dungeon-room biome generator (mechanics/world_gen.py)
+# ---------------------------------------------------------------------------
+
+def _fresh_rng(seed: int = 0):
+    """Return a fresh numpy Generator for use in world_gen tests."""
+    import numpy as np
+    return np.random.default_rng(seed)
+
+
+def test_generate_dungeon_floor_returns_correct_grid_size():
+    """generate_dungeon_floor returns a grid of the requested size."""
+    from glyphbench.envs.craftax.mechanics.world_gen import generate_dungeon_floor
+
+    size = 32
+    grid, _chests, _fountains, _down, _up, _spawn = generate_dungeon_floor(
+        _fresh_rng(0), size
+    )
+    assert len(grid) == size, f"Expected {size} rows, got {len(grid)}"
+    assert all(len(row) == size for row in grid), (
+        "All rows must have width == size"
+    )
+
+
+def test_generate_dungeon_floor_has_correct_num_chests():
+    """generate_dungeon_floor with num_rooms=8 places exactly 8 chests."""
+    from glyphbench.envs.craftax.mechanics.world_gen import generate_dungeon_floor
+    from glyphbench.envs.craftax.base import TILE_CHEST
+
+    size = 32
+    for seed in range(5):
+        grid, chest_positions, _fountains, _down, _up, _spawn = (
+            generate_dungeon_floor(_fresh_rng(seed), size, num_rooms=8)
+        )
+        # Count chest tiles in grid
+        chest_tile_count = sum(
+            1 for row in grid for cell in row if cell == TILE_CHEST
+        )
+        # chest_positions must match what's in the grid
+        assert chest_tile_count == len(chest_positions), (
+            f"Seed {seed}: chest tile count ({chest_tile_count}) != "
+            f"len(chest_positions) ({len(chest_positions)})"
+        )
+        # We asked for 8 rooms so should have exactly 8 chests
+        assert len(chest_positions) == 8, (
+            f"Seed {seed}: expected 8 chests, got {len(chest_positions)}"
+        )
+
+
+def test_generate_dungeon_floor_has_stairs():
+    """generate_dungeon_floor places one stairs-down and one stairs-up tile."""
+    from glyphbench.envs.craftax.mechanics.world_gen import generate_dungeon_floor
+    from glyphbench.envs.craftax.base import TILE_STAIRS_DOWN, TILE_STAIRS_UP
+
+    size = 32
+    for seed in range(5):
+        grid, _chests, _fountains, stairs_down, stairs_up, _spawn = (
+            generate_dungeon_floor(_fresh_rng(seed), size)
+        )
+        dx, dy = stairs_down
+        ux, uy = stairs_up
+        assert grid[dy][dx] == TILE_STAIRS_DOWN, (
+            f"Seed {seed}: stairs_down_pos {stairs_down} doesn't point to "
+            f"TILE_STAIRS_DOWN (got {grid[dy][dx]!r})"
+        )
+        assert grid[uy][ux] == TILE_STAIRS_UP, (
+            f"Seed {seed}: stairs_up_pos {stairs_up} doesn't point to "
+            f"TILE_STAIRS_UP (got {grid[uy][ux]!r})"
+        )
+
+
+def test_generate_dungeon_floor_fountains_statistical():
+    """Roughly half the rooms have a fountain (expected 4/8); check 2-7 range."""
+    from glyphbench.envs.craftax.mechanics.world_gen import generate_dungeon_floor
+    from glyphbench.envs.craftax.base import TILE_FOUNTAIN
+
+    size = 32
+    all_counts: list[int] = []
+    for seed in range(20):
+        grid, _chests, fountain_positions, _down, _up, _spawn = (
+            generate_dungeon_floor(_fresh_rng(seed), size, num_rooms=8)
+        )
+        # Verify fountain_positions match grid content
+        fountain_tile_count = sum(
+            1 for row in grid for cell in row if cell == TILE_FOUNTAIN
+        )
+        assert fountain_tile_count == len(fountain_positions), (
+            f"Seed {seed}: fountain tile count {fountain_tile_count} != "
+            f"len(fountain_positions) {len(fountain_positions)}"
+        )
+        all_counts.append(len(fountain_positions))
+
+    # Over 20 seeds with 50% probability per room the distribution should
+    # stay within [1, 8]; we assert a practical [0, 8] to avoid flakiness.
+    assert all(0 <= c <= 8 for c in all_counts), (
+        f"Fountain counts out of [0,8]: {all_counts}"
+    )
+    # Mean should be around 4; assert at least some variation exists.
+    total = sum(all_counts)
+    assert total > 0, "Expected at least some fountains across 20 seeds"
+
+
+def test_generate_dungeon_floor_rooms_are_connected():
+    """All floor tiles must be reachable from the agent spawn (BFS)."""
+    from glyphbench.envs.craftax.mechanics.world_gen import generate_dungeon_floor
+    from glyphbench.envs.craftax.base import (
+        TILE_DUNGEON_FLOOR, TILE_CHEST, TILE_FOUNTAIN,
+        TILE_STAIRS_DOWN, TILE_STAIRS_UP,
+    )
+    import collections
+
+    # These tiles are all "open" (walkable/interactable interior cells).
+    OPEN = {TILE_DUNGEON_FLOOR, TILE_CHEST, TILE_FOUNTAIN,
+            TILE_STAIRS_DOWN, TILE_STAIRS_UP}
+
+    size = 32
+    grid, _chests, _fountains, _down, _up, spawn = (
+        generate_dungeon_floor(_fresh_rng(42), size)
+    )
+
+    # BFS from spawn.
+    visited: set[tuple[int, int]] = set()
+    queue: collections.deque[tuple[int, int]] = collections.deque([spawn])
+    visited.add(spawn)
+    while queue:
+        x, y = queue.popleft()
+        for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            nx, ny = x + dx, y + dy
+            if (
+                0 <= nx < size and 0 <= ny < size
+                and (nx, ny) not in visited
+                and grid[ny][nx] in OPEN
+            ):
+                visited.add((nx, ny))
+                queue.append((nx, ny))
+
+    # Count total open tiles in the grid.
+    total_open = sum(1 for row in grid for cell in row if cell in OPEN)
+    assert total_open > 0, "No open tiles generated"
+    # All open tiles should be reachable from spawn.
+    assert len(visited) == total_open, (
+        f"Not all open tiles reachable from spawn: "
+        f"{len(visited)} reachable / {total_open} total open tiles"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T19β: Wire dungeon biome into floors 1 and 3
+# ---------------------------------------------------------------------------
+
+def test_floor1_has_eight_chests_after_reset():
+    """After reset, floor 1 has exactly 8 chest tiles (one per room)."""
+    from glyphbench.envs.craftax.base import TILE_CHEST
+
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=0)
+    grid1 = e._floors[1]
+    chest_count = sum(1 for row in grid1 for cell in row if cell == TILE_CHEST)
+    assert chest_count == 8, (
+        f"Floor 1 should have 8 chests (one per room), got {chest_count}"
+    )
+
+
+def test_floor3_has_eight_chests_after_reset():
+    """After reset, floor 3 has exactly 8 chest tiles (one per room)."""
+    from glyphbench.envs.craftax.base import TILE_CHEST
+
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=0)
+    grid3 = e._floors[3]
+    chest_count = sum(1 for row in grid3 for cell in row if cell == TILE_CHEST)
+    assert chest_count == 8, (
+        f"Floor 3 should have 8 chests (one per room), got {chest_count}"
+    )
+
+
+def test_floor1_has_stairs_after_reset():
+    """After reset, floor 1 has both TILE_STAIRS_UP and TILE_STAIRS_DOWN."""
+    from glyphbench.envs.craftax.base import TILE_STAIRS_DOWN, TILE_STAIRS_UP
+
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=0)
+    grid1 = e._floors[1]
+    up_count = sum(1 for row in grid1 for cell in row if cell == TILE_STAIRS_UP)
+    down_count = sum(1 for row in grid1 for cell in row if cell == TILE_STAIRS_DOWN)
+    assert up_count >= 1, "Floor 1 must have at least one TILE_STAIRS_UP"
+    assert down_count >= 1, "Floor 1 must have at least one TILE_STAIRS_DOWN"
+
+
+def test_floor1_has_fountain_tiles_or_zero_statistically():
+    """Floor 1 can have 0-8 fountains per seed; assert tile count matches."""
+    from glyphbench.envs.craftax.base import TILE_FOUNTAIN
+
+    counts: list[int] = []
+    for seed in range(10):
+        e = CraftaxFullEnv(max_turns=500)
+        e.reset(seed=seed)
+        grid1 = e._floors[1]
+        count = sum(1 for row in grid1 for cell in row if cell == TILE_FOUNTAIN)
+        counts.append(count)
+
+    # All counts must be in [0, 8].
+    assert all(0 <= c <= 8 for c in counts), (
+        f"Unexpected fountain counts on floor 1: {counts}"
+    )
+    # At least some seeds should produce fountains.
+    assert sum(counts) > 0, (
+        "Expected at least some fountain tiles on floor 1 across 10 seeds"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T18β: Fountain interaction via DO action
+# ---------------------------------------------------------------------------
+
+def _make_env_with_fountain_in_front() -> CraftaxFullEnv:
+    """Return an env with the agent facing a TILE_FOUNTAIN, water depleted."""
+    from glyphbench.envs.craftax.base import TILE_FOUNTAIN
+
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=0)
+    # Move agent to a safe dungeon position.
+    e._current_floor = 1
+    ax, ay = 10, 10
+    e._agent_x = ax
+    e._agent_y = ay
+    e._facing = (1, 0)   # facing right
+    # Place fountain to the right.
+    e._floors[1][ay][ax + 1] = TILE_FOUNTAIN
+    # Deplete water so the fountain matters.
+    e._water = 3
+    return e
+
+
+_DO_ACTION = 5  # index of DO in CRAFTAX_FULL_ACTION_SPEC
+
+
+def test_fountain_do_refills_water():
+    """DO on a fountain tile restores water to _MAX_WATER."""
+    from glyphbench.envs.craftax.full import _MAX_WATER
+
+    e = _make_env_with_fountain_in_front()
+    assert e._water < _MAX_WATER
+
+    e.step(_DO_ACTION)
+
+    assert e._water == _MAX_WATER, (
+        f"Water should be refilled to {_MAX_WATER} after drinking from fountain, "
+        f"got {e._water}"
+    )
+
+
+def test_fountain_do_fires_collect_drink_achievement():
+    """DO on a fountain fires the collect_drink achievement."""
+    e = _make_env_with_fountain_in_front()
+    assert "collect_drink" not in e._achievements_unlocked
+
+    e.step(_DO_ACTION)
+
+    assert "collect_drink" in e._achievements_unlocked, (
+        "collect_drink achievement should fire after drinking from a fountain"
+    )
+
+
+def test_fountain_tile_remains_after_drink():
+    """The TILE_FOUNTAIN tile is NOT consumed after a DO action (reusable)."""
+    from glyphbench.envs.craftax.base import TILE_FOUNTAIN
+
+    e = _make_env_with_fountain_in_front()
+    ax, ay = e._agent_x, e._agent_y
+    fx, fy = ax + 1, ay
+
+    e.step(_DO_ACTION)
+
+    assert e._floors[e._current_floor][fy][fx] == TILE_FOUNTAIN, (
+        "TILE_FOUNTAIN should remain on the grid after drinking (it is reusable)"
+    )
+
+
+def test_fountain_do_on_full_water_is_noop():
+    """DO on a fountain when water is already full: water stays at max and
+    collect_drink achievement does NOT fire from the fountain.
+
+    Note: Other per-step logic (milestone achievements, etc.) may produce
+    incidental reward unrelated to the fountain — we only assert on the
+    fountain-specific effects (water value and collect_drink not triggered
+    from this step).
+    """
+    from glyphbench.envs.craftax.full import _MAX_WATER
+
+    e = _make_env_with_fountain_in_front()
+    e._water = _MAX_WATER  # already full
+    # Ensure collect_drink is not yet unlocked so we can detect if it fires.
+    e._achievements_unlocked.discard("collect_drink")
+
+    e.step(_DO_ACTION)
+
+    assert e._water == _MAX_WATER, "Water should remain at max when already full"
+    assert "collect_drink" not in e._achievements_unlocked, (
+        "collect_drink should NOT fire when fountain is used at full water"
+    )

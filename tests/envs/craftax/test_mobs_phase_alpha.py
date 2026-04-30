@@ -481,7 +481,9 @@ def test_melee_mob_always_chases_during_boss_fight() -> None:
     """When a boss is alive on the same floor, the always-chase override
     forces melee mobs to chase regardless of distance.
 
-    Floor 5 layout: column x=14 is a long open corridor (y=2..26).
+    We carve a clear vertical corridor (x=14, y=2..26) directly into floor 5's
+    grid so the test is robust to any layout changes from world generation.
+
     Agent at (14,2), boss at (14,4) — dist=2 so not attacking.
     Zombie at (14,15) — dist=13 from agent, outside the normal chase
     threshold of 10, so without boss-fight it would random-walk.
@@ -489,10 +491,15 @@ def test_melee_mob_always_chases_during_boss_fight() -> None:
     and the zombie must advance toward the agent.
     """
     from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftax.base import TILE_DUNGEON_FLOOR
 
     env = CraftaxFullEnv()
     env.reset(seed=0)
     env._current_floor = 5
+    # Carve a guaranteed vertical corridor at x=14, y=2..26 so the zombie
+    # always has a clear path to chase along, independent of floor layout.
+    for _y in range(2, 27):
+        env._floors[5][_y][14] = TILE_DUNGEON_FLOOR
     env._agent_x, env._agent_y = 14, 2  # walkable: col-14 corridor
     env._mobs = []  # clear reset-spawned mobs
     env._mobs.append({
