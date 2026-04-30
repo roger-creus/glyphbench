@@ -164,23 +164,36 @@ class CraftaxFloor1Env(CraftaxFullEnv):
     """Enter dungeon floor 1. Start with stone sword + stone pickaxe.
     Goal: find and reach the stairs down. Max 100 steps."""
 
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "survival:day_night",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "magic:spells", "magic:books", "magic:enchants",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "progression:xp", "progression:attributes", "progression:achievements",
+        "floors:0", "floors:1", "floors:2", "floors:3", "floors:navigation",
+    )
+
     def __init__(self, max_turns: int = 100) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-floor1-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX DUNGEON FLOOR 1\n\n"
-            "You are in the first dungeon floor. Enemies lurk in the dark.\n"
-            "GOAL: Find the stairs down and step on them, then DESCEND.\n"
-            "You start with a stone sword and stone pickaxe.\n"
-            "REWARD: +10 for descending to floor 2.\n"
-            "ENEMIES: zombies, skeletons (ranged), kobolds, bats.\n"
-            "Place torches (PLACE_TORCH) to illuminate dark areas.\n"
-            "Attack enemies by facing them and using DO.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You are on dungeon floor 1 (Sewers entry). Find the stairs down "
+            "(⇣) and use DESCEND to reach floor 2. You start with a stone "
+            "sword and stone pickaxe. Enemies (zombies, skeletons, kobolds, "
+            "bats) lurk in the dark — fight with DO or evade. Reward: +10 "
+            "for descending to floor 2."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -223,20 +236,35 @@ class CraftaxFloor2Env(CraftaxFullEnv):
     """Dungeon floor 2. Start with iron sword + iron armor.
     Goal: find stairs down. Max 100 steps."""
 
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "survival:day_night",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "magic:spells", "magic:books", "magic:enchants",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "progression:xp", "progression:attributes", "progression:achievements",
+        "floors:0", "floors:1", "floors:2", "floors:3", "floors:navigation",
+    )
+
     def __init__(self, max_turns: int = 100) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-floor2-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX DUNGEON FLOOR 2\n\n"
-            "You are on the second dungeon floor. Enemies are tougher.\n"
-            "GOAL: Find the stairs down and DESCEND to floor 3.\n"
-            "You start with iron sword, iron armor, and torches.\n"
-            "REWARD: +10 for descending.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You are on dungeon floor 2. Find the stairs down (⇣) and use "
+            "DESCEND to reach floor 3. You start with an iron sword, full "
+            "iron armor, and torches. Enemies are tougher than floor 1. "
+            "Reward: +10 for descending to floor 3."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -278,20 +306,36 @@ class CraftaxFloor3Env(CraftaxFullEnv):
     """Dungeon floor 3. Start with iron sword + iron armor + spells.
     Goal: find stairs down. Max 150 steps."""
 
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "survival:day_night",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "magic:spells", "magic:books", "magic:enchants",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "items:gems",
+        "progression:xp", "progression:attributes", "progression:achievements",
+        "floors:0", "floors:1", "floors:2", "floors:3", "floors:navigation",
+    )
+
     def __init__(self, max_turns: int = 150) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-floor3-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX DUNGEON FLOOR 3\n\n"
-            "Deep dungeon floor with dangerous enemies and a mage boss.\n"
-            "GOAL: Find the stairs down and DESCEND to floor 4.\n"
-            "You have iron gear, spells, and potions.\n"
-            "REWARD: +10 for descending.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You are on dungeon floor 3 (Sewers — hosts the ice enchant table). "
+            "Find the stairs down (⇣) and use DESCEND to reach floor 4. You "
+            "have iron gear, learned spells, and potions. Reward: +10 for "
+            "descending to floor 4."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -336,22 +380,24 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
     """Final boss fight. Start with diamond gear on a boss floor.
     Goal: defeat the boss. Max 200 steps."""
 
+    # Boss fight needs every mechanic — full slice.
+    from glyphbench.envs.craftax.docs import ALL_SECTIONS as _BF_ALL
+    tutorial_sections = _BF_ALL
+    del _BF_ALL
+
     def __init__(self, max_turns: int = 200) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-bossfight-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX BOSS FIGHT\n\n"
-            "You face a powerful boss (W) in the dungeon.\n"
-            "GOAL: Defeat the boss.\n"
-            "You have diamond sword, diamond armor, spells, and potions.\n"
-            "REWARD: +10 for defeating the boss.\n"
-            "Use DO facing the boss to attack. Use CAST_FIREBALL for area damage.\n"
-            "Use DRINK_POTION_RED/GREEN/BLUE/PINK/CYAN/YELLOW to drink a potion (effects vary per game).\n\n"
-            + self.action_spec.render_for_prompt()
+            "You face a powerful boss in the dungeon. Defeat it to win. You "
+            "start with a diamond sword, diamond armor, learned spells, and "
+            "potions. Use DO facing the boss to melee, CAST_FIREBALL for "
+            "elemental damage, and DRINK_POTION_* for buffs (per-game shuffle). "
+            "Reward: +10 for defeating the boss."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -407,6 +453,16 @@ class CraftaxSurviveHungerEnv(CraftaxClassicEnv):
     """Start with food=2, no food nearby. Must find food.
     Reward: +1 per food eaten. +10 if survive 100 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 100) -> None:
         super().__init__(max_turns=max_turns)
         self._food_eaten: int = 0
@@ -414,18 +470,14 @@ class CraftaxSurviveHungerEnv(CraftaxClassicEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-survive-hunger-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX SURVIVE HUNGER\n\n"
-            "You are starving! Food is at 1/9.\n"
-            "GOAL: Find food before you starve. Survive 100 steps.\n"
-            "- Kill a cow (c) with DO to get +5 food.\n"
-            "- Eat a ripe plant (*) with EAT_PLANT for +3 food.\n"
-            "- Food drains 1 every 50 steps. At 0 food: -1 HP/step.\n"
-            "REWARD: +1 per food source eaten, +10 for surviving 100 steps "
-            "(only granted if you actually ate at least one food source).\n"
-            "You have a wood sword to help fight cows.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You start starving (food=1/9). Find food before you starve and "
+            "survive 100 steps. Kill a cow (c) with DO for +5 food, or eat a "
+            "ripe plant (*) with EAT_PLANT for +3 food. Food drains 1 every "
+            "50 steps; at 0 food you take -1 HP/step. You have a wood sword. "
+            "Reward: +1 per food source eaten, +10 bonus for surviving 100 "
+            "steps (only if at least one food source was eaten)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -471,21 +523,29 @@ class CraftaxSurviveHungerEnv(CraftaxClassicEnv):
 class CraftaxSurviveThirstEnv(CraftaxClassicEnv):
     """Start with water=2. Must find water source. Max 100 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 100) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-survive-thirst-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX SURVIVE THIRST\n\n"
-            "You are dehydrated! Water is at 2/9.\n"
-            "GOAL: Find a water tile (~) and use DRINK_WATER facing it.\n"
-            "Survive 100 steps without dying of thirst.\n"
-            "- Water drains 1 every 40 steps. At 0 water: -1 HP/step.\n"
-            "REWARD: +5 per drink, +10 for surviving 100 steps.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You start dehydrated (water=2/9). Find a water tile (≈) and "
+            "use DRINK_WATER facing it. Survive 100 steps without dying of "
+            "thirst. Water drains 1 every 40 steps; at 0 water you take "
+            "-1 HP/step. Reward: +5 per drink, +10 bonus for surviving 100 "
+            "steps."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -522,23 +582,29 @@ class CraftaxSurviveNightEnv(CraftaxClassicEnv):
     """Start at dusk. Survive the night with basic gear. Max 50 steps.
     +10 if alive at dawn."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 150) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-survive-night-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX SURVIVE THE NIGHT\n\n"
-            "Night is falling! Monsters will spawn.\n"
-            "GOAL: Survive until dawn.\n"
-            "You have a stone sword and some stone to build shelter.\n"
-            "- Hostile mobs (zombies z, skeletons k) spawn at night.\n"
-            "- Place stone blocks around yourself for protection.\n"
-            "- Or fight the monsters with DO.\n"
-            "REWARD: +10 if alive when the sun rises.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Night is falling — monsters will spawn. Survive until dawn. You "
+            "have a stone sword and some stone to build shelter. Hostile mobs "
+            "(zombies, skeletons) appear at night. Place stone blocks around "
+            "yourself for protection, or fight monsters with DO. Reward: +10 "
+            "if alive when the sun rises."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -573,25 +639,29 @@ class CraftaxSurviveNightEnv(CraftaxClassicEnv):
 class CraftaxSurviveWildEnv(CraftaxClassicEnv):
     """Start with nothing, day 1. Survive 200 steps managing all needs."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 200) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-survive-wild-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX WILDERNESS SURVIVAL\n\n"
-            "You start with nothing. Survive as long as possible.\n"
-            "GOAL: Survive 200 steps. Manage hunger, thirst, energy, "
-            "and nighttime monsters.\n"
-            "- Chop trees (DO facing tree) for wood.\n"
-            "- Craft tools at a crafting table.\n"
-            "- Find water (~) and drink (DRINK_WATER).\n"
-            "- Kill cows or eat plants for food.\n"
-            "- Build shelter before night.\n"
-            "REWARD: +0.05 per step survived. +10 bonus for full 200 steps.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You start with nothing. Survive 200 steps managing hunger, "
+            "thirst, energy, and nighttime monsters. Chop trees (DO) for "
+            "wood, craft tools at a table, find water (≈) to DRINK_WATER, "
+            "kill cows or eat plants for food, and build shelter before night. "
+            "Reward: +0.05 per step survived, +10 bonus for full 200 steps."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -632,21 +702,27 @@ class CraftaxSurviveWildEnv(CraftaxClassicEnv):
 class CraftaxFightCowEnv(CraftaxClassicEnv):
     """Start with wood sword. 1 cow nearby. Kill for food. Max 20 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 20) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-fight-cow-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIGHT COW\n\n"
-            "A cow (c) is nearby. Kill it for food.\n"
-            "GOAL: Defeat the cow.\n"
-            "Face the cow and use DO to attack.\n"
-            "You have a wood sword (+1 damage).\n"
-            "REWARD: +5 for defeating the cow.\n\n"
-            + self.action_spec.render_for_prompt()
+            "A cow (c) is nearby. Defeat it for food by facing it and using "
+            "DO to attack. You have a wood sword (+1 damage). Reward: +5 for "
+            "defeating the cow."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -675,22 +751,28 @@ class CraftaxFightCowEnv(CraftaxClassicEnv):
 class CraftaxFightZombiesEnv(CraftaxClassicEnv):
     """Start with stone sword. 3 zombies in arena. Kill all. Max 40 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 40) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-fight-zombies-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIGHT ZOMBIES\n\n"
-            "3 zombies (z) are closing in!\n"
-            "GOAL: Defeat all 3 zombies.\n"
-            "Face a zombie and use DO to attack.\n"
-            "Stone sword: +2 damage per hit. Zombie HP: 3.\n"
-            "Zombies deal 1 damage when adjacent.\n"
-            "REWARD: +3 per zombie killed. +5 bonus for all 3.\n\n"
-            + self.action_spec.render_for_prompt()
+            "3 zombies (z) are closing in. Defeat all of them. Face a zombie "
+            "and use DO to attack. You have a stone sword (+2 damage per hit). "
+            "Each zombie has 3 HP and deals 1 damage when adjacent. Reward: "
+            "+3 per zombie killed, +5 bonus for clearing all 3."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -730,21 +812,28 @@ class CraftaxFightZombiesEnv(CraftaxClassicEnv):
 class CraftaxFightSkeletonsEnv(CraftaxClassicEnv):
     """Start with iron sword. 3 skeletons. Must close distance. Max 40 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 40) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-fight-skeletons-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIGHT SKELETONS\n\n"
-            "3 skeletons (k) are prowling nearby!\n"
-            "GOAL: Defeat all 3 skeletons.\n"
-            "Skeletons have 4 HP and deal 2 damage.\n"
-            "You have an iron sword (+3 damage). Close distance and attack.\n"
-            "REWARD: +3 per skeleton killed. +5 bonus for all 3.\n\n"
-            + self.action_spec.render_for_prompt()
+            "3 skeletons (k) are prowling nearby. Defeat all 3. Each skeleton "
+            "has 4 HP and deals 2 damage. You have an iron sword (+3 damage). "
+            "Close distance and use DO to attack. Reward: +3 per skeleton "
+            "killed, +5 bonus for clearing all 3."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -784,23 +873,35 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
     """Start with iron sword + spells. 3 skeletons (ranged) at range.
     Ranged combat. Max 40 steps. (Full version -- upstream ranged skeleton.)"""
 
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles",
+        "magic:spells", "magic:books", "magic:enchants",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "progression:xp", "progression:attributes",
+        "floors:0", "floors:navigation",
+    )
+
     def __init__(self, max_turns: int = 40) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-fight-archers-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIGHT SKELETONS\n\n"
-            "3 skeletons (a) are attacking from range!\n"
-            "GOAL: Defeat all 3 skeletons.\n"
-            "Skeletons have 5 HP, deal 3 melee or ranged damage.\n"
-            "You have an iron sword (+3 dmg) and spells.\n"
-            "CAST_FIREBALL hits all mobs within 2 tiles (3 mana, 4 dmg).\n"
-            "Close distance and use DO to melee attack.\n"
-            "REWARD: +3 per skeleton killed. +5 bonus for all 3.\n\n"
-            + self.action_spec.render_for_prompt()
+            "3 skeletons (a) are attacking from range. Defeat all 3. Each has "
+            "5 HP and deals 3 damage (melee or ranged). You have an iron "
+            "sword (+3 dmg) and learned spells — CAST_FIREBALL hits mobs "
+            "within 2 tiles (3 mana, 4 dmg). Close distance and use DO to "
+            "melee. Reward: +3 per skeleton killed, +5 bonus for clearing all 3."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -852,21 +953,34 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
     'kobold' (ranged, throws daggers) per T_FOLLOWUP_A / T04β rename.
     """
 
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles",
+        "magic:spells", "magic:books", "magic:enchants",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "progression:xp", "progression:attributes",
+        "floors:0", "floors:navigation",
+    )
+
     def __init__(self, max_turns: int = 40) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-fight-spiders-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIGHT KOBOLDS\n\n"
-            "3 kobolds (q) lurk nearby!\n"
-            "GOAL: Defeat all 3 kobolds.\n"
-            "Kobolds have 4 HP, deal 2 damage, and throw daggers.\n"
-            "You have an iron sword (+3 damage).\n"
-            "REWARD: +3 per kobold killed. +5 bonus for all 3.\n\n"
-            + self.action_spec.render_for_prompt()
+            "3 kobolds (q) lurk nearby and throw daggers. Defeat all 3. Each "
+            "has 4 HP and deals 2 damage. You have an iron sword (+3 damage) — "
+            "use DO when adjacent. Reward: +3 per kobold killed, +5 bonus "
+            "for clearing all 3."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -909,22 +1023,34 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
 class CraftaxFightBatsEnv(CraftaxFullEnv):
     """Start with stone sword. 5 bats (fast, low HP). Max 30 steps."""
 
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles",
+        "magic:spells", "magic:books", "magic:enchants",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "progression:xp", "progression:attributes",
+        "floors:0", "floors:navigation",
+    )
+
     def __init__(self, max_turns: int = 30) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-fight-bats-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIGHT BATS\n\n"
-            "5 bats (b) are swarming you!\n"
-            "GOAL: Defeat all 5 bats.\n"
-            "Bats have only 2 HP but move erratically.\n"
-            "You have a stone sword (+2 damage).\n"
-            "Face a bat and use DO to attack.\n"
-            "REWARD: +2 per bat killed. +5 bonus for all 5.\n\n"
-            + self.action_spec.render_for_prompt()
+            "5 bats (b) are swarming you. Defeat all 5. Each bat has only 2 "
+            "HP but moves erratically. You have a stone sword (+2 damage). "
+            "Face a bat and use DO to attack. Reward: +2 per bat killed, "
+            "+5 bonus for clearing all 5."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -972,22 +1098,29 @@ class CraftaxCraftIronSetEnv(CraftaxClassicEnv):
     """Start near trees, stone, iron, table, furnace.
     Goal: craft iron pickaxe + iron sword. Max 150 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 150) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-craft-ironset-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX CRAFT IRON SET\n\n"
-            "Resources are nearby. Complete the crafting chain.\n"
-            "GOAL: Craft an iron pickaxe AND an iron sword.\n"
-            "CHAIN: chop wood -> place table -> craft wood pickaxe -> "
-            "mine stone -> place furnace -> craft stone pickaxe -> "
-            "mine iron -> craft iron tools (need table+furnace adjacent).\n"
-            "REWARD: +5 for iron pickaxe, +5 for iron sword.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Resources (trees, stone, iron) are nearby. Craft an iron pickaxe "
+            "AND an iron sword. Chain: chop wood → place table → craft wood "
+            "pickaxe → mine stone → place furnace → craft stone pickaxe → "
+            "mine iron → craft iron tools (need table+furnace adjacent). "
+            "Reward: +5 for iron pickaxe, +5 for iron sword."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1054,21 +1187,28 @@ class CraftaxMineIronEnv(CraftaxClassicEnv):
     crafting recipes. The env id was changed to reflect what the env
     actually checks.)"""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 30) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-mine-iron-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX MINE IRON\n\n"
-            "Iron deposits (I) are nearby. You have a stone pickaxe.\n"
-            "GOAL: Mine 3 iron ore.\n"
-            "Face iron tiles (I) and use DO to mine.\n"
-            "Requires stone pickaxe or better.\n"
-            "REWARD: +3 per iron mined. +5 bonus for 3 total.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Iron deposits (I) are nearby. You have a stone pickaxe. Mine 3 "
+            "iron ore. Face iron tiles and use DO to mine (requires stone "
+            "pickaxe or better). Reward: +3 per iron mined, +5 bonus for "
+            "3 total."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1112,22 +1252,28 @@ class CraftaxBuildShelterEnv(CraftaxClassicEnv):
     """Start with 10 stone. Place stone blocks to surround yourself.
     Goal: enclose yourself (4 adjacent placed stones). Max 50 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 50) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-build-shelter-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX BUILD SHELTER\n\n"
-            "You need to build a shelter before night falls!\n"
-            "GOAL: Surround yourself with placed stone on all 4 sides.\n"
-            "Face an empty grass tile and use PLACE_STONE.\n"
-            "You need stones on LEFT, RIGHT, UP, and DOWN.\n"
-            "You start with 10 stone blocks.\n"
-            "REWARD: +10 for completing the shelter.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Build a shelter before night falls. Surround yourself with "
+            "placed stone on all 4 sides (left, right, up, down). Face an "
+            "empty grass tile and use PLACE_STONE. You start with 10 stone "
+            "blocks. Reward: +10 for completing the shelter."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1159,6 +1305,16 @@ class CraftaxPlantFarmEnv(CraftaxClassicEnv):
     """Start with saplings. Plant, grow, harvest.
     Goal: eat 3 ripe plants. Max 100 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 100) -> None:
         super().__init__(max_turns=max_turns)
         self._plants_harvested: int = 0
@@ -1166,17 +1322,12 @@ class CraftaxPlantFarmEnv(CraftaxClassicEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-plant-farm-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX PLANT FARM\n\n"
-            "You have saplings to plant.\n"
-            "GOAL: Harvest (eat) 3 ripe plants.\n"
-            "1. Face grass and PLACE_PLANT to plant a sapling (;).\n"
-            "2. Wait 20 steps for it to ripen into (*) ripe plant.\n"
-            "3. Face ripe plant and EAT_PLANT to harvest.\n"
-            "You start with 5 saplings.\n"
-            "REWARD: +3 per plant eaten. +5 bonus for 3 total.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You have 5 saplings. Harvest (eat) 3 ripe plants. Face grass and "
+            "PLACE_PLANT to plant a sapling (;); wait ~20 steps for it to "
+            "ripen into a ripe plant (*); face the ripe plant and EAT_PLANT "
+            "to harvest. Reward: +3 per plant eaten, +5 bonus for 3 total."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1215,21 +1366,28 @@ class CraftaxPlantFarmEnv(CraftaxClassicEnv):
 class CraftaxFindWaterEnv(CraftaxClassicEnv):
     """Start in a desert-like area. Navigate to find water. Max 100 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 100) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-find-water-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIND WATER\n\n"
-            "You are in a dry area. Water is scarce.\n"
-            "GOAL: Find a water tile (~) and drink (DRINK_WATER).\n"
-            "Move in all directions to explore. Water is somewhere\n"
-            "in the world but not near your starting position.\n"
-            "REWARD: +10 for drinking water.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You are in a dry sandy area where water is scarce. Find a water "
+            "tile (≈) and use DRINK_WATER facing it. Explore in all "
+            "directions — water is somewhere in the world but not near your "
+            "start. Reward: +10 for drinking water."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1275,21 +1433,28 @@ class CraftaxFindWaterEnv(CraftaxClassicEnv):
 class CraftaxFindDiamondEnv(CraftaxClassicEnv):
     """Start with iron pickaxe. Find and mine a diamond. Max 150 steps."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 150) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-find-diamond-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIND DIAMOND\n\n"
-            "Diamonds (D) are rare and scattered across the world.\n"
-            "GOAL: Find a diamond tile and mine it with DO.\n"
-            "You have an iron pickaxe (required to mine diamond).\n"
-            "Explore widely -- diamonds may be far from your start.\n"
-            "REWARD: +10 for mining a diamond.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Diamonds (D) are rare and scattered across the world. You have "
+            "an iron pickaxe (required to mine diamond). Find a diamond tile "
+            "and mine it with DO. Explore widely — diamonds may be far from "
+            "your start. Reward: +10 for mining a diamond."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1319,21 +1484,35 @@ class CraftaxReachDungeonEnv(CraftaxFullEnv):
     """Start on surface. Find the dungeon entrance (stairs down).
     Max 100 steps."""
 
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "survival:day_night",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles",
+        "magic:spells", "magic:books", "magic:enchants",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "progression:xp", "progression:attributes",
+        "floors:0", "floors:1", "floors:navigation",
+    )
+
     def __init__(self, max_turns: int = 100) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-reach-dungeon-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX REACH THE DUNGEON\n\n"
-            "A dungeon entrance is somewhere on the surface.\n"
-            "GOAL: Find the stairs down and DESCEND.\n"
-            "Look for the stairs down tile. It is placed near the\n"
-            "center of the map but you must navigate to it.\n"
-            "REWARD: +10 for entering the dungeon.\n\n"
-            + self.action_spec.render_for_prompt()
+            "A dungeon entrance is somewhere on the surface. Find the stairs "
+            "down (⇣) and use DESCEND to enter the dungeon. The stairs are "
+            "placed near the center of the map but you must navigate to them. "
+            "Reward: +10 for entering the dungeon."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1372,26 +1551,32 @@ class CraftaxFirstDayEnv(CraftaxClassicEnv):
     """Complete as many achievements as possible in 1 day cycle (200 steps).
     Start from scratch. Reward: +1 per achievement unlocked."""
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 200) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-firstday-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX FIRST DAY CHALLENGE\n\n"
-            "You have one day (200 steps) to accomplish as much as possible.\n"
-            "GOAL: Unlock as many achievements as you can.\n"
-            "Start from scratch. Gather resources, craft tools, fight mobs.\n"
-            "Each achievement gives +1 reward:\n"
-            "collect_wood, place_table, make_wood_pickaxe, collect_stone,\n"
-            "place_furnace, make_stone_pickaxe, collect_iron, collect_coal,\n"
-            "place_stone, collect_drink, collect_sapling, place_plant,\n"
-            "eat_plant, defeat_zombie, defeat_skeleton, wake_up,\n"
-            "collect_diamond, make_iron_pickaxe, make_iron_sword,\n"
-            "make_wood_sword, make_stone_sword, eat_cow.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You have one day (200 steps) to accomplish as much as possible. "
+            "Start from scratch. Gather resources, craft tools, fight mobs. "
+            "Reward: +1 per achievement unlocked (collect_wood, place_table, "
+            "make_wood_pickaxe, collect_stone, place_furnace, make_stone_"
+            "pickaxe, collect_iron, collect_coal, place_stone, collect_drink, "
+            "collect_sapling, place_plant, eat_plant, defeat_zombie, "
+            "defeat_skeleton, wake_up, collect_diamond, make_iron_pickaxe, "
+            "make_iron_sword, make_wood_sword, make_stone_sword, eat_cow)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1420,23 +1605,23 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
     """Reach the boss as fast as possible. Start with endgame gear.
     Navigate through dungeon floors. Max 300 steps."""
 
+    # Full game speedrun — full slice.
+    from glyphbench.envs.craftax.docs import ALL_SECTIONS as _SR_ALL
+    tutorial_sections = _SR_ALL
+    del _SR_ALL
+
     def __init__(self, max_turns: int = 300) -> None:
         super().__init__(max_turns=max_turns)
 
     def env_id(self) -> str:
         return "glyphbench/craftax-speedrun-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX SPEEDRUN\n\n"
-            "Race to the deepest dungeon floor!\n"
-            "GOAL: Descend as many floors as possible.\n"
-            "You start on the surface with endgame gear.\n"
-            "Find stairs down, DESCEND, repeat.\n"
-            "Each floor reached gives +3 reward.\n"
-            "Reaching floor 5 gives +10 bonus.\n"
-            "You have diamond gear, spells, and torches.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Race to the deepest dungeon floor. You start on the surface "
+            "with endgame gear (diamond gear, learned spells, torches). "
+            "Find stairs down (⇣), use DESCEND, and repeat. Reward: +3 per "
+            "new floor reached, +10 bonus for reaching floor 5."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1516,6 +1701,16 @@ class CraftaxIronBootstrapEnv(CraftaxClassicEnv):
     not just inherit it).
     """
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 200) -> None:
         super().__init__(max_turns=max_turns)
         self._reached_iron: bool = False
@@ -1524,26 +1719,16 @@ class CraftaxIronBootstrapEnv(CraftaxClassicEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-iron-bootstrap-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX IRON BOOTSTRAP\n\n"
-            "You start with NOTHING. The arena around you contains "
-            "trees (♣), stone (S), coal (C), and iron ore (I).\n"
-            "GOAL: mine 1 iron ore AND place 1 furnace. Termination "
-            "checks both.\n"
-            "Required chain (no shortcuts):\n"
-            "  1) DO on a tree to chop wood (no tool needed).\n"
-            "  2) PLACE_TABLE (2 wood) — then stand adjacent to it.\n"
-            "  3) MAKE_WOOD_PICKAXE (1 wood, table-adjacent).\n"
-            "  4) DO on stone with the wood pickaxe.\n"
-            "  5) MAKE_STONE_PICKAXE (1 wood + 1 stone, table-adjacent).\n"
-            "  6) Mine more stone, then PLACE_FURNACE (4 stone) — the\n"
-            "     furnace is only required for iron-tier and above.\n"
-            "  7) DO on iron ore with the stone pickaxe.\n"
-            "REWARD shaping: +1 first wood, +1 first table, +1 first "
-            "wood pickaxe, +1 first stone, +1 first furnace, +1 first "
-            "stone pickaxe, +5 first iron, +5 success bonus.\n\n"
-            + self.action_spec.render_for_prompt()
+            "You start with NOTHING. The arena contains trees (♣), stone (S), "
+            "coal (C), and iron ore (I). Goal: mine 1 iron ore AND place 1 "
+            "furnace. Required chain (no shortcuts): chop wood with DO → "
+            "PLACE_TABLE (2 wood) → MAKE_WOOD_PICKAXE → mine stone → "
+            "PLACE_FURNACE (4 stone) → MAKE_STONE_PICKAXE → mine iron with "
+            "stone pickaxe. Reward shaping: +1 each first milestone "
+            "(wood/table/wood-pick/stone/furnace/stone-pick), +5 first iron, "
+            "+5 success bonus."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1637,6 +1822,16 @@ class CraftaxDiamondBootstrapEnv(CraftaxIronBootstrapEnv):
     ``inventory["diamond"] >= 1``.
     """
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 250) -> None:
         super().__init__(max_turns=max_turns)
         self._reached_diamond: bool = False
@@ -1644,21 +1839,15 @@ class CraftaxDiamondBootstrapEnv(CraftaxIronBootstrapEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-diamond-bootstrap-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX DIAMOND BOOTSTRAP\n\n"
-            "Like iron-bootstrap, but you must go one rung further up "
-            "the tool tree: forge an iron pickaxe and mine a diamond.\n"
-            "GOAL: mine 1 diamond. The arena contains trees, stone, "
-            "coal, iron ore, AND a small diamond (D) cluster. Diamond "
-            "needs an iron pickaxe.\n"
-            "Required chain:\n"
-            "  wood → table → wood pickaxe → stone → furnace → stone "
-            "pickaxe → iron ore → iron pickaxe (1 wood + 1 iron, table"
-            "+furnace) → DO on diamond.\n"
-            "REWARD shaping: same as iron-bootstrap, plus +3 first "
-            "iron pickaxe, +10 first diamond, +10 success bonus.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Like iron-bootstrap, but go one rung further: forge an iron "
+            "pickaxe and mine a diamond. The arena contains trees, stone, "
+            "coal, iron ore, AND a small diamond (D) cluster. Required chain: "
+            "wood → table → wood pickaxe → stone → furnace → stone pickaxe → "
+            "iron ore → iron pickaxe (1 wood + 1 iron, table+furnace) → DO "
+            "on diamond. Reward shaping: same as iron-bootstrap, plus +3 "
+            "first iron pickaxe, +10 first diamond, +10 success bonus."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1720,6 +1909,16 @@ class CraftaxWaveDefenseEnv(CraftaxClassicEnv):
     _WAVE_STEPS = (1, 50, 100)
     _WAVE_SIZES = (3, 4, 5)
 
+    tutorial_sections = (
+        "legend:player", "legend:terrain", "legend:mobs:overworld",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:day_night",
+        "combat:melee",
+        "crafting:wood", "crafting:stone", "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "floors:0",
+    )
+
     def __init__(self, max_turns: int = 150) -> None:
         super().__init__(max_turns=max_turns)
         self._waves_spawned: int = 0
@@ -1728,17 +1927,13 @@ class CraftaxWaveDefenseEnv(CraftaxClassicEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-wave-defense-v0"
 
-    def system_prompt(self) -> str:
+    def _task_description(self) -> str:
         return (
-            "CRAFTAX WAVE DEFENSE\n\n"
-            "Three zombie waves will spawn near you at steps 1, 50 and "
-            "100 (sizes 3, 4, 5). You have a stone sword (DO to attack "
-            "an adjacent zombie) and 6 stone (PLACE_STONE to wall off "
-            "approaches). Survival 9 HP, no armor.\n"
-            "GOAL: be alive at step 150.\n"
-            "REWARD: +1 per kill, +0.05 per step alive after spawn-1, "
-            "+15 success bonus on full survival.\n\n"
-            + self.action_spec.render_for_prompt()
+            "Three zombie waves spawn near you at steps 1, 50, 100 (sizes 3, "
+            "4, 5). You have a stone sword (DO to attack adjacent zombies) "
+            "and 6 stone (PLACE_STONE to wall off approaches). 9 HP, no "
+            "armor. Goal: be alive at step 150. Reward: +1 per kill, +0.05 "
+            "per step alive after wave 1, +15 success bonus on full survival."
         )
 
     def _reset(self, seed: int) -> GridObservation:
