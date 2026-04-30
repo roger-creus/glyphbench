@@ -116,6 +116,9 @@ override-dependencies = [
     "torch==2.10.0",
     "torchvision==0.25.0",
     "torchaudio==2.10.0",
+    # vllm 0.20.0 wheels are CUDA-13 (libcudart.so.13). Pin to 0.19.0
+    # which matches prime-rl's tested lockfile and is built for CUDA 12.
+    "vllm==0.19.0",
 ]
 
 # torch ships from prime-rl's pytorch-cu128 wheel index so we get the
