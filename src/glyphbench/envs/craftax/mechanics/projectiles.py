@@ -53,6 +53,11 @@ def step_player_projectiles(
     - land on a blocked tile (solid block), OR
     - register a hit on a target (mob).
     Returns the surviving projectiles list.
+
+    Phase-α scope: collision is checked only at the post-advance position.
+    Upstream Craftax (game_logic.py:1786-1799) also checks the pre-advance
+    tile so a stationary mob walked into by a moving projectile is hit;
+    we defer that to Phase γ when projectile damage becomes 3-vector.
     """
     survivors: list[ProjectileEntity] = []
     for p in projectiles:
