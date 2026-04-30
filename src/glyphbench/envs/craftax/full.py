@@ -193,6 +193,7 @@ class Mob(TypedDict):
     max_hp: int
     is_boss: bool
     floor: int
+    attack_cooldown: int  # ticks remaining before this mob can attack again
 
 
 class CraftaxFullEnv(BaseGlyphEnv):
@@ -608,6 +609,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "max_hp": bdef["hp"],
             "is_boss": True,
             "floor": floor,
+            "attack_cooldown": 0,
         }
         self._mobs.append(boss_mob)
         self._bosses_alive[floor] = True
@@ -646,6 +648,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         "max_hp": stats["hp"],
                         "is_boss": False,
                         "floor": floor,
+                        "attack_cooldown": 0,
                     }
                     self._mobs.append(mob)
                     break
@@ -675,6 +678,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         "max_hp": _MOB_STATS["cow"]["hp"],
                         "is_boss": False,
                         "floor": 0,
+                        "attack_cooldown": 0,
                     }
                     self._mobs.append(mob)
                     break
@@ -1039,6 +1043,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         "max_hp": _MOB_STATS[mt]["hp"],
                         "is_boss": False,
                         "floor": 0,
+                        "attack_cooldown": 0,
                     }
                     self._mobs.append(mob)
                     break

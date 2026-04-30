@@ -136,6 +136,7 @@ def _place_full_mob(
                 "max_hp": actual_max,
                 "is_boss": is_boss,
                 "floor": floor,
+                "attack_cooldown": 0,
             }
             env._mobs.append(mob)
             return

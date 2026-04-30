@@ -126,6 +126,7 @@ def test_player_projectile_damages_adjacent_zombie_on_cast_step() -> None:
     env._mobs.append({
         "type": "zombie", "x": 6, "y": 5,
         "hp": 2, "max_hp": 2, "is_boss": False, "floor": env._current_floor,
+        "attack_cooldown": 0,
     })
 
     env.step(env.action_spec.names.index("CAST_FIREBALL"))
