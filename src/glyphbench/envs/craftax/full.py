@@ -115,6 +115,15 @@ _DIR_NAMES: dict[tuple[int, int], str] = {
 # Spell names ordered by learn index
 _SPELL_NAMES = ("fireball", "iceball", "heal")
 
+# Solid tiles that block projectiles (they cannot pass through walls / trees /
+# stone / placed stone / closed boss doors).
+_SOLID_TILES: frozenset[str] = frozenset({
+    TILE_DUNGEON_WALL, TILE_TREE, TILE_STONE, TILE_PLACED_STONE,
+    TILE_BOSS_DOOR,
+    # Crafting structures and ores also block projectiles.
+    TILE_TABLE, TILE_FURNACE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+})
+
 # ----------------------------------------------------------------
 # World sizes
 # ----------------------------------------------------------------
@@ -313,6 +322,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         if self._current_floor == 0:
             return _SURFACE_SIZE
         return _DUNGEON_SIZE
+
+    def _tile_at(self, x: int, y: int) -> str:
+        return self._floors[self._current_floor][y][x]
 
     def _is_in_bounds(self, x: int, y: int) -> bool:
         size = self._floor_size()
@@ -852,6 +864,62 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 )
         return r
 
+    def _step_player_projectiles(self) -> None:
+        """Advance live player projectiles one tile and resolve hits.
+
+        - Map bounds: drop projectiles that leave the floor.
+        - Solid-block collision: projectiles dying on solid tiles do not damage.
+        - Mob hit: damage the first mob the projectile lands on; projectile dies.
+        Mirrors upstream _move_player_projectile:1719-1823 (post-advance check
+        only; pre-advance dual-position check is deferred to phase γ).
+        """
+        from glyphbench.envs.craftax.mechanics.projectiles import (
+            step_player_projectiles,
+        )
+
+        if not self._player_projectiles:
+            return
+
+        size = self._floor_size()
+
+        def _blocked(x: int, y: int) -> bool:
+            return self._tile_at(x, y) in _SOLID_TILES
+
+        def _hit(x: int, y: int) -> bool:
+            for mob in self._mobs:
+                if (
+                    mob["floor"] == self._current_floor
+                    and mob["x"] == x
+                    and mob["y"] == y
+                    and mob["hp"] > 0
+                ):
+                    # Use the projectile's damage (the first projectile in the list
+                    # whose post-advance position equals (x, y)).
+                    proj = next(
+                        p for p in self._player_projectiles
+                        if p.x == x and p.y == y
+                    )
+                    mob["hp"] -= proj.damage
+                    if mob["hp"] <= 0:
+                        # Collect for post-advance kill resolution.
+                        self._pending_projectile_kills.append(mob)
+                    return True
+            return False
+
+        self._pending_projectile_kills: list = []
+        self._player_projectiles = step_player_projectiles(
+            self._player_projectiles,
+            map_w=size, map_h=size,
+            blocked_fn=_blocked, hit_fn=_hit,
+        )
+
+        # Resolve any pending kills (fire achievement, accumulate reward).
+        # _attack_mob_kill removes the mob from self._mobs itself.
+        self._pending_step_reward = getattr(self, "_pending_step_reward", 0.0)
+        for dead_mob in self._pending_projectile_kills:
+            self._pending_step_reward += self._attack_mob_kill(dead_mob)
+        del self._pending_projectile_kills
+
     def _mob_ai(self) -> None:
         """Move mobs on current floor and handle attacks.
 
@@ -1137,6 +1205,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._advance_day_counter()
         self._apply_survival_drain()
         self._tick_plants()
+        # Phase α — advance player projectiles after the action handler runs.
+        self._step_player_projectiles()
+        reward += getattr(self, "_pending_step_reward", 0.0)
+        self._pending_step_reward = 0.0
         self._mob_ai()
 
         # Check stat milestones

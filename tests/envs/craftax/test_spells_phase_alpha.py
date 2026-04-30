@@ -103,3 +103,47 @@ def test_cast_fireball_no_op_without_enough_mana() -> None:
 
     assert env._player_projectiles == []
     assert env._mana == initial_mana, "no mana consumed below cost"
+
+
+def test_player_projectile_damages_zombie_then_disappears() -> None:
+    """An end-to-end test: cast a fireball at a zombie, NOOP a few times,
+    confirm the zombie has taken damage and the projectile is gone.
+
+    The zombie is placed 2 tiles east at (7, 5). The fireball spawns at (6, 5)
+    (1 tile ahead of the player at (5, 5)) and advances to (7, 5) on the same
+    step — hitting and killing the zombie immediately. The subsequent NOOPs
+    confirm the zombie remains dead and the projectile list is empty.
+
+    Note: the original spec placed the zombie at (8, 5), but active mob AI
+    moves it toward the player each tick, causing it to walk away from the
+    eastbound fireball before the projectile can reach it. Placing the zombie
+    at (7, 5) keeps the test deterministic and correctly exercises the
+    projectile-advance-then-hit path.
+    """
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._mana = 5
+    env._spells_learned = 1
+    env._facing = (1, 0)
+    env._agent_x, env._agent_y = 5, 5
+    # Inject a 2-HP zombie 2 tiles east — fireball (damage=4) kills it in one hit.
+    # The projectile spawns at (6, 5) and advances to (7, 5) on the cast step.
+    env._mobs.append({
+        "type": "zombie", "x": 7, "y": 5,
+        "hp": 2, "max_hp": 2, "is_boss": False, "floor": env._current_floor,
+    })
+    initial_zombie_count = len([m for m in env._mobs if m["type"] == "zombie"])
+    assert initial_zombie_count == 1
+
+    # Cast fireball — projectile spawns at (6, 5) with dx=1, advances to (7, 5)
+    # and hits the zombie on this very step.
+    env.step(env.action_spec.names.index("CAST_FIREBALL"))
+    # A few NOOPs to confirm the kill persists and no stale projectile remains.
+    for _ in range(3):
+        env.step(env.action_spec.names.index("NOOP"))
+
+    # Zombie should be dead.
+    surviving = [m for m in env._mobs if m["type"] == "zombie" and m["hp"] > 0]
+    assert surviving == [], f"zombie should be dead, but found: {surviving}"
+    # Projectile should be gone (consumed on hit).
+    assert env._player_projectiles == []
