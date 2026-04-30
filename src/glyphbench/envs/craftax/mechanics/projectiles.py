@@ -40,6 +40,47 @@ class ProjectileEntity:
         self.y += self.dy
 
 
+def step_mob_projectiles(
+    projectiles: list[ProjectileEntity],
+    *,
+    map_w: int,
+    map_h: int,
+    blocked_fn: Callable[[ProjectileEntity], bool],
+    block_destruction_fn: Callable[[ProjectileEntity], bool],
+    hit_player_fn: Callable[[ProjectileEntity], bool],
+) -> list[ProjectileEntity]:
+    """Advance each mob projectile one tile. Drop those that:
+    - go out of map bounds, OR
+    - destroy a destructible tile (furnace / crafting table) and die on impact
+      (block_destruction_fn fires BEFORE blocked_fn so destructible structures
+      are not mis-classified as ordinary solid blocks and skipped), OR
+    - land on a solid tile that is NOT destructible (drop without effect), OR
+    - hit the player (damage applied via hit_player_fn).
+
+    Returns the surviving projectiles list.
+
+    Mirrors upstream _move_mob_projectile (game_logic.py:1616-1710). Sleep
+    cancellation on hit happens inside hit_player_fn (the env-level closure).
+
+    Ordering note: block_destruction_fn is checked before blocked_fn because
+    furnaces/crafting tables appear in _SOLID_TILES; without this ordering,
+    the blocked check would fire first and destroy logic would never run.
+    """
+    survivors: list[ProjectileEntity] = []
+    for p in projectiles:
+        p.advance()
+        if p.x < 0 or p.x >= map_w or p.y < 0 or p.y >= map_h:
+            continue
+        if block_destruction_fn(p):
+            continue  # destructible tile → projectile dies on impact
+        if blocked_fn(p):
+            continue
+        if hit_player_fn(p):
+            continue
+        survivors.append(p)
+    return survivors
+
+
 def step_player_projectiles(
     projectiles: list[ProjectileEntity],
     *,

@@ -934,6 +934,52 @@ class CraftaxFullEnv(BaseGlyphEnv):
         for dead_mob in pending_kills:
             self._pending_step_reward += self._attack_mob_kill(dead_mob)
 
+    def _step_mob_projectiles(self) -> None:
+        """Advance live mob projectiles; damage player on hit; destroy
+        furnace/crafting_table on impact; cancel sleep when hit.
+
+        Symmetric to _step_player_projectiles (T12). The order of the
+        per-step driver matters: T12 (player projectiles) runs BEFORE
+        _mob_ai; T25 (mob projectiles) runs AFTER _mob_ai so projectiles
+        spawned by ranged mobs in this tick travel immediately.
+        """
+        if not self._mob_projectiles:
+            return
+        from glyphbench.envs.craftax.mechanics.projectiles import (
+            step_mob_projectiles,
+        )
+        size = self._floor_size()
+
+        def _blocked(p) -> bool:
+            return self._tile_at(p.x, p.y) in _SOLID_TILES
+
+        def _block_destroy(p) -> bool:
+            tile = self._tile_at(p.x, p.y)
+            if tile in (TILE_TABLE, TILE_FURNACE):
+                # Replace with floor tile (per upstream behaviour).
+                empty = (
+                    TILE_GRASS if self._current_floor == 0
+                    else TILE_DUNGEON_FLOOR
+                )
+                self._current_grid()[p.y][p.x] = empty
+                return True
+            return False
+
+        def _hit_player(p) -> bool:
+            if p.x == self._agent_x and p.y == self._agent_y:
+                self._take_damage(p.damage)
+                self._is_sleeping = False  # upstream: hit cancels sleep
+                return True
+            return False
+
+        self._mob_projectiles = step_mob_projectiles(
+            self._mob_projectiles,
+            map_w=size, map_h=size,
+            blocked_fn=_blocked,
+            block_destruction_fn=_block_destroy,
+            hit_player_fn=_hit_player,
+        )
+
     def _mob_ai(self) -> None:
         """Move mobs on current floor and handle attacks.
 
@@ -1300,6 +1346,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         reward += self._pending_step_reward
         self._pending_step_reward = 0.0
         self._mob_ai()
+        # Phase α — advance mob projectiles after _mob_ai so projectiles
+        # spawned by ranged mobs in this tick travel immediately (T25).
+        self._step_mob_projectiles()
 
         # Phase α: despawn mobs that drifted beyond MOB_DESPAWN_DISTANCE.
         from glyphbench.envs.craftax.mechanics.mobs import should_despawn

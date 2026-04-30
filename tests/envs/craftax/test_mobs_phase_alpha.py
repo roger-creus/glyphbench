@@ -395,3 +395,69 @@ def test_step_ranged_mob_shoots_in_window_with_cooldown_4() -> None:
     assert len(spawned) == 1, f"expected 1 projectile, got {len(spawned)}"
     assert spawned[0][0] == ProjectileType.ARROW
     assert mob["attack_cooldown"] == RANGED_ATTACK_COOLDOWN == 4
+
+
+def test_step_mob_projectiles_advances_and_damages_player() -> None:
+    """Mob projectile heading at the player damages on hit + dies."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftax.mechanics.projectiles import (
+        ProjectileEntity, ProjectileType,
+    )
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._hp = 100
+    env._mob_projectiles.append(ProjectileEntity(
+        kind=ProjectileType.ARROW, x=4, y=5, dx=1, dy=0, damage=2,
+    ))
+
+    initial_hp = env._hp
+    env.step(env.action_spec.names.index("NOOP"))
+    # Projectile advances from (4,5) → (5,5) where the player is.
+    delta = initial_hp - env._hp
+    assert delta == 2, f"player should take 2 damage, got {delta}"
+    assert env._mob_projectiles == [], "projectile consumed on hit"
+
+
+def test_step_mob_projectiles_cancels_sleep() -> None:
+    """Mob projectile hit cancels _is_sleeping."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftax.mechanics.projectiles import (
+        ProjectileEntity, ProjectileType,
+    )
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._hp = 100
+    env._is_sleeping = True
+    env._mob_projectiles.append(ProjectileEntity(
+        kind=ProjectileType.ARROW, x=4, y=5, dx=1, dy=0, damage=2,
+    ))
+
+    env.step(env.action_spec.names.index("NOOP"))
+    assert env._is_sleeping is False, "sleep cancelled on hit"
+
+
+def test_step_mob_projectiles_destroys_furnace_on_impact() -> None:
+    """A mob projectile hitting a furnace tile destroys it (sets to floor)."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftax.base import TILE_FURNACE
+    from glyphbench.envs.craftax.mechanics.projectiles import (
+        ProjectileEntity, ProjectileType,
+    )
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    grid = env._current_grid()
+    grid[5][8] = TILE_FURNACE
+    env._mob_projectiles.append(ProjectileEntity(
+        kind=ProjectileType.ARROW, x=7, y=5, dx=1, dy=0, damage=2,
+    ))
+
+    env.step(env.action_spec.names.index("NOOP"))
+    # Projectile advanced to (8, 5) and destroyed the furnace.
+    assert grid[5][8] != TILE_FURNACE, "furnace should be destroyed"
+    assert env._mob_projectiles == [], "projectile consumed on furnace impact"
