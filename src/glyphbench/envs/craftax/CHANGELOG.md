@@ -3,6 +3,45 @@
 This file tracks behavioural deltas to the Craftax envs as the
 multi-phase upstream-faithful port (phases α / β / γ) lands.
 
+## Tutorial standardization (2026-04-30)
+
+### Added
+- Anchor-aware composer in `docs/__init__.py`. Each chapter `.md` file
+  declares one or more named anchors via `<!-- :section name -->` /
+  `<!-- :end -->` HTML comments. `compose(spec_iter)` joins requested
+  anchors in caller-given order; bare chapter names expand to every
+  anchor in that chapter; unknown anchors raise ValueError (no silent
+  fallback). 50-anchor canonical list locked in `ALL_SECTIONS`.
+- `_CraftaxTutorialMixin` in `base.py`. Subclasses declare
+  `tutorial_sections: tuple[str, ...]` and `_task_description() -> str`;
+  the mixin assembles the canonical
+  `"You are playing X.\nTASK\n…\n\n<compose>\n\n<actions>"` template.
+- Coverage registry in `docs/_coverage.py`: ACTION_TO_ANCHORS for all 45
+  full-spec actions; GLYPH_TO_ANCHORS for every renderable codepoint.
+- Per-env coverage tests in `tests/glyphbench/envs/craftax/test_tutorial.py`
+  (155 parametrized cases). Action and glyph coverage now fail loudly if
+  any env's `tutorial_sections` is under-specified.
+- `tests/glyphbench/envs/craftax/test_composer.py` (15 unit tests for
+  parse_anchors + compose).
+
+### Changed
+- All 38 craftax envs (full + classic + 10 basic + 26 extended subtasks)
+  use the composer-driven `system_prompt()`. Per-env hand-crafted prompt
+  strings deleted — ~2000 LOC removed across `full.py` / `classic.py` /
+  `subtasks.py` / `subtasks_extended.py`.
+- Tutorial chapters (10 .md files) audited against `mechanics/`; numeric
+  claims (HP, decay rates, mana costs, defense fractions, projectile
+  rules, XP curve) now grounded in code. Stale claims removed (e.g. the
+  legend's "X / 67 achievements" line was replaced with "X / 93 full,
+  X / 22 classic").
+- `legend:player` covers the directional-arrow player glyphs (→ ← ↑ ↓);
+  the agent renders facing direction, not `@`.
+
+### Eval
+- Random-agent baseline regenerated for all 38 craftax envs at
+  `eval/random_baseline.json` (25 episodes per env). Stale
+  `craftax-smelt-iron-v0` entry dropped (renamed to `mine-iron-v0`).
+
 ## Phase α — Combat & Mobs (2026-04-29)
 
 ### Added
