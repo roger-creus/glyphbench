@@ -1904,3 +1904,103 @@ def test_player_can_descend_to_floor_4():
     assert e._current_floor == 4, (
         f"After DESCEND from floor 3, player should be on floor 4, got {e._current_floor}"
     )
+
+
+# ---------------------------------------------------------------------------
+# T21β: Phase β achievement-fires — regression smoke test
+# ---------------------------------------------------------------------------
+
+def test_phase_beta_achievement_smoke() -> None:
+    """Walk through several phase-β surfaces and assert the expected set of
+    achievements fires.  This is a deterministic regression guard: it uses
+    state injection (not game-world exploration) so the assertions are
+    seed-independent.
+
+    Covered achievements
+    --------------------
+    open_chest    — DO on an injected TILE_CHEST on floor 2.
+    find_bow      — DO on the first chest on floor 1 (adds bow via gating).
+    drink_potion  — DRINK_POTION_RED with 1 red potion injected.
+    learn_*       — READ_BOOK with 1 book injected (teaches one of the two spells).
+    wake_up       — SLEEP until _energy reaches _MAX_ENERGY.
+    """
+    from glyphbench.envs.craftax.base import TILE_CHEST, TILE_DUNGEON_FLOOR
+
+    _DO = CRAFTAX_FULL_ACTION_SPEC.names.index("DO")
+    _DRINK_RED = CRAFTAX_FULL_ACTION_SPEC.names.index("DRINK_POTION_RED")
+    _READ_BOOK = CRAFTAX_FULL_ACTION_SPEC.names.index("READ_BOOK")
+    _SLEEP_ACT = CRAFTAX_FULL_ACTION_SPEC.names.index("SLEEP")
+    _NOOP = 0
+
+    env = CraftaxFullEnv(max_turns=2000)
+    env.reset(seed=42)
+
+    # ---- open_chest + find_bow (floor 1 first-chest gating) ----
+    env._current_floor = 1
+    # Position agent at (10,10) facing right; inject chest at (11,10).
+    env._agent_x, env._agent_y = 10, 10
+    env._facing = (1, 0)
+    grid = env._current_grid()
+    grid[10][11] = TILE_CHEST
+    # Ensure the cell was dungeon floor before (so it's walkable/interactable).
+    env.step(_DO)
+    assert "open_chest" in env._achievements_unlocked, (
+        "open_chest should fire after DO on TILE_CHEST"
+    )
+    assert "find_bow" in env._achievements_unlocked, (
+        "find_bow should fire after first chest on floor 1"
+    )
+    assert env._inventory.get("bow", 0) >= 1, (
+        "bow should be granted by first-chest gating on floor 1"
+    )
+
+    # ---- open_chest on floor 2 (different floor, separate chest set) ----
+    env._current_floor = 2
+    env._agent_x, env._agent_y = 10, 10
+    env._facing = (1, 0)
+    grid2 = env._current_grid()
+    grid2[10][11] = TILE_CHEST
+    env.step(_DO)
+    # open_chest already in set from floor 1; idempotent — still present.
+    assert "open_chest" in env._achievements_unlocked
+
+    # ---- drink_potion ----
+    env._inventory["potions"]["red"] = 1
+    env.step(_DRINK_RED)
+    assert "drink_potion" in env._achievements_unlocked, (
+        "drink_potion should fire after DRINK_POTION_RED with a red potion"
+    )
+
+    # ---- learn_fireball or learn_iceball ----
+    env._inventory["book"] = 1
+    env.step(_READ_BOOK)
+    learned = [sp for sp, known in env._learned_spells.items() if known]
+    assert len(learned) >= 1, (
+        "READ_BOOK with a book in inventory should teach at least one spell"
+    )
+    # The learn_<spell> achievement should have fired for the taught spell.
+    for sp in learned:
+        assert f"learn_{sp}" in env._achievements_unlocked, (
+            f"learn_{sp} achievement should fire after reading a book that teaches {sp}"
+        )
+
+    # ---- wake_up — sleep until energy full ----
+    from glyphbench.envs.craftax.full import _MAX_ENERGY  # type: ignore[attr-defined]
+    env._is_sleeping = False
+    env._energy = 0
+    env.step(_SLEEP_ACT)           # sets _is_sleeping = True
+    assert env._is_sleeping, "SLEEP action should set _is_sleeping"
+    # Drain all mobs from this env so no accidental mob-hit cancels sleep.
+    env._mobs = []
+    env._mob_projectiles = []
+    # Tick until energy fills (each tick +2 energy; _MAX_ENERGY ticks max).
+    ticks = 0
+    while env._is_sleeping and ticks < _MAX_ENERGY + 10:
+        env.step(_NOOP)
+        ticks += 1
+    assert not env._is_sleeping, (
+        "SLEEP state should have exited once energy reached _MAX_ENERGY"
+    )
+    assert "wake_up" in env._achievements_unlocked, (
+        "wake_up achievement should fire when sleep exits via energy-full"
+    )

@@ -87,13 +87,85 @@ Pre-α: 35 names. Post-α: 36 names.
 Pre-α: ~80 craftax tests. Post-α: 146 craftax tests (118 unit/integration
 tests added across phase α).
 
-## Phase β — Survival, Magic & Loot (planned)
-Deferred mechanics: REST action + new sleep state machine, READ_BOOK +
-per-spell `learned_spells[i]` flags, books from chests on floors 3-4,
-6-color potion shuffle with random per-game `potion_mapping`, lava
-damage on contact, full per-tile lightmap, darkness²-modulated mob
-spawn, dungeon-room biome generators for floors 1/3/4, sapphire/ruby
-ore on floors 2/4/5/6/7.
+## Phase β — Survival, Magic & Loot (2026-04-29)
+
+### Added
+- `mechanics/potions.py` — 6-color potion shuffle (`make_potion_mapping`,
+  `apply_potion_effect`, `POTION_COLORS`, `POTION_EFFECTS`).
+- `mechanics/lighting.py` — per-tile lightmap subsystem (`compute_lightmap`,
+  `TORCH_RADIUS=5`, `VISIBILITY_THRESHOLD=0.05`).
+- `mechanics/world_gen.py` — dungeon-room biome generator with 8 rooms,
+  L-shaped corridors, chests, fountains.
+- New full-spec actions: `REST` (35), `READ_BOOK` (42), `DRINK_POTION_RED/
+  GREEN/BLUE/PINK/CYAN/YELLOW` (36-41). Net spec change: -1 generic
+  `DRINK_POTION` (legacy, removed) + 8 new = +7. Spec post-β: 36 (post-α)
+  + 7 = 43.
+- New tile constants: `TILE_SAPPHIRE` (♦), `TILE_RUBY` (▼), `TILE_CHEST`
+  ($), `TILE_FOUNTAIN` (⊙), `TILE_ENCHANT_FIRE` (Ⓔ), `TILE_ENCHANT_ICE`
+  (Ⓘ).
+- New inventory keys: `sapphire`, `ruby`, `book`, `potions[red/green/blue/
+  pink/cyan/yellow]`. The legacy `_potions: list[str]` is retained as a
+  no-op field for backward compat; the per-color `inventory["potions"]`
+  dict is the live state.
+- New env state: `_is_resting: bool`, `_potion_mapping: tuple[int, ...]`
+  (per-game hidden shuffle), `_learned_spells: dict[str, bool]`,
+  `_chests_opened: dict[int, set]`, `_first_chest_opened: dict[int, bool]`,
+  `_lightmap: dict[int, np.ndarray]`, `_achievements_phase_beta: dict[str,
+  bool]` (67-key bitmap from upstream constants.py:406-585).
+
+### Changed
+- `SLEEP` (action 6): no longer an instant 49-step skip with random shelter
+  ambush. Now enters a continuous `_is_sleeping` state with +2 HP/tick and
+  +2 energy/tick regen. Exits on `_energy >= _MAX_ENERGY` (fires `wake_up`)
+  or on incoming damage (no achievement). Sleep is interruptible by mobs.
+- `_take_damage`: cancels both `_is_sleeping` and `_is_resting` on any hit.
+- Sapphire/ruby ore on floor 2 (Gnomish Mines): 2.5% each on stone-eligible
+  tiles, mutually exclusive with diamond/iron/coal. Iron-pickaxe gating
+  enforced via `PICKAXE_REQUIRED` table (tier 2).
+- Lava: previously walk-blocked or fire-resist gated. Now walkable; player
+  takes 2 damage per tick while standing on `TILE_LAVA`. The legacy
+  `_fire_resist_turns` field is dropped entirely.
+- Chest interaction: DO on `TILE_CHEST` rolls upstream loot table (wood /
+  torches / ore / potion / arrows / pickaxe / sword) per
+  `add_items_from_chest`. Each chest opens once per episode.
+- First-chest gating: floor 1 first chest grants 1 bow + `find_bow`
+  achievement. First chest on floor 3 OR 4 grants 1 book + `find_book`.
+- Spell tracking: legacy `_spells_learned: int` counter replaced by
+  `_learned_spells: dict[str, bool]` per-spell. `CAST_FIREBALL` /
+  `CAST_ICEBALL` gate on their respective bool.
+- Visibility: `_is_visible(x, y)` now reads `_lightmap[floor][y, x] > 0.05`
+  instead of binary 3-tile-radius + 4-tile-torch-radius. Torches, day/night
+  cycle, and biome baselines all feed the lightmap.
+- Spawn rate: melee night spawns scale by `(1 - light_level)²` per the
+  upstream darkness² rule.
+- Floor 1, 3, 4 generation: rewritten via `generate_dungeon_floor` — 8 rooms
+  with L-shaped corridors, 1 chest per room, ~50% chance fountain per room.
+  Floor 3 hosts `TILE_ENCHANT_ICE`; floor 4 hosts `TILE_ENCHANT_FIRE`
+  (enchantment semantics deferred to phase γ).
+
+### Removed
+- Legacy single-action `DRINK_POTION` (replaced by 6 per-color actions).
+- Legacy achievements `drink_health_potion`, `drink_fire_resist_potion`,
+  `drink_speed_potion` (consolidated into `drink_potion`).
+- State field `_fire_resist_turns` (no fire-resist potion in upstream).
+- Legacy mob names `skeleton_archer` and `spider`. Renamed to upstream-
+  faithful `skeleton` (ranged) and `kobold` (ranged). Achievement
+  `defeat_skeleton_archer` renamed to `defeat_skeleton`; `defeat_spider`
+  renamed to `defeat_kobold`. (T_FOLLOWUP_A complete.)
+
+### Action spec post-β
+43 actions total: 36 (post-α) + 1 `REST` + 6 `DRINK_POTION_*` + 1
+`READ_BOOK` = 43. Phase γ adds 4 more (LEVEL_UP_DEX/STR/INT, ENCHANT_BOW),
+making the projected final spec 47.
+
+### Test count
+Phase α end: 146 craftax tests. Phase β end: 275 craftax tests.
+
+### Deferred (still tracked)
+- T_FOLLOWUP_C: pre-advance projectile collision (phase γ).
+- T_FOLLOWUP_E: ranged-mob cornered fallback (phase γ).
+- Sapphire/ruby ore on floors 4-7 (phase γ, pending floor generation).
+- Re-baseline (random + LLM smoke) — deferred for cluster_manager runs.
 
 ## Phase γ — Progression & Endgame (planned)
 Deferred mechanics: 3-vector damage `(phys, fire, ice)` everywhere,
