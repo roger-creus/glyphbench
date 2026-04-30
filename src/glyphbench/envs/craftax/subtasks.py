@@ -401,9 +401,10 @@ class CraftaxCraftPickaxeEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "Craft an iron pickaxe. Requires the full tech chain: wood -> table "
-            "-> wood pickaxe -> stone -> stone pickaxe -> coal+iron -> furnace "
-            "-> iron pickaxe. Reward: +1 on each tier crafted."
+            "Craft a wood pickaxe. You start with 1 wood and a crafting table "
+            "(t) adjacent to you. Stand next to the table and use "
+            "MAKE_WOOD_PICKAXE. Reward: +10 on craft, episode ends. Time limit: "
+            "30 steps."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -449,9 +450,10 @@ class CraftaxCraftSwordEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "Craft an iron sword. Requires the full tech chain: wood -> table "
-            "-> wood sword -> stone sword -> coal+iron -> furnace -> iron sword. "
-            "Reward: +1 on each tier crafted."
+            "Craft a stone sword. You start with 2 wood and 1 stone, a crafting "
+            "table (t) on your right, and a furnace (f) on your left. Stand "
+            "adjacent to the table and use MAKE_STONE_SWORD. Reward: +10 on "
+            "craft, episode ends. Time limit: 30 steps."
         )
 
     def _setup_world(self, seed: int) -> None:
