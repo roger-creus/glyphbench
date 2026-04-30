@@ -19,30 +19,25 @@ cd "$REPO_ROOT"
 OUTPUT_DIR=${OUTPUT_DIR:-/home/roger/glyphbench/outputs/qwen35-4b-glyphbench-smoke-singlenode}
 mkdir -p "$OUTPUT_DIR"
 
-# Shim: monkey-patch then call into prime-rl's rl entrypoint.
-SHIM=/tmp/glyphbench_smoke_shim.py
-cat > "$SHIM" <<'PY'
-import prime_rl.orchestrator.advantage as _adv
-from glyphbench.rl.advantage import compute_advantages_with_env_norm
-_adv.compute_advantages = compute_advantages_with_env_norm
+# Install our sitecustomize.py into the venv so prime-rl subprocesses
+# can pick up the compute_advantages patch via the env-var hook below.
+# The venv site-packages is rewritten by `uv sync`, so we copy fresh
+# every launch (the file is checked into the repo at scripts/rl/).
+SITE_PACKAGES="$REPO_ROOT/.venv/lib/python3.12/site-packages"
+if [ -d "$SITE_PACKAGES" ]; then
+    cp "$REPO_ROOT/scripts/rl/sitecustomize.py" "$SITE_PACKAGES/sitecustomize.py"
+fi
 
-# Also patch the orchestrator module's local binding (in case it was
-# imported before our patch — belt and braces).
-try:
-    import prime_rl.orchestrator.orchestrator as _orch
-    if _orch.compute_advantages is not compute_advantages_with_env_norm:
-        _orch.compute_advantages = compute_advantages_with_env_norm
-except Exception:
-    pass
-
-from prime_rl.entrypoints.rl import main
-main()
-PY
+# Tell sitecustomize.py to apply our patch in every python subprocess
+# that prime-rl's `rl` entrypoint spawns (orchestrator, trainer,
+# inference). Subprocesses inherit this env var.
+export GLYPHBENCH_PATCH_PRIME_RL=1
 
 echo "[$(hostname)] launching single-node smoke (rl entrypoint)"
 echo "  config: configs/rl/qwen35-4b-glyphbench/smoke-singlenode.toml"
 echo "  output: $OUTPUT_DIR"
+echo "  GLYPHBENCH_PATCH_PRIME_RL=$GLYPHBENCH_PATCH_PRIME_RL"
 
-uv run --extra rl --extra eval python "$SHIM" \
+uv run --extra rl --extra eval rl \
     @ configs/rl/qwen35-4b-glyphbench/smoke-singlenode.toml \
     --output-dir "$OUTPUT_DIR"
