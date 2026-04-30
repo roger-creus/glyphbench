@@ -307,7 +307,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "iron armor 3, diamond armor 4.\n"
             "Enchant adds +2 weapon dmg or +1 armor def.\n\n"
             "CRAFTING (at adjacent table)\n"
-            "MAKE_ARROW: 1 wood + 1 stone -> 2 arrows (table required).\n\n"
+            "MAKE_ARROW: 1 wood + 1 stone -> 2 arrows (table required).\n"
+            "MAKE_TORCH: 1 wood + 1 coal -> 4 torches (table required).\n\n"
             "MAGIC\n"
             "CAST_FIREBALL / CAST_ICEBALL (2 mana each): spawn a fireball / iceball projectile one tile in front of you; travels 1 tile/turn until it hits a target or wall.\n\n"
             "DUNGEONS\n"
@@ -1703,6 +1704,21 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return self._try_unlock("make_arrow")
         return 0.0
 
+    def _handle_make_torch(self) -> float:
+        if (
+            self._near_table()
+            and self._inventory.get("wood", 0) >= 1
+            and self._inventory.get("coal", 0) >= 1
+        ):
+            self._inventory["wood"] -= 1
+            self._inventory["coal"] -= 1
+            self._inventory["torch"] = (
+                self._inventory.get("torch", 0) + 4
+            )
+            self._message = "Crafted 4 torches."
+            return self._try_unlock("make_torch")
+        return 0.0
+
     def _handle_make_iron_armor(self) -> float:
         if (
             self._near_table()
@@ -2055,6 +2071,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "ENCHANT_WEAPON": _handle_enchant_weapon,
         "ENCHANT_ARMOR": _handle_enchant_armor,
         "MAKE_ARROW": _handle_make_arrow,
+        "MAKE_TORCH": _handle_make_torch,
     }
 
     # ---------------------------------------------------------------

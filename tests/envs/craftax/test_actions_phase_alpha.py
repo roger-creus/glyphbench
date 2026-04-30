@@ -74,3 +74,50 @@ def test_make_arrow_no_op_without_materials() -> None:
 
     assert env._inventory.get("arrows", 0) == 0
     assert env._inventory["stone"] == 5  # nothing consumed
+
+
+def test_make_torch_consumes_wood_and_coal_grants_four_torches() -> None:
+    """Upstream MAKE_TORCH: 1 wood + 1 coal -> 4 torches, requires adjacent table."""
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["wood"] = 2
+    env._inventory["coal"] = 2
+    grid = env._current_grid()
+    grid[env._agent_y][env._agent_x + 1] = TILE_TABLE
+
+    action_idx = env.action_spec.names.index("MAKE_TORCH")
+    env.step(action_idx)
+
+    assert env._inventory["wood"] == 1
+    assert env._inventory["coal"] == 1
+    assert env._inventory["torch"] == 4
+
+
+def test_make_torch_no_op_without_adjacent_table() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["wood"] = 2
+    env._inventory["coal"] = 2
+    initial = dict(env._inventory)
+
+    action_idx = env.action_spec.names.index("MAKE_TORCH")
+    env.step(action_idx)
+
+    assert env._inventory.get("torch", 0) == 0
+    assert env._inventory["wood"] == initial["wood"]
+    assert env._inventory["coal"] == initial["coal"]
+
+
+def test_make_torch_no_op_without_materials() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["wood"] = 5
+    env._inventory["coal"] = 0
+    grid = env._current_grid()
+    grid[env._agent_y][env._agent_x + 1] = TILE_TABLE
+
+    action_idx = env.action_spec.names.index("MAKE_TORCH")
+    env.step(action_idx)
+
+    assert env._inventory.get("torch", 0) == 0
+    assert env._inventory["wood"] == 5
