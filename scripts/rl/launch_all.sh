@@ -62,15 +62,14 @@ for h in "${INFERENCE_NODES[@]}"; do
     "
 done
 
-# 3. Wait for vLLM HTTP endpoints to come up (up to 10 min).
-echo "==> waiting for vllm endpoints"
-deadline=$((SECONDS + 600))
+# 3. Wait for vLLM HTTP endpoints to come up (up to 15 min — first model
+# load is slow). No auth header (prime-rl's inference doesn't enforce auth).
+echo "==> waiting for vllm endpoints (up to 15 min for model load)"
+deadline=$((SECONDS + 900))
 while [ $SECONDS -lt $deadline ]; do
     all_up=1
     for h in "${INFERENCE_NODES[@]}"; do
-        if ! curl -fsS --max-time 4 \
-            -H "Authorization: Bearer ${INFERENCE_SERVER_API_KEY}" \
-            "http://${h}:${INFERENCE_PORT}/v1/models" >/dev/null 2>&1; then
+        if ! curl -fsS --max-time 4 "http://${h}:${INFERENCE_PORT}/v1/models" >/dev/null 2>&1; then
             all_up=0
             break
         fi
@@ -79,10 +78,11 @@ while [ $SECONDS -lt $deadline ]; do
         echo "    all inference nodes up"
         break
     fi
-    sleep 10
+    sleep 15
 done
 if [ "$all_up" != "1" ]; then
-    echo "FAIL: vLLM didn't come up within 10 min. Check tmux sessions on inference nodes." >&2
+    echo "FAIL: vLLM didn't come up within 15 min. Check tmux sessions on inference nodes." >&2
+    echo "  ssh sf-node-2 'tmux attach -t vllm-sf-node-2'  # to see live log"
     exit 1
 fi
 

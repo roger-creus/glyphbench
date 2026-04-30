@@ -12,12 +12,12 @@
 
 set -euo pipefail
 
-# Smaller / faster model to validate plumbing on first pass. Once this
-# smoke passes, swap to MODEL=Qwen/Qwen3.5-4B + MAX_MODEL_LEN=16384 +
-# CONFIG=configs/rl/qwen35-4b-glyphbench/rl.toml for production.
+# Use the production model (Qwen3.5-4B) so the smoke truly mirrors the
+# eval profile — glyphbench's parser is tuned to Qwen3.5's thinking-token
+# format, and using a different model would mask format-related bugs.
 export CONFIG=configs/rl/qwen35-4b-glyphbench/smoke-multinode.toml
-export MODEL=Qwen/Qwen3-4B-Instruct-2507
-export MAX_MODEL_LEN=8192
+export MODEL=Qwen/Qwen3.5-4B
+export MAX_MODEL_LEN=16384
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 exec bash "$REPO_ROOT/scripts/rl/launch_all.sh"

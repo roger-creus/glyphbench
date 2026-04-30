@@ -1,10 +1,8 @@
 # Multi-node smoke — exercises the full 3-node pipeline (trainer FSDP=8 +
-# 16 inference workers across 2 nodes) on a SHORT run.
+# 16 inference workers across 2 nodes) on a SHORT run with the production
+# model (Qwen3.5-4B) so the parser path matches.
 #
 # Differences from production rl.toml:
-#   - Qwen3-4B-Instruct-2507 instead of Qwen3.5-4B (prime-rl examples use
-#     this model; safest first pass for verifying plumbing). Bump back to
-#     Qwen/Qwen3.5-4B once this smoke passes.
 #   - max_steps = 5 (vs 1000); ckpt + eval intervals shrunk to fire inside
 #     the run.
 #   - batch_size = 16 (vs 256), rollouts_per_example = 4 (vs 8) — fewer,
@@ -15,11 +13,10 @@
 #   - W&B offline mode (no API key needed).
 #
 # Launch:
-#   CONFIG=configs/rl/qwen35-4b-glyphbench/smoke-multinode.toml \
-#     bash scripts/rl/launch_all.sh
+#   bash scripts/rl/launch_smoke_multinode.sh
 
 max_steps = 5
-seq_len = 8192
+seq_len = 16384
 max_async_level = 1
 
 [deployment]
@@ -47,7 +44,7 @@ interval = 2         # checkpoint at step 2 and 4
 keep_last = 3
 
 [model]
-name = "Qwen/Qwen3-4B-Instruct-2507"
+name = "Qwen/Qwen3.5-4B"
 
 # --- Trainer ---
 
@@ -81,7 +78,7 @@ kwargs = { dppo_mask_low = 0.2, dppo_mask_high = 0.2, adv_tau = 1.0, kl_tau = 1e
 batch_size = 16
 rollouts_per_example = 4
 oversampling_factor = 1.5
-seq_len = 8192
+seq_len = 16384
 
 [orchestrator.advantage]
 type = "default"  # bypassed by glyphbench.rl.orchestrator_patch monkey-patch
@@ -123,7 +120,7 @@ api_server_count = 8
 gpu_memory_utilization = 0.85
 
 [inference.model]
-max_model_len = 8192
+max_model_len = 16384
 
 [inference.parallel]
 tp = 1

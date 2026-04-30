@@ -19,14 +19,15 @@ source "$REPO_ROOT/.env.cluster"
 
 : "${INFERENCE_NODES:?INFERENCE_NODES not set}"
 : "${INFERENCE_PORT:?INFERENCE_PORT not set}"
-: "${INFERENCE_SERVER_API_KEY:?INFERENCE_SERVER_API_KEY not set}"
 : "${OUTPUT_DIR:?OUTPUT_DIR not set}"
 : "${NCCL_SOCKET_IFNAME:?NCCL_SOCKET_IFNAME not set}"
 : "${TRAINER_NODE_IP:?TRAINER_NODE_IP not set}"
 : "${NCCL_PORT:?NCCL_PORT not set}"
+: "${INFERENCE_SERVER_API_KEY:=}"
 
-# vLLM expects an env-var named OPENAI_API_KEY_INFERENCE (or whatever we point
-# the orchestrator's client.api-key-var at). Export it so prime-rl picks up.
+# Set OPENAI_API_KEY_INFERENCE (used by prime-rl's client.api-key-var) — empty
+# is OK because prime-rl's inference doesn't enforce auth. Network ACLs on the
+# cluster ports are the real gate.
 export OPENAI_API_KEY_INFERENCE="$INFERENCE_SERVER_API_KEY"
 export NCCL_SOCKET_IFNAME
 

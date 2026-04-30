@@ -113,9 +113,8 @@ check_ssh() {
 check_vllm() {
     local host="$1"
     local url="http://${host}:${INFERENCE_PORT}/v1/models"
-    if curl -fsS --max-time 8 \
-        -H "Authorization: Bearer ${INFERENCE_SERVER_API_KEY}" \
-        "$url" >/dev/null 2>&1; then
+    # No API-key header — prime-rl's inference doesn't enforce auth.
+    if curl -fsS --max-time 8 "$url" >/dev/null 2>&1; then
         echo "  OK:   vllm $host:$INFERENCE_PORT"
     else
         echo "  FAIL: vllm $host:$INFERENCE_PORT not responding"

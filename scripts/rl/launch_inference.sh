@@ -23,8 +23,12 @@ fi
 source "$REPO_ROOT/.env.cluster"
 
 : "${INFERENCE_PORT:?INFERENCE_PORT not set}"
-: "${INFERENCE_SERVER_API_KEY:?INFERENCE_SERVER_API_KEY not set}"
 : "${NCCL_SOCKET_IFNAME:?NCCL_SOCKET_IFNAME not set}"
+# INFERENCE_SERVER_API_KEY is read but not used by prime-rl's inference
+# entrypoint (which only exposes host/port). The vLLM router prime-rl ships
+# proxies requests without an API-key check. Cluster security relies on
+# network-level access control to ports 8000/29501 instead.
+: "${INFERENCE_SERVER_API_KEY:=}"
 
 export NCCL_SOCKET_IFNAME
 
@@ -48,7 +52,6 @@ uv run --extra rl --extra eval inference \
     --model.name "$MODEL" \
     --model.max-model-len "$MAX_MODEL_LEN" \
     --server.port "$INFERENCE_PORT" \
-    --server.api-key "$INFERENCE_SERVER_API_KEY" \
     --parallel.tp 1 \
     --parallel.dp 8 \
     --api-server-count 8 \
