@@ -1,13 +1,13 @@
 """GlyphBench CLI: list/replay helpers + submission bundling.
 
-Eval execution is delegated to `vf-eval glyphbench` (verifiers' standard
+Eval execution is delegated to `prime eval run` (prime-rl's standard
 runner) — see eval/run_debug.sh / eval/run_full.sh for the canonical
 invocations. The CLI here covers introspection + visualisation only.
 
 Examples:
     glyphbench list-suites
     glyphbench list-envs --suite atari
-    glyphbench replay cluster_manager/results --suite minigrid --pause
+    glyphbench replay path/to/runs --suite minigrid --pause
     glyphbench bundle results/<model>/<run-hash>
 """
 
@@ -72,7 +72,7 @@ def _bundle_dir(results_dir: Path, tar_output: Path | None) -> Path:
     """Package one results dir into a submission tarball.
 
     Expects results_dir to contain results.json + per_env/ + trajectories/
-    (the layout produced by `prime eval run` / `vf-eval`).
+    (the layout produced by `prime eval run`).
     """
     if not (results_dir / "results.json").exists():
         raise FileNotFoundError(
@@ -1186,7 +1186,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     pr.add_argument("runs_dir", type=Path,
                     help="Dir tree containing results.jsonl files (e.g. "
-                         "cluster_manager/results, or a single run-hash dir).")
+                         "your runs/ tree, or a single run-hash dir).")
     pr.add_argument("--env", action="append",
                     help="Filter by env_id. Repeatable. AND-combined with "
                          "--suite/--model/--seed.")

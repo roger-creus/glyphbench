@@ -32,9 +32,9 @@ def test_list_envs_excludes_dummy(capsys):
     assert "dummy" not in out
 
 
-# NOTE: the `glyphbench eval` subcommand was removed — use `vf-eval glyphbench`
-# (the canonical verifiers runner) directly. CLI now provides list-suites,
-# list-envs, replay, and bundle only.
+# NOTE: the `glyphbench eval` subcommand was removed — use `prime eval run` (the
+# canonical prime-rl runner) directly. CLI now provides list-suites, list-envs,
+# replay, and bundle only.
 
 
 def test_bundle_creates_tarball_with_meta(tmp_path: Path):

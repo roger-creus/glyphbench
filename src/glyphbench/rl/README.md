@@ -23,6 +23,16 @@ Per-env σ tracking needs ``env_name``. The patch replaces one function and
 leaves everything else (filters, weight broadcast, eval, checkpoints)
 untouched.
 
-## Running
+## Wiring into prime-rl
 
-See `scripts/rl/README.md`.
+These hooks are framework code; the launcher infrastructure (per-cluster
+env vars, multi-node orchestration, vLLM inference workers) is environment-
+specific. To run prime-rl with these hooks, point your launcher at:
+
+- `[trainer.loss] type = "custom"` with
+  `import_path = "glyphbench.rl.loss:custom_loss"` in your prime-rl config.
+- `python -m glyphbench.rl.orchestrator_patch` as your orchestrator
+  entrypoint (it monkey-patches the per-env advantage compute, then runs
+  prime-rl's standard orchestrator main).
+
+See the upstream prime-rl docs for the canonical multi-node setup.

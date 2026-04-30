@@ -71,8 +71,13 @@ GEMINI.md
 # --- RL training cluster-specific (NOT committed) ---
 # Per-cluster environment file (node IPs, API keys, output paths).
 .env.cluster
+.env.cluster.template
 # Per-cluster TOML overrides for prime-rl configs.
 configs/rl/**/cluster.local.toml
+# RL launcher scripts + per-cluster TOML configs. Tied to specific node names
+# (sf-node-*) and absolute paths; not part of the public release.
+scripts/rl/
+configs/rl/
 # Read-only reference clone of prime-rl for local inspection. Use `git clone
 # https://github.com/PrimeIntellect-ai/prime-rl.git prime-rl` if you want one.
 prime-rl/
@@ -82,6 +87,15 @@ prime-rl/
 # internally to run the experiments that feed the leaderboard. Downstream
 # users of GlyphBench don't need it.
 cluster_manager/
+
+# Internal planning artifacts (specs, plans, brainstorm docs). The bare
+# `specs/` and `plans/` rules above already match these in any subdir;
+# this rule documents intent for the docs/superpowers/ tree specifically.
+docs/superpowers/
+
+# Upstream Craftax source clone kept locally for cross-reference. Never
+# committed (we vendor the parts we use under src/glyphbench/envs/craftax/).
+Craftax-main/
 
 # Internal handover / decision-log / TODO artifacts — written by humans or
 # agents during a working session, never part of the public release.
