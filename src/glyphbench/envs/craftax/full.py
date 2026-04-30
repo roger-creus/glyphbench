@@ -11,6 +11,8 @@ from __future__ import annotations
 import random
 from typing import Any, TypedDict
 
+import numpy as np
+
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string
 from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
@@ -369,6 +371,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._total_water_drunk: int = 0
         # Torch visibility in dungeons
         self._torches: dict[int, set[tuple[int, int]]] = {}
+        # Per-tile lightmap (phase β T15β): floor -> np.ndarray[h,w] in [0,1]
+        self._lightmap: dict[int, np.ndarray] = {}
         # Stairs locations  floor -> (x, y)
         self._stairs_down_pos: dict[int, tuple[int, int]] = {}
         self._stairs_up_pos: dict[int, tuple[int, int]] = {}
@@ -1312,6 +1316,33 @@ class CraftaxFullEnv(BaseGlyphEnv):
         ]
 
     # ---------------------------------------------------------------
+    # ---------------------------------------------------------------
+    # Lightmap (phase β T15β + T16β)
+    # ---------------------------------------------------------------
+
+    def _biome_baseline(self, floor: int) -> float:
+        """Return the per-floor ambient light baseline in [0, 1].
+
+        Floor 0 (overworld): 1.0 during day, 0.3 at night (phase β binary).
+        Floors 1-5 (dungeons/mines): 0.0 (requires torches).
+        """
+        if floor == 0:
+            return 1.0 if self._day_night == "day" else 0.3
+        return 0.0
+
+    def _recompute_lightmap(self, floor: int) -> None:
+        """Recompute the lightmap for *floor* from torches + biome baseline."""
+        from glyphbench.envs.craftax.mechanics.lighting import compute_lightmap
+        grid = self._floors.get(floor)
+        if grid is None:
+            return
+        grid_h = len(grid)
+        grid_w = len(grid[0]) if grid_h > 0 else 0
+        torches = self._torches.get(floor, set())
+        baseline = self._biome_baseline(floor)
+        self._lightmap[floor] = compute_lightmap(grid_h, grid_w, torches, baseline)
+
+    # ---------------------------------------------------------------
     # Day/night cycle
     # ---------------------------------------------------------------
 
@@ -1336,9 +1367,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     self._try_unlock("survive_10_nights")
                 if self._night_count >= 20:
                     self._try_unlock("survive_20_nights")
+                # Recompute floor-0 lightmap on day->night flip.
+                self._recompute_lightmap(0)
             elif old == "night" and new == "day":
                 self._message = "The sun rises."
                 self._despawn_night_mobs()
+                # Recompute floor-0 lightmap on night->day flip.
+                self._recompute_lightmap(0)
 
     # ---------------------------------------------------------------
     # Survival mechanics
@@ -1411,6 +1446,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._is_resting = False
         self._pending_step_reward: float = 0.0
         self._torches = {0: set()}
+        self._lightmap = {}
         self._stairs_down_pos = {}
         self._stairs_up_pos = {}
         self._bosses_alive = {}
@@ -1461,6 +1497,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._total_water_drunk = 0
 
         self._spawn_initial_cows()
+        # Compute initial lightmaps for all generated floors.
+        for fl in self._floors:
+            self._recompute_lightmap(fl)
         return self._render_current_observation()
 
     # ---------------------------------------------------------------
@@ -1966,6 +2005,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             if fl not in self._torches:
                 self._torches[fl] = set()
             self._torches[fl].add((fx, fy))
+            self._recompute_lightmap(fl)
             self._message = "Placed torch."
             return self._try_unlock("place_torch")
         return 0.0
@@ -2464,6 +2504,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return 0.0
 
         self._current_floor = new_floor
+        # Recompute lightmap on floor entry (T15β).
+        self._recompute_lightmap(new_floor)
         # Place agent at stairs up of new floor
         up_pos = self._stairs_up_pos.get(new_floor)
         if up_pos:
@@ -2502,6 +2544,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         new_floor = self._current_floor - 1
         self._current_floor = new_floor
+        # Recompute lightmap on floor entry (T15β).
+        self._recompute_lightmap(new_floor)
 
         reward = 0.0
         if new_floor == 0:
@@ -2619,25 +2663,18 @@ class CraftaxFullEnv(BaseGlyphEnv):
     # ---------------------------------------------------------------
 
     def _is_visible(self, wx: int, wy: int) -> bool:
-        """Check tile visibility. Surface always visible.
-        Dungeon tiles need nearby torch or agent proximity."""
-        if self._current_floor == 0:
-            return True
-        # Agent always sees immediate area (3-tile radius)
-        dist = (
-            abs(wx - self._agent_x)
-            + abs(wy - self._agent_y)
-        )
-        if dist <= 3:
-            return True
-        # Check torches
-        fl_torches = self._torches.get(
-            self._current_floor, set()
-        )
-        return any(
-            abs(wx - tx) + abs(wy - ty) <= 4
-            for tx, ty in fl_torches
-        )
+        """Check tile visibility via per-tile lightmap (phase β T16β).
+
+        A tile is visible iff its lightmap value > VISIBILITY_THRESHOLD (0.05).
+        Falls back to True if the lightmap has not yet been computed for this floor.
+        """
+        from glyphbench.envs.craftax.mechanics.lighting import VISIBILITY_THRESHOLD
+        lm = self._lightmap.get(self._current_floor)
+        if lm is None:
+            return True  # fallback: lightmap not yet computed
+        if 0 <= wy < lm.shape[0] and 0 <= wx < lm.shape[1]:
+            return float(lm[wy, wx]) > VISIBILITY_THRESHOLD
+        return False
 
     def _render_current_observation(self) -> GridObservation:
         half_w = FULL_VIEW_WIDTH // 2

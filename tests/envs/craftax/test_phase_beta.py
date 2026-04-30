@@ -1256,3 +1256,111 @@ def test_floor4_first_chest_grants_book_if_floor3_not_opened(env):
     assert env._inventory.get("book", 0) >= 1, (
         "First chest on floor 4 (no floor-3 chest opened) should grant a book"
     )
+
+
+# ---------------------------------------------------------------------------
+# T15β + T16β: Per-tile lightmap subsystem + visibility threshold
+# ---------------------------------------------------------------------------
+
+def test_compute_lightmap_all_ones_with_biome_one_no_torches():
+    """compute_lightmap with no torches and biome=1.0 returns all 1.0."""
+    from glyphbench.envs.craftax.mechanics.lighting import compute_lightmap
+    import numpy as np
+    lm = compute_lightmap(10, 10, set(), biome_baseline=1.0)
+    assert lm.shape == (10, 10)
+    assert np.allclose(lm, 1.0)
+
+
+def test_compute_lightmap_all_zeros_with_biome_zero_no_torches():
+    """compute_lightmap with no torches and biome=0.0 returns all 0.0."""
+    from glyphbench.envs.craftax.mechanics.lighting import compute_lightmap
+    import numpy as np
+    lm = compute_lightmap(10, 10, set(), biome_baseline=0.0)
+    assert lm.shape == (10, 10)
+    assert np.allclose(lm, 0.0)
+
+
+def test_compute_lightmap_torch_at_center_correct_values():
+    """Torch at (5, 5), biome=0.0: (5,5)->1.0, (5,6)->0.8, (5,9)->0.2, (5,10)->0.0."""
+    from glyphbench.envs.craftax.mechanics.lighting import compute_lightmap
+    import numpy as np
+    # Grid large enough: 15x15 so torch radius (5) fits.
+    lm = compute_lightmap(15, 15, {(5, 5)}, biome_baseline=0.0)
+    # Torch center: distance 0 -> contribution = 1.0
+    assert float(lm[5, 5]) == pytest.approx(1.0, abs=1e-5), (
+        f"lm[5,5] expected 1.0, got {lm[5,5]}"
+    )
+    # One tile away (Manhattan distance 1): contribution = 1 - 1/5 = 0.8
+    assert float(lm[6, 5]) == pytest.approx(0.8, abs=1e-5), (
+        f"lm[6,5] expected 0.8, got {lm[6,5]}"
+    )
+    # 4 tiles away (Manhattan distance 4): contribution = 1 - 4/5 = 0.2
+    assert float(lm[9, 5]) == pytest.approx(0.2, abs=1e-5), (
+        f"lm[9,5] expected 0.2, got {lm[9,5]}"
+    )
+    # 5 tiles away (Manhattan distance 5): contribution = max(0, 1-5/5) = 0.0
+    assert float(lm[10, 5]) == pytest.approx(0.0, abs=1e-5), (
+        f"lm[10,5] expected 0.0, got {lm[10,5]}"
+    )
+
+
+def test_lightmap_exists_for_current_floor_after_reset(env):
+    """After reset, _lightmap has an entry for the current floor."""
+    assert env._current_floor in env._lightmap, (
+        f"_lightmap missing entry for current floor {env._current_floor}"
+    )
+    lm = env._lightmap[env._current_floor]
+    assert lm is not None
+    assert lm.ndim == 2
+    assert lm.shape[0] > 0 and lm.shape[1] > 0
+
+
+def test_placing_torch_in_dungeon_raises_local_visibility():
+    """Placing a torch on a dark dungeon floor lights up the torch tile."""
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=0)
+    # Move to dungeon floor 1 (dark by default: biome_baseline=0.0, no torches).
+    e._current_floor = 1
+    e._recompute_lightmap(1)
+
+    # Agent at (10, 10), facing right -> torch goes to (11, 10).
+    e._agent_x = 10
+    e._agent_y = 10
+    e._facing = (1, 0)
+    # Ensure the target cell is empty dungeon floor so the torch can be placed.
+    from glyphbench.envs.craftax.base import TILE_DUNGEON_FLOOR, TILE_TORCH
+    e._floors[1][10][11] = TILE_DUNGEON_FLOOR
+    # Give the agent a torch to place.
+    e._inventory["torch"] = 1
+
+    # Before placement: torch cell should be dark.
+    from glyphbench.envs.craftax.mechanics.lighting import VISIBILITY_THRESHOLD
+    lm_before = e._lightmap.get(1)
+    assert lm_before is not None
+    before_light = float(lm_before[10, 11])
+
+    place_idx = e.action_spec.names.index("PLACE_TORCH")
+    e.step(place_idx)
+
+    lm_after = e._lightmap.get(1)
+    assert lm_after is not None
+    after_light = float(lm_after[10, 11])
+    assert after_light > VISIBILITY_THRESHOLD, (
+        f"Tile at (11, 10) should be lit after torch placement, got {after_light}"
+    )
+    assert after_light > before_light, (
+        "Light level at torch tile should increase after torch placement"
+    )
+
+
+def test_tiles_past_torch_radius_remain_dark():
+    """Tiles outside TORCH_RADIUS from a single torch stay at biome_baseline=0.0."""
+    from glyphbench.envs.craftax.mechanics.lighting import compute_lightmap, TORCH_RADIUS, VISIBILITY_THRESHOLD
+    import numpy as np
+    # Place torch at (5, 5) in a 20x20 grid.
+    lm = compute_lightmap(20, 20, {(5, 5)}, biome_baseline=0.0)
+    # A tile at Manhattan distance > TORCH_RADIUS from (5,5) must remain 0.
+    # (5, 5+TORCH_RADIUS+1) = (5, 11): distance=6 > 5 -> 0.0.
+    assert float(lm[11, 5]) <= VISIBILITY_THRESHOLD, (
+        f"Tile at distance {TORCH_RADIUS+1} should be dark, got {lm[11,5]}"
+    )
