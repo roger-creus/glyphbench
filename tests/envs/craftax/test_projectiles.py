@@ -87,3 +87,33 @@ def test_player_projectile_stops_at_solid_block() -> None:
     assert survivors == []
     # Terminal position is the blocked tile (proj advanced into it before being dropped).
     assert (proj.x, proj.y) == (6, 5)
+
+
+def test_player_projectile_damages_one_mob_then_dies() -> None:
+    """A projectile that hits a mob (hit_fn returns True) is dropped from
+    the survivors list. Subsequent advances along the same path are not
+    queried, so the projectile cannot 'pass through' to a second mob.
+
+    NB: T07's step_player_projectiles only advances projectiles by ONE tile
+    per call. Per-step semantics are tested over a SINGLE call, so a single
+    projectile hitting one mob in its path must produce exactly one hit_fn
+    invocation at the post-advance tile.
+    """
+    proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=2)
+    mob_hits: list[tuple[int, int, int]] = []  # (x, y, damage)
+
+    def hit_and_damage(x: int, y: int) -> bool:
+        # Tile (6,5) holds a mob.
+        if (x, y) == (6, 5):
+            mob_hits.append((x, y, proj.damage))
+            return True  # absorb the projectile
+        return False
+
+    survivors = step_player_projectiles(
+        [proj], map_w=20, map_h=20,
+        blocked_fn=lambda x, y: False,
+        hit_fn=hit_and_damage,
+    )
+    assert survivors == []
+    # Exactly one hit was registered.
+    assert mob_hits == [(6, 5, 2)]
