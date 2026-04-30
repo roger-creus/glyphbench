@@ -892,6 +892,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 )
         return r
 
+    def _is_in_boss_fight(self) -> bool:
+        """True iff a boss mob is alive on the agent's current floor."""
+        return any(
+            m["is_boss"] and m["floor"] == self._current_floor and m["hp"] > 0
+            for m in self._mobs
+        )
+
     def _step_player_projectiles(self) -> None:
         """Advance live player projectiles one tile and resolve hits.
 
@@ -1038,7 +1045,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     is_blocked_for_mob=_is_blocked,
                     apply_damage_to_player=self._take_damage,
                     rng=random.Random(int(self.rng.integers(0, 2**31))),
-                    is_fighting_boss=False,
+                    is_fighting_boss=self._is_in_boss_fight(),
                     damage_for_mob=_damage_for,
                 )
                 continue
@@ -1362,10 +1369,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         # Phase α: despawn mobs that drifted beyond MOB_DESPAWN_DISTANCE.
         from glyphbench.envs.craftax.mechanics.mobs import should_despawn
-        is_boss_fight = any(
-            m["is_boss"] and m["floor"] == self._current_floor
-            for m in self._mobs
-        )
+        is_boss_fight = self._is_in_boss_fight()
         self._mobs = [
             m for m in self._mobs
             if not (

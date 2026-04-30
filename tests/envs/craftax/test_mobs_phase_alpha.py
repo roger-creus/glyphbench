@@ -461,3 +461,76 @@ def test_step_mob_projectiles_destroys_furnace_on_impact() -> None:
     # Projectile advanced to (8, 5) and destroyed the furnace.
     assert grid[5][8] != TILE_FURNACE, "furnace should be destroyed"
     assert env._mob_projectiles == [], "projectile consumed on furnace impact"
+
+
+def test_melee_mob_always_chases_during_boss_fight() -> None:
+    """When a boss is alive on the same floor, the always-chase override
+    forces melee mobs to chase regardless of distance.
+
+    Floor 5 layout: column x=14 is a long open corridor (y=2..26).
+    Agent at (14,2), boss at (14,4) — dist=2 so not attacking.
+    Zombie at (14,15) — dist=13 from agent, outside the normal chase
+    threshold of 10, so without boss-fight it would random-walk.
+    With is_fighting_boss=True the chase branch fires unconditionally
+    and the zombie must advance toward the agent.
+    """
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._current_floor = 5
+    env._agent_x, env._agent_y = 14, 2  # walkable: col-14 corridor
+    env._mobs = []  # clear reset-spawned mobs
+    env._mobs.append({
+        "type": "boss_5", "x": 14, "y": 4,  # dist=2 from agent
+        "hp": 50, "max_hp": 50, "is_boss": True,
+        "floor": 5, "attack_cooldown": 0,
+    })
+    env._mobs.append({
+        "type": "zombie", "x": 14, "y": 15,  # dist=13 (>= 10 — outside normal chase)
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 5, "attack_cooldown": 0,
+    })
+    initial_dist = abs(15 - 2)
+    env.step(env.action_spec.names.index("NOOP"))
+    # The far zombie should have moved CLOSER (chase override fires).
+    zombie = next(m for m in env._mobs if m["type"] == "zombie")
+    new_dist = abs(zombie["y"] - 2)
+    assert new_dist < initial_dist, (
+        f"boss-fight melee should always chase; dist {initial_dist} -> {new_dist}"
+    )
+
+
+def test_boss_fight_melee_mob_does_not_despawn() -> None:
+    """T23 + T28: in a boss fight, distant melee mobs are exempt from despawn.
+
+    Agent at (14,2), boss at (14,4), zombie at (14,26) — dist=24, well
+    beyond MOB_DESPAWN_DISTANCE=14. Without boss-fight the zombie would
+    despawn; with a live boss on the same floor it must survive.
+    """
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._current_floor = 5
+    env._agent_x, env._agent_y = 14, 2  # walkable: col-14 corridor
+    env._mobs = []
+    env._mobs.append({
+        "type": "boss_5", "x": 14, "y": 4,
+        "hp": 50, "max_hp": 50, "is_boss": True,
+        "floor": 5, "attack_cooldown": 0,
+    })
+    env._mobs.append({
+        "type": "zombie", "x": 14, "y": 26,  # dist=24 → would normally despawn
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 5, "attack_cooldown": 0,
+    })
+    env.step(env.action_spec.names.index("NOOP"))
+    # The far zombie should still exist (despawn exempt during boss fight).
+    far_zombies = [
+        m for m in env._mobs
+        if m["type"] == "zombie" and (abs(m["x"] - 14) + abs(m["y"] - 2)) > 14
+    ]
+    assert len(far_zombies) == 1, (
+        f"far zombie should be exempt from despawn during boss fight; got {len(far_zombies)} far"
+    )
