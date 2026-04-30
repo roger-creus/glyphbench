@@ -13,25 +13,31 @@ Run:
 
 from __future__ import annotations
 
-import sys
-
 
 def main() -> None:
-    # Apply the patch BEFORE importing the orchestrator entrypoint so its
-    # references resolve to our function.
+    # Step 1: import the advantage module (cached in sys.modules).
     import prime_rl.orchestrator.advantage as _adv
 
     from glyphbench.rl.advantage import compute_advantages_with_env_norm
 
+    # Step 2: replace the canonical reference. Any subsequent
+    # ``from prime_rl.orchestrator.advantage import compute_advantages``
+    # in another module body will pick up our patched function, because
+    # ``from import`` resolves attributes against the cached module object.
     _adv.compute_advantages = compute_advantages_with_env_norm
 
-    # The orchestrator entrypoint reads ``[advantage]`` from the config,
-    # but our patch bypasses the registered hook entirely. Set the
-    # config's advantage to ``type="default"`` (or just leave it default)
-    # so the validators don't complain — our patched function ignores it.
+    # Step 3: import the orchestrator main. Its module body does
+    # ``from prime_rl.orchestrator.advantage import compute_advantages``,
+    # which now binds to our patched function.
+    from prime_rl.orchestrator.orchestrator import main as orch_main
 
-    # Now run the orchestrator.
-    from prime_rl.entrypoints.orchestrator import main as orch_main
+    # Step 4: belt-and-braces — also rebind the orchestrator module's
+    # local name in case some other module imported orchestrator.orchestrator
+    # (and thus snapshotted the original ``compute_advantages``) before us.
+    import prime_rl.orchestrator.orchestrator as _orch
+
+    if _orch.compute_advantages is not compute_advantages_with_env_norm:
+        _orch.compute_advantages = compute_advantages_with_env_norm
 
     orch_main()
 
