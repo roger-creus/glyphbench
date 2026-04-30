@@ -395,3 +395,40 @@ VIEW_HEIGHT = 7
 # Full version uses slightly larger view
 FULL_VIEW_WIDTH = 11
 FULL_VIEW_HEIGHT = 9
+
+
+class _CraftaxTutorialMixin:
+    """Mixin providing the canonical craftax system_prompt template.
+
+    Subclasses must define:
+      - `tutorial_sections: tuple[str, ...]` — anchor names from
+        `glyphbench.envs.craftax.docs.ALL_SECTIONS`.
+      - `_task_description(self) -> str` — one short paragraph stating the
+        env-specific goal and reward shape.
+      - `env_id(self) -> str` and `action_spec` — provided by BaseGlyphEnv.
+
+    Output format (matches the glyphbench standard):
+        "You are playing X.\n\nTASK\n<goal>\n\n<composed tutorial>\n\n<actions>"
+    """
+
+    tutorial_sections: tuple[str, ...] = ()
+
+    def _task_description(self) -> str:
+        raise NotImplementedError(
+            f"{type(self).__name__} must override _task_description()"
+        )
+
+    def system_prompt(self) -> str:  # type: ignore[override]
+        from glyphbench.envs.craftax.docs import compose
+
+        if not self.tutorial_sections:
+            raise RuntimeError(
+                f"{type(self).__name__}: tutorial_sections is empty; "
+                "every craftax env must declare its tutorial slice."
+            )
+        return (
+            f"You are playing {self.env_id()}.\n\n"
+            f"TASK\n{self._task_description()}\n\n"
+            f"{compose(self.tutorial_sections)}\n\n"
+            f"{self.action_spec.render_for_prompt()}"
+        )
