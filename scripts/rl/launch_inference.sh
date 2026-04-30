@@ -11,6 +11,16 @@ set -euo pipefail
 # `uv` lives by default) isn't on PATH. Prepend it explicitly.
 export PATH="$HOME/.local/bin:$PATH"
 
+# CUDA toolkit (installed by scripts/rl/install_cuda_toolkit.sh) must be
+# discoverable by flashinfer's gdn_linear_attn JIT compiler — it walks PATH
+# for nvcc and falls back to CUDA_HOME, which by default points at
+# /usr/local/cuda (which doesn't exist on these hosts).
+CUDA_HOME=${CUDA_HOME:-$HOME/cuda-12.6}
+if [ -x "$CUDA_HOME/bin/nvcc" ]; then
+    export CUDA_HOME
+    export PATH="$CUDA_HOME/bin:$PATH"
+fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 

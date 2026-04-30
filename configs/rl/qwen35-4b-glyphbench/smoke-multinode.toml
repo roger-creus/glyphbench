@@ -1,6 +1,6 @@
-# Multi-node smoke — exercises the full 3-node pipeline (trainer FSDP=8 +
-# 16 inference workers across 2 nodes) on a SHORT run with the production
-# model (Qwen3.5-4B) so the parser path matches.
+# Multi-node smoke — exercises the full 2-node pipeline (trainer FSDP=8 on
+# sf-node-1 + 8 inference workers on sf-node-2) on a SHORT run with the
+# production model (Qwen3.5-4B) so the parser path matches.
 #
 # Differences from production rl.toml:
 #   - max_steps = 5 (vs 1000); ckpt + eval intervals shrunk to fire inside
@@ -22,16 +22,20 @@ max_async_level = 1
 [deployment]
 type = "multi_node"
 num_train_nodes = 1
-num_infer_nodes = 2
+num_infer_nodes = 1
 gpus_per_node = 8
 
 [slurm]
 job_name = "noop"  # validator-only placeholder; we launch manually
 
 [weight_broadcast]
-type = "nccl"
-port = 29501
-timeout = 1200
+# Filesystem broadcast: trainer writes a HF-compatible checkpoint to
+# OUTPUT_DIR/.../broadcast/step_N/ + a STABLE marker; orchestrator polls
+# the marker and tells vLLM workers to load_weights_from_path. Used here
+# because the SF cluster only opens port 2222 between nodes — NCCL's
+# multi-port socket transport can't reach across without a tunnel.
+# Inference workers see this dir via sshfs mount from sf-node-1.
+type = "filesystem"
 
 [wandb]
 project = "glyphbench-rl-smoke"
@@ -51,6 +55,11 @@ name = "Qwen/Qwen3.5-4B"
 [trainer.model]
 impl = "auto"
 attn = "flash_attention_2"
+# Vanilla LM head materializes the full logit tensor (vocab × seq × batch),
+# which OOMs on 80 GB H100s with Qwen3.5-4B's 152K vocab and 16K seq_len.
+# "auto" sets a chunked path (8192 tokens / chunk) — same numerics, much
+# smaller peak memory.
+fused_lm_head_token_chunk_size = "auto"
 
 [trainer.model.ac]
 mode = "full"
@@ -124,4 +133,4 @@ max_model_len = 16384
 
 [inference.parallel]
 tp = 1
-dp = 16
+dp = 8

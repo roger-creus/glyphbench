@@ -65,7 +65,14 @@ done
 # Resolve SSH-config aliases (sf-node-*) to IPs for curl/HTTP — system
 # DNS doesn't know these hostnames; only ~/.ssh/config does.
 ssh_resolved_host() {
-    ssh -G "$1" 2>/dev/null | awk '/^hostname / {print $2}'
+    # If $INFERENCE_HTTP_HOST_OVERRIDE is set (e.g., "127.0.0.1" when using
+    # an SSH forward tunnel), use it for HTTP-only probes — but keep using
+    # the SSH-config alias for actual ssh-into-the-node commands.
+    if [ -n "${INFERENCE_HTTP_HOST_OVERRIDE:-}" ]; then
+        echo "$INFERENCE_HTTP_HOST_OVERRIDE"
+    else
+        ssh -G "$1" 2>/dev/null | awk '/^hostname / {print $2}'
+    fi
 }
 
 # Build {hostname -> ip} for the inference nodes for use in curl/HTTP probes.
