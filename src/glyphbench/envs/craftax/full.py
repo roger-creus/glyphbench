@@ -55,6 +55,15 @@ from glyphbench.envs.craftax.base import (
     TILE_SAPPHIRE,
     TILE_ENCHANT_FIRE,
     TILE_ENCHANT_ICE,
+    TILE_FIRE_TREE,
+    TILE_ICE_SHRUB,
+    TILE_TROLL,
+    TILE_DEEP_THING,
+    TILE_SNAIL,
+    TILE_PIGMAN,
+    TILE_FIRE_ELEMENTAL,
+    TILE_FROST_TROLL,
+    TILE_ICE_ELEMENTAL,
     TILE_STAIRS_DOWN,
     TILE_STAIRS_UP,
     TILE_STONE,
@@ -156,6 +165,9 @@ DUNGEON_WALKABLE = frozenset({
     TILE_TORCH, TILE_BOSS_DOOR,
     # Phase β T07β: lava is walkable in dungeons too.
     TILE_LAVA,
+    # Phase γ T13-T15γ: smoothgen biome base tile (floor path) is DUNGEON_FLOOR;
+    # water appears on floor 7 — also walkable.
+    TILE_WATER,
 })
 
 INTERACTABLE_TILES: dict[str, str] = {
@@ -243,7 +255,9 @@ _SOLID_TILES: frozenset[str] = frozenset({
 # ----------------------------------------------------------------
 _SURFACE_SIZE = 64
 _DUNGEON_SIZE = 32
-_NUM_DUNGEON_FLOORS = 5
+# Phase γ T13-T15γ: bumped from 5 to 7 for floors 5 (Troll Mines),
+# 6 (Fire Realm), 7 (Ice Realm).  Floor 8 (Graveyard) deferred to T16γ.
+_NUM_DUNGEON_FLOORS = 7
 
 # ----------------------------------------------------------------
 # Mob definitions
@@ -257,6 +271,16 @@ _MOB_STATS: dict[str, dict[str, int]] = {
     "skeleton": {"hp": 5, "damage": 3},   # upstream ranged; was skeleton_archer
     "kobold": {"hp": 4, "damage": 2},      # upstream ranged; was spider
     "bat": {"hp": 2, "damage": 1},
+    # Phase γ T13γ: Floor 5 (Troll Mines) mobs.
+    "troll": {"hp": 12, "damage": 4},
+    "deep_thing": {"hp": 8, "damage": 3},
+    "snail": {"hp": 1, "damage": 0},
+    # Phase γ T14γ: Floor 6 (Fire Realm) mobs.
+    "pigman": {"hp": 14, "damage": 5},
+    "fire_elemental": {"hp": 10, "damage": 4},
+    # Phase γ T15γ: Floor 7 (Ice Realm) mobs.
+    "frost_troll": {"hp": 14, "damage": 5},
+    "ice_elemental": {"hp": 10, "damage": 4},
 }
 
 _MOB_TILES: dict[str, str] = {
@@ -265,6 +289,14 @@ _MOB_TILES: dict[str, str] = {
     "skeleton": TILE_SKELETON_ARCHER,  # glyph "a" (upstream archer convention)
     "kobold": TILE_KOBOLD,             # glyph "q"
     "bat": TILE_BAT,
+    # Phase γ T13-T15γ: new floor mobs.
+    "troll": TILE_TROLL,
+    "deep_thing": TILE_DEEP_THING,
+    "snail": TILE_SNAIL,
+    "pigman": TILE_PIGMAN,
+    "fire_elemental": TILE_FIRE_ELEMENTAL,
+    "frost_troll": TILE_FROST_TROLL,
+    "ice_elemental": TILE_ICE_ELEMENTAL,
 }
 
 # Boss definitions per floor (1-indexed)
@@ -660,11 +692,18 @@ class CraftaxFullEnv(BaseGlyphEnv):
         non-overlapping rooms with chests and fountains.
 
         Floors 2, 4, 5 continue to use the original generator (floor 2 has
-        sapphire/ruby ore; floors 4-5 will get full biome treatment in phase γ).
+        sapphire/ruby ore; floor 4 is now phase-β biome; floor 5 is legacy).
+
+        Phase γ T13-T15γ: floors 5, 6, 7 use the new smoothgen generator.
         """
         # ---- Phase-β biome generator for floors 1, 3, and 4 (T18β/T19β/T20β) ----
         if floor in (1, 3, 4):
             self._generate_dungeon_floor_biome(floor)
+            return
+
+        # ---- Phase-γ smoothgen generator for floors 5-7 (T13-T15γ) ----
+        if floor in (5, 6, 7):
+            self._generate_dungeon_floor_smoothgen(floor)
             return
 
         # ---- Legacy generator for floors 2, 5 ----
@@ -986,6 +1025,210 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         "attack_cooldown": 0,
                     }
                     self._mobs.append(mob)
+                    break
+
+        self._floors[floor] = grid
+        self._torches[floor] = set()
+
+    def _generate_dungeon_floor_smoothgen(self, floor: int) -> None:
+        """Generate floors 5-7 using a smoothgen open-area biome.
+
+        Unlike the room-based biome generator used for floors 1/3/4, these
+        floors are open-area maps filled with the biome's primary tile, with
+        scattered decorative/resource/ore tiles placed using a circular
+        scattering pass.
+
+        Floor 5 — Troll Mines: DUNGEON_FLOOR base, sapphire + ruby ore (1%),
+          decorative TILE_COAL/IRON patches, troll + deep_thing mobs.
+        Floor 6 — Fire Realm: DUNGEON_FLOOR base, LAVA (7% scatter),
+          FIRE_TREE (~3%), RUBY ore (2.5%), pigman + fire_elemental mobs.
+          Light baseline 1.0 (via _biome_baseline).
+        Floor 7 — Ice Realm: DUNGEON_FLOOR base, WATER (7% scatter),
+          ICE_SHRUB (~3%), SAPPHIRE ore (2%), frost_troll + ice_elemental mobs.
+          Light baseline 0.0.
+
+        All three floors:
+        - Stair-up placed in top-left quadrant.
+        - Stair-down placed in bottom-right quadrant (not on floor 7 since it
+          is the last floor; T16γ will add stair-down 7→8).
+        - Boss from _BOSS_DEFS[floor] spawned (if defined; floor 5 keeps its
+          legacy lich boss until T16γ moves the necromancer to floor 8).
+        - Per-floor mob roster from FLOOR_MOB_MAPPING.
+        """
+        from glyphbench.envs.craftax.mechanics.mobs import FLOOR_MOB_MAPPING
+
+        size = _DUNGEON_SIZE
+
+        # --- Base grid: all DUNGEON_FLOOR (open area) ---
+        grid = [
+            [TILE_DUNGEON_FLOOR for _ in range(size)]
+            for _ in range(size)
+        ]
+
+        # --- Thin wall border ---
+        for x in range(size):
+            grid[0][x] = TILE_DUNGEON_WALL
+            grid[size - 1][x] = TILE_DUNGEON_WALL
+        for y in range(size):
+            grid[y][0] = TILE_DUNGEON_WALL
+            grid[y][size - 1] = TILE_DUNGEON_WALL
+
+        # --- Scatter biome tiles ---
+        if floor == 5:
+            # Troll Mines: some coal/iron patches for atmosphere.
+            for _ in range(int(self.rng.integers(3, 6))):
+                cx = int(self.rng.integers(2, size - 2))
+                cy = int(self.rng.integers(2, size - 2))
+                patch = str(self.rng.choice([TILE_COAL, TILE_IRON]))
+                for dx in range(-1, 2):
+                    for dy in range(-1, 2):
+                        x, y = cx + dx, cy + dy
+                        if 1 <= x < size - 1 and 1 <= y < size - 1:
+                            if self.rng.random() < 0.5:
+                                grid[y][x] = patch
+
+        elif floor == 6:
+            # Fire Realm: large lava patches (~7% of cells).
+            for _ in range(int(self.rng.integers(6, 10))):
+                cx = int(self.rng.integers(3, size - 3))
+                cy = int(self.rng.integers(3, size - 3))
+                r = int(self.rng.integers(2, 4))
+                for dx in range(-r, r + 1):
+                    for dy in range(-r, r + 1):
+                        if dx * dx + dy * dy <= r * r:
+                            x, y = cx + dx, cy + dy
+                            if 1 <= x < size - 1 and 1 <= y < size - 1:
+                                if self.rng.random() < 0.75:
+                                    grid[y][x] = TILE_LAVA
+
+            # Fire trees (~3% decoration — scatter individually).
+            for y in range(1, size - 1):
+                for x in range(1, size - 1):
+                    if grid[y][x] == TILE_DUNGEON_FLOOR and self.rng.random() < 0.03:
+                        grid[y][x] = TILE_FIRE_TREE
+
+        elif floor == 7:
+            # Ice Realm: water patches (frozen lakes, ~7%).
+            for _ in range(int(self.rng.integers(6, 10))):
+                cx = int(self.rng.integers(3, size - 3))
+                cy = int(self.rng.integers(3, size - 3))
+                r = int(self.rng.integers(2, 4))
+                for dx in range(-r, r + 1):
+                    for dy in range(-r, r + 1):
+                        if dx * dx + dy * dy <= r * r:
+                            x, y = cx + dx, cy + dy
+                            if 1 <= x < size - 1 and 1 <= y < size - 1:
+                                if self.rng.random() < 0.75:
+                                    grid[y][x] = TILE_WATER
+
+            # Ice shrubs (~3% decoration).
+            for y in range(1, size - 1):
+                for x in range(1, size - 1):
+                    if grid[y][x] == TILE_DUNGEON_FLOOR and self.rng.random() < 0.03:
+                        grid[y][x] = TILE_ICE_SHRUB
+
+        # --- Ore placement ---
+        if floor == 5:
+            # Troll Mines: sapphire 1%, ruby 1%.
+            for y in range(1, size - 1):
+                for x in range(1, size - 1):
+                    if grid[y][x] == TILE_DUNGEON_FLOOR:
+                        roll = self.rng.random()
+                        if roll < 0.01:
+                            grid[y][x] = TILE_SAPPHIRE
+                        elif roll < 0.02:
+                            grid[y][x] = TILE_RUBY
+
+        elif floor == 6:
+            # Fire Realm: ruby 2.5%.
+            for y in range(1, size - 1):
+                for x in range(1, size - 1):
+                    if grid[y][x] == TILE_DUNGEON_FLOOR:
+                        if self.rng.random() < 0.025:
+                            grid[y][x] = TILE_RUBY
+
+        elif floor == 7:
+            # Ice Realm: sapphire 2%.
+            for y in range(1, size - 1):
+                for x in range(1, size - 1):
+                    if grid[y][x] == TILE_DUNGEON_FLOOR:
+                        if self.rng.random() < 0.02:
+                            grid[y][x] = TILE_SAPPHIRE
+
+        # --- Stairs up (top-left quadrant) ---
+        up_x = int(self.rng.integers(2, size // 3))
+        up_y = int(self.rng.integers(2, size // 3))
+        grid[up_y][up_x] = TILE_STAIRS_UP
+        self._stairs_up_pos[floor] = (up_x, up_y)
+
+        # --- Stairs down (bottom-right quadrant) ---
+        # Floor 7 is last floor until T16γ adds floor 8.
+        if floor < _NUM_DUNGEON_FLOORS:
+            down_x = int(self.rng.integers(2 * size // 3, size - 2))
+            down_y = int(self.rng.integers(2 * size // 3, size - 2))
+            grid[down_y][down_x] = TILE_STAIRS_DOWN
+            self._stairs_down_pos[floor] = (down_x, down_y)
+
+        # --- Boss placement (floor 5 only; T16γ moves boss to floor 8) ---
+        if floor == 5 and floor in _BOSS_DEFS:
+            bdef = _BOSS_DEFS[floor]
+            # Place boss in centre area, avoiding stairs.
+            skip = {self._stairs_up_pos.get(floor), self._stairs_down_pos.get(floor)}
+            boss_x, boss_y = size // 2, size // 2
+            for _att in range(50):
+                bx = int(self.rng.integers(size // 4, 3 * size // 4))
+                by = int(self.rng.integers(size // 4, 3 * size // 4))
+                if (bx, by) not in skip:
+                    boss_x, boss_y = bx, by
+                    break
+            # Boss door one cell to the left.
+            door_x = boss_x - 1
+            door_y = boss_y
+            if 1 <= door_x < size - 1:
+                grid[door_y][door_x] = TILE_BOSS_DOOR
+            boss_mob: Mob = {
+                "type": bdef["name"],
+                "x": boss_x,
+                "y": boss_y,
+                "hp": bdef["hp"],
+                "max_hp": bdef["hp"],
+                "is_boss": True,
+                "floor": floor,
+                "attack_cooldown": 0,
+            }
+            self._mobs.append(boss_mob)
+            self._bosses_alive[floor] = True
+
+        # --- Spawn non-boss mobs from per-floor roster ---
+        mapping = FLOOR_MOB_MAPPING[floor]
+        floor_mob_types = [
+            mapping["melee"],
+            mapping["ranged"],
+        ]
+        num_mobs = floor + 2
+        for _ in range(num_mobs):
+            mtype = str(self.rng.choice(floor_mob_types))
+            if mtype not in _MOB_STATS:
+                continue  # guard against roster mismatches
+            for _att in range(30):
+                mx = int(self.rng.integers(1, size - 1))
+                my = int(self.rng.integers(1, size - 1))
+                if (
+                    grid[my][mx] == TILE_DUNGEON_FLOOR
+                    and not self._mob_at(mx, my, floor)
+                ):
+                    stats = _MOB_STATS[mtype]
+                    spawn_mob: Mob = {
+                        "type": mtype,
+                        "x": mx,
+                        "y": my,
+                        "hp": stats["hp"],
+                        "max_hp": stats["hp"],
+                        "is_boss": False,
+                        "floor": floor,
+                        "attack_cooldown": 0,
+                    }
+                    self._mobs.append(spawn_mob)
                     break
 
         self._floors[floor] = grid
@@ -1437,8 +1680,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
             mx, my = mob["x"], mob["y"]
             mtype = mob["type"]
 
-            # Phase-α/β melee mobs: only zombie (upstream-faithful floor-0 melee).
-            if mtype == "zombie":
+            # Melee mobs: zombie (floor 0) + troll/pigman/frost_troll (floors 5-7).
+            # Phase γ T13-T15γ: extended to include floor 5-7 melee types.
+            if mtype in ("zombie", "troll", "pigman", "frost_troll"):
                 step_melee_mob(
                     mob,
                     player_x=self._agent_x,
@@ -1451,9 +1695,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 )
                 continue
 
-            # Phase-β ranged mobs: skeleton (fires arrows) and kobold (throws daggers).
-            # T_FOLLOWUP_A / T04β: skeleton_archer → skeleton, spider → kobold.
-            elif mtype in ("skeleton", "kobold"):
+            # Ranged mobs: skeleton/kobold (floors 0-4) + deep_thing/fire_elemental/ice_elemental (5-7).
+            # Phase γ T13-T15γ: extended to include floor 5-7 ranged types.
+            elif mtype in ("skeleton", "kobold", "deep_thing", "fire_elemental", "ice_elemental"):
                 from glyphbench.envs.craftax.mechanics.projectiles import (
                     ProjectileEntity,
                     ProjectileType,
@@ -1465,13 +1709,12 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         ProjectileEntity(kind=kind, x=x, y=y, dx=dx, dy=dy, damage=dmg)
                     )
 
-                # skeleton fires arrows (ARROW2), kobold throws daggers (DAGGER)
-                def _proj_kind(m: dict) -> ProjectileType:
-                    return (
-                        ProjectileType.ARROW2
-                        if m["type"] == "skeleton"
-                        else ProjectileType.DAGGER
-                    )
+                # Resolve projectile kind via RANGED_MOB_TO_PROJECTILE; fall back
+                # to ARROW2 for any unregistered ranged mob type.
+                from glyphbench.envs.craftax.mechanics.mobs import RANGED_MOB_TO_PROJECTILE as _RMTP
+
+                def _proj_kind(m: dict, _rmtp=_RMTP) -> ProjectileType:
+                    return _rmtp.get(m["type"], ProjectileType.ARROW2)
 
                 step_ranged_mob(
                     mob,
@@ -1615,10 +1858,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
         """Return the per-floor ambient light baseline in [0, 1].
 
         Floor 0 (overworld): 1.0 during day, 0.3 at night (phase β binary).
-        Floors 1-5 (dungeons/mines): 0.0 (requires torches).
+        Floor 6 (Fire Realm): 1.0 (permanently lit by lava glow).
+        Floors 1-5, 7+ (dungeons/mines/ice): 0.0 (requires torches).
         """
         if floor == 0:
             return 1.0 if self._day_night == "day" else 0.3
+        if floor == 6:
+            return 1.0  # Fire Realm: lava-lit
         return 0.0
 
     def _recompute_lightmap(self, floor: int) -> None:
@@ -2889,8 +3135,12 @@ class CraftaxFullEnv(BaseGlyphEnv):
             self._message = "Reached floor 4."
             reward += self._try_unlock("reach_floor_4")
         elif new_floor == 5:
-            self._message = "Reached floor 5."
+            self._message = "Reached floor 5 — Troll Mines."
             reward += self._try_unlock("reach_floor_5")
+        elif new_floor == 6:
+            self._message = "Entered the Fire Realm."
+        elif new_floor == 7:
+            self._message = "Entered the Ice Realm."
         # Phase γ T06γ: first entry to any new floor grants +1 XP.
         if new_floor not in self._xp_floors_visited:
             self._xp_floors_visited.add(new_floor)

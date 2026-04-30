@@ -654,3 +654,217 @@ def test_action_count_post_t12_is_45():
     """Action spec has exactly 45 actions post-T12γ."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
     assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 45
+
+
+# ---------------------------------------------------------------------------
+# T13γ / T14γ / T15γ: Floor 5 (Troll Mines) / Floor 6 (Fire Realm) /
+#                      Floor 7 (Ice Realm)
+# ---------------------------------------------------------------------------
+
+def _make_full_env(seed: int = 0) -> "CraftaxFullEnv":  # type: ignore[name-defined]
+    """Return a freshly reset CraftaxFullEnv (generates all floors)."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    env = CraftaxFullEnv()
+    env.reset(seed=seed)
+    return env
+
+
+def test_num_dungeon_floors_is_7():
+    """_NUM_DUNGEON_FLOORS must be 7 after T13-T15γ."""
+    from glyphbench.envs.craftax.full import _NUM_DUNGEON_FLOORS
+    assert _NUM_DUNGEON_FLOORS == 7
+
+
+def test_floor_5_exists_after_reset():
+    """Floor 5 must be generated and present in _floors after reset."""
+    env = _make_full_env(seed=1)
+    assert 5 in env._floors, "Floor 5 missing from env._floors"
+    grid = env._floors[5]
+    assert len(grid) > 0, "Floor 5 grid is empty"
+
+
+def test_floor_6_exists_after_reset():
+    """Floor 6 must be generated and present in _floors after reset."""
+    env = _make_full_env(seed=2)
+    assert 6 in env._floors, "Floor 6 missing from env._floors"
+    grid = env._floors[6]
+    assert len(grid) > 0, "Floor 6 grid is empty"
+
+
+def test_floor_7_exists_after_reset():
+    """Floor 7 must be generated and present in _floors after reset."""
+    env = _make_full_env(seed=3)
+    assert 7 in env._floors, "Floor 7 missing from env._floors"
+    grid = env._floors[7]
+    assert len(grid) > 0, "Floor 7 grid is empty"
+
+
+def test_floor_6_has_lava_tiles():
+    """Floor 6 (Fire Realm) must contain at least one LAVA tile."""
+    from glyphbench.envs.craftax.base import TILE_LAVA
+    # Try a few seeds to avoid unlucky edge cases.
+    found = False
+    for seed in range(5):
+        env = _make_full_env(seed=seed)
+        grid = env._floors[6]
+        for row in grid:
+            if TILE_LAVA in row:
+                found = True
+                break
+        if found:
+            break
+    assert found, "Floor 6 (Fire Realm) has no LAVA tiles across 5 seeds"
+
+
+def test_floor_6_has_ruby_ore():
+    """Floor 6 (Fire Realm) must contain at least one RUBY tile."""
+    from glyphbench.envs.craftax.base import TILE_RUBY
+    found = False
+    for seed in range(10):
+        env = _make_full_env(seed=seed)
+        grid = env._floors[6]
+        for row in grid:
+            if TILE_RUBY in row:
+                found = True
+                break
+        if found:
+            break
+    assert found, "Floor 6 (Fire Realm) has no RUBY tiles across 10 seeds"
+
+
+def test_floor_7_has_water_tiles():
+    """Floor 7 (Ice Realm) must contain at least one WATER tile."""
+    from glyphbench.envs.craftax.base import TILE_WATER
+    found = False
+    for seed in range(5):
+        env = _make_full_env(seed=seed)
+        grid = env._floors[7]
+        for row in grid:
+            if TILE_WATER in row:
+                found = True
+                break
+        if found:
+            break
+    assert found, "Floor 7 (Ice Realm) has no WATER tiles across 5 seeds"
+
+
+def test_floor_7_has_sapphire_ore():
+    """Floor 7 (Ice Realm) must contain at least one SAPPHIRE tile."""
+    from glyphbench.envs.craftax.base import TILE_SAPPHIRE
+    found = False
+    for seed in range(10):
+        env = _make_full_env(seed=seed)
+        grid = env._floors[7]
+        for row in grid:
+            if TILE_SAPPHIRE in row:
+                found = True
+                break
+        if found:
+            break
+    assert found, "Floor 7 (Ice Realm) has no SAPPHIRE tiles across 10 seeds"
+
+
+def test_tile_fire_tree_is_single_codepoint_and_disjoint():
+    """TILE_FIRE_TREE must be exactly one Unicode codepoint and not overlap existing tiles."""
+    from glyphbench.envs.craftax import base
+    ft = base.TILE_FIRE_TREE
+    assert len(ft) == 1, f"TILE_FIRE_TREE is not single-codepoint: {ft!r}"
+    # Must differ from all other exported tile constants.
+    all_tiles = {
+        v for k, v in vars(base).items()
+        if k.startswith("TILE_") and k != "TILE_FIRE_TREE" and isinstance(v, str)
+    }
+    assert ft not in all_tiles, f"TILE_FIRE_TREE collides with another tile: {ft!r}"
+
+
+def test_tile_ice_shrub_is_single_codepoint_and_disjoint():
+    """TILE_ICE_SHRUB must be exactly one Unicode codepoint and not overlap existing tiles."""
+    from glyphbench.envs.craftax import base
+    is_ = base.TILE_ICE_SHRUB
+    assert len(is_) == 1, f"TILE_ICE_SHRUB is not single-codepoint: {is_!r}"
+    all_tiles = {
+        v for k, v in vars(base).items()
+        if k.startswith("TILE_") and k != "TILE_ICE_SHRUB" and isinstance(v, str)
+    }
+    assert is_ not in all_tiles, f"TILE_ICE_SHRUB collides with another tile: {is_!r}"
+
+
+def _find_stairs_on_floor(env, floor: int, stair_tile: str):
+    """Return (x, y) of the first matching stair tile on the given floor."""
+    grid = env._floors.get(floor, [])
+    for y, row in enumerate(grid):
+        for x, tile in enumerate(row):
+            if tile == stair_tile:
+                return (x, y)
+    return None
+
+
+def test_descend_floor5_to_floor6():
+    """Player can descend from floor 5 to floor 6 via DESCEND on a stair-down."""
+    from glyphbench.envs.craftax.base import TILE_STAIRS_DOWN
+    env = _make_full_env(seed=0)
+    # Teleport to floor 5.
+    env._current_floor = 5
+    pos = env._stairs_down_pos.get(5)
+    if pos is None:
+        # No stair-down means floor 5 is the last floor — test is vacuously OK
+        # but we prefer to assert it exists.
+        assert False, "Floor 5 has no stair-down tile (should have one to floor 6)"
+    env._agent_x, env._agent_y = pos
+    reward = env._handle_descend()
+    assert env._current_floor == 6, f"Expected floor 6, got {env._current_floor}"
+
+
+def test_descend_floor6_to_floor7():
+    """Player can descend from floor 6 to floor 7 via DESCEND on a stair-down."""
+    env = _make_full_env(seed=0)
+    # Teleport to floor 6.
+    env._current_floor = 6
+    pos = env._stairs_down_pos.get(6)
+    if pos is None:
+        assert False, "Floor 6 has no stair-down tile (should have one to floor 7)"
+    env._agent_x, env._agent_y = pos
+    reward = env._handle_descend()
+    assert env._current_floor == 7, f"Expected floor 7, got {env._current_floor}"
+
+
+def test_floor5_spawns_troll_or_deep_thing():
+    """Floor 5 must have at least one troll or deep_thing mob after reset."""
+    found = False
+    for seed in range(10):
+        env = _make_full_env(seed=seed)
+        for mob in env._mobs:
+            if mob["floor"] == 5 and mob["type"] in ("troll", "deep_thing"):
+                found = True
+                break
+        if found:
+            break
+    assert found, "Floor 5 has no troll or deep_thing mobs across 10 seeds"
+
+
+def test_floor6_spawns_pigman_or_fire_elemental():
+    """Floor 6 must have at least one pigman or fire_elemental mob after reset."""
+    found = False
+    for seed in range(10):
+        env = _make_full_env(seed=seed)
+        for mob in env._mobs:
+            if mob["floor"] == 6 and mob["type"] in ("pigman", "fire_elemental"):
+                found = True
+                break
+        if found:
+            break
+    assert found, "Floor 6 has no pigman or fire_elemental mobs across 10 seeds"
+
+
+def test_floor7_spawns_frost_troll_or_ice_elemental():
+    """Floor 7 must have at least one frost_troll or ice_elemental mob after reset."""
+    found = False
+    for seed in range(10):
+        env = _make_full_env(seed=seed)
+        for mob in env._mobs:
+            if mob["floor"] == 7 and mob["type"] in ("frost_troll", "ice_elemental"):
+                found = True
+                break
+        if found:
+            break
+    assert found, "Floor 7 has no frost_troll or ice_elemental mobs across 10 seeds"

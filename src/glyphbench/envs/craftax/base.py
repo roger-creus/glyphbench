@@ -204,6 +204,20 @@ TILE_FOUNTAIN = "⊙"  # ⊙ U+2299 circled dot — dungeon fountain (refills wa
 TILE_ENCHANT_FIRE = "Ⓔ"  # Ⓔ U+24BA circled latin capital letter E — fire enchantment table (floor 4)
 TILE_ENCHANT_ICE  = "Ⓘ"  # Ⓘ U+24BE circled latin capital letter I — ice enchantment table (floor 3)
 
+# Phase γ biome decoration tiles (T13-T15γ). Both are single-codepoint and
+# disjoint from the existing palette above.
+TILE_FIRE_TREE = "♠"  # ♠ U+2660 black spade suit — fire tree (floor 6 Fire Realm decoration)
+TILE_ICE_SHRUB = "❄"  # ❄ U+2744 snowflake — ice shrub (floor 7 Ice Realm decoration)
+
+# Phase γ mob tiles for floors 5-7 (T13-T15γ). All single-codepoint and disjoint.
+TILE_TROLL = "T"            # T — troll (floor 5 melee)
+TILE_DEEP_THING = "d"       # d — deep thing (floor 5 ranged)
+TILE_SNAIL = "s"            # s — snail (passive)
+TILE_PIGMAN = "p"           # p — pigman (floor 6 melee)
+TILE_FIRE_ELEMENTAL = "F"   # F — fire elemental (floor 6 ranged)
+TILE_FROST_TROLL = "r"      # r — frost troll (floor 7 melee)
+TILE_ICE_ELEMENTAL = "i"    # i — ice elemental (floor 7 ranged)
+
 # Stage 0 achievements (first 8, kept for backward compatibility)
 STAGE0_ACHIEVEMENTS = (
     "collect_wood",

@@ -415,11 +415,15 @@ def test_floor2_has_ruby_tiles_over_many_seeds():
 
 
 def test_other_floors_have_no_sapphire_ruby():
-    """Floors other than 2 should NOT have sapphire or ruby tiles (phase β)."""
+    """Floors 1, 3, 4 should NOT have sapphire or ruby tiles (phase β).
+
+    Phase γ T13-T15γ: floors 5-7 intentionally receive ore placement, so
+    they are excluded from this check.
+    """
     from glyphbench.envs.craftax.base import TILE_SAPPHIRE, TILE_RUBY
     e = CraftaxFullEnv(max_turns=500)
     e.reset(seed=42)
-    for fl in [1, 3, 4, 5]:
+    for fl in [1, 3, 4]:  # floors 5-7 now have ores per phase γ design
         grid = e._floors.get(fl, [])
         for row in grid:
             for tile in row:
