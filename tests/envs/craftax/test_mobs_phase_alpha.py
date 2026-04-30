@@ -203,3 +203,61 @@ def test_full_env_zombie_uses_cooldown_via_mob_ai() -> None:
     after_cooldown = env._hp
     delta = after_first - after_cooldown
     assert delta == 0, f"zombie hit during cooldown: HP dropped by {delta}"
+
+
+def test_sleeping_player_takes_3_5x_melee_damage() -> None:
+    """T22: melee damage is multiplied by 3.5 when the player is asleep
+    (upstream game_logic.py:1100-1291; multiplier 1 + 2.5*is_sleeping)."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._hp = 100
+    env._is_sleeping = True
+    env._mobs.append({
+        "type": "zombie", "x": 5, "y": 6,
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": env._current_floor, "attack_cooldown": 0,
+    })
+    initial_hp = env._hp
+    # NOOP triggers the mob_ai → step_melee_mob path; zombie deals base 1 dmg
+    # (per _MOB_STATS) which becomes round(1 * 3.5) = 4 with sleep multiplier.
+    env.step(env.action_spec.names.index("NOOP"))
+    delta = initial_hp - env._hp
+    # Zombie's base damage is 1 (per _MOB_STATS); 1 * 3.5 = 3.5 → round to 4.
+    # Subtract 0 armor (initial inventory has none), so delta should be 4.
+    # If our impl uses floor instead, delta would be 3. Both are accepted as long
+    # as it's clearly larger than the no-sleep case (1).
+    assert delta >= 3, f"sleeping player should take >=3 damage, got {delta}"
+    assert delta <= 5, f"sleep multiplier should not exceed ~3.5x, got {delta}"
+
+
+def test_awake_player_takes_baseline_damage() -> None:
+    """Sanity-check baseline (without sleep): zombie deals 1 damage."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._hp = 100
+    env._is_sleeping = False
+    env._mobs.append({
+        "type": "zombie", "x": 5, "y": 6,
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": env._current_floor, "attack_cooldown": 0,
+    })
+    initial_hp = env._hp
+    env.step(env.action_spec.names.index("NOOP"))
+    delta = initial_hp - env._hp
+    # Baseline: zombie deals 1 damage (per _MOB_STATS), max(1, 1 - 0) = 1.
+    assert delta == 1, f"awake player should take 1 damage from a zombie, got {delta}"
+
+
+def test_full_env_has_is_sleeping_flag_after_reset() -> None:
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    assert hasattr(env, "_is_sleeping")
+    assert env._is_sleeping is False

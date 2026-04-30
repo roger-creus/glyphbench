@@ -247,6 +247,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         from glyphbench.envs.craftax.mechanics.projectiles import ProjectileEntity
         self._player_projectiles: list[ProjectileEntity] = []
         self._mob_projectiles: list[ProjectileEntity] = []
+        self._is_sleeping: bool = False
         self._pending_step_reward: float = 0.0
         # Plants
         self._plants: dict[tuple[int, int], int] = {}
@@ -766,6 +767,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
     def _take_damage(self, raw: int) -> None:
         defense = self._best_armor_defense()
+        # Phase α: 3.5× damage multiplier while sleeping (upstream
+        # game_logic.py:1100-1291). Mob projectiles also call this
+        # path, so they inherit the multiplier consistently.
+        if self._is_sleeping:
+            raw = int(round(raw * 3.5))
         actual = max(1, raw - defense)
         self._hp = max(0, self._hp - actual)
 
@@ -1190,6 +1196,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._mobs = []
         self._player_projectiles = []
         self._mob_projectiles = []
+        self._is_sleeping = False
         self._pending_step_reward: float = 0.0
         self._torches = {0: set()}
         self._stairs_down_pos = {}
