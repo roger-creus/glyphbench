@@ -63,11 +63,11 @@ def test_fight_skeletons_mobs_spawn() -> None:
 
 
 def test_fight_archers_mobs_spawn() -> None:
-    """3 skeleton archers always spawn at reset."""
+    """3 skeletons (upstream ranged) always spawn at reset."""
     for seed in [0, 1, 2, 3, 4]:
         env = _reset("glyphbench/craftax-fight-archers-v0", seed)
-        archers = [m for m in env._mobs if m["type"] == "skeleton_archer"]
-        assert len(archers) == 3, f"seed={seed}: expected 3 archers, got {len(archers)}"
+        archers = [m for m in env._mobs if m["type"] == "skeleton"]
+        assert len(archers) == 3, f"seed={seed}: expected 3 skeletons, got {len(archers)}"
 
 
 def test_survivehorde_mobs_spawn() -> None:

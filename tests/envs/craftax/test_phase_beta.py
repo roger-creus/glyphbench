@@ -175,3 +175,115 @@ def test_sleep_exits_on_damage_no_wake_up(env):
     env._take_damage(1)
     assert env._is_sleeping is False
     assert "wake_up" not in env._achievements_unlocked
+
+
+# ---------------------------------------------------------------------------
+# T04β: Legacy mob name alignment regression (T_FOLLOWUP_A)
+# ---------------------------------------------------------------------------
+
+def test_legacy_skeleton_archer_absent_from_mob_stats():
+    """'skeleton_archer' must not appear in _MOB_STATS after T_FOLLOWUP_A."""
+    from glyphbench.envs.craftax.full import _MOB_STATS
+    assert "skeleton_archer" not in _MOB_STATS, (
+        "'skeleton_archer' is a legacy name that should have been renamed to 'skeleton'"
+    )
+
+
+def test_legacy_spider_absent_from_mob_stats():
+    """'spider' must not appear in _MOB_STATS after T_FOLLOWUP_A."""
+    from glyphbench.envs.craftax.full import _MOB_STATS
+    assert "spider" not in _MOB_STATS, (
+        "'spider' is a legacy name that should have been renamed to 'kobold'"
+    )
+
+
+def test_upstream_skeleton_present_in_mob_stats():
+    """'skeleton' (upstream ranged) must be in _MOB_STATS with ranged-level stats."""
+    from glyphbench.envs.craftax.full import _MOB_STATS
+    assert "skeleton" in _MOB_STATS
+    # Upstream ranged skeleton: hp=5, damage=3
+    assert _MOB_STATS["skeleton"]["hp"] == 5
+    assert _MOB_STATS["skeleton"]["damage"] == 3
+
+
+def test_kobold_present_in_mob_stats():
+    """'kobold' (replaces legacy spider) must be in _MOB_STATS."""
+    from glyphbench.envs.craftax.full import _MOB_STATS
+    assert "kobold" in _MOB_STATS
+
+
+def test_legacy_skeleton_melee_absent_from_night_spawn(env):
+    """Night spawns only produce zombies (legacy melee skeleton dropped)."""
+    # Manually call _spawn_night_mobs many times and verify no legacy "skeleton" melee
+    for _ in range(20):
+        env._spawn_night_mobs()
+    night_mobs = [m for m in env._mobs if m["floor"] == 0 and m["type"] != "cow"]
+    non_zombie_night = [m for m in night_mobs if m["type"] != "zombie"]
+    assert len(non_zombie_night) == 0, (
+        f"Night spawn produced non-zombie hostile mobs: {[m['type'] for m in non_zombie_night]}"
+    )
+
+
+def test_fight_archers_env_spawns_skeletons():
+    """craftax-fight-archers-v0 spawns 3 'skeleton' mobs (not skeleton_archer)."""
+    import glyphbench.envs.craftax  # noqa: F401
+    from glyphbench.core import make_env
+    env = make_env("glyphbench/craftax-fight-archers-v0")
+    env.reset(seed=0)
+    skeletons = [m for m in env._mobs if m["type"] == "skeleton"]
+    legacy = [m for m in env._mobs if m["type"] == "skeleton_archer"]
+    assert len(skeletons) == 3, f"expected 3 skeletons, got {len(skeletons)}"
+    assert len(legacy) == 0, f"legacy skeleton_archer still present"
+
+
+def test_fight_spiders_env_spawns_kobolds():
+    """craftax-fight-spiders-v0 spawns 3 'kobold' mobs (not spider)."""
+    import glyphbench.envs.craftax  # noqa: F401
+    from glyphbench.core import make_env
+    env = make_env("glyphbench/craftax-fight-spiders-v0")
+    env.reset(seed=0)
+    kobolds = [m for m in env._mobs if m["type"] == "kobold"]
+    legacy = [m for m in env._mobs if m["type"] == "spider"]
+    assert len(kobolds) == 3, f"expected 3 kobolds, got {len(kobolds)}"
+    assert len(legacy) == 0, f"legacy spider still present"
+
+
+def test_defeat_skeleton_achievement_fires_on_upstream_skeleton_kill(env):
+    """Killing a 'skeleton' (upstream ranged) fires 'defeat_skeleton' achievement."""
+    from glyphbench.envs.craftax.full import _MOB_STATS
+    # Place a skeleton adjacent to the player
+    env._mobs = []
+    fx = env._agent_x + env._facing[0]
+    fy = env._agent_y + env._facing[1]
+    env._mobs.append({
+        "type": "skeleton",
+        "x": fx, "y": fy,
+        "hp": 1,  # 1 HP so one hit kills
+        "max_hp": _MOB_STATS["skeleton"]["hp"],
+        "is_boss": False,
+        "floor": 0,
+        "attack_cooldown": 0,
+    })
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    assert "defeat_skeleton" in env._achievements_unlocked
+
+
+def test_defeat_kobold_achievement_fires_on_kobold_kill(env):
+    """Killing a 'kobold' fires 'defeat_kobold' achievement."""
+    from glyphbench.envs.craftax.full import _MOB_STATS
+    env._mobs = []
+    fx = env._agent_x + env._facing[0]
+    fy = env._agent_y + env._facing[1]
+    env._mobs.append({
+        "type": "kobold",
+        "x": fx, "y": fy,
+        "hp": 1,
+        "max_hp": _MOB_STATS["kobold"]["hp"],
+        "is_boss": False,
+        "floor": 0,
+        "attack_cooldown": 0,
+    })
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    assert "defeat_kobold" in env._achievements_unlocked

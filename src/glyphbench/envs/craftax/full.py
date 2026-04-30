@@ -44,10 +44,9 @@ from glyphbench.envs.craftax.base import (
     TILE_RIPE_PLANT,
     TILE_SAND,
     TILE_SAPLING,
-    TILE_SKELETON,
     TILE_SKELETON_ARCHER,
     TILE_SLIMEBALL,
-    TILE_SPIDER,
+    TILE_KOBOLD,
     TILE_STAIRS_DOWN,
     TILE_STAIRS_UP,
     TILE_STONE,
@@ -221,20 +220,21 @@ _NUM_DUNGEON_FLOORS = 5
 # Mob definitions
 # ----------------------------------------------------------------
 _MOB_STATS: dict[str, dict[str, int]] = {
+    # Upstream-faithful roster for the full env (T_FOLLOWUP_A / T04β).
+    # "zombie" = melee floor-0 mob; "skeleton" = ranged floor-0 mob (upstream).
+    # "kobold" replaces legacy "spider" (upstream ranged mob, throws daggers).
     "zombie": {"hp": 3, "damage": 1},
-    "skeleton": {"hp": 4, "damage": 2},
     "cow": {"hp": 3, "damage": 0},
-    "skeleton_archer": {"hp": 5, "damage": 3},
-    "spider": {"hp": 4, "damage": 2},
+    "skeleton": {"hp": 5, "damage": 3},   # upstream ranged; was skeleton_archer
+    "kobold": {"hp": 4, "damage": 2},      # upstream ranged; was spider
     "bat": {"hp": 2, "damage": 1},
 }
 
 _MOB_TILES: dict[str, str] = {
     "zombie": TILE_ZOMBIE,
-    "skeleton": TILE_SKELETON,
     "cow": TILE_COW,
-    "skeleton_archer": TILE_SKELETON_ARCHER,
-    "spider": TILE_SPIDER,
+    "skeleton": TILE_SKELETON_ARCHER,  # glyph "a" (upstream archer convention)
+    "kobold": TILE_KOBOLD,             # glyph "q"
     "bat": TILE_BAT,
 }
 
@@ -384,8 +384,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "iron(I), diamond(D), water(~), lava(L), sand(s).\n"
             "Dungeon: wall(#), floor(_), stairs down(>), "
             "stairs up(<), torch(!), boss door(B).\n"
-            "Mobs: zombie(z), skeleton(k), cow(c), "
-            "skeleton_archer(a), spider(x), bat(b), boss(W).\n\n"
+            "Mobs: zombie(z), cow(c), "
+            "skeleton(a), kobold(q), bat(b), boss(W).\n\n"
             "SURVIVAL\n"
             "- Food drains 1/50 steps. 0 food: -1 HP/step.\n"
             "- Water drains 1/40 steps. 0 water: -1 HP/step.\n"
@@ -722,7 +722,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     break
 
         # Spawn dungeon mobs
-        mob_types = ["skeleton_archer", "spider", "bat"]
+        mob_types = ["skeleton", "kobold", "bat"]
         num_mobs = floor + 2
         for _ in range(num_mobs):
             mtype = str(self.rng.choice(mob_types))
@@ -912,14 +912,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     "Defeated a cow! Ate beef. (+5 food)"
                 )
                 reward += self._try_unlock("eat_cow")
-            elif mtype == "skeleton_archer":
-                self._message = "Defeated a skeleton archer!"
-                reward += self._try_unlock(
-                    "defeat_skeleton_archer"
-                )
-            elif mtype == "spider":
-                self._message = "Defeated a spider!"
-                reward += self._try_unlock("defeat_spider")
+            elif mtype == "kobold":
+                self._message = "Defeated a kobold!"
+                reward += self._try_unlock("defeat_kobold")
             elif mtype == "bat":
                 self._message = "Defeated a bat!"
                 reward += self._try_unlock("defeat_bat")
@@ -1085,10 +1080,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
     def _mob_ai(self) -> None:
         """Move mobs on current floor and handle attacks.
 
-        Phase α: melee mobs (zombie, skeleton) use the cooldown-aware
-        step_melee_mob from mechanics/mobs.py. Ranged mobs (skeleton_archer)
+        Phase α/β: melee mobs (zombie) use the cooldown-aware
+        step_melee_mob from mechanics/mobs.py. Ranged mobs (skeleton, kobold)
         use step_ranged_mob with kiting AI + cooldown=4 + projectile spawn
-        (T24). Passive (cow, bat, spider) mobs still use the inline logic
+        (T24). Passive (cow, bat) mobs still use the inline logic
         until a future passive-AI task.
 
         Turn order: attack-then-move per upstream. step_melee_mob and
@@ -1121,8 +1116,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             mx, my = mob["x"], mob["y"]
             mtype = mob["type"]
 
-            # Phase-α melee mobs use step_melee_mob with cooldown.
-            if mtype in ("zombie", "skeleton"):
+            # Phase-α/β melee mobs: only zombie (upstream-faithful floor-0 melee).
+            if mtype == "zombie":
                 step_melee_mob(
                     mob,
                     player_x=self._agent_x,
@@ -1135,12 +1130,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 )
                 continue
 
-            # Phase-α ranged mob: skeleton_archer uses step_ranged_mob with
-            # kiting AI + cooldown=4 + real projectile spawn.
-            # Legacy mapping: "skeleton_archer" → upstream "knight_archer" →
-            # ProjectileType.ARROW2.  Will be replaced when T_FOLLOWUP_A
-            # renames the mob to its upstream-faithful name.
-            elif mtype == "skeleton_archer":
+            # Phase-β ranged mobs: skeleton (fires arrows) and kobold (throws daggers).
+            # T_FOLLOWUP_A / T04β: skeleton_archer → skeleton, spider → kobold.
+            elif mtype in ("skeleton", "kobold"):
                 from glyphbench.envs.craftax.mechanics.projectiles import (
                     ProjectileEntity,
                     ProjectileType,
@@ -1150,6 +1142,14 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 def _spawn_proj(kind, x, y, dx, dy, dmg):
                     self._mob_projectiles.append(
                         ProjectileEntity(kind=kind, x=x, y=y, dx=dx, dy=dy, damage=dmg)
+                    )
+
+                # skeleton fires arrows (ARROW2), kobold throws daggers (DAGGER)
+                def _proj_kind(m: dict) -> ProjectileType:
+                    return (
+                        ProjectileType.ARROW2
+                        if m["type"] == "skeleton"
+                        else ProjectileType.DAGGER
                     )
 
                 step_ranged_mob(
@@ -1162,7 +1162,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     max_mob_projectiles_room=3 - sum(
                         1 for _ in self._mob_projectiles
                     ),
-                    projectile_kind_for_mob=lambda m: ProjectileType.ARROW2,  # legacy mapping until T_FOLLOWUP_A
+                    projectile_kind_for_mob=_proj_kind,
                     damage_for_mob=_damage_for,
                 )
                 continue
@@ -1184,7 +1184,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     dmg = _MOB_STATS.get(
                         mtype, {"damage": 1}
                     )["damage"]
-                    is_ranged = mtype == "skeleton_archer"
+                    is_ranged = False  # inline branch only handles cow/bat; ranged mobs have step_ranged_mob above
 
                 if start_adj <= 1:
                     self._take_damage(dmg)
@@ -1243,7 +1243,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return
         num = int(self.rng.integers(2, 5))
         for _ in range(num):
-            mt = "zombie" if self.rng.random() < 0.5 else "skeleton"
+            mt = "zombie"  # upstream floor-0 melee mob only (T_FOLLOWUP_A)
             for _att in range(20):
                 dx = int(self.rng.integers(-6, 7))
                 dy = int(self.rng.integers(-6, 7))
@@ -1276,7 +1276,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._mobs = [
             m for m in self._mobs
             if m["floor"] != 0
-            or m["type"] not in ("zombie", "skeleton")
+            or m["type"] != "zombie"  # only zombie spawns at night on floor 0 (T_FOLLOWUP_A)
         ]
 
     # ---------------------------------------------------------------
@@ -2145,12 +2145,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         elif mtype == "cow":
             self._food = min(_MAX_FOOD, self._food + 5)
             reward += self._try_unlock("eat_cow")
-        elif mtype == "skeleton_archer":
-            reward += self._try_unlock(
-                "defeat_skeleton_archer"
-            )
-        elif mtype == "spider":
-            reward += self._try_unlock("defeat_spider")
+        elif mtype == "kobold":
+            reward += self._try_unlock("defeat_kobold")
         elif mtype == "bat":
             reward += self._try_unlock("defeat_bat")
         return reward
@@ -2678,10 +2674,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
             TILE_SAPLING: "sapling (growing)",
             TILE_RIPE_PLANT: "ripe plant (EAT_PLANT)",
             TILE_ZOMBIE: "zombie",
-            TILE_SKELETON: "skeleton",
             TILE_COW: "cow (passive)",
-            TILE_SKELETON_ARCHER: "skeleton archer",
-            TILE_SPIDER: "spider",
+            TILE_SKELETON_ARCHER: "skeleton (ranged)",  # glyph "a" — upstream ranged skeleton
+            TILE_KOBOLD: "kobold (ranged)",
             TILE_BAT: "bat",
             TILE_BOSS: "boss",
             TILE_STAIRS_DOWN: "stairs down (DESCEND)",

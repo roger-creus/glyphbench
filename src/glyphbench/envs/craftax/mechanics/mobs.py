@@ -264,7 +264,7 @@ def should_despawn(
     the distinction doesn't bite in practice.
     """
     if is_fighting_boss and mob["type"] in MELEE_MOB_NAMES + RANGED_MOB_NAMES + (
-        "zombie", "skeleton", "skeleton_archer",  # legacy names still in use
+        "zombie",  # floor-0 melee (T_FOLLOWUP_A: skeleton_archer→skeleton, spider→kobold done)
     ):
         return False
     dist_sum = abs(mob["x"] - player_x) + abs(mob["y"] - player_y)

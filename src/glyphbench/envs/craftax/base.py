@@ -135,8 +135,8 @@ TILE_SKELETON = "k"
 TILE_COW = "c"
 
 # Full-version mob tiles
-TILE_SKELETON_ARCHER = "a"
-TILE_SPIDER = "x"
+TILE_SKELETON_ARCHER = "a"  # upstream ranged skeleton glyph (used by full env)
+TILE_KOBOLD = "q"           # upstream kobold (replaces legacy spider)
 TILE_BAT = "b"
 TILE_BOSS = "W"
 
@@ -252,10 +252,9 @@ ALL_FULL_ACHIEVEMENTS = (
     "defeat_mage",
     "defeat_dragon",
     "defeat_lich",
-    # -- New mobs (3) --
-    "defeat_spider",
+    # -- New mobs (2) --
+    "defeat_kobold",
     "defeat_bat",
-    "defeat_skeleton_archer",
     # -- Boss loot (5) --
     "collect_boss_loot_1",
     "collect_boss_loot_2",
@@ -297,7 +296,7 @@ ALL_FULL_ACHIEVEMENTS = (
     "make_arrow",
     "make_torch",
     "fire_bow",
-    # -- Total: 81 --
+    # -- Total: 80 --
 )
 
 # Visible window dimensions

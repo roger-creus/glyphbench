@@ -28,9 +28,7 @@ from glyphbench.envs.craftax.base import (
     TILE_RIPE_PLANT,
     TILE_SAND,
     TILE_SAPLING,
-    TILE_SKELETON,
-    TILE_SKELETON_ARCHER,
-    TILE_SPIDER,
+    TILE_KOBOLD,
     TILE_STAIRS_DOWN,
     TILE_STAIRS_UP,
     TILE_STONE,
@@ -179,7 +177,7 @@ class CraftaxFloor1Env(CraftaxFullEnv):
             "GOAL: Find the stairs down and step on them, then DESCEND.\n"
             "You start with a stone sword and stone pickaxe.\n"
             "REWARD: +10 for descending to floor 2.\n"
-            "ENEMIES: zombies, skeletons, skeleton archers, spiders, bats.\n"
+            "ENEMIES: zombies, skeletons (ranged), kobolds, bats.\n"
             "Place torches (PLACE_TORCH) to illuminate dark areas.\n"
             "Attack enemies by facing them and using DO.\n\n"
             + self.action_spec.render_for_prompt()
@@ -778,8 +776,8 @@ class CraftaxFightSkeletonsEnv(CraftaxClassicEnv):
 
 
 class CraftaxFightArchersEnv(CraftaxFullEnv):
-    """Start with iron sword + spells. 3 skeleton archers at range.
-    Ranged combat. Max 40 steps. (Full version -- has skeleton_archer.)"""
+    """Start with iron sword + spells. 3 skeletons (ranged) at range.
+    Ranged combat. Max 40 steps. (Full version -- upstream ranged skeleton.)"""
 
     def __init__(self, max_turns: int = 40) -> None:
         super().__init__(max_turns=max_turns)
@@ -789,14 +787,14 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
 
     def system_prompt(self) -> str:
         return (
-            "CRAFTAX FIGHT SKELETON ARCHERS\n\n"
-            "3 skeleton archers (a) are attacking from range!\n"
-            "GOAL: Defeat all 3 skeleton archers.\n"
-            "Archers have 5 HP, deal 3 melee or ranged damage.\n"
+            "CRAFTAX FIGHT SKELETONS\n\n"
+            "3 skeletons (a) are attacking from range!\n"
+            "GOAL: Defeat all 3 skeletons.\n"
+            "Skeletons have 5 HP, deal 3 melee or ranged damage.\n"
             "You have an iron sword (+3 dmg) and spells.\n"
             "CAST_FIREBALL hits all mobs within 2 tiles (3 mana, 4 dmg).\n"
             "Close distance and use DO to melee attack.\n"
-            "REWARD: +3 per archer killed. +5 bonus for all 3.\n\n"
+            "REWARD: +3 per skeleton killed. +5 bonus for all 3.\n\n"
             + self.action_spec.render_for_prompt()
         )
 
@@ -808,11 +806,11 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
         self._current_floor = 0
         self._agent_x = cx
         self._agent_y = cy
-        # Remove all mobs, then place archers
+        # Remove all mobs, then place skeletons (upstream ranged)
         self._mobs = []
         for _ in range(3):
             _place_full_mob(
-                self, "skeleton_archer", cx, cy, floor=0, radius=5
+                self, "skeleton", cx, cy, floor=0, radius=5
             )
         self._inventory = {"iron_sword": 1}
         self._spells_learned = 3
@@ -827,11 +825,11 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         archer_count_before = sum(
-            1 for m in self._mobs if m["type"] == "skeleton_archer"
+            1 for m in self._mobs if m["type"] == "skeleton"
         )
         obs, reward, terminated, truncated, info = super()._step(action)
         archer_count_after = sum(
-            1 for m in self._mobs if m["type"] == "skeleton_archer"
+            1 for m in self._mobs if m["type"] == "skeleton"
         )
         kills = archer_count_before - archer_count_after
         reward += kills * 3.0
@@ -843,7 +841,11 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
 
 
 class CraftaxFightSpidersEnv(CraftaxFullEnv):
-    """Start with iron sword. 3 spiders. Max 40 steps. (Full version.)"""
+    """Start with iron sword. 3 kobolds (replaces legacy spider). Max 40 steps.
+
+    Env ID preserved for backward compatibility; mob type updated to upstream
+    'kobold' (ranged, throws daggers) per T_FOLLOWUP_A / T04β rename.
+    """
 
     def __init__(self, max_turns: int = 40) -> None:
         super().__init__(max_turns=max_turns)
@@ -853,12 +855,12 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
 
     def system_prompt(self) -> str:
         return (
-            "CRAFTAX FIGHT SPIDERS\n\n"
-            "3 spiders (x) lurk nearby!\n"
-            "GOAL: Defeat all 3 spiders.\n"
-            "Spiders have 4 HP and deal 2 damage.\n"
+            "CRAFTAX FIGHT KOBOLDS\n\n"
+            "3 kobolds (q) lurk nearby!\n"
+            "GOAL: Defeat all 3 kobolds.\n"
+            "Kobolds have 4 HP, deal 2 damage, and throw daggers.\n"
             "You have an iron sword (+3 damage).\n"
-            "REWARD: +3 per spider killed. +5 bonus for all 3.\n\n"
+            "REWARD: +3 per kobold killed. +5 bonus for all 3.\n\n"
             + self.action_spec.render_for_prompt()
         )
 
@@ -871,7 +873,7 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
         self._agent_y = cy
         self._mobs = []
         for _ in range(3):
-            _place_full_mob(self, "spider", cx, cy, floor=0, radius=4)
+            _place_full_mob(self, "kobold", cx, cy, floor=0, radius=4)
         self._inventory = {"iron_sword": 1}
         self._hp = 9
         self._food = _MAX_FOOD
@@ -883,16 +885,16 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
-        spider_count_before = sum(
-            1 for m in self._mobs if m["type"] == "spider"
+        kobold_count_before = sum(
+            1 for m in self._mobs if m["type"] == "kobold"
         )
         obs, reward, terminated, truncated, info = super()._step(action)
-        spider_count_after = sum(
-            1 for m in self._mobs if m["type"] == "spider"
+        kobold_count_after = sum(
+            1 for m in self._mobs if m["type"] == "kobold"
         )
-        kills = spider_count_before - spider_count_after
+        kills = kobold_count_before - kobold_count_after
         reward += kills * 3.0
-        if spider_count_after == 0 and spider_count_before > 0:
+        if kobold_count_after == 0 and kobold_count_before > 0:
             reward += 5.0
             terminated = True
             info["subtask_success"] = True
