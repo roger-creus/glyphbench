@@ -298,8 +298,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "iron armor 3, diamond armor 4.\n"
             "Enchant adds +2 weapon dmg or +1 armor def.\n\n"
             "MAGIC\n"
-            "MAKE_SPELL_SCROLL (1 wood+1 coal+1 iron, "
-            "table+furnace) to learn spells. "
             "CAST_FIREBALL (3 mana), CAST_ICEBALL (2 mana).\n\n"
             "DUNGEONS\n"
             "DESCEND on > goes deeper. ASCEND on < goes up. "
@@ -1918,32 +1916,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return self._try_unlock("enchant_armor")
         return 0.0
 
-    # -- Spell scroll --
-
-    def _handle_make_spell_scroll(self) -> float:
-        if (
-            self._near_table()
-            and self._near_furnace()
-            and self._inventory.get("wood", 0) >= 1
-            and self._inventory.get("coal", 0) >= 1
-            and self._inventory.get("iron", 0) >= 1
-        ):
-            self._inventory["wood"] -= 1
-            self._inventory["coal"] -= 1
-            self._inventory["iron"] -= 1
-            self._spells_learned += 1
-            # Also grant potions as a bonus
-            self._potions.append("health")
-            self._potions.append("fire_resist")
-            self._potions.append("speed")
-            self._message = (
-                "Crafted spell scroll! "
-                "Spells and potions unlocked."
-            )
-            r = self._try_unlock("make_spell_scroll")
-            return r + self._craft_increment()
-        return 0.0
-
     # -- Action dispatch table --
 
     _ACTION_DISPATCH: dict[str, Any] = {  # method refs
@@ -1979,7 +1951,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "ASCEND": _handle_ascend,
         "ENCHANT_WEAPON": _handle_enchant_weapon,
         "ENCHANT_ARMOR": _handle_enchant_armor,
-        "MAKE_SPELL_SCROLL": _handle_make_spell_scroll,
     }
 
     # ---------------------------------------------------------------

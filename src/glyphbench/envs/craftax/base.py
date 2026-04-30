@@ -59,7 +59,6 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "DRINK_POTION", "EAT_PLANT", "DRINK_WATER",
         "DESCEND", "ASCEND",
         "ENCHANT_WEAPON", "ENCHANT_ARMOR",
-        "MAKE_SPELL_SCROLL",
     ),
     descriptions=(
         "do nothing this turn",
@@ -95,7 +94,6 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "ascend stairs (\u21e1) to previous floor",
         "enchant weapon (+2 dmg, diamond+coal, table+furnace)",
         "enchant armor (+1 def, diamond+coal, table+furnace)",
-        "craft spell scroll (1 wood+1 coal+1 iron, table+furnace)",
     ),
 )
 
@@ -176,7 +174,7 @@ ALL_CLASSIC_ACHIEVEMENTS = (
     "eat_cow",
 )
 
-# All 80 Craftax Full achievements
+# All 78 Craftax Full achievements
 ALL_FULL_ACHIEVEMENTS = (
     # -- Classic 22 --
     "collect_wood",
@@ -209,9 +207,8 @@ ALL_FULL_ACHIEVEMENTS = (
     "make_stone_armor",
     "make_iron_armor",
     "make_diamond_armor",
-    # -- Torch & scrolls (2) --
+    # -- Torch (1) --
     "place_torch",
-    "make_spell_scroll",
     # -- Magic (2) --
     "cast_fireball",
     "cast_iceball",
@@ -276,7 +273,7 @@ ALL_FULL_ACHIEVEMENTS = (
     "collect_10_wood",
     "collect_5_stone",
     "collect_3_iron",
-    # -- Total: 79 --
+    # -- Total: 78 --
 )
 
 # Visible window dimensions
