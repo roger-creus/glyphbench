@@ -59,6 +59,80 @@ from glyphbench.envs.craftax.base import (
 )
 
 # ----------------------------------------------------------------
+# Upstream achievement names (from Craftax-main constants.py Achievement enum)
+# Used by phase-β tasks to fire upstream-named achievements.
+# ----------------------------------------------------------------
+UPSTREAM_ACHIEVEMENT_NAMES: tuple[str, ...] = (
+    "COLLECT_WOOD",
+    "PLACE_TABLE",
+    "EAT_COW",
+    "COLLECT_SAPLING",
+    "COLLECT_DRINK",
+    "MAKE_WOOD_PICKAXE",
+    "MAKE_WOOD_SWORD",
+    "PLACE_PLANT",
+    "DEFEAT_ZOMBIE",
+    "COLLECT_STONE",
+    "PLACE_STONE",
+    "EAT_PLANT",
+    "DEFEAT_SKELETON",
+    "MAKE_STONE_PICKAXE",
+    "MAKE_STONE_SWORD",
+    "WAKE_UP",
+    "PLACE_FURNACE",
+    "COLLECT_COAL",
+    "COLLECT_IRON",
+    "COLLECT_DIAMOND",
+    "MAKE_IRON_PICKAXE",
+    "MAKE_IRON_SWORD",
+    "MAKE_ARROW",
+    "MAKE_TORCH",
+    "PLACE_TORCH",
+    "COLLECT_SAPPHIRE",
+    "COLLECT_RUBY",
+    "MAKE_DIAMOND_PICKAXE",
+    "MAKE_DIAMOND_SWORD",
+    "MAKE_IRON_ARMOUR",
+    "MAKE_DIAMOND_ARMOUR",
+    "ENTER_GNOMISH_MINES",
+    "ENTER_DUNGEON",
+    "ENTER_SEWERS",
+    "ENTER_VAULT",
+    "ENTER_TROLL_MINES",
+    "ENTER_FIRE_REALM",
+    "ENTER_ICE_REALM",
+    "ENTER_GRAVEYARD",
+    "DEFEAT_GNOME_WARRIOR",
+    "DEFEAT_GNOME_ARCHER",
+    "DEFEAT_ORC_SOLIDER",
+    "DEFEAT_ORC_MAGE",
+    "DEFEAT_LIZARD",
+    "DEFEAT_KOBOLD",
+    "DEFEAT_KNIGHT",
+    "DEFEAT_ARCHER",
+    "DEFEAT_TROLL",
+    "DEFEAT_DEEP_THING",
+    "DEFEAT_PIGMAN",
+    "DEFEAT_FIRE_ELEMENTAL",
+    "DEFEAT_FROST_TROLL",
+    "DEFEAT_ICE_ELEMENTAL",
+    "DAMAGE_NECROMANCER",
+    "DEFEAT_NECROMANCER",
+    "EAT_BAT",
+    "EAT_SNAIL",
+    "FIND_BOW",
+    "FIRE_BOW",
+    "LEARN_FIREBALL",
+    "CAST_FIREBALL",
+    "LEARN_ICEBALL",
+    "CAST_ICEBALL",
+    "OPEN_CHEST",
+    "DRINK_POTION",
+    "ENCHANT_SWORD",
+    "ENCHANT_ARMOUR",
+)
+
+# ----------------------------------------------------------------
 # Walkable / interactable tile sets
 # ----------------------------------------------------------------
 SURFACE_WALKABLE = frozenset({
@@ -238,6 +312,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._armor_enchanted: bool = False
         # Achievements
         self._achievements_unlocked: set[str] = set()
+        # Phase-β parallel bitmap keyed by upstream Achievement enum names.
+        self._achievements_phase_beta: dict[str, bool] = {
+            n: False for n in UPSTREAM_ACHIEVEMENT_NAMES
+        }
         self._message: str = ""
         # Vitals
         self._hp: int = 9
@@ -1316,6 +1394,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "torch": 0,
         }
         self._achievements_unlocked = set()
+        self._achievements_phase_beta = {n: False for n in UPSTREAM_ACHIEVEMENT_NAMES}
         self._message = ""
         self._hp = self._max_hp
         self._food = _MAX_FOOD
