@@ -47,6 +47,8 @@ from glyphbench.envs.craftax.base import (
     TILE_SKELETON_ARCHER,
     TILE_SLIMEBALL,
     TILE_KOBOLD,
+    TILE_RUBY,
+    TILE_SAPPHIRE,
     TILE_STAIRS_DOWN,
     TILE_STAIRS_UP,
     TILE_STONE,
@@ -152,6 +154,9 @@ INTERACTABLE_TILES: dict[str, str] = {
     TILE_COAL: "coal",
     TILE_IRON: "iron",
     TILE_DIAMOND: "diamond",
+    # Phase β ore gems (T05β/T06β)
+    TILE_SAPPHIRE: "sapphire",
+    TILE_RUBY: "ruby",
 }
 
 PICKAXE_REQUIRED: dict[str, int] = {
@@ -159,6 +164,9 @@ PICKAXE_REQUIRED: dict[str, int] = {
     TILE_COAL: 1,
     TILE_IRON: 1,
     TILE_DIAMOND: 2,
+    # Gem ores require iron pickaxe (tier 2 = iron_pickaxe or better)
+    TILE_SAPPHIRE: 2,
+    TILE_RUBY: 2,
 }
 
 _PICKAXE_TIERS = (
@@ -205,6 +213,8 @@ _SOLID_TILES: frozenset[str] = frozenset({
     TILE_BOSS_DOOR,
     # Crafting structures and ores also block projectiles.
     TILE_TABLE, TILE_FURNACE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+    # Phase β gem ores block projectiles too.
+    TILE_SAPPHIRE, TILE_RUBY,
     # Plants block projectiles too (upstream constants.py:370-371).
     TILE_PLANT, TILE_RIPE_PLANT,
 })
@@ -720,6 +730,19 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 if grid[ry][rx] == TILE_DUNGEON_FLOOR:
                     grid[ry][rx] = res
                     break
+
+        # Phase β (T06β): sapphire and ruby ore placement.
+        # Floor 2 (Gnomish Mines): 2.5% each on dungeon-floor tiles.
+        # Floors 4-7 deferred to phase γ.
+        if floor == 2:
+            for ry in range(size):
+                for rx in range(size):
+                    if grid[ry][rx] == TILE_DUNGEON_FLOOR:
+                        roll = self.rng.random()
+                        if roll < 0.025:
+                            grid[ry][rx] = TILE_SAPPHIRE
+                        elif roll < 0.05:
+                            grid[ry][rx] = TILE_RUBY
 
         # Spawn dungeon mobs
         mob_types = ["skeleton", "kobold", "bat"]
@@ -1397,6 +1420,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "bow": 0,
             "arrows": 0,
             "torch": 0,
+            "sapphire": 0,
+            "ruby": 0,
         }
         self._achievements_unlocked = set()
         self._achievements_phase_beta = {n: False for n in UPSTREAM_ACHIEVEMENT_NAMES}
@@ -2665,6 +2690,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             TILE_COAL: "coal ore",
             TILE_IRON: "iron ore",
             TILE_DIAMOND: "diamond",
+            TILE_SAPPHIRE: "sapphire ore (needs iron pickaxe)",
+            TILE_RUBY: "ruby ore (needs iron pickaxe)",
             TILE_WATER: "water (DRINK_WATER)",
             TILE_LAVA: "lava (deadly)",
             TILE_SAND: "sand",

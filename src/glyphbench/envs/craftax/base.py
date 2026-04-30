@@ -156,6 +156,11 @@ TILE_ICEBALL = "○"   # ○ white circle
 TILE_ICEBALL2 = "◎"  # ◎ bullseye
 TILE_SLIMEBALL = "◐" # ◐ half black circle (left)
 
+# Phase β ore tile characters (T05β). Both are single-codepoint and disjoint
+# from the existing palette above.
+TILE_SAPPHIRE = "♦"  # ♦ U+2666 black diamond suit — sapphire ore
+TILE_RUBY = "▲"      # ▲ U+25B2 black up-pointing triangle — ruby ore
+
 # Stage 0 achievements (first 8, kept for backward compatibility)
 STAGE0_ACHIEVEMENTS = (
     "collect_wood",
@@ -296,7 +301,10 @@ ALL_FULL_ACHIEVEMENTS = (
     "make_arrow",
     "make_torch",
     "fire_bow",
-    # -- Total: 80 --
+    # -- Phase β gem ores (2) --
+    "collect_sapphire",
+    "collect_ruby",
+    # -- Total: 82 --
 )
 
 # Visible window dimensions

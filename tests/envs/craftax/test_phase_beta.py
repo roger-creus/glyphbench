@@ -287,3 +287,239 @@ def test_defeat_kobold_achievement_fires_on_kobold_kill(env):
     do_idx = env.action_spec.names.index("DO")
     env.step(do_idx)
     assert "defeat_kobold" in env._achievements_unlocked
+
+
+# ---------------------------------------------------------------------------
+# T05β: Sapphire + ruby ore tile constants + inventory keys
+# ---------------------------------------------------------------------------
+
+def test_sapphire_inventory_key_after_reset(env):
+    """_inventory has 'sapphire' key equal to 0 after reset."""
+    assert "sapphire" in env._inventory
+    assert env._inventory["sapphire"] == 0
+
+
+def test_ruby_inventory_key_after_reset(env):
+    """_inventory has 'ruby' key equal to 0 after reset."""
+    assert "ruby" in env._inventory
+    assert env._inventory["ruby"] == 0
+
+
+def test_tile_sapphire_single_codepoint():
+    """TILE_SAPPHIRE is exactly 1 character."""
+    from glyphbench.envs.craftax.base import TILE_SAPPHIRE
+    assert len(TILE_SAPPHIRE) == 1
+
+
+def test_tile_ruby_single_codepoint():
+    """TILE_RUBY is exactly 1 character."""
+    from glyphbench.envs.craftax.base import TILE_RUBY
+    assert len(TILE_RUBY) == 1
+
+
+def test_tile_sapphire_ruby_disjoint():
+    """TILE_SAPPHIRE and TILE_RUBY are different glyphs."""
+    from glyphbench.envs.craftax.base import TILE_SAPPHIRE, TILE_RUBY
+    assert TILE_SAPPHIRE != TILE_RUBY
+
+
+def test_tile_sapphire_disjoint_from_existing_palette():
+    """TILE_SAPPHIRE does not collide with any existing tile glyph."""
+    from glyphbench.envs.craftax.base import (
+        TILE_SAPPHIRE,
+        TILE_GRASS, TILE_TREE, TILE_STONE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+        TILE_WATER, TILE_LAVA, TILE_SAND, TILE_AGENT, TILE_TABLE, TILE_FURNACE,
+        TILE_PLACED_STONE, TILE_PLANT, TILE_STAIRS_DOWN, TILE_STAIRS_UP,
+        TILE_TORCH, TILE_DUNGEON_WALL, TILE_DUNGEON_FLOOR, TILE_BOSS_DOOR,
+        TILE_ZOMBIE, TILE_SKELETON, TILE_COW, TILE_SKELETON_ARCHER, TILE_KOBOLD,
+        TILE_BAT, TILE_BOSS, TILE_SAPLING, TILE_RIPE_PLANT,
+        TILE_ARROW, TILE_ARROW2, TILE_DAGGER,
+        TILE_FIREBALL, TILE_FIREBALL2, TILE_ICEBALL, TILE_ICEBALL2, TILE_SLIMEBALL,
+    )
+    existing = {
+        TILE_GRASS, TILE_TREE, TILE_STONE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+        TILE_WATER, TILE_LAVA, TILE_SAND, TILE_AGENT, TILE_TABLE, TILE_FURNACE,
+        TILE_PLACED_STONE, TILE_PLANT, TILE_STAIRS_DOWN, TILE_STAIRS_UP,
+        TILE_TORCH, TILE_DUNGEON_WALL, TILE_DUNGEON_FLOOR, TILE_BOSS_DOOR,
+        TILE_ZOMBIE, TILE_SKELETON, TILE_COW, TILE_SKELETON_ARCHER, TILE_KOBOLD,
+        TILE_BAT, TILE_BOSS, TILE_SAPLING, TILE_RIPE_PLANT,
+        TILE_ARROW, TILE_ARROW2, TILE_DAGGER,
+        TILE_FIREBALL, TILE_FIREBALL2, TILE_ICEBALL, TILE_ICEBALL2, TILE_SLIMEBALL,
+    }
+    assert TILE_SAPPHIRE not in existing, (
+        f"TILE_SAPPHIRE '{TILE_SAPPHIRE}' collides with existing palette"
+    )
+
+
+def test_tile_ruby_disjoint_from_existing_palette():
+    """TILE_RUBY does not collide with any existing tile glyph."""
+    from glyphbench.envs.craftax.base import (
+        TILE_RUBY,
+        TILE_GRASS, TILE_TREE, TILE_STONE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+        TILE_WATER, TILE_LAVA, TILE_SAND, TILE_AGENT, TILE_TABLE, TILE_FURNACE,
+        TILE_PLACED_STONE, TILE_PLANT, TILE_STAIRS_DOWN, TILE_STAIRS_UP,
+        TILE_TORCH, TILE_DUNGEON_WALL, TILE_DUNGEON_FLOOR, TILE_BOSS_DOOR,
+        TILE_ZOMBIE, TILE_SKELETON, TILE_COW, TILE_SKELETON_ARCHER, TILE_KOBOLD,
+        TILE_BAT, TILE_BOSS, TILE_SAPLING, TILE_RIPE_PLANT,
+        TILE_ARROW, TILE_ARROW2, TILE_DAGGER,
+        TILE_FIREBALL, TILE_FIREBALL2, TILE_ICEBALL, TILE_ICEBALL2, TILE_SLIMEBALL,
+    )
+    existing = {
+        TILE_GRASS, TILE_TREE, TILE_STONE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+        TILE_WATER, TILE_LAVA, TILE_SAND, TILE_AGENT, TILE_TABLE, TILE_FURNACE,
+        TILE_PLACED_STONE, TILE_PLANT, TILE_STAIRS_DOWN, TILE_STAIRS_UP,
+        TILE_TORCH, TILE_DUNGEON_WALL, TILE_DUNGEON_FLOOR, TILE_BOSS_DOOR,
+        TILE_ZOMBIE, TILE_SKELETON, TILE_COW, TILE_SKELETON_ARCHER, TILE_KOBOLD,
+        TILE_BAT, TILE_BOSS, TILE_SAPLING, TILE_RIPE_PLANT,
+        TILE_ARROW, TILE_ARROW2, TILE_DAGGER,
+        TILE_FIREBALL, TILE_FIREBALL2, TILE_ICEBALL, TILE_ICEBALL2, TILE_SLIMEBALL,
+    }
+    assert TILE_RUBY not in existing, (
+        f"TILE_RUBY '{TILE_RUBY}' collides with existing palette"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T06β: Sapphire + ruby ore placement on floor 2 + iron-pickaxe gating
+# ---------------------------------------------------------------------------
+
+def test_floor2_has_sapphire_tiles_over_many_seeds():
+    """Floor 2 should contain at least one TILE_SAPPHIRE across 50 seeds."""
+    from glyphbench.envs.craftax.base import TILE_SAPPHIRE
+    sapphire_count = 0
+    for seed in range(50):
+        e = CraftaxFullEnv(max_turns=500)
+        e.reset(seed=seed)
+        floor2_grid = e._floors.get(2, [])
+        for row in floor2_grid:
+            sapphire_count += row.count(TILE_SAPPHIRE)
+    assert sapphire_count > 0, (
+        "No TILE_SAPPHIRE found on floor 2 across 50 seeds"
+    )
+
+
+def test_floor2_has_ruby_tiles_over_many_seeds():
+    """Floor 2 should contain at least one TILE_RUBY across 50 seeds."""
+    from glyphbench.envs.craftax.base import TILE_RUBY
+    ruby_count = 0
+    for seed in range(50):
+        e = CraftaxFullEnv(max_turns=500)
+        e.reset(seed=seed)
+        floor2_grid = e._floors.get(2, [])
+        for row in floor2_grid:
+            ruby_count += row.count(TILE_RUBY)
+    assert ruby_count > 0, (
+        "No TILE_RUBY found on floor 2 across 50 seeds"
+    )
+
+
+def test_other_floors_have_no_sapphire_ruby():
+    """Floors other than 2 should NOT have sapphire or ruby tiles (phase β)."""
+    from glyphbench.envs.craftax.base import TILE_SAPPHIRE, TILE_RUBY
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=42)
+    for fl in [1, 3, 4, 5]:
+        grid = e._floors.get(fl, [])
+        for row in grid:
+            for tile in row:
+                assert tile not in (TILE_SAPPHIRE, TILE_RUBY), (
+                    f"Floor {fl} unexpectedly contains gem ore tile '{tile}'"
+                )
+
+
+def _setup_gem_test(tile):
+    """Create env with agent at dungeon floor 2, facing a given ore tile."""
+    from glyphbench.envs.craftax.full import _DUNGEON_SIZE
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=0)
+    # Move agent to a safe position inside dungeon bounds (10, 10)
+    e._current_floor = 2
+    e._agent_x = 10
+    e._agent_y = 10
+    e._facing = (1, 0)  # face right → tile at (11, 10)
+    e._floors[2][10][11] = tile
+    return e, 11, 10   # returns (env, fx, fy)
+
+
+def test_mining_sapphire_requires_iron_pickaxe_no_pickaxe():
+    """DO on sapphire tile without iron pickaxe does not yield sapphire."""
+    from glyphbench.envs.craftax.base import TILE_SAPPHIRE
+    e, fx, fy = _setup_gem_test(TILE_SAPPHIRE)
+    e._inventory.pop("iron_pickaxe", None)
+    before = e._inventory.get("sapphire", 0)
+    do_idx = e.action_spec.names.index("DO")
+    e.step(do_idx)
+    assert e._inventory.get("sapphire", 0) == before, (
+        "Mining sapphire should fail without iron pickaxe"
+    )
+    assert e._floors[2][fy][fx] == TILE_SAPPHIRE, (
+        "Sapphire tile should remain when no pickaxe"
+    )
+
+
+def test_mining_sapphire_with_iron_pickaxe_yields_sapphire():
+    """DO on sapphire tile with iron pickaxe yields 1 sapphire."""
+    from glyphbench.envs.craftax.base import TILE_SAPPHIRE, TILE_DUNGEON_FLOOR
+    e, fx, fy = _setup_gem_test(TILE_SAPPHIRE)
+    e._inventory["iron_pickaxe"] = 1
+    before = e._inventory.get("sapphire", 0)
+    do_idx = e.action_spec.names.index("DO")
+    e.step(do_idx)
+    assert e._inventory.get("sapphire", 0) == before + 1, (
+        "Mining sapphire with iron pickaxe should yield 1 sapphire"
+    )
+    assert e._floors[2][fy][fx] == TILE_DUNGEON_FLOOR, (
+        "Sapphire tile should be replaced by dungeon floor after mining"
+    )
+
+
+def test_mining_ruby_requires_iron_pickaxe_no_pickaxe():
+    """DO on ruby tile without iron pickaxe does not yield ruby."""
+    from glyphbench.envs.craftax.base import TILE_RUBY
+    e, fx, fy = _setup_gem_test(TILE_RUBY)
+    e._inventory.pop("iron_pickaxe", None)
+    before = e._inventory.get("ruby", 0)
+    do_idx = e.action_spec.names.index("DO")
+    e.step(do_idx)
+    assert e._inventory.get("ruby", 0) == before, (
+        "Mining ruby should fail without iron pickaxe"
+    )
+    assert e._floors[2][fy][fx] == TILE_RUBY, (
+        "Ruby tile should remain when no pickaxe"
+    )
+
+
+def test_mining_ruby_with_iron_pickaxe_yields_ruby():
+    """DO on ruby tile with iron pickaxe yields 1 ruby."""
+    from glyphbench.envs.craftax.base import TILE_RUBY, TILE_DUNGEON_FLOOR
+    e, fx, fy = _setup_gem_test(TILE_RUBY)
+    e._inventory["iron_pickaxe"] = 1
+    before = e._inventory.get("ruby", 0)
+    do_idx = e.action_spec.names.index("DO")
+    e.step(do_idx)
+    assert e._inventory.get("ruby", 0) == before + 1, (
+        "Mining ruby with iron pickaxe should yield 1 ruby"
+    )
+    assert e._floors[2][fy][fx] == TILE_DUNGEON_FLOOR, (
+        "Ruby tile should be replaced by dungeon floor after mining"
+    )
+
+
+def test_collect_sapphire_achievement_fires_on_mining():
+    """Mining sapphire with iron pickaxe fires collect_sapphire achievement."""
+    from glyphbench.envs.craftax.base import TILE_SAPPHIRE
+    e, _fx, _fy = _setup_gem_test(TILE_SAPPHIRE)
+    e._inventory["iron_pickaxe"] = 1
+    do_idx = e.action_spec.names.index("DO")
+    e.step(do_idx)
+    assert "collect_sapphire" in e._achievements_unlocked
+
+
+def test_collect_ruby_achievement_fires_on_mining():
+    """Mining ruby with iron pickaxe fires collect_ruby achievement."""
+    from glyphbench.envs.craftax.base import TILE_RUBY
+    e, _fx, _fy = _setup_gem_test(TILE_RUBY)
+    e._inventory["iron_pickaxe"] = 1
+    do_idx = e.action_spec.names.index("DO")
+    e.step(do_idx)
+    assert "collect_ruby" in e._achievements_unlocked
