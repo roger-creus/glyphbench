@@ -70,3 +70,20 @@ def test_player_projectile_expires_off_map() -> None:
     proj = ProjectileEntity(kind=ProjectileType.ARROW, x=19, y=5, dx=1, dy=0, damage=2)
     survivors = step_player_projectiles([proj], map_w=20, map_h=20, blocked_fn=lambda x, y: False, hit_fn=lambda x, y: False)
     assert survivors == []
+
+
+def test_player_projectile_stops_at_solid_block() -> None:
+    """A projectile entering a blocked tile is dropped. Its terminal position
+    is the blocked tile itself (because step_player_projectiles advances
+    BEFORE running the blocked_fn check)."""
+    proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=2)
+    blocked = {(6, 5)}
+    survivors = step_player_projectiles(
+        [proj],
+        map_w=20, map_h=20,
+        blocked_fn=lambda x, y: (x, y) in blocked,
+        hit_fn=lambda x, y: False,
+    )
+    assert survivors == []
+    # Terminal position is the blocked tile (proj advanced into it before being dropped).
+    assert (proj.x, proj.y) == (6, 5)
