@@ -1,25 +1,50 @@
+<div align="center">
+
 # GlyphBench
 
-A benchmark of **300 text-rendered reinforcement-learning environments** for evaluating LLM agents on sequential decision-making.
+**A benchmark of 300 text-rendered reinforcement-learning environments for evaluating LLM agents on sequential decision-making.**
+
+<img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/hero.gif" width="900" />
+
+[Leaderboard](https://roger-creus.github.io/glyphbench/leaderboard/) · [Paper (coming soon)](#) · [Quickstart](#quickstart) · [Contributing](CONTRIBUTING.md)
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
+![vLLM compatible](https://img.shields.io/badge/inference-vLLM-orange)
+![Verifiers](https://img.shields.io/badge/eval-verifiers-purple)
+[![Leaderboard](https://img.shields.io/badge/leaderboard-live-green)](https://roger-creus.github.io/glyphbench/leaderboard/)
+
+</div>
 
 Every environment renders its state as a Unicode text grid with a legend and discrete named actions. The agent sees only the grid — no privileged state-channel — so every game-relevant fact must be readable off the glyphs themselves. Observations are deterministic (seeded), making results fully reproducible.
-
-- **Leaderboard & rollouts:** [roger-creus.github.io/glyphbench](https://roger-creus.github.io/glyphbench/leaderboard/)
-- **Paper:** coming soon
-- **Contributing a run:** see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## At a glance
 
 | Suite | Envs | What it tests | Actions |
-|---|---:|---|---:|
+|---|---:|---|---|
 | MiniGrid | 71 | Grid navigation, key/door puzzles, dynamic obstacles, memory | 7 |
 | MiniHack | 63 | NetHack-inspired dungeons, combat, items, skills | 22 |
-| Atari | 57 | Classic arcade (Pong, Breakout, Space Invaders, …) | 3–18 |
-| Classics | 50 | Snake, Sokoban, Minesweeper, Sudoku, Nim, … | 4–10 |
+| Atari | 57 | Classic arcade (Pong, Breakout, Space Invaders, …) | 3-10 |
+| Classics | 50 | Snake, Sokoban, Minesweeper, Sudoku, Nim, … | 2-256 |
 | Craftax | 43 | Open-world survival + crafting, dungeon floors, focused sub-tasks | 19 / 45 |
-| Procgen | 16 | Procedurally generated platformers, shooters, mazes | 4–6 |
+| Procgen | 16 | Procedurally generated platformers, shooters, mazes | 4-6 |
 
-All environments use single-codepoint Unicode glyphs (`→↓←↑` for player direction, `█` walls, `★` goals, `≈` water, …) with no symbol collisions across a suite.
+All environments use single-codepoint Unicode glyphs (`→↓←↑` for player direction, `█` walls, `★` goals, `≈` water, …) with no symbol collisions inside a suite.
+
+## Browse the suites
+
+| | | |
+|:---:|:---:|:---:|
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minigrid-doorkey-6x6-v0.gif" width="200" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minigrid-multiroom-n4-s5-v0.gif" width="200" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minihack-room-monster-15x15-v0.gif" width="200" /> |
+| **MiniGrid · DoorKey** | **MiniGrid · MultiRoom** | **MiniHack · Room-Monster** |
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__minihack-corridor-r3-v0.gif" width="200" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__atari-pong-v0.gif" width="200" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__atari-breakout-v0.gif" width="200" /> |
+| **MiniHack · Corridor-R3** | **Atari · Pong** | **Atari · Breakout** |
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__classics-snake-medium-v0.gif" width="200" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__classics-sokoban-easy-v0.gif" width="200" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-classic-v0.gif" width="200" /> |
+| **Classics · Snake** | **Classics · Sokoban** | **Craftax · Classic** |
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-fight-cow-v0.gif" width="200" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-coinrun-v0.gif" width="200" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-maze-v0.gif" width="200" /> |
+| **Craftax · FightCow** | **Procgen · CoinRun** | **Procgen · Maze** |
+
+→ [Browse all 300 environments on the leaderboard gallery](https://roger-creus.github.io/glyphbench/leaderboard/)
 
 ## Install
 
@@ -29,15 +54,7 @@ uv add "glyphbench[eval]"            # + verifiers + vLLM (eval + RL integration
 uv add "glyphbench[all]"             # + providers, analysis, dev tooling
 ```
 
-From source:
-
-```bash
-git clone https://github.com/roger-creus/glyphbench.git
-cd glyphbench
-uv sync --all-extras
-```
-
-## Quick start
+## Quickstart
 
 ```python
 import glyphbench
@@ -52,203 +69,37 @@ print(obs)
 vf_env = glyphbench.load_environment(task_id="glyphbench/minigrid-empty-5x5-v0")
 ```
 
-```
-[Legend]
-· floor    → you, facing right    █ wall    ★ goal
+## Tools
 
-[Grid]
-███████
-█→····█
-█·····█
-█·····█
-█····★█
-███████
-```
+### Trajectory replay
 
-Every environment also exposes `env.system_prompt()` — a compact description of rules, actions, reward structure, and termination conditions, ready to pass as a system message to any LLM.
+<img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/gb_replay.gif" width="900" />
 
-## Observation format
+`glyphbench replay` is a rich TUI for stepping through saved rollouts: per-turn grid + reasoning + memory + HUD, with hotkey hops to a pager for full system prompt / reasoning / memory views. → [docs/REPLAY.md](docs/REPLAY.md)
 
-Every environment returns a single text string. The harness shows the model:
+### Interactive demo
 
-- `[Legend]` — maps each glyph to its meaning (rendered once, deduped).
-- `[Grid]` — the 2D Unicode grid (the only required channel).
-- `[Message]` — optional per-turn narrative event ("You bumped a wall.").
-- `[Actions]` — the action vocabulary the model must pick from this turn.
+<img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/demo_all_envs.gif" width="900" />
 
-Envs may compute a `[HUD]` (HP, inventory, score, etc.) for their `info` dict
-and trajectory logs, but the harness deliberately does not show it to the
-model. Privileged state (mob positions, hidden inventory) must therefore be
-encoded in the visible grid for the agent to reason about.
+`scripts/demo_all_envs.py` runs a uniform-random agent through any env in the same TUI layout `gb replay` uses. → [scripts/README.md](scripts/README.md)
 
-## Running LLM evaluations
+## Documentation
 
-GlyphBench registers every environment as a [verifiers](https://github.com/PrimeIntellect-ai/verifiers)
-environment, so any OpenAI-compatible endpoint can be evaluated via `vf-eval`.
-Two turnkey wrappers are provided:
-
-```bash
-# Short smoke (1 env, 1 episode) — useful for wiring checks
-bash eval/run_debug.sh
-
-# Full sweep (all 300 envs, configurable episodes via $EPISODES / $MODEL)
-bash eval/run_full.sh
-```
-
-Both scripts assume an OpenAI-compatible server is reachable at `http://localhost:8000/v1`
-(e.g. `uv run vllm serve Qwen/Qwen3.5-4B --port 8000`). See [`eval/README.md`](eval/README.md)
-for full arguments.
-
-At a Python level, the single entry point is:
-
-```python
-import glyphbench
-env = glyphbench.load_environment(
-    task_id="glyphbench/minigrid-empty-5x5-v0",
-    num_episodes=5,              # default
-    n_frames=0,                  # stateless per turn (default)
-    max_output_tokens=8192,      # match your --max-tokens
-    use_memory=False,            # optional carried memory scaffold
-)
-```
-
-which returns a `verifiers.MultiTurnEnv` ready for `vf.evaluate(...)` or RL training.
-
-## Training (RL fine-tuning with prime-rl)
-
-GlyphBench ships an RL training pipeline that fine-tunes Qwen-class models
-on all 300 envs under the same inference profile we eval at (thinking on,
-8K action + 4K memory, memory mode).
-
-```bash
-# 1. Install the rl extra
-uv sync --extra rl --extra eval
-
-# 2. Set up cluster config (one-time per cluster)
-cp .env.cluster.template .env.cluster
-$EDITOR .env.cluster   # fill in node names, ports, API keys, output dir
-
-# 3. Launch all components from the trainer node
-bash scripts/rl/launch_all.sh
-```
-
-See:
-
-- `configs/rl/qwen35-4b-glyphbench/README.md` — config-specific notes
-- `scripts/rl/README.md` — operator guide
-- `src/glyphbench/rl/README.md` — design notes for the custom advantage and
-  loss hooks
-
-## Harness
-
-One harness mode: per turn the model sees only `[system, current observation]`
-— no HUD side-channel, every game-relevant fact must be readable off the
-Unicode grid. An optional frame-stacked history window is available
-(`n_frames=N`); the default is `n_frames=0` (stateless / pure Markov). The
-system prompt advertises the output-token budget the eval is run with so the
-model can self-pace its reasoning. All observations are deterministic —
-identical seeds produce identical trajectories.
-
-Set `use_memory=True` to add an opt-in memory scaffold across all environments.
-Each environment step then uses two model generations: one for the action and
-one for a concise memory update conditioned on the action response, reward,
-done flags, and the same HUD-stripped next-observation view used for action
-selection. For RL, those two generations are stored as one trajectory step so
-action tokens and memory-update tokens train together with the same task reward.
-`memory_update_max_tokens` can override only the second generation's token
-limit; by default it reuses the action sampling limit.
-Memory-aware trajectories show previous and updated memory in `glyphbench replay`;
-the standalone trajectory/GIF renderer also includes stored memory when present.
-
-## Scoring
-
-GlyphBench reports **raw episodic return per (env, model)**. There is no
-benchmark-wide normalised score: we publish the raw per-task per-model means
-and let downstream analyses choose their own aggregation. A reproducible
-random-agent baseline is available at
-[`eval/random_baseline.json`](eval/random_baseline.json) for callers that
-want a zero-skill reference.
-
-## Trajectory replay and GIFs
-
-```bash
-# Replay every saved trajectory under a results directory (rich TUI)
-uv run glyphbench replay cluster_manager/results --suite minigrid --pause
-
-# Replay a single recorded trajectory with color
-uv run python scripts/replay_trajectory.py path/to/trajectory.jsonl
-
-# Export a single trajectory as a GIF
-uv run python scripts/replay_trajectory.py trajectory.jsonl --gif output.gif
-
-# Render a random-agent GIF for every env (seeds 42, natural termination)
-uv run python scripts/record_random_gifs.py --output docs/leaderboard/gifs/
-```
-
-## Interactive demo
-
-```bash
-# Watch a random agent play each env in the gb-replay TUI layout
-uv run python scripts/demo_all_envs.py --pause
-
-# Single env, slower continuous playback
-uv run python scripts/demo_all_envs.py --env glyphbench/craftax-classic-v0 --delay 0.2
-
-# Filter by suite
-uv run python scripts/demo_all_envs.py --suite minigrid --delay 0.05
-```
-
-The renderer is flicker-free (single-write frame with ANSI cursor-home).
-
-## Using GlyphBench with your own agent
-
-```python
-import glyphbench
-from glyphbench.core import make_env
-
-env = make_env("glyphbench/minigrid-doorkey-6x6-v0")
-obs, info = env.reset(42)
-
-done, total = False, 0.0
-while not done:
-    action = your_agent(obs, env.action_spec.names)
-    obs, reward, terminated, truncated, info = env.step(action)
-    total += reward
-    done = terminated or truncated
-
-print(f"Episode return: {total}")
-```
-
-## Project layout
-
-```
-src/glyphbench/
-    core/                  # BaseGlyphEnv, GridObservation, ActionSpec, registry
-    envs/                  # 6 suites · 300 envs
-    verifiers_integration/ # prompt builder, parser, multi-turn env, rubric
-    plotting/              # parquet loaders + paper-figure generators
-eval/                      # vf-eval wrappers, random baseline
-configs/                   # endpoint registry, prime-rl training configs
-cluster_manager/           # SLURM multi-cluster experiment manager
-scripts/                   # Demo, trajectory replay, GIF export, upload tools
-docs/leaderboard/          # GitHub Pages site (leaderboard + rollout gallery)
-```
-
-## Development
-
-```bash
-uv sync --all-extras
-uv run pytest
-uv run ruff check src/
-uv run mypy src/glyphbench/
-```
+- [Observation format · harness](docs/OBSERVATION_FORMAT.md)
+- [LLM evaluation (vLLM / verifiers / `prime eval run`)](eval/README.md)
+- [RL framework hooks (prime-rl)](src/glyphbench/rl/README.md)
+- [Trajectory replay tool](docs/REPLAY.md)
+- [Interactive demo & scripts](scripts/README.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Use with your own agent](docs/INTEGRATION.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## Citation
 
 ```bibtex
 @article{glyphbench2026,
   title   = {GlyphBench: A Unified Benchmark for Evaluating LLM Agents on Sequential Decision-Making},
-  author  = {Anonymous},
+  author  = {Roger Creus Castanyer},
   year    = {2026},
 }
 ```
