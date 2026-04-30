@@ -1,5 +1,8 @@
 # Craftax — Overview
 
+> Canonical anchors (locked API): `overview`.
+
+<!-- :section overview -->
 Craftax is a 9-floor survival crafting game. The agent gathers resources, crafts tools and weapons, explores progressively harder dungeon floors, learns magic, and ultimately defeats the Necromancer on floor 8. Each floor is harder than the last; floor 8 is the final boss floor with no exit.
 
 ## Floor stack
@@ -52,3 +55,4 @@ Each turn the agent receives:
 - **[Message]**: last game message (achievement unlocks, damage events, crafting results, etc.).
 
 The agent selects one action name per turn. Invalid or blocked actions are silently no-oped.
+<!-- :end -->
