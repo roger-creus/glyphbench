@@ -233,6 +233,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._night_count: int = 0
         # Mobs (all floors)
         self._mobs: list[Mob] = []
+        # Projectile entities (phase α).
+        from glyphbench.envs.craftax.mechanics.projectiles import ProjectileEntity
+        self._player_projectiles: list[ProjectileEntity] = []
+        self._mob_projectiles: list[ProjectileEntity] = []
         # Plants
         self._plants: dict[tuple[int, int], int] = {}
         # Potions
@@ -1080,6 +1084,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
     def _reset(self, seed: int) -> GridObservation:
         self._floors = {}
         self._mobs = []
+        self._player_projectiles = []
+        self._mob_projectiles = []
         self._torches = {0: set()}
         self._stairs_down_pos = {}
         self._stairs_up_pos = {}

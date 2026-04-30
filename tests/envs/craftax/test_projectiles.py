@@ -48,3 +48,14 @@ def test_projectile_advances_one_tile_per_step() -> None:
     assert (p.x, p.y) == (6, 7)
     p.advance()
     assert (p.x, p.y) == (7, 7)
+
+
+from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+
+def test_full_env_has_projectile_lists_after_reset() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    # New state fields exist and start empty.
+    assert env._player_projectiles == []
+    assert env._mob_projectiles == []
