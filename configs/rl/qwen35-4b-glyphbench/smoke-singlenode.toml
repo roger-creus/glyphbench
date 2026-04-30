@@ -106,6 +106,13 @@ gpu_memory_utilization = 0.85
 
 [inference.model]
 max_model_len = 16384
+# enforce_eager=true bypasses vLLM's CUDA graph capture, which is what
+# triggers flashinfer's JIT compilation of the gdn_prefill_sm90 kernel
+# for Qwen3.5-4B's gated delta nets. The system has only CUDA 11.5
+# nvcc (too old for sm90), so the JIT compile fails fatally with
+# "Could not find nvcc and default cuda_home='/usr/local/cuda' doesn't
+# exist". Eager mode is slower but works.
+enforce_eager = true
 
 [inference.parallel]
 tp = 1
