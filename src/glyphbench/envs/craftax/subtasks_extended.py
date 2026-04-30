@@ -393,11 +393,13 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
 
     def _task_description(self) -> str:
         return (
-            "You face a powerful boss in the dungeon. Defeat it to win. You "
-            "start with a diamond sword, diamond armor, learned spells, and "
-            "potions. Use DO facing the boss to melee, CAST_FIREBALL for "
-            "elemental damage, and DRINK_POTION_* for buffs (per-game shuffle). "
-            "Reward: +10 for defeating the boss."
+            "Defeat the lich boss on dungeon floor 5. You start on floor 5 "
+            "with a diamond sword (fire-enchanted), full diamond armor, all 3 "
+            "spells learned, and 3 health potions. Use DO facing the lich to "
+            "melee or CAST_FIREBALL for ranged damage. Reward: +10 on kill, "
+            "episode ends. Time limit: 200 steps. (Note: this is the lich, "
+            "not the necromancer — see craftax-necromancer-v0 for the floor-8 "
+            "final boss.)"
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1618,10 +1620,12 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
 
     def _task_description(self) -> str:
         return (
-            "Race to the deepest dungeon floor. You start on the surface "
-            "with endgame gear (diamond gear, learned spells, torches). "
-            "Find stairs down (⇣), use DESCEND, and repeat. Reward: +3 per "
-            "new floor reached, +10 bonus for reaching floor 5."
+            "Race to dungeon floor 5. You start on the surface (floor 0) "
+            "right next to the stairs down, with endgame gear (diamond sword, "
+            "full diamond armor, all spells learned, fire-enchanted weapon, "
+            "torches). Find stairs down (⇣) on each floor, use DESCEND, and "
+            "repeat. Reward: +1 per new floor reached, +10 bonus + episode "
+            "end on reaching floor 5. Time limit: 300 steps."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1655,11 +1659,14 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super()._step(action)
-        # Reward for reaching new floors
+        # Reward for reaching new floors. Per-floor reward is +1 (not +3) so
+        # random agents can't accumulate large returns by accident; the +10
+        # bonus on floor 5 is the meaningful signal that requires real
+        # navigation.
         if self._current_floor > self._deepest_floor:
             floors_gained = self._current_floor - self._deepest_floor
             self._deepest_floor = self._current_floor
-            reward += floors_gained * 3.0
+            reward += floors_gained * 1.0
             if self._current_floor >= 5:
                 reward += 10.0
                 terminated = True
@@ -2020,6 +2027,425 @@ class CraftaxWaveDefenseEnv(CraftaxClassicEnv):
         info["wave_kills"] = self._wave_kills
         info["waves_spawned"] = self._waves_spawned
         return obs, reward, terminated, truncated, info
+
+
+
+# ===================================================================
+# Floor progression (4-7) — descend stairs from each dungeon floor.
+# Floor 8 is covered by CraftaxNecromancerEnv (boss fight) below.
+# ===================================================================
+
+
+class CraftaxFloor4Env(CraftaxFullEnv):
+    """Dungeon floor 4 (Vaults). Start with diamond sword + iron armor + spells.
+    Goal: find stairs down. Max 150 steps."""
+
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:overworld", "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles", "combat:elemental",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "magic:spells", "magic:books", "magic:enchants",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "items:gems",
+        "progression:xp", "progression:attributes", "progression:achievements",
+        "floors:3", "floors:4", "floors:5", "floors:navigation",
+    )
+
+    def __init__(self, max_turns: int = 150) -> None:
+        super().__init__(max_turns=max_turns)
+
+    def env_id(self) -> str:
+        return "glyphbench/craftax-floor4-v0"
+
+    def _task_description(self) -> str:
+        return (
+            "You are on dungeon floor 4 (Vaults — hosts the fire enchant "
+            "table Ⓔ). Find the stairs down (⇣) and use DESCEND to reach "
+            "floor 5. You start with a diamond sword, iron armor, learned "
+            "spells, and 2 health potions. Vault knights have 0.5 physical "
+            "defense — use spells or enchanted attacks. Reward: +10 for "
+            "descending to floor 5."
+        )
+
+    def _reset(self, seed: int) -> GridObservation:
+        super()._reset(seed)
+        self._current_floor = 4
+        up_pos = self._stairs_up_pos.get(4)
+        if up_pos:
+            self._agent_x, self._agent_y = up_pos
+        else:
+            self._agent_x = _DUNGEON_SIZE // 2
+            self._agent_y = _DUNGEON_SIZE // 2
+        self._inventory = {
+            "diamond_sword": 1,
+            "wood": 5,
+            "coal": 5,
+            "ruby": 1,
+        }
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 1  # iron tier
+        self._spells_learned = 3
+        self._potions = ["health", "health"]
+        self._hp = 9
+        self._food = _MAX_FOOD
+        self._water = _MAX_WATER
+        self._energy = _MAX_ENERGY
+        self._mana = _MAX_MANA
+        return self._render_current_observation()
+
+    def _step(
+        self, action: int,
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        old_floor = self._current_floor
+        obs, reward, terminated, truncated, info = super()._step(action)
+        if self._current_floor == 5 and old_floor == 4:
+            reward += 10.0
+            terminated = True
+            info["subtask_success"] = True
+        return obs, reward, terminated, truncated, info
+
+
+class CraftaxFloor5Env(CraftaxFullEnv):
+    """Dungeon floor 5 (Troll Mines, dark cave). Start with diamond gear + bow.
+    Goal: find stairs down. Max 200 steps."""
+
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles", "combat:elemental",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "magic:spells", "magic:books", "magic:enchants",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "items:gems",
+        "progression:xp", "progression:attributes", "progression:achievements",
+        "floors:4", "floors:5", "floors:6", "floors:navigation",
+    )
+
+    def __init__(self, max_turns: int = 200) -> None:
+        super().__init__(max_turns=max_turns)
+
+    def env_id(self) -> str:
+        return "glyphbench/craftax-floor5-v0"
+
+    def _task_description(self) -> str:
+        return (
+            "You are on dungeon floor 5 (Troll Mines — a dark cave). Find "
+            "the stairs down (⇣) and use DESCEND to reach floor 6. You start "
+            "with a diamond sword, full diamond armor, bow + 10 arrows, "
+            "torches, learned spells, and potions. The floor is dark — "
+            "PLACE_TORCH to see. Trolls (T, 12 HP, 4 damage) hit hard; deep "
+            "things (d) kite from range and fire mixed-element slimeballs. "
+            "Reward: +10 for descending to floor 6."
+        )
+
+    def _reset(self, seed: int) -> GridObservation:
+        super()._reset(seed)
+        self._current_floor = 5
+        up_pos = self._stairs_up_pos.get(5)
+        if up_pos:
+            self._agent_x, self._agent_y = up_pos
+        else:
+            self._agent_x = _DUNGEON_SIZE // 2
+            self._agent_y = _DUNGEON_SIZE // 2
+        self._inventory = {
+            "diamond_sword": 1,
+            "bow": 1,
+            "arrows": 10,
+            "torch": 5,
+            "wood": 5,
+            "coal": 5,
+        }
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 2  # diamond tier
+        self._spells_learned = 3
+        self._potions = ["health", "health"]
+        self._hp = 9
+        self._food = _MAX_FOOD
+        self._water = _MAX_WATER
+        self._energy = _MAX_ENERGY
+        self._mana = _MAX_MANA
+        return self._render_current_observation()
+
+    def _step(
+        self, action: int,
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        old_floor = self._current_floor
+        obs, reward, terminated, truncated, info = super()._step(action)
+        if self._current_floor == 6 and old_floor == 5:
+            reward += 10.0
+            terminated = True
+            info["subtask_success"] = True
+        return obs, reward, terminated, truncated, info
+
+
+class CraftaxFloor6Env(CraftaxFullEnv):
+    """Dungeon floor 6 (Fire Realm — lava, fire-immune mobs). Start with
+    ice-enchanted gear + iceball spell. Goal: find stairs down. Max 200 steps."""
+
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles", "combat:elemental",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "magic:spells", "magic:books", "magic:enchants",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "items:gems",
+        "progression:xp", "progression:attributes", "progression:achievements",
+        "floors:5", "floors:6", "floors:7", "floors:navigation",
+    )
+
+    def __init__(self, max_turns: int = 200) -> None:
+        super().__init__(max_turns=max_turns)
+
+    def env_id(self) -> str:
+        return "glyphbench/craftax-floor6-v0"
+
+    def _task_description(self) -> str:
+        return (
+            "You are on dungeon floor 6 (Fire Realm — lava + fire-immune "
+            "mobs). Find the stairs down (⇣) and use DESCEND to reach "
+            "floor 7. Pigmen (p) and fire elementals (F) are immune to fire "
+            "(0.9 physical defense, 1.0 fire defense) — use CAST_ICEBALL or "
+            "your ice-enchanted diamond sword. You start with full diamond "
+            "armor (ice-enchanted), ice-enchanted sword, bow + 10 arrows, "
+            "iceball spell learned, torches, and 2 health potions. Avoid "
+            "stepping on lava (♨, 2 HP/tick). Reward: +10 for descending to "
+            "floor 7."
+        )
+
+    def _reset(self, seed: int) -> GridObservation:
+        super()._reset(seed)
+        self._current_floor = 6
+        up_pos = self._stairs_up_pos.get(6)
+        if up_pos:
+            self._agent_x, self._agent_y = up_pos
+        else:
+            self._agent_x = _DUNGEON_SIZE // 2
+            self._agent_y = _DUNGEON_SIZE // 2
+        self._inventory = {
+            "diamond_sword": 1,
+            "bow": 1,
+            "arrows": 10,
+            "torch": 5,
+            "wood": 5,
+            "coal": 5,
+        }
+        self._sword_enchantment = 2  # ice-enchanted
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 2  # diamond tier
+        # Phase γ T03γ: fire-realm survival requires ice resistance — enchant
+        # a couple of armour slots with ice (resists fireball mob attacks).
+        self._armor_enchantments = {
+            "helmet": 2, "chest": 2, "legs": 0, "boots": 0,
+        }
+        self._spells_learned = 3
+        self._potions = ["health", "health"]
+        self._hp = 9
+        self._food = _MAX_FOOD
+        self._water = _MAX_WATER
+        self._energy = _MAX_ENERGY
+        self._mana = _MAX_MANA
+        return self._render_current_observation()
+
+    def _step(
+        self, action: int,
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        old_floor = self._current_floor
+        obs, reward, terminated, truncated, info = super()._step(action)
+        if self._current_floor == 7 and old_floor == 6:
+            reward += 10.0
+            terminated = True
+            info["subtask_success"] = True
+        return obs, reward, terminated, truncated, info
+
+
+class CraftaxFloor7Env(CraftaxFullEnv):
+    """Dungeon floor 7 (Ice Realm — water, ice-immune mobs). Start with
+    fire-enchanted gear + fireball spell. Goal: find stairs down. Max 200 steps."""
+
+    tutorial_sections = (
+        "overview",
+        "legend:player", "legend:terrain",
+        "legend:mobs:dungeon",
+        "legend:items", "legend:projectiles", "legend:hud",
+        "survival:hp_food_drink", "survival:energy_sleep", "survival:rest",
+        "combat:melee", "combat:ranged_player", "combat:ranged_mob",
+        "combat:armor", "combat:projectiles", "combat:elemental",
+        "crafting:wood", "crafting:stone", "crafting:iron", "crafting:diamond",
+        "crafting:placement", "crafting:arrows", "crafting:torches",
+        "magic:spells", "magic:books", "magic:enchants",
+        "items:resources", "items:bow", "items:torches", "items:potions",
+        "items:gems",
+        "progression:xp", "progression:attributes", "progression:achievements",
+        "floors:6", "floors:7", "floors:8", "floors:navigation",
+    )
+
+    def __init__(self, max_turns: int = 200) -> None:
+        super().__init__(max_turns=max_turns)
+
+    def env_id(self) -> str:
+        return "glyphbench/craftax-floor7-v0"
+
+    def _task_description(self) -> str:
+        return (
+            "You are on dungeon floor 7 (Ice Realm — last floor before the "
+            "boss). Find the stairs down (⇣) and use DESCEND to reach "
+            "floor 8 (the Graveyard). Frost trolls (r) and ice elementals "
+            "(i) are immune to ice (0.9 physical defense, 1.0 ice defense) "
+            "— use CAST_FIREBALL or your fire-enchanted diamond sword. You "
+            "start with full diamond armor (fire-enchanted), fire-enchanted "
+            "sword, bow + 10 arrows, fireball spell learned, torches, and "
+            "2 health potions. Reward: +10 for descending to floor 8."
+        )
+
+    def _reset(self, seed: int) -> GridObservation:
+        super()._reset(seed)
+        self._current_floor = 7
+        up_pos = self._stairs_up_pos.get(7)
+        if up_pos:
+            self._agent_x, self._agent_y = up_pos
+        else:
+            self._agent_x = _DUNGEON_SIZE // 2
+            self._agent_y = _DUNGEON_SIZE // 2
+        self._inventory = {
+            "diamond_sword": 1,
+            "bow": 1,
+            "arrows": 10,
+            "torch": 5,
+            "wood": 5,
+            "coal": 5,
+        }
+        self._sword_enchantment = 1  # fire-enchanted
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 2  # diamond tier
+        self._armor_enchantments = {
+            "helmet": 1, "chest": 1, "legs": 0, "boots": 0,
+        }
+        self._spells_learned = 3
+        self._potions = ["health", "health"]
+        self._hp = 9
+        self._food = _MAX_FOOD
+        self._water = _MAX_WATER
+        self._energy = _MAX_ENERGY
+        self._mana = _MAX_MANA
+        return self._render_current_observation()
+
+    def _step(
+        self, action: int,
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        old_floor = self._current_floor
+        obs, reward, terminated, truncated, info = super()._step(action)
+        if self._current_floor == 8 and old_floor == 7:
+            reward += 10.0
+            terminated = True
+            info["subtask_success"] = True
+        return obs, reward, terminated, truncated, info
+
+
+# ===================================================================
+# Necromancer boss fight (floor 8) — the final boss in isolation.
+# CraftaxFullEnv._step already wires the win condition (boss_progress
+# >= 8 → terminated + +10 reward + defeat_necromancer achievement).
+# This env just spawns the agent on floor 8 with full kit so the
+# fight is reachable without playing the full game.
+# ===================================================================
+
+
+class CraftaxNecromancerEnv(CraftaxFullEnv):
+    """Final boss fight on floor 8. Start fully equipped on the Graveyard.
+    Goal: land 8 hits on the vulnerable necromancer (n). Max 300 steps."""
+
+    # Boss fight needs every mechanic — full slice.
+    from glyphbench.envs.craftax.docs import ALL_SECTIONS as _NEC_ALL
+    tutorial_sections = _NEC_ALL
+    del _NEC_ALL
+
+    def __init__(self, max_turns: int = 300) -> None:
+        super().__init__(max_turns=max_turns)
+
+    def env_id(self) -> str:
+        return "glyphbench/craftax-necromancer-v0"
+
+    def _task_description(self) -> str:
+        return (
+            "Defeat the Necromancer on floor 8 (Graveyard). The boss tile "
+            "alternates between N (invulnerable, ignore) and n (vulnerable). "
+            "Stand adjacent to n facing it, then use DO to land a hit "
+            "(boss_progress += 1). Each hit triggers a 7-turn summon wave "
+            "(zombies + skeletons spawn near you); kill them all, then wait "
+            "for the timer to expire — the boss becomes vulnerable again. "
+            "Repeat 8 times to win. You start with diamond sword + full "
+            "diamond armor + fire- and ice-enchanted gear + all 3 spells "
+            "learned + bow + 20 arrows + 3 health potions. Floor 8 doubles "
+            "incoming damage (×1.5) and freezes vitals (food/drink/energy "
+            "do not decay). Reward: +10 + defeat_necromancer achievement on "
+            "win, episode ends. Time limit: 300 steps. (CraftaxFullEnv._step "
+            "wires the termination + reward — see mechanics/boss.py.)"
+        )
+
+    def _reset(self, seed: int) -> GridObservation:
+        super()._reset(seed)
+        # Teleport agent to floor 8, near the up-stairs tile so the
+        # necromancer (centre) is a few steps away.
+        self._current_floor = 8
+        up_pos = self._stairs_up_pos.get(8)
+        if up_pos:
+            self._agent_x, self._agent_y = up_pos
+        else:
+            # Defensive fallback: spawn near a corner away from the centre
+            # (where the necromancer tile lives).
+            self._agent_x = 3
+            self._agent_y = 3
+        # Full endgame kit.
+        self._inventory = {
+            "diamond_sword": 1,
+            "bow": 1,
+            "arrows": 20,
+            "torch": 10,
+            "wood": 10,
+            "coal": 10,
+            "ruby": 2,
+            "sapphire": 2,
+        }
+        # Sword + bow fire-enchanted (deals fire damage on each swing/arrow);
+        # armour mixed fire/ice for resistance to the summoned wave mobs.
+        self._sword_enchantment = 1  # fire
+        self._bow_enchantment = 1  # fire
+        for slot in ("helmet", "chest", "legs", "boots"):
+            self._armor_slots[slot] = 2  # diamond tier
+        self._armor_enchantments = {
+            "helmet": 1, "chest": 2, "legs": 1, "boots": 2,
+        }
+        self._spells_learned = 3  # all spells learned (fireball + iceball)
+        self._potions = ["health", "health", "health"]
+        self._hp = 9
+        self._food = _MAX_FOOD
+        self._water = _MAX_WATER
+        self._energy = _MAX_ENERGY
+        self._mana = _MAX_MANA
+        # Reset boss state so the fight starts fresh.
+        self._boss_progress = 0
+        self._boss_summon_timer = 0
+        return self._render_current_observation()
+
+    # _step is inherited from CraftaxFullEnv — it already terminates on
+    # boss_progress_win() with +10 reward + defeat_necromancer achievement.
 
 
 # Registration is handled in glyphbench.envs.craftax.__init__.
