@@ -85,9 +85,9 @@ _NOOP_ACTION = 0    # index of NOOP
 
 
 def test_rest_action_in_spec():
-    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 33 (phase γ T08γ: 44 actions)."""
+    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 33 (phase γ T12γ: 45 actions)."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
-    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 44
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 45
     assert CRAFTAX_FULL_ACTION_SPEC.names[_REST_ACTION] == "REST"
 
 
@@ -879,10 +879,10 @@ def test_cast_iceball_works_when_iceball_learned(env):
 # ---------------------------------------------------------------------------
 
 def test_read_book_action_in_spec():
-    """READ_BOOK is present in CRAFTAX_FULL_ACTION_SPEC (44 actions post-T08γ)."""
+    """READ_BOOK is present in CRAFTAX_FULL_ACTION_SPEC (45 actions post-T12γ)."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
     assert "READ_BOOK" in CRAFTAX_FULL_ACTION_SPEC.names
-    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 44
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 45
 
 
 def test_book_inventory_key_exists_after_reset(env):

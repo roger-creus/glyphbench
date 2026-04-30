@@ -369,7 +369,7 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
             "wood": 3,
             "coal": 3,
         }
-        self._weapon_enchanted = True
+        self._sword_enchantment = 1  # fire-enchanted by default (phase γ T10γ)
         # Phase γ T03γ: armour tracked in _armor_slots (4-slot dict).
         for slot in ("helmet", "chest", "legs", "boots"):
             self._armor_slots[slot] = 2  # all diamond tier
@@ -1452,7 +1452,7 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
             "wood": 10,
             "coal": 10,
         }
-        self._weapon_enchanted = True
+        self._sword_enchantment = 1  # fire-enchanted by default (phase γ T10γ)
         # Phase γ T03γ: armour tracked in _armor_slots (4-slot dict).
         for slot in ("helmet", "chest", "legs", "boots"):
             self._armor_slots[slot] = 2  # all diamond tier

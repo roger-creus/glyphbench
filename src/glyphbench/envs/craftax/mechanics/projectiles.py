@@ -2,12 +2,13 @@
 
 Projectiles are persistent tile entities that travel one step per turn
 along (dx, dy) and are removed when they hit a solid block, a target,
-or leave the map. Damage is scalar in Phase α; Phase γ converts it to
-the (physical, fire, ice) 3-vector.
+or leave the map. Damage is scalar in Phase α; Phase γ T12γ adds the
+optional damage_vec 3-tuple for elemental (physical, fire, ice) damage.
+If damage_vec is None, scalar damage is treated as pure physical.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable
 
@@ -24,15 +25,21 @@ class ProjectileType(Enum):
     ICEBALL2 = 7
 
 
-@dataclass(slots=True)
+@dataclass
 class ProjectileEntity:
-    """A projectile travelling 1 tile/turn along (dx, dy)."""
+    """A projectile travelling 1 tile/turn along (dx, dy).
+
+    damage: scalar fallback (legacy / non-elemental projectiles).
+    damage_vec: optional (phys, fire, ice) 3-vec for elemental projectiles.
+                If None, damage is treated as pure physical ((damage, 0, 0)).
+    """
     kind: ProjectileType
     x: int
     y: int
     dx: int
     dy: int
     damage: int
+    damage_vec: tuple[float, float, float] | None = field(default=None)
 
     def advance(self) -> None:
         """Move one tile along the direction vector."""

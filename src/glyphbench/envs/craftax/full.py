@@ -337,7 +337,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._facing: tuple[int, int] = (1, 0)
         # Inventory and equipment
         self._inventory: dict[str, int] = {}
-        self._weapon_enchanted: bool = False
+        # Phase γ T10-T12γ: element-aware enchantment state.
+        # 0=none, 1=fire, 2=ice. Replaces legacy _weapon_enchanted bool.
+        self._sword_enchantment: int = 0
+        self._bow_enchantment: int = 0
         # Phase γ T03γ: 4-slot armour state (replaces legacy _armor_enchanted bool
         # and inventory keys wood_armor/stone_armor/iron_armor/diamond_armor).
         # Per-slot tier: 0=none, 1=iron, 2=diamond.
@@ -1045,6 +1048,50 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 return True
         return False
 
+    def _near_enchant_fire(self) -> bool:
+        """Return True iff the agent is adjacent to a TILE_ENCHANT_FIRE tile."""
+        grid = self._current_grid()
+        fsize = self._floor_size()
+        for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            nx, ny = self._agent_x + dx, self._agent_y + dy
+            if (
+                0 <= nx < fsize
+                and 0 <= ny < fsize
+                and grid[ny][nx] == TILE_ENCHANT_FIRE
+            ):
+                return True
+        return False
+
+    def _near_enchant_ice(self) -> bool:
+        """Return True iff the agent is adjacent to a TILE_ENCHANT_ICE tile."""
+        grid = self._current_grid()
+        fsize = self._floor_size()
+        for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            nx, ny = self._agent_x + dx, self._agent_y + dy
+            if (
+                0 <= nx < fsize
+                and 0 <= ny < fsize
+                and grid[ny][nx] == TILE_ENCHANT_ICE
+            ):
+                return True
+        return False
+
+    def _pick_enchant_element(self) -> int:
+        """Return 1 (fire) or 2 (ice) based on adjacent table and gem availability.
+
+        If adjacent to BOTH enchant tables: prefer fire (1) if ruby available,
+        else ice (2) if sapphire available.  Returns 0 if no valid combo.
+        """
+        near_fire = self._near_enchant_fire()
+        near_ice = self._near_enchant_ice()
+        has_ruby = self._inventory.get("ruby", 0) >= 1
+        has_sapphire = self._inventory.get("sapphire", 0) >= 1
+        if near_fire and has_ruby:
+            return 1
+        if near_ice and has_sapphire:
+            return 2
+        return 0
+
     # ---------------------------------------------------------------
     # Achievement system
     # ---------------------------------------------------------------
@@ -1082,7 +1129,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         for weapon, bonus in _WEAPON_BONUS.items():
             if self._inventory.get(weapon, 0) > 0 and bonus > best:
                 best = bonus
-        if self._weapon_enchanted:
+        # Phase γ T10γ: enchanted sword adds +2 base damage regardless of element.
+        if self._sword_enchantment != 0:
             best += 2
         return best
 
@@ -1125,8 +1173,17 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
     def _attack_mob(self, mob: Mob) -> float:
         from glyphbench.envs.craftax.mechanics.progression import damage_scale_phys
+        from glyphbench.envs.craftax.mechanics.mobs import damage_dealt_to_mob
         base_damage = 1 + self._best_weapon_bonus()
-        damage = int(round(base_damage * damage_scale_phys(self._str)))
+        phys_damage = base_damage * damage_scale_phys(self._str)
+        # Phase γ T10γ: sword enchantment adds 0.5× phys_damage as elemental.
+        if self._sword_enchantment == 1:
+            dvec = (phys_damage, 0.5 * phys_damage, 0.0)
+        elif self._sword_enchantment == 2:
+            dvec = (phys_damage, 0.0, 0.5 * phys_damage)
+        else:
+            dvec = (phys_damage, 0.0, 0.0)
+        damage = damage_dealt_to_mob(mob["type"], dvec)
         mob["hp"] -= damage
         reward = 0.0
         if mob["hp"] <= 0:
@@ -1262,6 +1319,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return self._tile_at(p.x, p.y) in _SOLID_TILES
 
         def _hit(p) -> bool:
+            from glyphbench.envs.craftax.mechanics.mobs import damage_dealt_to_mob
             for mob in self._mobs:
                 if (
                     mob["floor"] == self._current_floor
@@ -1269,7 +1327,15 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     and mob["y"] == p.y
                     and mob["hp"] > 0
                 ):
-                    mob["hp"] -= p.damage
+                    if p.damage_vec is not None:
+                        # Phase γ T12γ: use 3-vec damage with mob elemental resistance.
+                        effective = damage_dealt_to_mob(mob["type"], p.damage_vec)
+                    else:
+                        # Legacy scalar: treat as pure physical.
+                        effective = damage_dealt_to_mob(
+                            mob["type"], (float(p.damage), 0.0, 0.0)
+                        )
+                    mob["hp"] -= effective
                     if mob["hp"] <= 0:
                         pending_kills.append(mob)
                     return True
@@ -1741,7 +1807,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._plants = {}
         self._potions = []  # legacy list — unused in phase β
         self._speed_turns = 0
-        self._weapon_enchanted = False
+        # Phase γ T10-T12γ: reset element-aware enchantment state.
+        self._sword_enchantment = 0
+        self._bow_enchantment = 0
         # Phase γ T03γ: reset 4-slot armour state.
         self._armor_slots = {
             "helmet": 0, "chest": 0, "legs": 0, "boots": 0
@@ -2642,12 +2710,22 @@ class CraftaxFullEnv(BaseGlyphEnv):
         dx, dy = self._facing
         self._inventory["arrows"] -= 1
         arrow_damage = int(round(2 * damage_scale_arrow(self._dex)))
+        # Phase γ T12γ: bow enchantment adds 0.5× elemental damage component.
+        if self._bow_enchantment == 1:
+            dvec: tuple[float, float, float] | None = (
+                float(arrow_damage), 0.5 * arrow_damage, 0.0
+            )
+        elif self._bow_enchantment == 2:
+            dvec = (float(arrow_damage), 0.0, 0.5 * arrow_damage)
+        else:
+            dvec = None  # legacy: scalar physical-only
         self._player_projectiles.append(
             ProjectileEntity(
                 kind=ProjectileType.ARROW,
                 x=self._agent_x, y=self._agent_y,
                 dx=dx, dy=dy,
                 damage=arrow_damage,
+                damage_vec=dvec,
             )
         )
         self._message = "You fired an arrow."
@@ -2854,28 +2932,53 @@ class CraftaxFullEnv(BaseGlyphEnv):
             self._message = f"Ascended to floor {new_floor}."
         return reward
 
-    # -- Enchantments --
+    # -- Enchantments (T10γ/T11γ/T12γ) --
 
     def _handle_enchant_weapon(self) -> float:
-        if self._weapon_enchanted:
-            self._message = "Weapon already enchanted."
+        """T10γ: ENCHANT_SWORD — fire/ice table + ruby/sapphire + 9 mana.
+
+        Requires adjacency to TILE_ENCHANT_FIRE or TILE_ENCHANT_ICE.
+        Costs 1 ruby (fire) or 1 sapphire (ice) + 9 mana.
+        Sets _sword_enchantment to 1 (fire) or 2 (ice).
+        """
+        # Check sword in inventory
+        has_sword = any(
+            self._inventory.get(w, 0) > 0
+            for w in ("wood_sword", "stone_sword", "iron_sword", "diamond_sword")
+        )
+        if not has_sword:
+            self._message = "No sword to enchant."
             return 0.0
-        if (
-            self._near_table()
-            and self._near_furnace()
-            and self._inventory.get("diamond", 0) >= 1
-            and self._inventory.get("coal", 0) >= 1
-        ):
-            self._inventory["diamond"] -= 1
-            self._inventory["coal"] -= 1
-            self._weapon_enchanted = True
-            self._message = "Enchanted weapon! (+2 damage)"
-            return self._try_unlock("enchant_weapon")
-        return 0.0
+        if self._sword_enchantment != 0:
+            self._message = "Sword already enchanted."
+            return 0.0
+        if self._mana < 9:
+            self._message = "Not enough mana to enchant (need 9)."
+            return 0.0
+        element = self._pick_enchant_element()
+        if element == 0:
+            self._message = "No enchant table adjacent (or missing ruby/sapphire)."
+            return 0.0
+        # Consume gem + mana
+        if element == 1:
+            self._inventory["ruby"] = self._inventory.get("ruby", 0) - 1
+            self._sword_enchantment = 1
+            self._message = "Sword enchanted with FIRE!"
+        else:
+            self._inventory["sapphire"] = self._inventory.get("sapphire", 0) - 1
+            self._sword_enchantment = 2
+            self._message = "Sword enchanted with ICE!"
+        self._mana -= 9
+        return self._try_unlock("enchant_sword")
 
     def _handle_enchant_armor(self) -> float:
-        # Phase γ T03γ: enchant the first unenchanted slot (helmet first).
-        # Legacy cost (diamond+coal) retained until T11γ rewires to ruby/sapphire.
+        """T11γ: ENCHANT_ARMOUR — fire/ice table + ruby/sapphire + 9 mana.
+
+        Requires adjacency to TILE_ENCHANT_FIRE or TILE_ENCHANT_ICE.
+        Targets the lowest-tier slot with armour AND no current enchant.
+        Costs 1 ruby (fire) or 1 sapphire (ice) + 9 mana.
+        Sets _armor_enchants[slot] to 1 (fire) or 2 (ice).
+        """
         _SLOTS = ("helmet", "chest", "legs", "boots")
         target_slot = None
         for s in _SLOTS:
@@ -2885,19 +2988,53 @@ class CraftaxFullEnv(BaseGlyphEnv):
         if target_slot is None:
             self._message = "No unenchanted armour slot to enchant."
             return 0.0
-        if (
-            self._near_table()
-            and self._near_furnace()
-            and self._inventory.get("diamond", 0) >= 1
-            and self._inventory.get("coal", 0) >= 1
-        ):
-            self._inventory["diamond"] -= 1
-            self._inventory["coal"] -= 1
-            # Legacy enchant: element defaults to fire (1) until T11γ.
+        if self._mana < 9:
+            self._message = "Not enough mana to enchant (need 9)."
+            return 0.0
+        element = self._pick_enchant_element()
+        if element == 0:
+            self._message = "No enchant table adjacent (or missing ruby/sapphire)."
+            return 0.0
+        if element == 1:
+            self._inventory["ruby"] = self._inventory.get("ruby", 0) - 1
             self._armor_enchants[target_slot] = 1
-            self._message = f"Enchanted armor ({target_slot})!"
-            return self._try_unlock("enchant_armor")
-        return 0.0
+            self._message = f"Armor ({target_slot}) enchanted with FIRE!"
+        else:
+            self._inventory["sapphire"] = self._inventory.get("sapphire", 0) - 1
+            self._armor_enchants[target_slot] = 2
+            self._message = f"Armor ({target_slot}) enchanted with ICE!"
+        self._mana -= 9
+        return self._try_unlock("enchant_armor")
+
+    def _handle_enchant_bow(self) -> float:
+        """T12γ: ENCHANT_BOW — fire/ice table + ruby/sapphire + 9 mana.
+
+        Requires bow in inventory, adjacency to enchant table, and mana.
+        Sets _bow_enchantment to 1 (fire) or 2 (ice).
+        """
+        if self._inventory.get("bow", 0) < 1:
+            self._message = "No bow to enchant."
+            return 0.0
+        if self._bow_enchantment != 0:
+            self._message = "Bow already enchanted."
+            return 0.0
+        if self._mana < 9:
+            self._message = "Not enough mana to enchant (need 9)."
+            return 0.0
+        element = self._pick_enchant_element()
+        if element == 0:
+            self._message = "No enchant table adjacent (or missing ruby/sapphire)."
+            return 0.0
+        if element == 1:
+            self._inventory["ruby"] = self._inventory.get("ruby", 0) - 1
+            self._bow_enchantment = 1
+            self._message = "Bow enchanted with FIRE!"
+        else:
+            self._inventory["sapphire"] = self._inventory.get("sapphire", 0) - 1
+            self._bow_enchantment = 2
+            self._message = "Bow enchanted with ICE!"
+        self._mana -= 9
+        return self._try_unlock("enchant_bow")
 
     # -- REST --
 
@@ -2989,6 +3126,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "ASCEND": _handle_ascend,
         "ENCHANT_WEAPON": _handle_enchant_weapon,
         "ENCHANT_ARMOR": _handle_enchant_armor,
+        "ENCHANT_BOW": _handle_enchant_bow,
         "MAKE_ARROW": _handle_make_arrow,
         "MAKE_TORCH": _handle_make_torch,
         "SHOOT_ARROW": _handle_shoot_arrow,
@@ -3124,12 +3262,15 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 best_wpn = w.replace("_", " ")
                 best_wpn_bonus = _WEAPON_BONUS[w]
                 break
+        _ENCHANT_ELEM = {0: "", 1: "[fire]", 2: "[ice]"}
         if best_wpn != "none":
             wpn_str = f"{best_wpn} (+{best_wpn_bonus} dmg)"
-            if self._weapon_enchanted:
-                wpn_str += " [enchanted +2]"
+            if self._sword_enchantment != 0:
+                wpn_str += f" {_ENCHANT_ELEM[self._sword_enchantment]}"
         else:
             wpn_str = "none"
+        # Bow enchant status
+        bow_ench_str = _ENCHANT_ELEM.get(self._bow_enchantment, "")
 
         # Phase γ T03γ: per-slot armour HUD.
         _TIER_NAMES = {0: "none", 1: "iron", 2: "diamond"}
@@ -3256,7 +3397,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
             f"Next drain: food in {food_drain}, "
             f"water in {water_drain}, "
             f"energy in {energy_drain}\n"
-            f"Weapon: {wpn_str}  Armor: {arm_str}\n"
+            f"Weapon: {wpn_str}  "
+            f"Bow: {'bow' if self._inventory.get('bow', 0) > 0 else 'none'}"
+            f"{(' ' + bow_ench_str) if bow_ench_str else ''}  "
+            f"Armor: {arm_str}\n"
             f"Spells: {spells_str}\n"
             f"Effects: {effects_str}\n"
             f"Potions: {potions_str}\n"

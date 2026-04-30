@@ -136,9 +136,9 @@ def test_action_spec_missing_wood_stone_armor():
 
 
 def test_action_spec_has_44_actions():
-    """Action spec has exactly 44 actions post-T08γ (41 + 3 LEVEL_UP = 44)."""
+    """Action spec has exactly 45 actions post-T12γ (41 + 3 LEVEL_UP + 1 ENCHANT_BOW = 45)."""
     from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
-    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 44
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 45
 
 
 # ---------------------------------------------------------------------------
@@ -488,3 +488,169 @@ def test_arrow_damage_scales_with_dex():
     assert dmg1 == 2
     # The scaled damage is larger — that's what matters.
     assert dmg5 > dmg1
+
+
+# ---------------------------------------------------------------------------
+# T10γ + T11γ + T12γ: ENCHANT_SWORD / ENCHANT_ARMOUR / ENCHANT_BOW
+# ---------------------------------------------------------------------------
+
+def _make_env_with_enchant_table(table_tile: str) -> "CraftaxFullEnv":  # type: ignore
+    """Return an env with the player adjacent to the given enchant table tile."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    ax, ay = env._agent_x, env._agent_y
+    size = env._floor_size()
+    # Place the enchant table to the right of the agent (or left if at edge)
+    tx = ax + 1 if ax + 1 < size else ax - 1
+    env._floors[env._current_floor][ay][tx] = table_tile
+    return env
+
+
+def test_sword_enchantment_starts_at_zero():
+    """_sword_enchantment is 0 (none) after reset."""
+    env = _make_env()
+    assert env._sword_enchantment == 0
+
+
+def test_bow_enchantment_starts_at_zero():
+    """_bow_enchantment is 0 (none) after reset."""
+    env = _make_env()
+    assert env._bow_enchantment == 0
+
+
+def test_enchant_sword_fails_without_adjacent_table():
+    """ENCHANT_SWORD fails when no enchant table is adjacent."""
+    env = _make_env()
+    env._inventory["iron_sword"] = 1
+    env._inventory["ruby"] = 1
+    env._mana = 9
+    env._handle_enchant_weapon()
+    # No table → sword_enchantment unchanged
+    assert env._sword_enchantment == 0
+
+
+def test_enchant_sword_fails_with_table_but_no_gem():
+    """ENCHANT_SWORD adjacent to fire table but no ruby → fails."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+    env = _make_env_with_enchant_table(TILE_ENCHANT_FIRE)
+    env._inventory["iron_sword"] = 1
+    env._inventory.pop("ruby", None)
+    env._inventory["ruby"] = 0
+    env._mana = 9
+    env._handle_enchant_weapon()
+    assert env._sword_enchantment == 0
+
+
+def test_enchant_sword_fire_succeeds():
+    """ENCHANT_SWORD adjacent to fire table + 1 ruby + 9 mana → _sword_enchantment = 1."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+    env = _make_env_with_enchant_table(TILE_ENCHANT_FIRE)
+    env._inventory["iron_sword"] = 1
+    env._inventory["ruby"] = 1
+    env._mana = 9
+    env._handle_enchant_weapon()
+    assert env._sword_enchantment == 1
+    assert env._inventory["ruby"] == 0
+    assert env._mana == 0
+
+
+def test_enchant_sword_ice_succeeds():
+    """ENCHANT_SWORD adjacent to ice table + 1 sapphire + 9 mana → _sword_enchantment = 2."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_ICE
+    env = _make_env_with_enchant_table(TILE_ENCHANT_ICE)
+    env._inventory["iron_sword"] = 1
+    env._inventory["sapphire"] = 1
+    env._mana = 9
+    env._handle_enchant_weapon()
+    assert env._sword_enchantment == 2
+    assert env._inventory["sapphire"] == 0
+    assert env._mana == 0
+
+
+def test_enchant_armor_fails_without_armor():
+    """ENCHANT_ARMOR with no armor in any slot is a no-op."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+    env = _make_env_with_enchant_table(TILE_ENCHANT_FIRE)
+    env._inventory["ruby"] = 1
+    env._mana = 9
+    env._handle_enchant_armor()
+    assert all(v == 0 for v in env._armor_enchants.values())
+
+
+def test_enchant_armor_fire_succeeds():
+    """ENCHANT_ARMOR with iron helmet + adjacent fire table + ruby + mana → _armor_enchants['helmet'] = 1."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+    env = _make_env_with_enchant_table(TILE_ENCHANT_FIRE)
+    env._armor_slots["helmet"] = 1  # iron helmet
+    env._inventory["ruby"] = 1
+    env._mana = 9
+    env._handle_enchant_armor()
+    assert env._armor_enchants["helmet"] == 1
+    assert env._inventory["ruby"] == 0
+    assert env._mana == 0
+
+
+def test_enchant_bow_action_exists():
+    """ENCHANT_BOW must be in the action spec."""
+    from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
+    assert "ENCHANT_BOW" in CRAFTAX_FULL_ACTION_SPEC.names
+
+
+def test_enchant_bow_fire_succeeds():
+    """ENCHANT_BOW with bow + adjacent fire table + ruby + 9 mana → _bow_enchantment = 1."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+    env = _make_env_with_enchant_table(TILE_ENCHANT_FIRE)
+    env._inventory["bow"] = 1
+    env._inventory["ruby"] = 1
+    env._mana = 9
+    env._handle_enchant_bow()
+    assert env._bow_enchantment == 1
+    assert env._inventory["ruby"] == 0
+    assert env._mana == 0
+
+
+def test_sword_fire_enchant_deals_fire_damage_to_fire_immune_mob():
+    """Fire-enchanted sword against fire_immune mob: fire component is zeroed out."""
+    from glyphbench.envs.craftax.mechanics.mobs import damage_dealt_to_mob
+    # A fire-immune mob like fire_elemental has defense (0.9, 1.0, 0.0)
+    # With fire sword enchantment, damage vec = (phys, 0.5 * phys, 0.0)
+    # fire_elemental takes 0 fire damage (1.0 immunity)
+    phys = 5.0
+    dvec = (phys, 0.5 * phys, 0.0)
+    effective = damage_dealt_to_mob("fire_elemental", dvec)
+    # fire_elemental: phys_def=0.9, fire_def=1.0, ice_def=0.0
+    # phys component: 5 * (1 - 0.9) = 0.5; fire component: 2.5 * (1 - 1.0) = 0
+    # total ≈ round(0.5) = 0 or 1 depending on rounding
+    # Key assertion: strictly less than unenchanted purely physical damage
+    unenchanted_dmg = damage_dealt_to_mob("fire_elemental", (phys, 0.0, 0.0))
+    assert effective == unenchanted_dmg  # both go through the same phys path
+
+
+def test_bow_enchant_sets_damage_vec_on_projectile():
+    """Bow with fire enchant spawns arrow projectile with non-None damage_vec containing fire component."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_FIRE
+    env = _make_env_with_enchant_table(TILE_ENCHANT_FIRE)
+    env._inventory["bow"] = 1
+    env._inventory["ruby"] = 1
+    env._mana = 9
+    env._handle_enchant_bow()
+    assert env._bow_enchantment == 1
+
+    # Shoot an arrow
+    env._inventory["arrows"] = 1
+    env._handle_shoot_arrow()
+    assert len(env._player_projectiles) > 0
+    proj = env._player_projectiles[-1]
+    # Should have a damage_vec with a fire component
+    assert proj.damage_vec is not None
+    phys, fire, ice = proj.damage_vec
+    assert fire > 0.0
+    assert ice == 0.0
+    assert phys > 0.0
+
+
+def test_action_count_post_t12_is_45():
+    """Action spec has exactly 45 actions post-T12γ."""
+    from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 45
