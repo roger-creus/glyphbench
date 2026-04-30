@@ -35,7 +35,7 @@ async def test_mock_rollout_accumulates_reward():
         "trajectory": [],
         "trajectory_id": "t0",
     }
-    state = await env.setup_state(state)
+    await env.setup_state(state)
 
     for reply in scripted:
         state["trajectory"].append({"reward": None, "extras": {}})
@@ -66,7 +66,7 @@ async def test_mock_rollout_parse_failures_accumulate():
         "trajectory": [],
         "trajectory_id": "t0",
     }
-    state = await env.setup_state(state)
+    await env.setup_state(state)
     for _ in range(3):
         state["trajectory"].append({"reward": None, "extras": {}})
         await env.env_response(

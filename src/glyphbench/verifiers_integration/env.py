@@ -174,7 +174,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         )
         self.parser: GlyphbenchXMLParser = parser  # narrow type
 
-    async def setup_state(self, state: dict[str, Any]) -> dict[str, Any]:
+    async def setup_state(self, state: dict[str, Any]) -> None:
         info_raw = state.get("info", {})
         info = json.loads(info_raw) if isinstance(info_raw, str) else info_raw
         env_id = info["env_id"]
@@ -211,7 +211,6 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             vf.UserMessage(content=initial_user_text),
         ]
         await super().setup_state(state)
-        return state
 
     def _render_action_user(
         self, game: BaseGlyphEnv, state: dict[str, Any], *, turn: int

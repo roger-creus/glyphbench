@@ -51,7 +51,10 @@ eval = [
     "vllm>=0.8",
     "torch>=2.4",
 ]
-# RL training (prime-rl pinned at a specific commit; bump deliberately).
+# RL training. The prime-rl SHA is pinned because their API churns;
+# bump only when intentionally moving to a new prime-rl version (and
+# re-run the smoke test in plan task 20).
+# Co-installs with `eval`: `uv sync --extra rl --extra eval`.
 rl = [
     "prime-rl @ git+https://github.com/PrimeIntellect-ai/prime-rl.git@af17a555fe8a697e665ec2235935a07f182607a0",
 ]

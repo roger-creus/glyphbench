@@ -137,7 +137,7 @@ async def test_setup_state_creates_game_and_initial_obs():
         "trajectory": [],
         "trajectory_id": "t0",
     }
-    state = await env.setup_state(state)
+    await env.setup_state(state)
     assert "game" in state
     assert state["current_obs"]  # non-empty
     assert state["parse_failures"] == 0
@@ -163,7 +163,7 @@ async def test_setup_state_includes_empty_memory_block_when_enabled():
         "trajectory": [],
         "trajectory_id": "t0",
     }
-    state = await env.setup_state(state)
+    await env.setup_state(state)
     assert state["memory_enabled"] is True
     assert state["memory"] == ""
     assert "[Memory]" in state["prompt"][1]["content"]
@@ -185,7 +185,7 @@ async def test_env_response_applies_action_and_updates_state():
         "trajectory": [{"reward": None, "extras": {}}],  # verifiers appends before env_response
         "trajectory_id": "t0",
     }
-    state = await env.setup_state(state)
+    await env.setup_state(state)
     state["trajectory"] = [{"reward": None, "extras": {}}]
     model_reply = "<think>go east</think><action>EAST</action>"
     messages = [{"role": "assistant", "content": model_reply}]
@@ -214,7 +214,7 @@ async def test_memory_add_model_response_combines_action_and_memory_turn(monkeyp
         "trajectory_id": "t0",
         "sampling_args": {"max_tokens": 9},
     }
-    state = await env.setup_state(state)
+    await env.setup_state(state)
     prompt_messages = state["prompt"]
 
     memory_response = _response(
@@ -281,7 +281,7 @@ async def test_memory_add_model_response_keeps_step_without_token_data(monkeypat
         "trajectory_id": "t0",
         "sampling_args": {},
     }
-    state = await env.setup_state(state)
+    await env.setup_state(state)
 
     async def fake_get_model_response(state_arg, prompt_arg, **kwargs):
         return _response("<think>update</think>wall north")
@@ -311,7 +311,7 @@ async def test_memory_update_prompt_includes_separate_action_reasoning(monkeypat
         "trajectory_id": "t0",
         "sampling_args": {},
     }
-    state = await env.setup_state(state)
+    await env.setup_state(state)
     seen: dict = {}
 
     async def fake_get_model_response(state_arg, prompt_arg, **kwargs):
