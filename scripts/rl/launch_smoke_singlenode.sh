@@ -13,15 +13,20 @@ set -euo pipefail
 
 export PATH="$HOME/.local/bin:$PATH"
 
-# Point flashinfer at our user-space CUDA 12.8 toolkit. The system-wide
+# Point flashinfer at our user-space CUDA 12.6 toolkit. The system-wide
 # /usr/bin/nvcc is CUDA 11.5 (too old for sm_90), and the cluster has no
-# /usr/local/cuda. We extracted the cu12 toolchain into ~/cuda-12.8 from
-# NVIDIA's conda packages (cuda-nvcc-tools, cuda-nvvm-tools/impl, etc.).
-# Without this, flashinfer's first JIT compile of gdn_prefill_sm90 (used
-# by Qwen3.5-4B's gated delta nets) fails fatally with "Could not find
-# nvcc and default cuda_home='/usr/local/cuda' doesn't exist", killing
-# the inference subprocess.
-export CUDA_HOME=${CUDA_HOME:-/home/roger/cuda-12.8}
+# /usr/local/cuda. We extracted the cu12 toolchain into ~/cuda-12.6 from
+# NVIDIA's conda packages (cuda-nvcc-tools, cuda-nvvm-tools/impl) plus
+# the cccl + cuda-runtime headers from pip.
+#
+# Why 12.6 and not 12.8: the GPU driver here (565.57.01) tops out at
+# CUDA 12.7. JIT-building flashinfer's gdn_prefill_sm90 with nvcc 12.8
+# emitted host code that called TMA encoding APIs introduced in 12.8
+# (cuTensorMapEncodeIm2colWide), and the 12.7 driver returned 999
+# "Failed to initialize the TMA descriptor" at the first inference
+# request. With nvcc 12.6, the kernel falls back to driver-supported
+# TMA APIs and runs cleanly.
+export CUDA_HOME=${CUDA_HOME:-/home/roger/cuda-12.6}
 export PATH=$CUDA_HOME/bin:$PATH
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
