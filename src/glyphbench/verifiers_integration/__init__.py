@@ -1,4 +1,4 @@
-"""Verifiers integration — entry point for vf-eval and prime-rl."""
+"""Verifiers integration — entry point for `prime eval run` and prime-rl."""
 
 from glyphbench.verifiers_integration.env import (
     GlyphbenchMultiTurnEnv,

@@ -45,7 +45,7 @@ def load_environment(
     memory_update_max_tokens: int | None = None,
     **kwargs: Any,
 ) -> vf.Environment:
-    """Entry point consumed by ``vf-eval`` and ``prime-rl`` orchestrator.
+    """Entry point consumed by ``prime eval run`` and ``prime-rl`` orchestrator.
 
     Args:
         task_id: single glyphbench env id (e.g. ``"glyphbench/__dummy-v0"``),

@@ -228,7 +228,7 @@ Phase α end: 146 craftax tests. Phase β end: 275 craftax tests.
 - T_FOLLOWUP_C: pre-advance projectile collision (phase γ).
 - T_FOLLOWUP_E: ranged-mob cornered fallback (phase γ).
 - Sapphire/ruby ore on floors 4-7 (phase γ, pending floor generation).
-- Re-baseline (random + LLM smoke) — deferred for cluster_manager runs.
+- Re-baseline (random + LLM smoke) — deferred for the next baseline sweep.
 
 ## Phase γ — Progression & Endgame (2026-04-29)
 
