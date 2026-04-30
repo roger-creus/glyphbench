@@ -261,3 +261,55 @@ def test_full_env_has_is_sleeping_flag_after_reset() -> None:
     env.reset(seed=0)
     assert hasattr(env, "_is_sleeping")
     assert env._is_sleeping is False
+
+
+def test_should_despawn_at_distance_14() -> None:
+    """Upstream mob_despawn_distance = 14 (Manhattan)."""
+    from glyphbench.envs.craftax.mechanics.mobs import (
+        should_despawn,
+        MOB_DESPAWN_DISTANCE,
+    )
+    assert MOB_DESPAWN_DISTANCE == 14
+
+    mob = {
+        "type": "zombie", "x": 0, "y": 0,
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 0, "attack_cooldown": 0,
+    }
+    assert should_despawn(mob, player_x=15, player_y=0, is_fighting_boss=False) is True
+    assert should_despawn(mob, player_x=14, player_y=0, is_fighting_boss=False) is True
+    assert should_despawn(mob, player_x=13, player_y=0, is_fighting_boss=False) is False
+
+
+def test_should_despawn_exempt_during_boss_fight() -> None:
+    """Boss-fight melee/ranged mobs do not despawn."""
+    from glyphbench.envs.craftax.mechanics.mobs import should_despawn
+
+    mob = {
+        "type": "zombie", "x": 0, "y": 0,
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 8, "attack_cooldown": 0,
+    }
+    assert should_despawn(mob, player_x=20, player_y=0, is_fighting_boss=True) is False
+
+
+def test_full_env_sweeps_far_mobs_after_step() -> None:
+    """Integration: a mob 20 tiles from the player is removed after one step."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._mobs = []  # clear reset-spawned mobs so count is deterministic
+    env._mobs.append({
+        "type": "zombie", "x": 25, "y": 5,  # dist_sum = 20
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": env._current_floor, "attack_cooldown": 0,
+    })
+    initial_count = len(env._mobs)
+    assert initial_count == 1
+
+    env.step(env.action_spec.names.index("NOOP"))
+
+    far_zombies = [m for m in env._mobs if m["x"] == 25 and m["y"] == 5]
+    assert far_zombies == [], "zombie at distance 20 should despawn"

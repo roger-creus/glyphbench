@@ -153,3 +153,29 @@ def step_melee_mob(
     nx, ny = mob["x"] + dx, mob["y"] + dy
     if not is_blocked_for_mob(nx, ny):
         mob["x"], mob["y"] = nx, ny
+
+
+def should_despawn(
+    mob: MobLike,
+    *,
+    player_x: int,
+    player_y: int,
+    is_fighting_boss: bool,
+) -> bool:
+    """Return True if this mob should be removed this tick.
+
+    Upstream rule (game_logic.py:1100-1291 + 1391-1608):
+    - Manhattan distance from player >= MOB_DESPAWN_DISTANCE (=14).
+    - Boss-fight melee + ranged mobs are exempt so the necromancer
+      summon wave persists.
+
+    Passive mobs (cow, snail, bat) follow the same despawn rule even
+    in boss fights upstream — but the boss floor has no passives, so
+    the distinction doesn't bite in practice.
+    """
+    if is_fighting_boss and mob["type"] in MELEE_MOB_NAMES + RANGED_MOB_NAMES + (
+        "zombie", "skeleton", "skeleton_archer",  # legacy names still in use
+    ):
+        return False
+    dist_sum = abs(mob["x"] - player_x) + abs(mob["y"] - player_y)
+    return dist_sum >= MOB_DESPAWN_DISTANCE

@@ -1268,6 +1268,25 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._pending_step_reward = 0.0
         self._mob_ai()
 
+        # Phase α: despawn mobs that drifted beyond MOB_DESPAWN_DISTANCE.
+        from glyphbench.envs.craftax.mechanics.mobs import should_despawn
+        is_boss_fight = any(
+            m["is_boss"] and m["floor"] == self._current_floor
+            for m in self._mobs
+        )
+        self._mobs = [
+            m for m in self._mobs
+            if not (
+                m["floor"] == self._current_floor
+                and should_despawn(
+                    m,
+                    player_x=self._agent_x,
+                    player_y=self._agent_y,
+                    is_fighting_boss=is_boss_fight,
+                )
+            )
+        ]
+
         # Check stat milestones
         if self._hp == self._max_hp:
             reward += self._try_unlock("full_health")
