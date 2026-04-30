@@ -198,3 +198,65 @@ def test_player_projectile_blocks_on_plant_tile() -> None:
     assert env._player_projectiles == [], (
         f"projectile should be blocked on ripe-plant tile; survivors={env._player_projectiles}"
     )
+
+
+# ---------------------------------------------------------------------------
+# T19γ: Pre-advance projectile collision (T_FOLLOWUP_C)
+# ---------------------------------------------------------------------------
+
+def test_player_projectile_pre_advance_hit_consumes_projectile() -> None:
+    """Phase γ T19γ: a mob at the projectile's SPAWN tile (same coords) is hit
+    BEFORE the advance step. The projectile must be consumed immediately.
+
+    hit_fn fires on the pre-advance position (5, 5). The projectile never
+    advances to (6, 5). survivors must be empty.
+    """
+    proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=3)
+    hits: list[tuple[int, int]] = []
+
+    def hit_fn(p) -> bool:
+        # Mob is stationary at (5, 5) — the projectile's initial tile.
+        if (p.x, p.y) == (5, 5):
+            hits.append((p.x, p.y))
+            return True
+        return False
+
+    survivors = step_player_projectiles(
+        [proj], map_w=20, map_h=20,
+        blocked_fn=lambda p: False,
+        hit_fn=hit_fn,
+    )
+    # Projectile consumed pre-advance.
+    assert survivors == [], f"projectile should be consumed pre-advance; survivors={survivors}"
+    # The hit occurred exactly once at the pre-advance tile.
+    assert hits == [(5, 5)], f"expected pre-advance hit at (5,5); got {hits}"
+    # The projectile must NOT have advanced (position unchanged from spawn).
+    assert (proj.x, proj.y) == (5, 5), (
+        f"projectile should not have moved; pos=({proj.x},{proj.y})"
+    )
+
+
+def test_player_projectile_pre_advance_hit_no_post_advance_hit() -> None:
+    """Phase γ T19γ: after a pre-advance hit the projectile is consumed and
+    does NOT travel further. A second mob at (6, 5) must NOT be struck.
+    """
+    proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=3)
+    hit_positions: list[tuple[int, int]] = []
+
+    def hit_fn(p) -> bool:
+        hit_positions.append((p.x, p.y))
+        # Mob A at (5, 5) absorbs the shot.
+        if (p.x, p.y) == (5, 5):
+            return True
+        return False
+
+    survivors = step_player_projectiles(
+        [proj], map_w=20, map_h=20,
+        blocked_fn=lambda p: False,
+        hit_fn=hit_fn,
+    )
+    assert survivors == []
+    # hit_fn must have been called exactly once (pre-advance only, not again
+    # at (6,5) because the projectile was consumed before advancing).
+    assert len(hit_positions) == 1
+    assert hit_positions[0] == (5, 5)

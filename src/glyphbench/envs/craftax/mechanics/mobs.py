@@ -168,11 +168,14 @@ def step_ranged_mob(
     damage_for_mob: Callable[[MobLike], int],
 ) -> None:
     """Advance one ranged mob for one tick. Mirrors upstream
-    _move_ranged_mob (game_logic.py:1391-1608) at phase-α fidelity:
+    _move_ranged_mob (game_logic.py:1391-1608) at phase-γ fidelity:
 
     - Cooldown ticks down each call.
     - Shoot window: dist_sum in [4, 5] AND cooldown <= 0 AND projectile slot
       available → spawn projectile aimed at player; cooldown = 4. No move.
+    - Cornered fallback (Phase γ T20γ / T_FOLLOWUP_E): dist <= 3 AND all 4
+      cardinal retreat tiles blocked AND cooldown <= 0 AND projectile slot
+      available → force shoot, return.
     - 15% chance to override into random walk regardless of distance.
     - dist >= 6: advance toward player.
     - dist <= 3: retreat away.
@@ -183,10 +186,6 @@ def step_ranged_mob(
     `projectile_kind_for_mob(mob)` returns the ProjectileType for this mob's
     type — the caller maps via RANGED_MOB_TO_PROJECTILE or a legacy fallback.
     `damage_for_mob(mob)` returns scalar damage for phase-α.
-
-    Cornered fallback (upstream forces shoot when too close + can't retreat):
-    deferred to phase β/γ. Phase α simply ends the tick with no action when
-    the mob is cornered.
     """
     if mob["attack_cooldown"] > 0:
         mob["attack_cooldown"] -= 1
@@ -216,6 +215,30 @@ def step_ranged_mob(
         )
         mob["attack_cooldown"] = RANGED_ATTACK_COOLDOWN
         return
+
+    # Phase γ: cornered fallback. If too close (dist <= 3) AND cannot retreat
+    # in any cardinal direction AND cooldown <= 0 AND projectile slot
+    # available → force shoot.
+    if (
+        dist <= 3
+        and mob["attack_cooldown"] <= 0
+        and max_mob_projectiles_room > 0
+    ):
+        retreat_dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        if all(is_blocked_for_mob(mob["x"] + ddx, mob["y"] + ddy) for ddx, ddy in retreat_dirs):
+            # Cornered. Force shoot toward the player.
+            if abs(player_x - mob["x"]) >= abs(player_y - mob["y"]):
+                dx_aim = 1 if player_x > mob["x"] else (-1 if player_x < mob["x"] else 0)
+                dy_aim = 0
+            else:
+                dx_aim = 0
+                dy_aim = 1 if player_y > mob["y"] else (-1 if player_y < mob["y"] else 0)
+            kind = projectile_kind_for_mob(mob)
+            spawn_mob_projectile(
+                kind, mob["x"] + dx_aim, mob["y"] + dy_aim, dx_aim, dy_aim, damage_for_mob(mob),
+            )
+            mob["attack_cooldown"] = RANGED_ATTACK_COOLDOWN
+            return
 
     # Movement.
     if rng.random() < 0.15:

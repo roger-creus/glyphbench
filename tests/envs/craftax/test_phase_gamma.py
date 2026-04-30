@@ -1170,3 +1170,156 @@ def test_defeat_necromancer_in_achievement_list():
     """defeat_necromancer must be in ALL_FULL_ACHIEVEMENTS."""
     from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
     assert "defeat_necromancer" in ALL_FULL_ACHIEVEMENTS
+
+
+# ---------------------------------------------------------------------------
+# T19γ: Pre-advance projectile collision (T_FOLLOWUP_C)
+# (Integration-level tests; unit-level tests are in test_projectiles.py)
+# ---------------------------------------------------------------------------
+
+def test_player_projectile_pre_advance_hit_on_spawn_tile():
+    """T19γ: mob at the projectile's spawn tile is hit pre-advance.
+
+    A player projectile spawned at (5, 5) with a mob stationary at (5, 5)
+    should be consumed immediately — survivors list is empty and the
+    projectile does not advance to (6, 5).
+    """
+    from glyphbench.envs.craftax.mechanics.projectiles import (
+        ProjectileEntity, ProjectileType, step_player_projectiles,
+    )
+    proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=2)
+    hit_coords: list[tuple[int, int]] = []
+
+    def hit_fn(p) -> bool:
+        if (p.x, p.y) == (5, 5):
+            hit_coords.append((p.x, p.y))
+            return True
+        return False
+
+    survivors = step_player_projectiles(
+        [proj], map_w=20, map_h=20,
+        blocked_fn=lambda p: False,
+        hit_fn=hit_fn,
+    )
+    assert survivors == [], "projectile should be consumed pre-advance"
+    assert hit_coords == [(5, 5)], f"pre-advance hit expected at (5,5); got {hit_coords}"
+    # Position must be unchanged (not advanced).
+    assert (proj.x, proj.y) == (5, 5), f"projectile must not have moved; pos=({proj.x},{proj.y})"
+
+
+def test_player_projectile_pre_advance_does_not_double_hit():
+    """T19γ: after a pre-advance hit the projectile is consumed; post-advance
+    hit_fn is NOT called, so a second mob at (6, 5) is safe.
+    """
+    from glyphbench.envs.craftax.mechanics.projectiles import (
+        ProjectileEntity, ProjectileType, step_player_projectiles,
+    )
+    proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=2)
+    all_hits: list[tuple[int, int]] = []
+
+    def hit_fn(p) -> bool:
+        all_hits.append((p.x, p.y))
+        return (p.x, p.y) == (5, 5)  # absorb at (5,5); (6,5) not reached
+
+    step_player_projectiles(
+        [proj], map_w=20, map_h=20,
+        blocked_fn=lambda p: False,
+        hit_fn=hit_fn,
+    )
+    # hit_fn called once (pre-advance), not a second time at (6,5).
+    assert all_hits == [(5, 5)], f"expected exactly one hit at (5,5); got {all_hits}"
+
+
+# ---------------------------------------------------------------------------
+# T20γ: Ranged cornered fallback (T_FOLLOWUP_E)
+# ---------------------------------------------------------------------------
+
+def _make_skeleton_mob(x: int, y: int, cooldown: int = 0) -> dict:
+    """Return a minimal skeleton ranged-mob dict for cornered-fallback tests."""
+    return {
+        "type": "skeleton",
+        "x": x,
+        "y": y,
+        "hp": 5, "max_hp": 5,
+        "is_boss": False,
+        "floor": 0,
+        "attack_cooldown": cooldown,
+    }
+
+
+def test_ranged_mob_cornered_force_shoots():
+    """T20γ: ranged mob at dist 2 with all 4 cardinal tiles blocked AND
+    cooldown 0 fires a projectile (cornered fallback).
+    """
+    import random
+    from glyphbench.envs.craftax.mechanics.mobs import step_ranged_mob
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
+    mob = _make_skeleton_mob(x=5, y=5, cooldown=0)
+    player_x, player_y = 5, 7  # dist = 2 (too close)
+
+    spawned: list[dict] = []
+
+    def spawn_proj(kind, x, y, dx, dy, damage):
+        spawned.append({"kind": kind, "x": x, "y": y, "dx": dx, "dy": dy})
+
+    # All 4 cardinal tiles are blocked — mob is cornered.
+    def is_blocked(x, y) -> bool:
+        return True
+
+    rng = random.Random(0)
+    step_ranged_mob(
+        mob,
+        player_x=player_x,
+        player_y=player_y,
+        is_blocked_for_mob=is_blocked,
+        spawn_mob_projectile=spawn_proj,
+        rng=rng,
+        max_mob_projectiles_room=10,
+        projectile_kind_for_mob=lambda m: ProjectileType.ARROW,
+        damage_for_mob=lambda m: 3,
+    )
+    assert len(spawned) == 1, f"cornered mob should fire exactly once; got {spawned}"
+    assert mob["attack_cooldown"] > 0, "attack_cooldown should be reset after cornered shot"
+
+
+def test_ranged_mob_not_cornered_does_not_force_shoot():
+    """T20γ: ranged mob at dist 2 with at least one open cardinal tile does
+    NOT use the cornered-fallback path (it can retreat normally).
+    """
+    import random
+    from glyphbench.envs.craftax.mechanics.mobs import step_ranged_mob
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
+    mob = _make_skeleton_mob(x=5, y=5, cooldown=0)
+    player_x, player_y = 5, 7  # dist = 2 (too close for shoot window)
+
+    spawned: list[dict] = []
+
+    def spawn_proj(kind, x, y, dx, dy, damage):
+        spawned.append({"kind": kind})
+
+    # Only 3 cardinal tiles blocked; (5, 4) is open (north retreat).
+    blocked_tiles = {(4, 5), (6, 5), (5, 6)}  # west, east, south blocked
+
+    def is_blocked(x, y) -> bool:
+        return (x, y) in blocked_tiles
+
+    # Force RNG to never trigger the 15% random-walk override by seeding
+    # to a value where random() >= 0.15 is guaranteed for the first call,
+    # but since the mob is NOT in shoot window (dist 2, window is 4-5),
+    # this only matters for the movement block.
+    rng = random.Random(42)
+    step_ranged_mob(
+        mob,
+        player_x=player_x,
+        player_y=player_y,
+        is_blocked_for_mob=is_blocked,
+        spawn_mob_projectile=spawn_proj,
+        rng=rng,
+        max_mob_projectiles_room=10,
+        projectile_kind_for_mob=lambda m: ProjectileType.ARROW,
+        damage_for_mob=lambda m: 3,
+    )
+    # Mob has an escape tile — cornered fallback must NOT fire.
+    assert spawned == [], f"non-cornered mob should not force-shoot; got {spawned}"

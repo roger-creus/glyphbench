@@ -72,9 +72,19 @@ def step_mob_projectiles(
     Ordering note: block_destruction_fn is checked before blocked_fn because
     furnaces/crafting tables appear in _SOLID_TILES; without this ordering,
     the blocked check would fire first and destroy logic would never run.
+
+    Phase γ: pre-advance hit check added for player hits (mirrors upstream
+    game_logic.py:1786-1799 pattern for player projectiles). Pre-advance
+    block_destruction_fn is NOT checked — destructible tiles only trigger on
+    impact (when the projectile newly arrives at the tile).
     """
     survivors: list[ProjectileEntity] = []
     for p in projectiles:
+        # Pre-advance hit: check if the projectile is already on the player's
+        # tile before moving. This handles the case where the player walked
+        # into the projectile's path on their turn.
+        if hit_player_fn(p):
+            continue  # consumed pre-advance; do not advance
         p.advance()
         if p.x < 0 or p.x >= map_w or p.y < 0 or p.y >= map_h:
             continue
@@ -97,15 +107,13 @@ def step_player_projectiles(
     hit_fn: Callable[[ProjectileEntity], bool],
 ) -> list[ProjectileEntity]:
     """Advance each projectile one tile. Drop those that:
-    - go out of map bounds, OR
-    - land on a blocked tile (solid block), OR
-    - register a hit on a target (mob).
-    Returns the surviving projectiles list.
+    - go out of map bounds (post-advance), OR
+    - land on a blocked tile (post-advance), OR
+    - register a hit on a target (PRE-advance OR post-advance).
 
-    Phase-α scope: collision is checked only at the post-advance position.
-    Upstream Craftax (game_logic.py:1786-1799) also checks the pre-advance
-    tile so a stationary mob walked into by a moving projectile is hit;
-    we defer that to Phase γ when projectile damage becomes 3-vector.
+    Phase γ: pre-advance hit check matches upstream game_logic.py:1786-1799.
+    A stationary mob walked into by a moving projectile is hit. After a
+    pre-advance hit, the projectile is consumed (not advanced).
 
     blocked_fn and hit_fn both receive the ProjectileEntity (not raw x, y
     coordinates). This lets hit_fn read p.damage directly, avoiding the
@@ -114,6 +122,11 @@ def step_player_projectiles(
     """
     survivors: list[ProjectileEntity] = []
     for p in projectiles:
+        # Pre-advance hit: check the projectile's CURRENT tile for a target.
+        # This catches the case where the projectile spawned on top of (or
+        # was caught up by) a mob.
+        if hit_fn(p):
+            continue  # consumed; do not advance
         p.advance()
         if p.x < 0 or p.x >= map_w or p.y < 0 or p.y >= map_h:
             continue
