@@ -313,7 +313,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "CAST_FIREBALL / CAST_ICEBALL (2 mana each): spawn a fireball / iceball projectile one tile in front of you; travels 1 tile/turn until it hits a target or wall.\n\n"
             "DUNGEONS\n"
             "DESCEND on > goes deeper. ASCEND on < goes up. "
-            "Dungeons are dark; PLACE_TORCH for light. "
+            "Dungeons are dark; PLACE_TORCH (consumes 1 crafted torch) for light. "
             "Each floor has a boss (W behind B door).\n\n"
             + self.action_spec.render_for_prompt()
         )
@@ -1500,11 +1500,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
             0 <= fx < fsize
             and 0 <= fy < fsize
             and self._current_grid()[fy][fx] == empty
-            and self._inventory.get("wood", 0) >= 1
-            and self._inventory.get("coal", 0) >= 1
+            and self._inventory.get("torch", 0) >= 1
         ):
-            self._inventory["wood"] -= 1
-            self._inventory["coal"] -= 1
+            self._inventory["torch"] -= 1
             self._current_grid()[fy][fx] = TILE_TORCH
             fl = self._current_floor
             if fl not in self._torches:

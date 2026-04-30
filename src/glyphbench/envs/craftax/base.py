@@ -74,7 +74,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "place a crafting table (costs 2 wood)",
         "place a furnace (costs 4 stone)",
         "place a sapling (costs 1 sapling)",
-        "place a torch (costs 1 wood + 1 coal, lights dungeons)",
+        "place 1 crafted torch (consumes 1 torch, lights dungeons)",
         "craft wood pickaxe (1 wood, table)",
         "craft stone pickaxe (1 wood+1 stone, table)",
         "craft iron pickaxe (1 wood+1 iron, table+furnace)",

@@ -121,3 +121,63 @@ def test_make_torch_no_op_without_materials() -> None:
 
     assert env._inventory.get("torch", 0) == 0
     assert env._inventory["wood"] == 5
+
+
+def test_place_torch_consumes_one_torch_not_raw_materials() -> None:
+    """Upstream PLACE_TORCH consumes a crafted torch, not 1 wood + 1 coal."""
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["torch"] = 2
+    env._inventory["wood"] = 0
+    env._inventory["coal"] = 0
+    # Position the agent on overworld (floor 0); the cell in front is grass by default.
+    fx = env._agent_x + env._facing[0]
+    fy = env._agent_y + env._facing[1]
+    grid = env._current_grid()
+    # Ensure the front tile is plain grass (placeable).
+    from glyphbench.envs.craftax.base import TILE_GRASS
+    grid[fy][fx] = TILE_GRASS
+
+    action_idx = env.action_spec.names.index("PLACE_TORCH")
+    env.step(action_idx)
+
+    assert env._inventory["torch"] == 1, "one torch consumed"
+    assert env._inventory["wood"] == 0
+    assert env._inventory["coal"] == 0
+
+
+def test_place_torch_no_op_without_torch_in_inventory() -> None:
+    """Wood + coal alone are no longer enough — must be a crafted torch."""
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["torch"] = 0
+    env._inventory["wood"] = 5
+    env._inventory["coal"] = 5
+    fx = env._agent_x + env._facing[0]
+    fy = env._agent_y + env._facing[1]
+    grid = env._current_grid()
+    from glyphbench.envs.craftax.base import TILE_GRASS
+    grid[fy][fx] = TILE_GRASS
+
+    action_idx = env.action_spec.names.index("PLACE_TORCH")
+    env.step(action_idx)
+
+    assert env._inventory["wood"] == 5, "wood NOT consumed without torch"
+    assert env._inventory["coal"] == 5, "coal NOT consumed without torch"
+    assert env._inventory["torch"] == 0
+
+
+def test_place_torch_no_op_when_target_tile_not_empty() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["torch"] = 1
+    fx = env._agent_x + env._facing[0]
+    fy = env._agent_y + env._facing[1]
+    grid = env._current_grid()
+    from glyphbench.envs.craftax.base import TILE_STONE
+    grid[fy][fx] = TILE_STONE  # solid, not placeable
+
+    action_idx = env.action_spec.names.index("PLACE_TORCH")
+    env.step(action_idx)
+
+    assert env._inventory["torch"] == 1, "torch NOT consumed when placement fails"
