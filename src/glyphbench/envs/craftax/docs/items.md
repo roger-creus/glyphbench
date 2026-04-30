@@ -1,96 +1,93 @@
 # Craftax — Items
 
-## Bow and arrows
+> Canonical anchors (locked API): `items:resources`, `items:gems`, `items:potions`, `items:bow`, `items:torches`.
 
-**Bow**: The bow is not craftable. It drops from the **first chest opened on floor 1**. The `find_bow` achievement fires on acquisition.
+<!-- :section items:resources -->
+## Resources
 
-**Arrows**: Craftable. Recipe: `MAKE_ARROW` = 1 wood + 1 stone at a crafting table → yields 2 arrows.
+Resources are mineable/harvestable inventory items used as crafting inputs:
 
-**SHOOT_ARROW**: Fires 1 arrow in the facing direction. Requires:
-- Bow in inventory (`inventory["bow"] >= 1`).
-- At least 1 arrow (`inventory["arrows"] >= 1`).
+| Item | Source | Tier required |
+|---|---|---|
+| wood | DO on tree (`♣`) | none |
+| stone | DO on stone (`S`) | wood pickaxe |
+| coal | DO on coal ore (`C`) | stone pickaxe |
+| iron | DO on iron ore (`I`) | stone pickaxe |
+| diamond | DO on diamond ore (`D`) | iron pickaxe |
+| sapling | DO on grass (`·`); ~30% chance | none |
 
-Arrow damage is physical (no element) and scales with DEX:
+Inventory counts appear in the HUD. The `_max_inventory_wood` achievement fires at high wood counts (upstream rule). Wood is the most-used input — table, pickaxes, swords, arrows, torches all consume it.
 
-| DEX | Arrow damage multiplier |
-|---|---|
-| 1 | 1.0× |
-| 2 | 1.2× |
-| 3 | 1.4× |
-| 4 | 1.6× |
-| 5 | 1.8× |
+Saplings drop from grass tiles only on the surface (floor 0). Stock food (cows, plants) before long dungeon runs since saplings cannot be obtained underground.
+<!-- :end -->
 
-The arrow projectile uses glyph `↗` or `↘` depending on variant. Collision and travel mechanics follow the standard projectile rules (see `combat.md`).
+<!-- :section items:gems -->
+## Gems (sapphire and ruby)
 
-An enchanted bow adds the bow's elemental component (fire or ice) to each arrow. Enchanting the bow requires the bow in inventory plus 9 mana and a gemstone adjacent to an enchantment table (see `crafting.md`).
+| Gem | Glyph | Use | Where to find |
+|---|---|---|---|
+| Sapphire | `♦` | Ice enchantments at `Ⓘ` ice table | floor 2 (2.5%), floor 5 (rare), floor 7 (2%) |
+| Ruby | `▲` | Fire enchantments at `Ⓔ` fire table | floor 2 (2.5%), floor 5 (rare), floor 6 (2.5%) |
 
-## Torches
+Both gems require an iron pickaxe (tier 2) to mine. Each enchant action consumes 1 gem + 9 mana. See `magic:enchants`.
 
-**MAKE_TORCH**: Crafts 4 torches. Costs 1 wood + 1 coal at a crafting table. Torches go into the `torch` inventory key.
+Achievements: `collect_sapphire`, `collect_ruby`.
+<!-- :end -->
 
-**PLACE_TORCH**: Consumes 1 crafted torch from `inventory["torch"]` and places a `!` tile in the faced cell. The placed torch emits light at radius 5, computed via the lightmap subsystem. Torches are critical for visibility in dark dungeon floors (2, 5, 6, 7, 8).
-
-Stock torches before descending to floor 2 (Gnomish Mines); the floor is dark without them.
-
+<!-- :section items:potions -->
 ## Potions
 
-There are 6 potion colors: **red, green, blue, pink, cyan, yellow**.
+There are 6 potion colors: red, green, blue, pink, cyan, yellow.
 
-**Per-game hidden shuffle**: at episode start the game assigns each color to one of 6 effects via a random permutation. The mapping is never shown to the agent. The agent must identify colors by trial and error.
+**Per-game hidden shuffle:** at episode start the game assigns each color to one of 6 effects via a random permutation. The mapping is never shown to the agent; identify colors by trial and error.
 
-**Effects** (one per color slot, per the hidden permutation):
+**Effects** (one per color slot per the hidden permutation):
 
 | Effect ID | Description |
 |---|---|
 | heal_8 | +8 HP (capped at max HP) |
-| poison_3 | -3 HP (treated as damage, applies armor/sleep multipliers) |
+| poison_3 | -3 HP (treated as damage; armor + sleep multipliers apply) |
 | mana_8 | +8 mana (capped at max mana) |
 | mana_drain_3 | -3 mana (floor 0) |
 | energy_8 | +8 energy (capped at max energy) |
 | energy_drain_3 | -3 energy (floor 0) |
 
-**Drink actions**: DRINK_POTION_RED / DRINK_POTION_GREEN / DRINK_POTION_BLUE / DRINK_POTION_PINK / DRINK_POTION_CYAN / DRINK_POTION_YELLOW. Each consumes 1 potion of the named color.
+Drink actions: DRINK_POTION_RED, DRINK_POTION_GREEN, DRINK_POTION_BLUE, DRINK_POTION_PINK, DRINK_POTION_CYAN, DRINK_POTION_YELLOW. Each consumes 1 potion of the named color.
 
-Potions are found in chests (standard loot rolls). A first-drink of any potion fires the `drink_potion` achievement. The color→effect mapping changes every episode; do not assume a fixed mapping across runs.
+Potions are found in chests (standard loot rolls). First-drink fires the `drink_potion` achievement. Color → effect mapping changes every episode.
+<!-- :end -->
 
-## Gems
+<!-- :section items:bow -->
+## Bow
 
-**Sapphire** (`♦`): mined with an iron pickaxe (tier 2+). Appears on floors 2 (2.5%), 5 (rare), 7 (2%). Used for **ice enchantments** (ENCHANT_SWORD / ENCHANT_ARMOR / ENCHANT_BOW with sapphire + 9 mana at an ice table).
+The bow is **not craftable**. It drops from the **first chest opened on floor 1** (achievement `find_bow`).
 
-**Ruby** (`▲`): mined with an iron pickaxe (tier 2+). Appears on floors 2 (2.5%), 5 (rare), 6 (2.5%). Used for **fire enchantments** (ENCHANT_SWORD / ENCHANT_ARMOR / ENCHANT_BOW with ruby + 9 mana at a fire table).
+SHOOT_ARROW requires bow in inventory plus at least 1 arrow (`inventory["arrows"] >= 1`). Arrow damage scales with DEX (see `combat:ranged_player`).
 
-Gems are consumed on use (1 gem per enchant action). See `crafting.md` for enchanting prerequisites.
+An enchanted bow adds an elemental component (fire or ice) to fired arrows. Enchanting the bow requires the bow in inventory plus 9 mana and 1 gemstone, adjacent to an enchantment table (see `magic:enchants`).
+<!-- :end -->
 
-## Books
+<!-- :section items:torches -->
+## Torches
 
-Books are quest items that teach spells. They appear only from first-chest grants:
+Crafted torches (`inventory["torch"]`) are produced by MAKE_TORCH (1 wood + 1 coal → 4 torches at a table).
 
-- Floor 3 first chest: grants 1 book.
-- Floor 4 first chest: grants 1 book (only if floor 3 first chest was not yet opened).
+PLACE_TORCH consumes 1 from `inventory["torch"]` and places a `!` tile in the faced cell. The placed torch emits light at radius 5 via the lightmap subsystem.
 
-Reading a book (READ_BOOK action) consumes it and randomly teaches one unlearned spell (fireball or iceball). See `magic.md` for spell details.
-
-## Chest loot table
-
-Chests (`$` glyph) are opened with DO while facing the chest. Each chest opens exactly once per episode. The loot roll follows an upstream-faithful distribution and may yield:
-
-- Wood (common)
-- Torches
-- Iron ore
-- Diamond
-- Potion (one of the 6 colors)
-- Arrows
-- Iron pickaxe
-- Iron sword
-
-First-chest grants override the normal loot table for the specific floor-priority items (bow on floor 1, book on floors 3/4). All other chests on those floors roll from the standard table.
-
-Fountains (`⊙`) are not chests; they refill water when interacted with via DO.
+Stock torches before descending to dark floors (2 Gnomish Mines, 5 Troll Mines, 7 Ice Realm, 8 Graveyard). Without torches these floors are nearly invisible.
 
 ## Sapling and plants
 
-**Sapling** (`;` — placed with PLACE_PLANT from `inventory["sapling"]`): saplings drop from grass tiles with ~30% chance when DO is used on a grass tile on the surface. Plant a sapling and return after 20 steps to find a ripe plant (`*`).
+PLACE_PLANT consumes 1 sapling from inventory and places a `+` tile. After 20 steps the sapling becomes a ripe plant (`*`). EAT_PLANT (or DO while facing `*`) eats it for food. Saplings only grow on the surface (floor 0).
 
-**EAT_PLANT**: DO while facing a ripe plant (`*`) eats it, restoring food. The eaten tile reverts to grass.
+## Chest loot table (general)
 
-Saplings do not grow in dungeons. Stock food (or cows/snails) before long dungeon runs.
+Chests (`$`) are opened with DO. Each chest opens exactly once per episode. Standard loot may include wood, torches, iron ore, diamond, a potion (random color), arrows, an iron pickaxe, or an iron sword.
+
+First-chest grants override the standard table on specific floors:
+- Floor 1 first chest → bow.
+- Floor 3 first chest → book.
+- Floor 4 first chest → book (only if floor 3 chest is unopened).
+
+Fountains (`⊙`) are not chests; DO at a fountain refills water.
+<!-- :end -->
