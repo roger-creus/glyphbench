@@ -3,6 +3,30 @@
 This file tracks behavioural deltas to the Craftax envs as the
 multi-phase upstream-faithful port (phases α / β / γ) lands.
 
+## Audit follow-ups (2026-04-30)
+
+### Fixed
+- `craftax-craftpickaxe-v0` / `craftax-craftsword-v0` `_task_description`
+  text falsely promised iron-tier output; the env actually rewards a wood
+  pickaxe / stone sword respectively. Reworded to honestly describe the
+  scored behaviour. No reward-logic change.
+- `craftax-bossfight-v0` `_task_description` clarified to name the
+  floor-5 lich and cross-reference the new `craftax-necromancer-v0`.
+- `craftax-speedrun-v0` per-floor descend reward dropped from +3 to +1.
+  The +10 floor-5 terminal bonus stays. Random-agent baseline went
+  +10.7 → +9.6.
+
+### Added (5 new envs, suite count 38 → 43)
+- `craftax-floor4-v0` — Vaults; iron armor + diamond sword + spells.
+- `craftax-floor5-v0` — Troll Mines (dark); diamond gear + bow.
+- `craftax-floor6-v0` — Fire Realm; ice-enchanted gear + iceball spell.
+- `craftax-floor7-v0` — Ice Realm; fire-enchanted gear + fireball spell.
+- `craftax-necromancer-v0` — floor 8 boss in isolation. Spawns the agent
+  on the Graveyard with full endgame kit; `CraftaxFullEnv._step` already
+  wires `boss_progress >= 8` → +10 reward + `defeat_necromancer`
+  achievement + episode end. Previously the necromancer mechanics were
+  only reachable via the full 10000-step game.
+
 ## Tutorial standardization (2026-04-30)
 
 ### Added
