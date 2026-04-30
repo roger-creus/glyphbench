@@ -117,3 +117,49 @@ def test_player_projectile_damages_one_mob_then_dies() -> None:
     assert survivors == []
     # Exactly one hit was registered.
     assert mob_hits == [(6, 5, 2)]
+
+
+def test_render_shows_arrow_projectile_glyph() -> None:
+    """Phase α: arrow projectiles render as their assigned glyph."""
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._player_projectiles.append(ProjectileEntity(
+        kind=ProjectileType.ARROW, x=7, y=5, dx=1, dy=0, damage=2,
+    ))
+    obs = env._render_current_observation()
+    grid_text = obs.grid
+    # Check that an arrow projectile glyph appears somewhere in the rendered window.
+    # The glyph is whatever T26 picks — assert against the constant.
+    from glyphbench.envs.craftax.base import TILE_ARROW
+    assert TILE_ARROW in grid_text, f"arrow glyph not in render:\n{grid_text}"
+
+
+def test_render_shows_fireball_projectile_glyph() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._player_projectiles.append(ProjectileEntity(
+        kind=ProjectileType.FIREBALL, x=7, y=5, dx=1, dy=0, damage=4,
+    ))
+    obs = env._render_current_observation()
+    grid_text = obs.grid
+    from glyphbench.envs.craftax.base import TILE_FIREBALL
+    assert TILE_FIREBALL in grid_text, f"fireball glyph not in render:\n{grid_text}"
+
+
+def test_projectile_glyphs_unique_within_palette() -> None:
+    """Phase α: each ProjectileType maps to a unique glyph (single codepoint)."""
+    from glyphbench.envs.craftax.base import (
+        TILE_ARROW, TILE_DAGGER, TILE_FIREBALL, TILE_ICEBALL,
+        TILE_ARROW2, TILE_SLIMEBALL, TILE_FIREBALL2, TILE_ICEBALL2,
+    )
+    glyphs = (
+        TILE_ARROW, TILE_DAGGER, TILE_FIREBALL, TILE_ICEBALL,
+        TILE_ARROW2, TILE_SLIMEBALL, TILE_FIREBALL2, TILE_ICEBALL2,
+    )
+    # Each is a single codepoint.
+    for g in glyphs:
+        assert len(g) == 1, f"glyph {g!r} is not single-codepoint"
+    # All distinct.
+    assert len(set(glyphs)) == len(glyphs), f"duplicate glyphs: {glyphs}"

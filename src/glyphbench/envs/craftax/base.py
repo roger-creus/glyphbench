@@ -142,6 +142,18 @@ TILE_BOSS = "W"
 TILE_SAPLING = ";"
 TILE_RIPE_PLANT = "*"
 
+# Projectile tile characters (phase α — single-codepoint, disjoint from
+# existing tile/mob/direction palettes). T26 of the phase-α plan.
+# Dir chars use →←↑↓ (U+2192/90/91/93); these are all distinct.
+TILE_ARROW = "↗"     # ↗ diagonal NE arrow
+TILE_ARROW2 = "↘"    # ↘ diagonal SE arrow
+TILE_DAGGER = "†"    # † dagger
+TILE_FIREBALL = "●"  # ● black circle
+TILE_FIREBALL2 = "◉" # ◉ fish-eye
+TILE_ICEBALL = "○"   # ○ white circle
+TILE_ICEBALL2 = "◎"  # ◎ bullseye
+TILE_SLIMEBALL = "◐" # ◐ half black circle (left)
+
 # Stage 0 achievements (first 8, kept for backward compatibility)
 STAGE0_ACHIEVEMENTS = (
     "collect_wood",

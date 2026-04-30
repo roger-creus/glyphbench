@@ -20,16 +20,23 @@ from glyphbench.envs.craftax.base import (
     FULL_VIEW_HEIGHT,
     FULL_VIEW_WIDTH,
     TILE_AGENT,
+    TILE_ARROW,
+    TILE_ARROW2,
     TILE_BAT,
     TILE_BOSS,
     TILE_BOSS_DOOR,
     TILE_COAL,
     TILE_COW,
+    TILE_DAGGER,
     TILE_DIAMOND,
     TILE_DUNGEON_FLOOR,
     TILE_DUNGEON_WALL,
+    TILE_FIREBALL,
+    TILE_FIREBALL2,
     TILE_FURNACE,
     TILE_GRASS,
+    TILE_ICEBALL,
+    TILE_ICEBALL2,
     TILE_IRON,
     TILE_LAVA,
     TILE_PLACED_STONE,
@@ -38,6 +45,7 @@ from glyphbench.envs.craftax.base import (
     TILE_SAPLING,
     TILE_SKELETON,
     TILE_SKELETON_ARCHER,
+    TILE_SLIMEBALL,
     TILE_SPIDER,
     TILE_STAIRS_DOWN,
     TILE_STAIRS_UP,
@@ -317,6 +325,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "SHOOT_ARROW: fires 1 arrow forward (requires bow + arrow).\n\n"
             "MAGIC\n"
             "CAST_FIREBALL / CAST_ICEBALL (2 mana each): spawn a fireball / iceball projectile one tile in front of you; travels 1 tile/turn until it hits a target or wall.\n\n"
+            "PROJECTILES (mid-flight glyphs)\n"
+            "↗/↘=arrow, †=dagger, ●/◉=fireball, ○/◎=iceball, ◐=slimeball.\n\n"
             "DUNGEONS\n"
             "DESCEND on > goes deeper. ASCEND on < goes up. "
             "Dungeons are dark; PLACE_TORCH (consumes 1 crafted torch) for light. "
@@ -2308,6 +2318,21 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         _MOB_TILES[mob["type"]]
                     )
 
+        from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+        _PROJECTILE_GLYPH = {
+            ProjectileType.ARROW: TILE_ARROW,
+            ProjectileType.ARROW2: TILE_ARROW2,
+            ProjectileType.DAGGER: TILE_DAGGER,
+            ProjectileType.FIREBALL: TILE_FIREBALL,
+            ProjectileType.FIREBALL2: TILE_FIREBALL2,
+            ProjectileType.ICEBALL: TILE_ICEBALL,
+            ProjectileType.ICEBALL2: TILE_ICEBALL2,
+            ProjectileType.SLIMEBALL: TILE_SLIMEBALL,
+        }
+        proj_chars: dict[tuple[int, int], str] = {}
+        for p in self._player_projectiles + self._mob_projectiles:
+            proj_chars[(p.x, p.y)] = _PROJECTILE_GLYPH[p.kind]
+
         for wy in range(FULL_VIEW_HEIGHT):
             row: list[str] = []
             for wx in range(FULL_VIEW_WIDTH):
@@ -2322,6 +2347,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 elif (world_x, world_y) in mob_chars:
                     if self._is_visible(world_x, world_y):
                         c = mob_chars[(world_x, world_y)]
+                        row.append(c)
+                        symbols_seen.add(c)
+                    else:
+                        row.append(" ")
+                elif (world_x, world_y) in proj_chars:
+                    if self._is_visible(world_x, world_y):
+                        c = proj_chars[(world_x, world_y)]
                         row.append(c)
                         symbols_seen.add(c)
                     else:
@@ -2544,6 +2576,15 @@ class CraftaxFullEnv(BaseGlyphEnv):
             TILE_DUNGEON_WALL: "dungeon wall",
             TILE_DUNGEON_FLOOR: "dungeon floor",
             TILE_BOSS_DOOR: "boss door",
+            # Projectiles (phase α — T26)
+            TILE_ARROW: "arrow projectile",
+            TILE_ARROW2: "arrow2 projectile",
+            TILE_DAGGER: "dagger projectile",
+            TILE_FIREBALL: "fireball projectile",
+            TILE_FIREBALL2: "fireball2 projectile",
+            TILE_ICEBALL: "iceball projectile",
+            TILE_ICEBALL2: "iceball2 projectile",
+            TILE_SLIMEBALL: "slimeball projectile",
         }
         legend_entries: dict[str, str] = {}
         for sym in symbols_seen:
