@@ -1,4 +1,8 @@
-# `glyphbench replay`
+# `gb replay`
+
+![gb replay walkthrough](https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/gb_replay.gif)
+
+*Replaying a saved verifiers `results.jsonl` rollout in the multi-panel TUI. Pause-mode hotkeys (`s` system / `r` reasoning / `m` memory / `←/→` step / `q` next) drop into a pager for any panel.*
 
 A rich TUI for inspecting saved rollouts. Renders the per-turn
 ASCII grid alongside the agent's reasoning, action, memory state,
@@ -8,23 +12,22 @@ and any per-turn parse errors.
 
 ```bash
 # List every (model, env, seed) tuple under a runs dir
-uv run glyphbench replay cluster_manager/results --list
+uv run glyphbench replay path/to/runs/ --list
 
 # Play every rollout that matches one env (filters AND-combine)
-uv run glyphbench replay cluster_manager/results \
+uv run glyphbench replay path/to/runs/ \
     --env glyphbench/minigrid-empty-6x6-v0
 
 # Step through a single rollout turn-by-turn
-uv run glyphbench replay cluster_manager/results \
+uv run glyphbench replay path/to/runs/ \
     --env glyphbench/craftax-fight-cow-v0 --pause
 
 # Pace continuous playback (default 0.15s per turn)
 uv run glyphbench replay runs/local-eval --delay 0.4
 ```
 
-`runs_dir` may point at the cluster_manager results tree, a single
-per-run-hash subdirectory (e.g.
-`cluster_manager/results/evals/glyphbench--Qwen--Qwen3.5-4B/<hash>`),
+`runs_dir` may point at a results tree, a single per-run-hash
+subdirectory (e.g. `runs/evals/glyphbench--Qwen--Qwen3.5-4B/<hash>`),
 or any directory tree containing `results.jsonl` files.
 
 ## CLI flags
