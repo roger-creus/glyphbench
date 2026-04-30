@@ -229,3 +229,66 @@ def test_shoot_arrow_no_op_without_arrows() -> None:
     env._handle_shoot_arrow()
 
     assert env._player_projectiles == []
+
+
+def test_full_env_prompt_mentions_new_phase_alpha_actions() -> None:
+    """T27: phase-α actions are present, removed actions are absent."""
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    # The system prompt is built by the env. Different envs surface this
+    # differently — try common attribute names then fall back to a public
+    # method.
+    if hasattr(env, "system_prompt"):
+        raw = env.system_prompt
+        prompt = raw() if callable(raw) else raw
+    elif hasattr(env, "_build_system_prompt"):
+        prompt = env._build_system_prompt()
+    elif hasattr(env, "system_prompt_template"):
+        prompt = env.system_prompt_template
+    else:
+        # Last resort — check the static class attribute.
+        prompt = getattr(env, "_SYSTEM_PROMPT", "") or getattr(env.__class__, "system_prompt", "")
+    assert prompt, "could not find system prompt on env"
+
+    # All phase-α actions must be mentioned.
+    for token in (
+        "SHOOT_ARROW", "MAKE_ARROW", "MAKE_TORCH",
+        "PLACE_TORCH", "CAST_FIREBALL", "CAST_ICEBALL",
+    ):
+        assert token in prompt, f"prompt missing required token {token!r}"
+
+    # Removed actions must NOT be mentioned.
+    for stale in ("MAKE_SPELL_SCROLL", "CAST_HEAL"):
+        assert stale not in prompt, f"prompt still mentions removed action {stale!r}"
+
+    # Removed mechanics must NOT be advertised:
+    # - "freeze" referring to iceball was removed in T06.
+    # - AOE / radius for fireball was removed in T10.
+    # Be loose: the words can appear (e.g. "freeze" might describe weather)
+    # but they should NOT appear adjacent to "iceball" / "fireball".
+    lower = prompt.lower()
+    if "iceball" in lower:
+        # Look for a window of ~80 chars around each "iceball" mention and
+        # assert "freeze" is not in that window.
+        idx = 0
+        while True:
+            idx = lower.find("iceball", idx)
+            if idx < 0:
+                break
+            window = lower[max(0, idx - 40):idx + 40]
+            assert "freeze" not in window, (
+                f"prompt advertises freeze near iceball: ...{window}..."
+            )
+            idx += 1
+    if "fireball" in lower:
+        idx = 0
+        while True:
+            idx = lower.find("fireball", idx)
+            if idx < 0:
+                break
+            window = lower[max(0, idx - 40):idx + 40]
+            for stale_phrase in ("aoe", "radius", "2-tile", "area damage"):
+                assert stale_phrase not in window, (
+                    f"prompt advertises {stale_phrase!r} near fireball: ...{window}..."
+                )
+            idx += 1
