@@ -276,7 +276,7 @@ ALL_FULL_ACHIEVEMENTS = (
     "collect_10_wood",
     "collect_5_stone",
     "collect_3_iron",
-    # -- Total: 80 --
+    # -- Total: 79 --
 )
 
 # Visible window dimensions
