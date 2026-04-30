@@ -17,6 +17,7 @@ from glyphbench.envs.craftax.base import (
     ALL_CLASSIC_ACHIEVEMENTS,
     CRAFTAX_ACTION_SPEC,
     TILE_AGENT,
+    _CraftaxTutorialMixin,
     TILE_COAL,
     TILE_COW,
     TILE_DIAMOND,
@@ -126,7 +127,7 @@ class Mob(TypedDict):
     max_hp: int
 
 
-class CraftaxClassicEnv(BaseGlyphEnv):
+class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
     """Craftax Classic: survival crafting in a procedural grid world.
 
     22 achievements: resource gathering, crafting, combat, survival.
@@ -141,6 +142,34 @@ class CraftaxClassicEnv(BaseGlyphEnv):
 
     _WORLD_SIZE = 64
     _ALL_ACHIEVEMENTS = ALL_CLASSIC_ACHIEVEMENTS
+
+    tutorial_sections: tuple[str, ...] = (
+        "overview",
+        "legend:player",
+        "legend:terrain",
+        "legend:mobs:overworld",
+        "legend:items",
+        "legend:hud",
+        "survival:hp_food_drink",
+        "survival:energy_sleep",
+        "survival:day_night",
+        "combat:melee",
+        "crafting:wood",
+        "crafting:stone",
+        "crafting:iron",
+        "crafting:placement",
+        "items:resources",
+        "progression:achievements",
+        "floors:0",
+    )
+
+    def _task_description(self) -> str:
+        ach = ", ".join(self._ALL_ACHIEVEMENTS)
+        return (
+            f"Survive in the 64x64 overworld. Each new achievement gives +1 "
+            f"reward. Available achievements ({len(self._ALL_ACHIEVEMENTS)}): "
+            f"{ach}."
+        )
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
@@ -168,59 +197,7 @@ class CraftaxClassicEnv(BaseGlyphEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-classic-v0"
 
-    def system_prompt(self) -> str:
-        ach_list = ", ".join(self._ALL_ACHIEVEMENTS)
-        return (
-            "You are playing Craftax Classic.\n\n"
-            "TASK\n"
-            "Gather resources, craft tools, fight mobs, and survive. "
-            "Each new achievement gives +1 reward. Available achievements: "
-            f"{ach_list}.\n\n"
-            "WORLD\n"
-            "64x64 grid world. You see a 9x7 window centered on yourself. "
-            "Biomes: grass (.), trees (T), stone (S), coal (C), iron (I), "
-            "diamond (D), water (~), lava (L), sand (s).\n"
-            "Mobs: zombie (z), skeleton (k), cow (c). "
-            "Plants: sapling (;), ripe plant (*).\n\n"
-            "SURVIVAL\n"
-            "- Food drains 1 every 50 steps. At 0: lose 1 HP per step.\n"
-            "- Water drains 1 every 40 steps. At 0: lose 1 HP per step.\n"
-            "- Energy drains 1 every 100 steps. At 0: 50% chance movement fails.\n"
-            "- Eat a ripe plant to restore 3 food. Eat cow meat for 5 food.\n"
-            "- DRINK_WATER facing water restores water to 9.\n"
-            "- SLEEP restores energy to 9, skips 50 steps.\n\n"
-            "DAY/NIGHT\n"
-            "Day lasts 200 steps, night lasts 100 steps. Zombies and "
-            "skeletons spawn at nightfall and despawn at dawn.\n\n"
-            "COMBAT\n"
-            "DO facing a mob attacks it. Damage = 1 + weapon bonus "
-            "(wood sword +1, stone sword +2, iron sword +3). "
-            "Mobs attack when adjacent.\n\n"
-            "MECHANICS\n"
-            "- MOVE_*: walk in 4 directions on walkable tiles.\n"
-            "- DO: chop trees (wood + chance of sapling), mine ores, attack mobs.\n"
-            "- PLACE_TABLE: costs 2 wood.\n"
-            "- PLACE_FURNACE: costs 4 stone.\n"
-            "- PLACE_STONE: costs 1 stone.\n"
-            "- PLACE_PLANT: costs 1 sapling. Becomes ripe (*) after 20 steps.\n"
-            "- Crafting: MAKE_WOOD_PICKAXE (1 wood, table), "
-            "MAKE_STONE_PICKAXE (1 wood + 1 stone, table), "
-            "MAKE_IRON_PICKAXE (1 wood + 1 iron, table+furnace), "
-            "MAKE_WOOD_SWORD (1 wood, table), "
-            "MAKE_STONE_SWORD (1 wood + 1 stone, table), "
-            "MAKE_IRON_SWORD (1 wood + 1 iron, table+furnace).\n\n"
-            "TECH TREE\n"
-            "1. Chop trees for wood (+ saplings)\n"
-            "2. Place table (2 wood) -> craft wood pickaxe (1 wood, table)\n"
-            "3. Mine stone -> craft stone pickaxe (1 wood + 1 stone, table)\n"
-            "4. Mine more stone -> place furnace (4 stone)\n"
-            "5. Mine iron/coal with stone pickaxe\n"
-            "6. Craft iron pickaxe (1 wood + 1 iron, table+furnace)\n"
-            "7. Mine diamond with iron pickaxe\n"
-            "8. Craft swords for combat (stone sword: table; iron sword: table+furnace)\n"
-            "9. Plant saplings, eat ripe plants, drink water, sleep\n\n"
-            + self.action_spec.render_for_prompt()
-        )
+    # system_prompt() inherited from _CraftaxTutorialMixin.
 
     # -------------------------------------------------------------------
     # World generation

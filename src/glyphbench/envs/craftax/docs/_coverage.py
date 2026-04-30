@@ -80,8 +80,12 @@ ACTION_TO_ANCHORS: dict[str, frozenset[str]] = {
 # tutorial_sections must include at least one anchor for every glyph
 # the env can render on its grid.
 GLYPH_TO_ANCHORS: dict[str, frozenset[str]] = {
-    # Player
+    # Player (rendered as directional arrow; @ is the fallback)
     "@": frozenset({"legend:player"}),
+    "→": frozenset({"legend:player"}),
+    "←": frozenset({"legend:player"}),
+    "↑": frozenset({"legend:player"}),
+    "↓": frozenset({"legend:player"}),
 
     # Surface terrain
     "·": frozenset({"legend:terrain"}),  # · grass

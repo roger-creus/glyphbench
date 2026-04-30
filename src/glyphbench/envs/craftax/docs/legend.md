@@ -7,9 +7,17 @@ The ASCII renderer uses a single Unicode codepoint per grid cell. Color encoding
 <!-- :section legend:player -->
 ## Player
 
-| Glyph | Name |
+The agent is rendered as a directional arrow indicating its current facing direction:
+
+| Glyph | Facing |
 |---|---|
-| `@` | Player agent |
+| `→` | facing right (east) |
+| `←` | facing left (west) |
+| `↑` | facing up (north) |
+| `↓` | facing down (south) |
+| `@` | fallback if facing is undefined (rare) |
+
+Reading the arrow tells you which cell DO and SHOOT_ARROW will target. MOVE_LEFT/RIGHT/UP/DOWN both move and update facing.
 <!-- :end -->
 
 <!-- :section legend:terrain -->

@@ -21,6 +21,7 @@ from glyphbench.envs.craftax.base import (
     CRAFTAX_FULL_ACTION_SPEC,
     FULL_VIEW_HEIGHT,
     FULL_VIEW_WIDTH,
+    _CraftaxTutorialMixin,
     TILE_AGENT,
     TILE_ARROW,
     TILE_ARROW2,
@@ -357,21 +358,35 @@ class Mob(TypedDict):
     attack_cooldown: int  # ticks remaining before this mob can attack again
 
 
-class CraftaxFullEnv(BaseGlyphEnv):
+class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
     """Craftax Full: survival crafting with dungeons and magic.
 
-    80 achievements spanning resource gathering, crafting, combat,
+    93 achievements spanning resource gathering, crafting, combat,
     dungeon exploration, magic, bosses, and survival milestones.
 
-    Surface: 64x64, Dungeons: 32x32 per floor, 5 floors.
+    Surface: 64x64, Dungeons: 32x32 per floor, 9 floors total.
     Visible window: 11x9 centered on agent.
-    Reward: +1 per first-time achievement unlock.
+    Reward: +1 per first-time achievement unlock; +10 on Necromancer kill.
     """
 
     action_spec = CRAFTAX_FULL_ACTION_SPEC
     noop_action_name = "NOOP"
 
     _ALL_ACHIEVEMENTS = ALL_FULL_ACHIEVEMENTS
+
+    # Full game uses every anchor in the canonical tutorial.
+    from glyphbench.envs.craftax.docs import ALL_SECTIONS as _FULL_SECTIONS
+    tutorial_sections: tuple[str, ...] = _FULL_SECTIONS
+    del _FULL_SECTIONS
+
+    def _task_description(self) -> str:
+        ach = ", ".join(self._ALL_ACHIEVEMENTS)
+        return (
+            f"Gather resources, craft tools, fight mobs, explore dungeons, "
+            f"learn magic, and survive. Each new achievement gives +1 reward; "
+            f"defeating the Necromancer gives +10. "
+            f"Achievements ({len(self._ALL_ACHIEVEMENTS)}): {ach}."
+        )
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
@@ -479,112 +494,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-v0"
 
-    def system_prompt(self) -> str:  # noqa: PLR0912 (many sections)
-        ach_list = ", ".join(self._ALL_ACHIEVEMENTS)
-        return (
-            "You are playing Craftax Full.\n\n"
-            "TASK\n"
-            "Gather resources, craft tools, fight mobs, explore dungeons, "
-            "learn magic, and survive. Each new achievement gives +1 reward.\n"
-            f"Achievements ({len(self._ALL_ACHIEVEMENTS)}): {ach_list}.\n\n"
-
-            "BACKGROUND\n"
-            "The world has 9 floors total:\n"
-            "  0 = Overworld (64x64 grass/forest/stone surface)\n"
-            "  1 = Dungeon (32x32 rooms+corridors, skeletons/zombies)\n"
-            "  2 = Gnomish Mines (kobolds, gnome warriors, sapphire/ruby ore)\n"
-            "  3 = Sewers (Ⓘ ice enchantment table, orc mages, lizards)\n"
-            "  4 = Vaults (Ⓔ fire enchantment table, vault knights)\n"
-            "  5 = Troll Mines (trolls, deep_things, snails)\n"
-            "  6 = Fire Realm (pigmen, fire elementals, lava + ruby ore)\n"
-            "  7 = Ice Realm (frost trolls, ice elementals, water + sapphire ore)\n"
-            "  8 = Graveyard (Ⓝ Necromancer boss — the final boss)\n"
-            "Dungeon floors are 32x32. 11x9 viewport centered on you.\n\n"
-
-            "WORLD GLYPHS\n"
-            "Surface: grass(.), tree(T), stone(S), coal(C), iron(I), "
-            "diamond(D), water(~), lava(L), sand(s), sapling(Y), plant(P).\n"
-            "Dungeon: wall(#), floor(_), stairs-down(>), stairs-up(<), "
-            "torch(!), boss-door(B), chest($), fountain(⊙).\n"
-            "Gems: sapphire(♦), ruby(▼).\n"
-            "Enchant tables: Ⓔ=fire (floor 4), Ⓘ=ice (floor 3).\n"
-            "Boss floor 8: grave(⚰), necromancer(Ⓝ/ⓝ=vulnerable).\n"
-            "Mobs: zombie(z), cow(c), skeleton(a), kobold(q), bat(b), boss(W), "
-            "troll(t), deep_thing(d), snail(n), pigman(g), fire_elemental(f), "
-            "frost_troll(r), ice_elemental(i).\n"
-            "Projectiles: ↗/↘=arrow, †=dagger, ●/◉=fireball, ○/◎=iceball, ◐=slimeball.\n\n"
-
-            "SURVIVAL\n"
-            "- Food drains 1/50 steps. 0 food: -1 HP/step.\n"
-            "- Water drains 1/40 steps. 0 water: -1 HP/step.\n"
-            "- Energy drains 1/100 steps. 0: 50% move fail.\n"
-            "- Mana: base max 10, regen 1/20 steps (faster with INT). Used for spells.\n"
-            "- SLEEP: continuous +2 HP/+2 energy per tick; wakes on full energy or damage.\n"
-            "- REST: +1 HP per tick while still; cancels on any action or damage.\n\n"
-
-            "COMBAT\n"
-            "DO while facing a mob attacks it. Base dmg = 1 + weapon bonus.\n"
-            "WEAPON DAMAGE BONUS: wood sword +1, stone sword +2, iron sword +3, "
-            "diamond sword +4. Enchanted sword adds +2 bonus + elemental component.\n"
-            "4 ARMOR SLOTS (helmet/chest/legs/boots). Craft with MAKE_IRON_ARMOUR / "
-            "MAKE_DIAMOND_ARMOUR — fills the lowest empty slot.\n"
-            "Armor defense: each filled slot reduces physical damage by 10%. "
-            "An enchanted slot also reduces the matching element (fire or ice) by 20%.\n"
-            "Damage types: physical, fire, ice. Elemental mobs are immune to their own element.\n"
-            "Boss-floor (floor 8) incoming damage is multiplied 1.5x (after armor).\n"
-            "Sleeping takes 3.5x damage on hit (after armor + boss multiplier).\n\n"
-
-            "ATTRIBUTES (3 RPG stats; each capped at 5; start at 1)\n"
-            "Spend 1 XP per level-up. XP: +1 on first entry to each new floor.\n"
-            "LEVEL_UP_DEXTERITY: +arrow range/decay; +food capacity.\n"
-            "LEVEL_UP_STRENGTH:  +physical melee damage; +max HP.\n"
-            "LEVEL_UP_INTELLIGENCE: +spell damage; +mana regen speed.\n\n"
-
-            "RANGED\n"
-            "SHOOT_ARROW: fires 1 arrow forward (requires bow + 1 arrow). "
-            "Bows drop from first chest on floor 1.\n"
-            "Arrow range and decay scale with DEX.\n\n"
-
-            "MAGIC\n"
-            "Spells require learning first (READ_BOOK on a book item). "
-            "Books drop from the first chest on floors 3 or 4.\n"
-            "CAST_FIREBALL / CAST_ICEBALL (2 mana each): spawn a projectile "
-            "1 tile in front; travels 1 tile/turn. Fire/ice element bypasses "
-            "normal armor if the target has fire/ice immunity.\n"
-            "Spell damage scales with INT.\n\n"
-
-            "ENCHANTMENTS\n"
-            "ENCHANT_SWORD / ENCHANT_ARMOUR / ENCHANT_BOW: requires:\n"
-            "  - Adjacency to Ⓔ (fire, floor 4) or Ⓘ (ice, floor 3).\n"
-            "  - 1 ruby (fire) OR 1 sapphire (ice).\n"
-            "  - 9 mana.\n"
-            "Fire enchant sets element=fire; ice enchant sets element=ice. "
-            "Enchanted sword adds +2 dmg + 0.5x elemental component. "
-            "Enchanted armor slot adds 20% resistance to the matching element. "
-            "Enchanted bow adds elemental damage to arrows.\n\n"
-
-            "POTIONS (6 colors; per-game hidden shuffle)\n"
-            "Drink with DRINK_POTION_RED/GREEN/BLUE/PINK/CYAN/YELLOW. "
-            "Effect unknown until first use; identify by trial. "
-            "Colors may give: +HP, +mana, speed, +food, +energy, or damage.\n\n"
-
-            "BOSS — The Necromancer (floor 8)\n"
-            "Ⓝ = invulnerable, ⓝ = vulnerable. "
-            "Becomes vulnerable only when no other mobs are alive on floor 8 "
-            "AND the summon timer has expired. "
-            "DO while adjacent and facing ⓝ deals 1 hit. Each successful hit "
-            "triggers a 7-turn summon wave (zombies + skeletons spawn near you). "
-            "8 hits wins: +10 reward + defeat_necromancer achievement.\n\n"
-
-            "DUNGEONS\n"
-            "DESCEND on > goes to next floor. ASCEND on < goes up one floor. "
-            "Dungeons are dark; PLACE_TORCH (consumes 1 crafted torch from inventory) "
-            "for light. Light radius scales with torches placed.\n"
-            "Chests ($): DO to open. First chest on floor 1 gives a bow. "
-            "First chest on floors 3-4 gives a book. Other chests give random loot.\n\n"
-
-            + self.action_spec.render_for_prompt()
-        )
+    # system_prompt() inherited from _CraftaxTutorialMixin (uses
+    # tutorial_sections + _task_description above).
 
     # ---------------------------------------------------------------
     # Floor helpers
