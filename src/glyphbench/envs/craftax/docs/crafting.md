@@ -1,111 +1,96 @@
 # Craftax — Crafting
 
-## Adjacency prerequisites
+> Canonical anchors (locked API): `crafting:wood`, `crafting:stone`, `crafting:iron`, `crafting:diamond`, `crafting:placement`, `crafting:arrows`, `crafting:torches`.
 
-Most crafting actions require the player to be **adjacent** (including diagonally) to a placed crafting table (`t`). Some require a furnace (`f`) in addition. Enchanting requires an enchantment table.
+Most crafting actions require adjacency (including diagonal) to a placed crafting table (`t`). Iron-tier and above also require an adjacent furnace (`f`). Enchanting requires an enchantment table (`Ⓔ` fire or `Ⓘ` ice).
 
-| Prerequisite label | What must be adjacent |
-|---|---|
-| table | Crafting table (`t`) |
-| table+furnace | Both table (`t`) AND furnace (`f`) |
-| FIRE table | Fire enchantment table (`Ⓔ`, floor 4) |
-| ICE table | Ice enchantment table (`Ⓘ`, floor 3) |
-| FIRE table OR ICE table | Either enchantment table |
-
-Diagonally adjacent counts for table+furnace requirements.
-
+<!-- :section crafting:placement -->
 ## Placement actions
 
 | Action | Cost | Prerequisite | Result |
 |---|---|---|---|
 | PLACE_STONE | 1 stone | none | Places `=` (placed stone) in faced cell |
-| PLACE_TABLE | 2 wood | none | Places `t` (crafting table) in faced cell |
-| PLACE_FURNACE | 4 stone | none | Places `f` (furnace) in faced cell |
-| PLACE_PLANT | 1 sapling | none | Places `+` (sapling) in faced cell; ripens to `*` after 20 steps |
-| PLACE_TORCH | 1 crafted torch | none | Places `!` (torch) in faced cell; emits light radius 5 |
+| PLACE_TABLE | 2 wood | none | Places `t` (crafting table) |
+| PLACE_FURNACE | 4 stone | none | Places `f` (furnace) |
+| PLACE_PLANT | 1 sapling | none | Places `+` sapling; ripens to `*` after 20 steps |
+| PLACE_TORCH | 1 crafted torch | none | Places `!` torch; emits light radius 5 |
 
-Crafted torches come from MAKE_TORCH (see below). Do not confuse them with coal torches — PLACE_TORCH consumes the `torch` inventory key, not wood or coal directly.
+PLACE_TORCH consumes from the `torch` inventory key (filled by MAKE_TORCH); not from raw wood or coal.
+<!-- :end -->
 
-## Pickaxe crafting
-
-| Action | Inputs | Prerequisite | Output |
-|---|---|---|---|
-| MAKE_WOOD_PICKAXE | 1 wood | table | Wood pickaxe (mines stone, coal; tier 0) |
-| MAKE_STONE_PICKAXE | 1 wood + 1 stone | table | Stone pickaxe (mines iron; tier 1) |
-| MAKE_IRON_PICKAXE | 1 wood + 1 iron | table+furnace | Iron pickaxe (mines diamond, sapphire, ruby; tier 2) |
-| MAKE_DIAMOND_PICKAXE | 1 wood + 1 diamond | table+furnace | Diamond pickaxe (tier 3; strongest) |
-
-Pickaxe tier determines which ores can be mined. Stone requires tier 0+; coal and iron require tier 1+; diamond, sapphire, ruby require tier 2+ (iron pickaxe or better).
-
-## Sword crafting
+<!-- :section crafting:wood -->
+## Wood-tier crafting
 
 | Action | Inputs | Prerequisite | Output |
 |---|---|---|---|
-| MAKE_WOOD_SWORD | 1 wood | table | Wood sword (+1 damage bonus) |
-| MAKE_STONE_SWORD | 1 wood + 1 stone | table | Stone sword (+2 damage bonus) |
-| MAKE_IRON_SWORD | 1 wood + 1 iron | table+furnace | Iron sword (+3 damage bonus) |
-| MAKE_DIAMOND_SWORD | 1 wood + 1 diamond | table+furnace | Diamond sword (+4 damage bonus) |
+| MAKE_WOOD_PICKAXE | 1 wood | adjacent table | Wood pickaxe (mines stone, coal; tier 0) |
+| MAKE_WOOD_SWORD | 1 wood | adjacent table | Wood sword (+1 melee bonus) |
 
-Only the highest-tier sword held is used in combat. See `combat.md` for the full damage formula.
+Tier 0 pickaxes can mine stone and coal. To advance, mine stone and craft a stone pickaxe.
+<!-- :end -->
 
-## Armor crafting
-
-Armor occupies 4 independent slots: helmet, chest, legs, boots. Each crafting action fills the **lowest empty slot** (or upgrades the lowest slot if all are filled with a lower tier).
+<!-- :section crafting:stone -->
+## Stone-tier crafting
 
 | Action | Inputs | Prerequisite | Output |
 |---|---|---|---|
-| MAKE_IRON_ARMOR | 2 iron | table+furnace | Iron armor piece (tier 1; fills lowest empty slot) |
-| MAKE_DIAMOND_ARMOR | 1 diamond + 1 iron | table+furnace | Diamond armor piece (tier 2; fills or upgrades lowest slot) |
+| MAKE_STONE_PICKAXE | 1 wood + 1 stone | adjacent table | Stone pickaxe (mines iron; tier 1) |
+| MAKE_STONE_SWORD | 1 wood + 1 stone | adjacent table | Stone sword (+2 melee bonus) |
 
-Each filled slot provides 0.1 physical defense reduction. Enchanting adds elemental defense per slot. See `combat.md` for the defense formula.
+Stone tier requires **only** a crafting table (no furnace needed). Iron and above need both.
+<!-- :end -->
 
-## Ranged crafting
+<!-- :section crafting:iron -->
+## Iron-tier crafting
 
 | Action | Inputs | Prerequisite | Output |
 |---|---|---|---|
-| MAKE_ARROW | 1 wood + 1 stone | table | 2 arrows |
+| MAKE_IRON_PICKAXE | 1 wood + 1 iron | adjacent table + furnace | Iron pickaxe (mines diamond, sapphire, ruby; tier 2) |
+| MAKE_IRON_SWORD | 1 wood + 1 iron | adjacent table + furnace | Iron sword (+3 melee bonus) |
+| MAKE_IRON_ARMOR | 2 iron | adjacent table + furnace | Iron armor piece (tier 1; fills lowest empty slot) |
 
-Arrows are consumed one per SHOOT_ARROW action. The bow is found in chests, not crafted. See `items.md`.
+Iron pickaxe is the gating item for diamond, sapphire, and ruby. Stock coal before iron-tier crafting (furnace placement uses 4 stone; the iron pickaxe recipe consumes wood + iron).
+<!-- :end -->
 
+<!-- :section crafting:diamond -->
+## Diamond-tier crafting
+
+| Action | Inputs | Prerequisite | Output |
+|---|---|---|---|
+| MAKE_DIAMOND_PICKAXE | 1 wood + 1 diamond | adjacent table + furnace | Diamond pickaxe (tier 3; strongest) |
+| MAKE_DIAMOND_SWORD | 1 wood + 1 diamond | adjacent table + furnace | Diamond sword (+4 melee bonus) |
+| MAKE_DIAMOND_ARMOR | 1 diamond + 1 iron | adjacent table + furnace | Diamond armor (tier 2; fills or upgrades lowest slot) |
+
+Diamond armor pieces upgrade existing iron-tier slots when all 4 slots are already filled.
+
+**Resource mining prerequisites:**
+
+| Ore | Minimum pickaxe tier |
+|---|---|
+| Stone | 0 (any pickaxe) |
+| Coal | 1 (stone+) |
+| Iron | 1 (stone+) |
+| Diamond | 2 (iron+) |
+| Sapphire (`♦`) | 2 (iron+) |
+| Ruby (`▲`) | 2 (iron+) |
+<!-- :end -->
+
+<!-- :section crafting:arrows -->
+## Arrow crafting
+
+| Action | Inputs | Prerequisite | Output |
+|---|---|---|---|
+| MAKE_ARROW | 1 wood + 1 stone | adjacent table | 2 arrows |
+
+Arrows are consumed one per SHOOT_ARROW. The bow itself is **not crafted** — it drops from the first chest opened on floor 1. See `items:bow`.
+<!-- :end -->
+
+<!-- :section crafting:torches -->
 ## Torch crafting
 
 | Action | Inputs | Prerequisite | Output |
 |---|---|---|---|
-| MAKE_TORCH | 1 wood + 1 coal | table | 4 crafted torches |
+| MAKE_TORCH | 1 wood + 1 coal | adjacent table | 4 crafted torches |
 
-Crafted torches go into the `torch` inventory slot and are consumed by PLACE_TORCH.
-
-## Enchanting
-
-Enchanting requires adjacency to an enchantment table, a gemstone, and mana.
-
-| Action | Inputs | Prerequisite | Effect |
-|---|---|---|---|
-| ENCHANT_WEAPON | 1 ruby (fire) OR 1 sapphire (ice) + 9 mana | FIRE table (floor 4) OR ICE table (floor 3) | Sets sword enchantment to fire or ice element |
-| ENCHANT_ARMOR | 1 ruby (fire) OR 1 sapphire (ice) + 9 mana | FIRE table OR ICE table | Sets fire/ice enchant on lowest unenchanted armor slot |
-| ENCHANT_BOW | 1 ruby (fire) OR 1 sapphire (ice) + 9 mana | FIRE table OR ICE table (requires bow in inventory) | Sets bow enchantment to fire or ice element |
-
-- Ruby = fire enchantment. Sapphire = ice enchantment.
-- An enchanted sword adds `0.5 × physical_damage` in the enchanted element.
-- An enchanted armor slot adds 0.2 resistance to the matching element per slot.
-- An enchanted bow adds the elemental component to fired arrows.
-- See `combat.md` for full damage/defense formulas.
-
-## READ_BOOK
-
-| Action | Inputs | Prerequisite | Effect |
-|---|---|---|---|
-| READ_BOOK | 1 book | book in inventory | Teaches one unlearned spell (fireball or iceball, randomly) |
-
-Books are found in chests on floors 3 and 4. See `items.md` and `magic.md`.
-
-## Resource mining prerequisites
-
-| Ore | Minimum pickaxe tier | Notes |
-|---|---|---|
-| Stone | 0 (any) | Mine with bare wood pickaxe |
-| Coal | 1 (stone+) | Stone pickaxe required |
-| Iron | 1 (stone+) | Stone pickaxe required |
-| Diamond | 2 (iron+) | Iron pickaxe required |
-| Sapphire (♦) | 2 (iron+) | Iron pickaxe required; floors 2, 5, 7 |
-| Ruby (▲) | 2 (iron+) | Iron pickaxe required; floors 2, 5, 6 |
+Crafted torches go into the `torch` inventory slot. PLACE_TORCH consumes 1 to place a `!` tile. Torches are critical for visibility on dark floors (2 Gnomish Mines, 5 Troll Mines, 7 Ice Realm, 8 Graveyard).
+<!-- :end -->
