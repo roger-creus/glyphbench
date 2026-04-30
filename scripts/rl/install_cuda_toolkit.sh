@@ -150,7 +150,10 @@ fi
 # whose cudaGetDriverEntryPoint table doesn't know about
 # cuTensorMapEncodeTiled — so cute's TMA descriptor wrapper returns
 # CUDA_ERROR_UNKNOWN (999) and the gdn kernel can't run.
-VENV_CUDART=${VENV_CUDART:-/home/roger/glyphbench/.worktrees/rl-pipeline-v1/.venv/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12}
+# Auto-detect the venv's libcudart by walking up from this script.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+VENV_CUDART=${VENV_CUDART:-$REPO_ROOT/.venv/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12}
 if [ -f "$VENV_CUDART" ]; then
     echo "Symlinking $VENV_CUDART into $CUDA_HOME/lib64/..."
     ln -sf "$VENV_CUDART" "$CUDA_HOME/lib64/libcudart.so"
