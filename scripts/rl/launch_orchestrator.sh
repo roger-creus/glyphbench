@@ -39,14 +39,18 @@ BASE_URL_CSV=$(IFS=','; echo "${BASE_URLS[*]}")
 
 mkdir -p "$OUTPUT_DIR"
 
+# Config is env-overridable for smoke / production swap.
+CONFIG=${CONFIG:-configs/rl/qwen35-4b-glyphbench/rl.toml}
+
 echo "[$(hostname)] starting orchestrator (patched compute_advantages)"
+echo "  config: $CONFIG"
 echo "  inference base-urls: $BASE_URL_CSV"
 echo "  output dir: $OUTPUT_DIR"
 
 # We invoke our patch module; it monkey-patches and then runs prime-rl's
 # orchestrator main with the same CLI args.
 uv run --extra rl --extra eval python -m glyphbench.rl.orchestrator_patch \
-    @ configs/rl/qwen35-4b-glyphbench/rl.toml \
+    @ "$CONFIG" \
     --output-dir "$OUTPUT_DIR" \
     --client.base-url "$BASE_URL_CSV" \
     --client.api-key-var OPENAI_API_KEY_INFERENCE \

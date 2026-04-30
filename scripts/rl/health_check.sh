@@ -2,7 +2,11 @@
 # Pre-flight check before kicking off a training run. Verifies:
 #   - SSH reachability to inference nodes
 #   - 8× free H100 on each node
-#   - NCCL port open from inference nodes back to trainer
+#   - **All GPUs idle** — no compute processes from any user on any GPU
+#     (we won't compete with another tenant). Override with --skip-busy-gpu
+#     ONLY if you've personally confirmed the running processes are yours
+#     and benign.
+#   - NCCL port open from inference nodes back to trainer (implicit via SSH).
 #   - vLLM endpoints respond (only checked AFTER inference is up; pass
 #     --skip-vllm to skip).
 #
@@ -21,9 +25,11 @@ fi
 source "$REPO_ROOT/.env.cluster"
 
 SKIP_VLLM=0
+SKIP_BUSY_GPU=0
 for arg in "$@"; do
     case "$arg" in
         --skip-vllm) SKIP_VLLM=1 ;;
+        --skip-busy-gpu) SKIP_BUSY_GPU=1 ;;
     esac
 done
 
@@ -52,6 +58,48 @@ check_remote_gpus() {
     fi
 }
 
+# Verifies NO compute processes are running on ANY GPU on the node — we
+# refuse to share with another tenant. The check uses nvidia-smi's
+# --query-compute-apps which lists pid, process_name, used_memory for every
+# active CUDA context across all GPUs. Any non-empty output = busy.
+check_local_gpu_processes() {
+    if [ "$SKIP_BUSY_GPU" = "1" ]; then
+        echo "  SKIP: GPU-process check disabled by --skip-busy-gpu"
+        return
+    fi
+    local apps
+    apps=$(nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader 2>/dev/null)
+    if [ -n "$apps" ]; then
+        echo "  FAIL: GPU(s) busy with running compute processes:"
+        echo "$apps" | sed 's/^/    /'
+        echo "    Refusing to launch alongside another tenant."
+        echo "    Override with --skip-busy-gpu ONLY if you've confirmed these are your own processes."
+        EXIT=1
+    else
+        echo "  OK:   no compute processes on any GPU"
+    fi
+}
+
+check_remote_gpu_processes() {
+    if [ "$SKIP_BUSY_GPU" = "1" ]; then
+        echo "  SKIP: GPU-process check disabled by --skip-busy-gpu"
+        return
+    fi
+    local host="$1"
+    local apps
+    apps=$(ssh -o BatchMode=yes -o ConnectTimeout=8 "$host" 'nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader 2>/dev/null' 2>/dev/null || echo "ssh-failed")
+    if [ "$apps" = "ssh-failed" ]; then
+        echo "  FAIL: $host could not query GPU processes (SSH failed)"
+        EXIT=1
+    elif [ -n "$apps" ]; then
+        echo "  FAIL: $host has GPU(s) busy with compute processes:"
+        echo "$apps" | sed 's/^/    /'
+        EXIT=1
+    else
+        echo "  OK:   $host: no compute processes on any GPU"
+    fi
+}
+
 check_ssh() {
     local host="$1"
     if ssh -o BatchMode=yes -o ConnectTimeout=8 "$host" 'true' >/dev/null 2>&1; then
@@ -77,6 +125,7 @@ check_vllm() {
 
 echo "== Local node ($(hostname)) =="
 check_local_gpus
+check_local_gpu_processes
 
 echo
 echo "== Inference nodes =="
@@ -84,6 +133,7 @@ for h in "${INFERENCE_NODES[@]}"; do
     echo "-- $h --"
     check_ssh "$h"
     check_remote_gpus "$h"
+    check_remote_gpu_processes "$h"
     if [ "$SKIP_VLLM" = "0" ]; then
         check_vllm "$h"
     fi

@@ -30,11 +30,13 @@ fi
 
 mkdir -p "$REPO_ROOT/outputs/inference-logs"
 
-# Read model name from the rl.toml. We don't parse TOML in bash; just hardcode
-# matched to configs/rl/qwen35-4b-glyphbench/rl.toml::model.name. If you bump
-# the model, update both places.
-MODEL=Qwen/Qwen3.5-4B
-MAX_MODEL_LEN=16384
+# Model and max-context are env-overridable. Defaults match
+# configs/rl/qwen35-4b-glyphbench/rl.toml (production). For the multi-node
+# smoke, launch_smoke_multinode.sh sets MODEL=Qwen/Qwen3-4B-Instruct-2507
+# and MAX_MODEL_LEN=8192 before calling launch_all.sh, which propagates to
+# this script via SSH env.
+MODEL=${MODEL:-Qwen/Qwen3.5-4B}
+MAX_MODEL_LEN=${MAX_MODEL_LEN:-16384}
 
 echo "[$(hostname)] starting vLLM: model=$MODEL port=$INFERENCE_PORT dp=8 tp=1"
 

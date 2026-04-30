@@ -23,17 +23,31 @@ fi
 # shellcheck disable=SC1091
 source "$REPO_ROOT/.env.cluster"
 
-# 1. Pre-flight (skip vLLM check; we're starting it).
+# Path on inference nodes where the code lives. May differ from $REPO_ROOT
+# on the trainer node (e.g. when using a worktree on sf-node-1 but the main
+# clone on inference nodes). Falls back to $REPO_ROOT when paths match.
+REMOTE_REPO_ROOT=${REMOTE_REPO_ROOT:-$REPO_ROOT}
+
+# Config + model are env-overridable for smoke / production swap. Passed
+# through SSH to the inference nodes' launch_inference.sh.
+CONFIG=${CONFIG:-configs/rl/qwen35-4b-glyphbench/rl.toml}
+MODEL=${MODEL:-Qwen/Qwen3.5-4B}
+MAX_MODEL_LEN=${MAX_MODEL_LEN:-16384}
+export CONFIG MODEL MAX_MODEL_LEN
+
+# 1. Pre-flight.
 echo "==> health check"
 bash scripts/rl/health_check.sh --skip-vllm
 
-# 2. Start vLLM on each inference node.
+# 2. Start vLLM on each inference node, propagating MODEL + MAX_MODEL_LEN.
 for h in "${INFERENCE_NODES[@]}"; do
-    echo "==> starting vLLM on $h"
+    echo "==> starting vLLM on $h (model=$MODEL, repo=$REMOTE_REPO_ROOT)"
     ssh -o BatchMode=yes "$h" "
-        cd '$REPO_ROOT' || { echo 'repo not found at $REPO_ROOT on $h' >&2; exit 1; }
+        cd '$REMOTE_REPO_ROOT' || { echo 'repo not found at $REMOTE_REPO_ROOT on $h' >&2; exit 1; }
+        export MODEL='$MODEL'
+        export MAX_MODEL_LEN='$MAX_MODEL_LEN'
         tmux kill-session -t vllm-$h 2>/dev/null || true
-        tmux new-session -d -s vllm-$h 'bash scripts/rl/launch_inference.sh 2>&1 | tee outputs/inference-logs/$h.log'
+        tmux new-session -d -s vllm-$h 'MODEL=\"$MODEL\" MAX_MODEL_LEN=\"$MAX_MODEL_LEN\" bash scripts/rl/launch_inference.sh 2>&1 | tee outputs/inference-logs/$h.log'
     "
 done
 
@@ -61,14 +75,14 @@ if [ "$all_up" != "1" ]; then
     exit 1
 fi
 
-# 4. Start orchestrator + trainer locally.
-echo "==> starting orchestrator (tmux: orch)"
+# 4. Start orchestrator + trainer locally (CONFIG passed through env).
+echo "==> starting orchestrator (tmux: orch, config=$CONFIG)"
 tmux kill-session -t orch 2>/dev/null || true
-tmux new-session -d -s orch "bash scripts/rl/launch_orchestrator.sh 2>&1 | tee $OUTPUT_DIR/orchestrator.log"
+tmux new-session -d -s orch "CONFIG='$CONFIG' bash scripts/rl/launch_orchestrator.sh 2>&1 | tee $OUTPUT_DIR/orchestrator.log"
 
-echo "==> starting trainer (tmux: trainer)"
+echo "==> starting trainer (tmux: trainer, config=$CONFIG)"
 tmux kill-session -t trainer 2>/dev/null || true
-tmux new-session -d -s trainer "bash scripts/rl/launch_trainer.sh 2>&1 | tee $OUTPUT_DIR/trainer.log"
+tmux new-session -d -s trainer "CONFIG='$CONFIG' bash scripts/rl/launch_trainer.sh 2>&1 | tee $OUTPUT_DIR/trainer.log"
 
 echo
 echo "All components launched. Re-attach with:"

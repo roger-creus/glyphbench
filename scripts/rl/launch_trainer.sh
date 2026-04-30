@@ -23,14 +23,18 @@ export NCCL_SOCKET_IFNAME
 
 mkdir -p "$OUTPUT_DIR"
 
+# Config is env-overridable for smoke / production swap.
+CONFIG=${CONFIG:-configs/rl/qwen35-4b-glyphbench/rl.toml}
+
 echo "[$(hostname)] starting trainer FSDP=8"
+echo "  config: $CONFIG"
 echo "  output dir: $OUTPUT_DIR"
 
 uv run --extra rl --extra eval torchrun \
     --nproc-per-node 8 \
     --local-ranks-filter 0 \
     "$(uv run --extra rl python -c 'import prime_rl.trainer.rl.train as m; print(m.__file__)')" \
-    @ configs/rl/qwen35-4b-glyphbench/rl.toml \
+    @ "$CONFIG" \
     --output-dir "$OUTPUT_DIR" \
     --weight-broadcast.host "$TRAINER_NODE_IP" \
     --weight-broadcast.port "$NCCL_PORT"
