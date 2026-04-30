@@ -16,7 +16,7 @@ Every environment renders its state as a Unicode text grid with a legend and dis
 | MiniHack | 63 | NetHack-inspired dungeons, combat, items, skills | 22 |
 | Atari | 57 | Classic arcade (Pong, Breakout, Space Invaders, …) | 3–18 |
 | Classics | 50 | Snake, Sokoban, Minesweeper, Sudoku, Nim, … | 4–10 |
-| Craftax | 35 | Open-world survival + crafting, dungeon floors, focused sub-tasks | 19 |
+| Craftax | 43 | Open-world survival + crafting, dungeon floors, focused sub-tasks | 19 / 45 |
 | Procgen | 16 | Procedurally generated platformers, shooters, mazes | 4–6 |
 
 All environments use single-codepoint Unicode glyphs (`→↓←↑` for player direction, `█` walls, `★` goals, `≈` water, …) with no symbol collisions across a suite.
@@ -117,7 +117,7 @@ which returns a `verifiers.MultiTurnEnv` ready for `vf.evaluate(...)` or RL trai
 ## Training (RL fine-tuning with prime-rl)
 
 GlyphBench ships an RL training pipeline that fine-tunes Qwen-class models
-on all 292 envs under the same inference profile we eval at (thinking on,
+on all 300 envs under the same inference profile we eval at (thinking on,
 8K action + 4K memory, memory mode).
 
 ```bash
