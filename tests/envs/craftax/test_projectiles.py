@@ -163,3 +163,38 @@ def test_projectile_glyphs_unique_within_palette() -> None:
         assert len(g) == 1, f"glyph {g!r} is not single-codepoint"
     # All distinct.
     assert len(set(glyphs)) == len(glyphs), f"duplicate glyphs: {glyphs}"
+
+
+def test_projectile_advances_diagonally_on_both_axes() -> None:
+    """T_FOLLOWUP_D: per-call advance increments both x and y when (dx, dy)
+    is non-cardinal (e.g., (1, 1) — diagonal). Phase α projectiles only fire
+    cardinally in practice, but the entity API supports diagonal motion."""
+    p = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=1, damage=2)
+    p.advance()
+    assert (p.x, p.y) == (6, 6)
+    p.advance()
+    assert (p.x, p.y) == (7, 7)
+
+
+def test_player_projectile_blocks_on_plant_tile() -> None:
+    """T_FOLLOWUP_B: upstream SOLID_BLOCKS (constants.py:370-371) includes
+    BlockType.PLANT and RIPE_PLANT. Projectiles must stop on plant tiles."""
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._facing = (1, 0)
+    env._mana = 5
+    env._spells_learned = 1
+    grid = env._current_grid()
+    # Place a ripe plant at (7, 5) — projectile from (5, 5) east.
+    from glyphbench.envs.craftax.base import TILE_RIPE_PLANT
+    grid[5][7] = TILE_RIPE_PLANT
+
+    # Cast fireball; it should travel to (6, 5) on the cast step, then on
+    # the next NOOP advance to (7, 5) and be BLOCKED (dropped) by the plant.
+    env.step(env.action_spec.names.index("CAST_FIREBALL"))
+    env.step(env.action_spec.names.index("NOOP"))
+    # No surviving fireball.
+    assert env._player_projectiles == [], (
+        f"projectile should be blocked on ripe-plant tile; survivors={env._player_projectiles}"
+    )

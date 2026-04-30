@@ -40,6 +40,7 @@ from glyphbench.envs.craftax.base import (
     TILE_IRON,
     TILE_LAVA,
     TILE_PLACED_STONE,
+    TILE_PLANT,
     TILE_RIPE_PLANT,
     TILE_SAND,
     TILE_SAPLING,
@@ -131,6 +132,8 @@ _SOLID_TILES: frozenset[str] = frozenset({
     TILE_BOSS_DOOR,
     # Crafting structures and ores also block projectiles.
     TILE_TABLE, TILE_FURNACE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+    # Plants block projectiles too (upstream constants.py:370-371).
+    TILE_PLANT, TILE_RIPE_PLANT,
 })
 
 # ----------------------------------------------------------------
