@@ -8,6 +8,7 @@ Gym ID: glyphbench/craftax-v0
 
 from __future__ import annotations
 
+import random
 from typing import Any, TypedDict
 
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string
@@ -930,20 +931,56 @@ class CraftaxFullEnv(BaseGlyphEnv):
     def _mob_ai(self) -> None:
         """Move mobs on current floor and handle attacks.
 
-        Turn order: attack-then-move, so a player who steps out of
-        melee range on the just-completed agent step is not damaged
-        this turn (otherwise mobs of equal speed are unbeatable —
-        they cover the same distance the player flees, every turn).
-        Ranged attackers (skeleton_archer, ranged bosses) still hit at
-        their attack range from the mob's start-of-turn position.
+        Phase α: melee mobs (zombie, skeleton) use the cooldown-aware
+        step_melee_mob from mechanics/mobs.py. Ranged (skeleton_archer)
+        and passive (cow, bat, spider) mobs still use the inline logic
+        until T24 (ranged) and a future passive-AI task.
+
+        Turn order: attack-then-move per upstream. step_melee_mob
+        encapsulates that for melee; the inline branches mirror it for
+        non-melee.
         """
+        from glyphbench.envs.craftax.mechanics.mobs import step_melee_mob
+
         fsize = self._floor_size()
         walkable = self._walkable_set()
+
+        def _is_blocked(x: int, y: int) -> bool:
+            return not (
+                0 <= x < fsize
+                and 0 <= y < fsize
+                and (x, y) != (self._agent_x, self._agent_y)
+                and self._current_grid()[y][x] in walkable
+            )
+
+        def _damage_for(mob: dict) -> int:
+            mtype = mob["type"]
+            if mob.get("is_boss"):
+                bdef = _BOSS_DEFS.get(mob["floor"], {})
+                return bdef.get("damage", 3)
+            return _MOB_STATS.get(mtype, {"damage": 1})["damage"]
+
         for mob in list(self._mobs):
             if mob["floor"] != self._current_floor:
                 continue
             mx, my = mob["x"], mob["y"]
             mtype = mob["type"]
+
+            # Phase-α melee mobs use step_melee_mob with cooldown.
+            if mtype in ("zombie", "skeleton"):
+                step_melee_mob(
+                    mob,
+                    player_x=self._agent_x,
+                    player_y=self._agent_y,
+                    is_blocked_for_mob=_is_blocked,
+                    apply_damage_to_player=self._take_damage,
+                    rng=random.Random(int(self.rng.integers(0, 2**31))),
+                    is_fighting_boss=False,
+                    damage_for_mob=_damage_for,
+                )
+                continue
+
+            # === existing inline logic for everything else === #
 
             # 1. ATTACK (hostile mobs only). Adjacency is measured at
             # mob's pre-move position so the player escaping melee on

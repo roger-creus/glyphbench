@@ -118,3 +118,88 @@ def test_freshly_spawned_boss_has_zero_attack_cooldown() -> None:
     for mob in env._mobs:
         assert "attack_cooldown" in mob, f"mob missing attack_cooldown: {mob}"
         assert mob["attack_cooldown"] == 0
+
+
+import random as _random  # alias to avoid clash with the test using mocked rng
+
+
+def test_step_melee_mob_attacks_when_adjacent_then_enters_cooldown() -> None:
+    """T21: step_melee_mob hits player at Manhattan-1, then resets cooldown to 5."""
+    from glyphbench.envs.craftax.mechanics.mobs import step_melee_mob
+
+    mob = {
+        "type": "zombie", "x": 5, "y": 6,  # adjacent below player at (5, 5)
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 0, "attack_cooldown": 0,
+    }
+    damage_log: list[int] = []
+    step_melee_mob(
+        mob,
+        player_x=5, player_y=5,
+        is_blocked_for_mob=lambda x, y: False,
+        apply_damage_to_player=lambda d: damage_log.append(d),
+        rng=_random.Random(0),
+        is_fighting_boss=False,
+        damage_for_mob=lambda m: 2,
+    )
+    assert damage_log == [2], f"expected single hit of 2, got {damage_log}"
+    assert mob["attack_cooldown"] == 5, "cooldown reset to 5 after attack"
+
+
+def test_step_melee_mob_does_not_attack_during_cooldown() -> None:
+    """T21: cooldown ticks down each call; no attack while cooldown > 0."""
+    from glyphbench.envs.craftax.mechanics.mobs import step_melee_mob
+
+    mob = {
+        "type": "zombie", "x": 5, "y": 6,
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 0, "attack_cooldown": 3,
+    }
+    damage_log: list[int] = []
+    step_melee_mob(
+        mob,
+        player_x=5, player_y=5,
+        is_blocked_for_mob=lambda x, y: False,
+        apply_damage_to_player=lambda d: damage_log.append(d),
+        rng=_random.Random(0),
+        is_fighting_boss=False,
+        damage_for_mob=lambda m: 2,
+    )
+    assert damage_log == [], "no attack while cooldown > 0"
+    assert mob["attack_cooldown"] == 2, "cooldown ticks down by 1"
+
+
+def test_full_env_zombie_uses_cooldown_via_mob_ai() -> None:
+    """T21 integration: a zombie at adjacent tile attacks once, then waits."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._agent_x, env._agent_y = 5, 5
+    env._hp = 100
+    env._mobs.append({
+        "type": "zombie", "x": 5, "y": 6,
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": env._current_floor, "attack_cooldown": 0,
+    })
+
+    initial_hp = env._hp
+    # Step 1: zombie should attack and reset its own cooldown to 5.
+    env.step(env.action_spec.names.index("NOOP"))
+    after_first = env._hp
+    assert after_first < initial_hp, "zombie should hit on first eligible step"
+
+    # Steps 2-5: zombie cannot attack (cooldown still > 0). Use NOOP.
+    # Inject the same zombie back into adjacency in case it moved away.
+    env._mobs[-1]["x"], env._mobs[-1]["y"] = 5, 6
+    for _ in range(4):
+        env.step(env.action_spec.names.index("NOOP"))
+        # Pin the zombie at adjacency for the test (it may have moved).
+        env._mobs[-1]["x"], env._mobs[-1]["y"] = 5, 6
+
+    # The HP loss after 4 more steps should be much less than 4× the first hit
+    # (it is 0 if cooldown is honoured, since the zombie's first attack reset
+    # cooldown to 5 and we only ran 4 more steps).
+    after_cooldown = env._hp
+    delta = after_first - after_cooldown
+    assert delta == 0, f"zombie hit during cooldown: HP dropped by {delta}"

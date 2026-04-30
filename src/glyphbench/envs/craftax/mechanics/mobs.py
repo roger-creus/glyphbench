@@ -11,7 +11,9 @@ should_despawn) are added in T21, T23, T24.
 """
 from __future__ import annotations
 
+import random
 from enum import Enum
+from typing import Callable, TypedDict
 
 from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
 
@@ -79,3 +81,75 @@ RANGED_MOB_TO_PROJECTILE: dict[str, ProjectileType] = {
     "fire_elemental": ProjectileType.FIREBALL2,
     "ice_elemental": ProjectileType.ICEBALL2,
 }
+
+
+class MobLike(TypedDict):
+    """Structural type used by AI helpers. Matches the env-level Mob TypedDict
+    plus the attack_cooldown field added by T20."""
+    type: str
+    x: int
+    y: int
+    hp: int
+    max_hp: int
+    is_boss: bool
+    floor: int
+    attack_cooldown: int
+
+
+MELEE_ATTACK_COOLDOWN: int = 5
+RANGED_ATTACK_COOLDOWN: int = 4
+MOB_DESPAWN_DISTANCE: int = 14
+
+
+def step_melee_mob(
+    mob: MobLike,
+    *,
+    player_x: int,
+    player_y: int,
+    is_blocked_for_mob: Callable[[int, int], bool],
+    apply_damage_to_player: Callable[[int], None],
+    rng: random.Random,
+    is_fighting_boss: bool,
+    damage_for_mob: Callable[[MobLike], int],
+) -> None:
+    """Advance one melee mob for one tick. Mirrors upstream
+    _move_melee_mob (game_logic.py:1100-1291) at phase-α fidelity:
+
+    - If adjacent (Manhattan == 1) and cooldown <= 0: attack and reset
+      cooldown to MELEE_ATTACK_COOLDOWN. No movement this tick.
+    - Otherwise tick the cooldown down by 1 (clamped at 0).
+    - Movement: 75% chase if dist_sum < 10 OR is_fighting_boss; else
+      random walk over (+-1, 0) / (0, +-1) / stay.
+
+    Damage value is supplied by `damage_for_mob` so the caller controls
+    the per-mob damage table. Movement is bounded by `is_blocked_for_mob`.
+    """
+    # Tick cooldown down before considering attack.
+    if mob["attack_cooldown"] > 0:
+        mob["attack_cooldown"] -= 1
+        # Even with cooldown ticking, the mob still moves this tick (matches
+        # upstream where cooldown does not block movement).
+    else:
+        manhattan = abs(mob["x"] - player_x) + abs(mob["y"] - player_y)
+        if manhattan == 1:
+            apply_damage_to_player(damage_for_mob(mob))
+            mob["attack_cooldown"] = MELEE_ATTACK_COOLDOWN
+            return  # attacking mobs do not also move this tick
+
+    # Movement.
+    manhattan = abs(mob["x"] - player_x) + abs(mob["y"] - player_y)
+    chase = is_fighting_boss or (manhattan < 10 and rng.random() < 0.75)
+    if chase:
+        dist_x = player_x - mob["x"]
+        dist_y = player_y - mob["y"]
+        if abs(dist_x) >= abs(dist_y):
+            dx = 1 if dist_x > 0 else (-1 if dist_x < 0 else 0)
+            dy = 0
+        else:
+            dx = 0
+            dy = 1 if dist_y > 0 else (-1 if dist_y < 0 else 0)
+    else:
+        dx, dy = rng.choice([(1, 0), (-1, 0), (0, 1), (0, -1), (0, 0)])
+    nx, ny = mob["x"] + dx, mob["y"] + dy
+    if not is_blocked_for_mob(nx, ny):
+        mob["x"], mob["y"] = nx, ny
