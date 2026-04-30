@@ -1,0 +1,145 @@
+# Glyphbench RL training: Qwen3.5-4B, all 292 envs, memory mode, thinking on.
+#
+# Cluster-specific values (output dir, inference IP, API key) are picked up
+# from environment variables exported by `.env.cluster`. See
+# `configs/rl/qwen35-4b-glyphbench/README.md`.
+#
+# Launch:
+#   bash scripts/rl/launch_all.sh
+
+max_steps = 1000
+seq_len = 16384
+max_async_level = 1
+
+[deployment]
+type = "multi_node"
+num_train_nodes = 1
+num_infer_nodes = 2
+gpus_per_node = 8
+
+[slurm]
+# Dummy block required by prime-rl's pydantic validator when deployment.type =
+# "multi_node". We launch manually (not via SLURM). This block has no runtime
+# effect because we use the manual launch path (scripts/rl/launch_all.sh).
+job_name = "noop"
+
+[weight_broadcast]
+type = "nccl"
+port = 29501
+timeout = 1200
+
+[wandb]
+project = "glyphbench-rl"
+name = "qwen35-4b-allenvs-v1"
+shared = true
+
+[ckpt]
+interval = 100
+keep_last = 3
+keep_interval = 500
+
+[model]
+name = "Qwen/Qwen3.5-4B"
+
+# --- Trainer ---
+
+[trainer.model]
+impl = "auto"          # let prime-rl pick custom or hf based on model family
+attn = "flash_attention_2"
+
+[trainer.model.ac]     # activation checkpointing — needed for 16K seq on 4B
+mode = "full"
+freq = 1
+
+[trainer.optim]
+type = "adamw"
+lr = 1e-6
+betas1 = 0.9
+betas2 = 0.95
+weight_decay = 0.0
+max_norm = 1.0
+
+[trainer.scheduler]
+type = "constant"
+
+[trainer.loss]
+type = "custom"
+import_path = "glyphbench.rl.loss.sequence_mean_loss"
+kwargs = { dppo_mask_low = 0.2, dppo_mask_high = 0.2, adv_tau = 1.0, kl_tau = 1e-3 }
+
+# --- Orchestrator ---
+
+[orchestrator]
+batch_size = 256
+rollouts_per_example = 8
+oversampling_factor = 1.5
+seq_len = 16384
+
+[orchestrator.advantage]
+type = "default"  # our monkey-patch on compute_advantages bypasses this; placeholder so validators pass
+
+[[orchestrator.train.env]]
+id = "glyphbench"
+name = "glyphbench-all"
+args = { num_episodes = 32, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+# task_id intentionally omitted → load_environment defaults task_id=None → all 292 envs
+
+[orchestrator.train.sampling]
+temperature = 1.0
+max_completion_tokens = 8192
+[orchestrator.train.sampling.extra_body]
+top_p = 0.95
+top_k = 20
+min_p = 0.0
+presence_penalty = 1.5
+chat_template_kwargs = { enable_thinking = true }
+
+# --- Eval (during-training subset; full sweep is run separately at end) ---
+
+[orchestrator.eval]
+interval = 50
+num_examples = 4
+rollouts_per_example = 2
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minigrid"
+args = { task_id = "glyphbench/minigrid-doorkey-6x6-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-atari"
+args = { task_id = "glyphbench/atari-pong-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-craftax"
+args = { task_id = "glyphbench/craftax-classic-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minihack"
+args = { task_id = "glyphbench/minihack-room-5x5-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-classics"
+args = { task_id = "glyphbench/classics-frogger-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-procgen"
+args = { task_id = "glyphbench/procgen-coinrun-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+# --- Inference (vLLM) ---
+
+[inference]
+api_server_count = 8
+gpu_memory_utilization = 0.85
+
+[inference.model]
+max_model_len = 16384
+
+[inference.parallel]
+tp = 1
+dp = 16        # 8 per node × 2 nodes; auto-derived in multi-node config but pinned for clarity

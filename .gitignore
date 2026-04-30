@@ -68,6 +68,15 @@ GEMINI.md
 /meta-llama_*/
 /mistralai_*/
 
+# --- RL training cluster-specific (NOT committed) ---
+# Per-cluster environment file (node IPs, API keys, output paths).
+.env.cluster
+# Per-cluster TOML overrides for prime-rl configs.
+configs/rl/**/cluster.local.toml
+# Read-only reference clone of prime-rl for local inspection. Use `git clone
+# https://github.com/PrimeIntellect-ai/prime-rl.git prime-rl` if you want one.
+prime-rl/
+
 # --- Internal-only tooling (NOT part of the public benchmark release) ---
 # cluster_manager/ is tied to our specific Alliance/Mila accounts; we use it
 # internally to run the experiments that feed the leaderboard. Downstream

@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "verifiers @ git+https://github.com/PrimeIntellect-ai/verifiers.git@77a9f28",
+    "verifiers @ git+https://github.com/PrimeIntellect-ai/verifiers.git@980a9ea",
     "datasets>=3.0",
     "openai>=1.50",
     "numpy>=2.0",
@@ -51,10 +51,19 @@ eval = [
     "vllm>=0.8",
     "torch>=2.4",
 ]
-# RL training (prime-rl, heavy install — wired up in Milestone 6 via Dockerfile;
-# installing locally requires the full set of uv sources prime-rl itself defines,
-# so this extra is deliberately empty for now and is satisfied inside the container)
-rl = []
+# RL training. The prime-rl SHA is pinned because their API churns;
+# bump only when intentionally moving to a new prime-rl version (and
+# re-run the smoke test in plan task 20).
+# Co-installs with `eval`: `uv sync --extra rl --extra eval`.
+#
+# flash-attn is pulled in via a prebuilt wheel URL matching prime-rl's
+# tested setup (cu128 + torch 2.10). prime-rl's `ring-flash-attn`
+# transitive dep imports `flash_attn` unconditionally, so we need it
+# installed even if we run with attn=flash_attention_2 in the trainer.
+rl = [
+    "prime-rl @ git+https://github.com/PrimeIntellect-ai/prime-rl.git@af17a555fe8a697e665ec2235935a07f182607a0",
+    "flash-attn @ https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3+cu128torch2.10-cp312-cp312-linux_x86_64.whl ; platform_machine == 'x86_64'",
+]
 # Analysis and plotting
 analysis = [
     "pyarrow>=17.0",
@@ -88,6 +97,40 @@ allow-direct-references = true
 
 [tool.uv]
 managed = true
+environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+]
+# Mirror prime-rl's overrides verbatim plus the transformers floor needed
+# to break vllm's older transformers pin.
+#
+# `torch==2.10.0` pin: prime-rl's tested lockfile pairs torch 2.10.0+cu128
+# with torchvision 0.25.0 (PyPI). The newer torch 2.11.0+cu128 wheel
+# introduces a torchvision ABI break (torchvision.0.26.0+cu128 wants
+# libcudart.so.13 while torch 2.11+cu128 still ships libcudart.so.12).
+# Pinning to 2.10 keeps us aligned with prime-rl's tested combination.
+override-dependencies = [
+    "transformers>=5.1.0.dev0",
+    "nvidia-cudnn-cu12>=9.15",
+    "nvidia-cutlass-dsl>=4.4.1",
+    "torch==2.10.0",
+    "torchvision==0.25.0",
+    "torchaudio==2.10.0",
+    # vllm 0.20.0 wheels are CUDA-13 (libcudart.so.13). Pin to 0.19.0
+    # which matches prime-rl's tested lockfile and is built for CUDA 12.
+    "vllm==0.19.0",
+]
+
+# torch ships from prime-rl's pytorch-cu128 wheel index so we get the
+# CUDA-12.8 build. torchvision intentionally resolves from PyPI (matches
+# prime-rl's lockfile) — the cu128 index variant is built for CUDA 13.
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

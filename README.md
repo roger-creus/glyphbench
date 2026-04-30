@@ -114,6 +114,31 @@ env = glyphbench.load_environment(
 
 which returns a `verifiers.MultiTurnEnv` ready for `vf.evaluate(...)` or RL training.
 
+## Training (RL fine-tuning with prime-rl)
+
+GlyphBench ships an RL training pipeline that fine-tunes Qwen-class models
+on all 292 envs under the same inference profile we eval at (thinking on,
+8K action + 4K memory, memory mode).
+
+```bash
+# 1. Install the rl extra
+uv sync --extra rl --extra eval
+
+# 2. Set up cluster config (one-time per cluster)
+cp .env.cluster.template .env.cluster
+$EDITOR .env.cluster   # fill in node names, ports, API keys, output dir
+
+# 3. Launch all components from the trainer node
+bash scripts/rl/launch_all.sh
+```
+
+See:
+
+- `configs/rl/qwen35-4b-glyphbench/README.md` — config-specific notes
+- `scripts/rl/README.md` — operator guide
+- `src/glyphbench/rl/README.md` — design notes for the custom advantage and
+  loss hooks
+
 ## Harness
 
 One harness mode: per turn the model sees only `[system, current observation]`

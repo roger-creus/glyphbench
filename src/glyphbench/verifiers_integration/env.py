@@ -9,7 +9,7 @@ from typing import Any
 
 import verifiers as vf
 from datasets import Dataset
-from verifiers.types import Response, TrajectoryStep, TrajectoryStepTokens
+from verifiers.types import Response, TrajectoryStep
 from verifiers.utils.response_utils import parse_response_message, parse_response_tokens
 
 from glyphbench.core.base_env import BaseGlyphEnv
@@ -18,7 +18,6 @@ from glyphbench.verifiers_integration.memory import (
     build_memory_update_user,
     extract_memory_update,
     memory_sampling_args,
-    merge_memory_step_tokens,
 )
 from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
 from glyphbench.verifiers_integration.prompting import (
@@ -174,7 +173,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         )
         self.parser: GlyphbenchXMLParser = parser  # narrow type
 
-    async def setup_state(self, state: dict[str, Any]) -> dict[str, Any]:
+    async def setup_state(self, state: dict[str, Any]) -> None:
         info_raw = state.get("info", {})
         info = json.loads(info_raw) if isinstance(info_raw, str) else info_raw
         env_id = info["env_id"]
@@ -195,6 +194,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         state["truncated"] = False
         state["parse_failures"] = 0
         state["episode_return"] = 0.0
+        state["num_turns"] = 0
         state["memory_enabled"] = self._use_memory
         state["memory"] = ""
 
@@ -210,7 +210,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             vf.SystemMessage(content=system_text),
             vf.UserMessage(content=initial_user_text),
         ]
-        return await super().setup_state(state)
+        await super().setup_state(state)
 
     def _render_action_user(
         self, game: BaseGlyphEnv, state: dict[str, Any], *, turn: int
@@ -342,30 +342,45 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
     ) -> None:
         if not self._use_memory:
             await super().add_model_response(state, prompt_messages, response)
+            state["num_turns"] = state.get("num_turns", 0) + 1
             return
 
+        # Memory mode: each environment turn produces TWO trajectory steps so
+        # every step's completion is purely assistant tokens (prime-rl's
+        # pretokenize_rollout_trajectory rejects mixed-role completions).
+        #
+        #   action step:  prompt=[system, user_obs_t]
+        #                 completion=[assistant_action_t]
+        #   memory step:  prompt=[system, user_obs_t, assistant_action_t, memory_user_t]
+        #                 completion=[assistant_memory_response_t]
+        #
+        # Both steps share the same per-turn env reward and (downstream) the
+        # same advantage, so the trainer treats memory tokens as on-policy
+        # too.
         action_completion = await parse_response_message(response)
         action_tokens = await parse_response_tokens(response, self.max_seq_len)
         response_is_truncated = response.message.is_truncated or False
         action_is_truncated = response_is_truncated or (
             action_tokens is not None and bool(action_tokens.get("is_truncated"))
         )
-        temp_step = TrajectoryStep(
+
+        messages_for_action = list(prompt_messages) + list(action_completion)
+        action_result = self._apply_action_response(messages_for_action, state)
+        state["num_turns"] = state.get("num_turns", 0) + 1
+        turn_reward = float(action_result["reward"])
+
+        action_step = TrajectoryStep(
             prompt=prompt_messages,
             completion=action_completion,
             response=response,
             tokens=action_tokens,
-            reward=None,
+            reward=turn_reward,
             advantage=None,
             is_truncated=action_is_truncated,
             trajectory_id=state["trajectory_id"],
-            extras={},
+            extras={"glyphbench_step_role": "action"},
         )
-        state["trajectory"].append(temp_step)
-
-        messages_for_action = list(prompt_messages) + list(action_completion)
-        action_result = self._apply_action_response(messages_for_action, state)
-        temp_step["reward"] = float(action_result["reward"])
+        state["trajectory"].append(action_step)
 
         previous_memory = state.get("memory", "")
         action_response_text = self._last_assistant_transcript_text(
@@ -382,7 +397,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             previous_memory=previous_memory,
             action_response=action_response_text,
             parsed_action=action_result["action_name"],
-            reward=float(action_result["reward"]),
+            reward=turn_reward,
             terminated=bool(action_result["terminated"]),
             truncated=bool(action_result["truncated"]),
             next_observation=next_observation,
@@ -405,35 +420,31 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         memory_is_truncated = memory_response_is_truncated or (
             memory_tokens is not None and bool(memory_tokens.get("is_truncated"))
         )
-        merged_tokens: TrajectoryStepTokens | None = merge_memory_step_tokens(
-            action_tokens=action_tokens,
-            memory_tokens=memory_tokens,
-        )
-        combined_step = TrajectoryStep(
-            prompt=prompt_messages,
-            completion=action_completion + [memory_user] + memory_completion,
+
+        memory_step = TrajectoryStep(
+            prompt=memory_prompt_messages,
+            completion=memory_completion,
             response=memory_response,
-            tokens=merged_tokens,
-            reward=float(action_result["reward"]),
+            tokens=memory_tokens,
+            reward=turn_reward,
             advantage=None,
-            is_truncated=bool(action_is_truncated or memory_is_truncated),
+            is_truncated=bool(memory_is_truncated),
             trajectory_id=state["trajectory_id"],
             extras={
+                "glyphbench_step_role": "memory",
                 "glyphbench_memory": {
                     "enabled": True,
                     "previous_memory": previous_memory,
-                    "action_prompt": prompt_messages,
-                    "action_response": action_completion,
-                    "memory_update_prompt": memory_prompt_messages,
-                    "memory_update_response": memory_completion,
+                    "memory_update_user": memory_user,
                     "parsed_memory": extraction.memory,
                     "stored_memory": state["memory"],
                     "extraction_mode": extraction.mode,
                     "memory_update_was_truncated": bool(memory_is_truncated),
-                }
+                    "action_was_truncated": bool(action_is_truncated),
+                },
             },
         )
-        state["trajectory"][-1] = combined_step
+        state["trajectory"].append(memory_step)
 
         if state["done"]:
             game: BaseGlyphEnv = state["game"]
@@ -441,15 +452,31 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             state["final_env_response"] = [vf.UserMessage(content=final_user)]
 
     async def render_completion(self, state: dict[str, Any]) -> None:
-        """Stitch full rollout from trajectory (each step's prompt is stateless)."""
+        """Stitch full rollout from trajectory by walking each step and appending
+        only the messages this step contributes that aren't already in the
+        running transcript. Handles both stateless action-only steps (whose
+        prompts share only the system message with the previous turn) and
+        memory steps (whose prompts also include the just-appended action +
+        a new memory_update_user).
+        """
         if len(state["trajectory"]) == 0:
             state["completion"] = []
             return
         parts: list[Any] = []
-        for i, step in enumerate(state["trajectory"]):
-            if i > 0:
-                parts.extend(list(step["prompt"])[1:])
+        running = list(state["prompt"])
+        for step in state["trajectory"]:
+            step_prompt = list(step["prompt"])
+            i = 0
+            while (
+                i < len(running)
+                and i < len(step_prompt)
+                and running[i] == step_prompt[i]
+            ):
+                i += 1
+            new_prompt_tail = step_prompt[i:]
+            parts.extend(new_prompt_tail)
             parts.extend(list(step["completion"]))
+            running = step_prompt + list(step["completion"])
         if state.get("final_env_response"):
             parts.extend(list(state["final_env_response"]))
         state["completion"] = parts

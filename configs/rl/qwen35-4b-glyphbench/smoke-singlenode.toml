@@ -1,0 +1,119 @@
+# Single-node smoke — runs entirely on sf-node-1 (1 trainer GPU + 7 inference
+# GPUs). Used to validate the full pipeline end-to-end (custom advantage +
+# custom loss + monkey-patch + ckpt + eval + metrics) WITHOUT relying on
+# inter-node networking.
+#
+# Why this exists: the multi-node smoke needs ports 8000 (HTTP) and 29501
+# (NCCL) open between nodes' public IPs, but the cloud firewall blocks
+# everything except SSH (port 2222). Once the user opens those ports we
+# can switch back to smoke-multinode.toml.
+#
+# Launch:
+#   bash scripts/rl/launch_smoke_singlenode.sh
+
+max_steps = 5
+seq_len = 16384
+max_async_level = 1
+
+[deployment]
+type = "single_node"
+gpus_per_node = 8
+num_train_gpus = 1
+num_infer_gpus = 7
+
+[wandb]
+project = "glyphbench-rl-smoke"
+name = "smoke-singlenode"
+shared = false
+offline = true
+
+[ckpt]
+interval = 2
+keep_last = 3
+
+[model]
+name = "Qwen/Qwen3.5-4B"
+
+# --- Trainer ---
+
+[trainer.model]
+impl = "auto"
+attn = "flash_attention_2"
+
+[trainer.model.ac]
+mode = "full"
+freq = 1
+
+[trainer.optim]
+type = "adamw"
+lr = 1e-6
+betas1 = 0.9
+betas2 = 0.95
+weight_decay = 0.0
+max_norm = 1.0
+
+[trainer.scheduler]
+type = "constant"
+
+[trainer.loss]
+type = "custom"
+import_path = "glyphbench.rl.loss.sequence_mean_loss"
+kwargs = { dppo_mask_low = 0.2, dppo_mask_high = 0.2, adv_tau = 1.0, kl_tau = 1e-3 }
+
+# --- Orchestrator ---
+
+[orchestrator]
+batch_size = 8
+rollouts_per_example = 4
+oversampling_factor = 1.5
+seq_len = 16384
+
+[orchestrator.advantage]
+type = "default"
+
+[[orchestrator.train.env]]
+id = "glyphbench"
+name = "glyphbench-smoke"
+args = { num_episodes = 4, n_frames = 0, max_turns = 20, use_memory = true, memory_update_max_tokens = 1024, max_output_tokens = 2048 }
+
+[orchestrator.train.sampling]
+temperature = 1.0
+max_completion_tokens = 2048
+[orchestrator.train.sampling.extra_body]
+top_p = 0.95
+top_k = 20
+min_p = 0.0
+presence_penalty = 1.5
+chat_template_kwargs = { enable_thinking = true }
+
+# --- Eval ---
+
+[orchestrator.eval]
+interval = 3
+num_examples = 2
+rollouts_per_example = 1
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "smoke-eval-minigrid"
+args = { task_id = "glyphbench/minigrid-empty-5x5-v0", num_episodes = 2, n_frames = 0, max_turns = 15, use_memory = true, memory_update_max_tokens = 1024, max_output_tokens = 2048 }
+
+# --- Inference ---
+
+[inference]
+api_server_count = 7
+gpu_memory_utilization = 0.85
+
+[inference.model]
+max_model_len = 16384
+# enforce_eager=true bypasses vLLM's CUDA graph capture, which is what
+# triggers flashinfer's JIT compilation of the gdn_prefill_sm90 kernel
+# for Qwen3.5-4B's gated delta nets. The system has only CUDA 11.5
+# nvcc (too old for sm90), so the JIT compile fails fatally with
+# "Could not find nvcc and default cuda_home='/usr/local/cuda' doesn't
+# exist". Eager mode is slower but works.
+enforce_eager = true
+
+[inference.parallel]
+tp = 1
+dp = 7
