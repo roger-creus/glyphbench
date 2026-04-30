@@ -951,3 +951,308 @@ def test_learn_iceball_achievement_fires(env):
     assert "learn_iceball" in env._achievements_unlocked, (
         "learn_iceball achievement should fire after learning iceball"
     )
+
+
+# ---------------------------------------------------------------------------
+# T12β: Chest tile constant + state fields
+# ---------------------------------------------------------------------------
+
+def test_tile_chest_single_codepoint():
+    """TILE_CHEST is exactly 1 character."""
+    from glyphbench.envs.craftax.base import TILE_CHEST
+    assert len(TILE_CHEST) == 1, f"TILE_CHEST '{TILE_CHEST}' must be a single codepoint"
+
+
+def test_tile_chest_disjoint_from_existing_palette():
+    """TILE_CHEST does not collide with any existing tile glyph."""
+    from glyphbench.envs.craftax.base import (
+        TILE_CHEST,
+        TILE_GRASS, TILE_TREE, TILE_STONE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+        TILE_WATER, TILE_LAVA, TILE_SAND, TILE_AGENT, TILE_TABLE, TILE_FURNACE,
+        TILE_PLACED_STONE, TILE_PLANT, TILE_STAIRS_DOWN, TILE_STAIRS_UP,
+        TILE_TORCH, TILE_DUNGEON_WALL, TILE_DUNGEON_FLOOR, TILE_BOSS_DOOR,
+        TILE_ZOMBIE, TILE_SKELETON, TILE_COW, TILE_SKELETON_ARCHER, TILE_KOBOLD,
+        TILE_BAT, TILE_BOSS, TILE_SAPLING, TILE_RIPE_PLANT,
+        TILE_ARROW, TILE_ARROW2, TILE_DAGGER,
+        TILE_FIREBALL, TILE_FIREBALL2, TILE_ICEBALL, TILE_ICEBALL2, TILE_SLIMEBALL,
+        TILE_SAPPHIRE, TILE_RUBY,
+    )
+    existing = {
+        TILE_GRASS, TILE_TREE, TILE_STONE, TILE_COAL, TILE_IRON, TILE_DIAMOND,
+        TILE_WATER, TILE_LAVA, TILE_SAND, TILE_AGENT, TILE_TABLE, TILE_FURNACE,
+        TILE_PLACED_STONE, TILE_PLANT, TILE_STAIRS_DOWN, TILE_STAIRS_UP,
+        TILE_TORCH, TILE_DUNGEON_WALL, TILE_DUNGEON_FLOOR, TILE_BOSS_DOOR,
+        TILE_ZOMBIE, TILE_SKELETON, TILE_COW, TILE_SKELETON_ARCHER, TILE_KOBOLD,
+        TILE_BAT, TILE_BOSS, TILE_SAPLING, TILE_RIPE_PLANT,
+        TILE_ARROW, TILE_ARROW2, TILE_DAGGER,
+        TILE_FIREBALL, TILE_FIREBALL2, TILE_ICEBALL, TILE_ICEBALL2, TILE_SLIMEBALL,
+        TILE_SAPPHIRE, TILE_RUBY,
+    }
+    assert TILE_CHEST not in existing, (
+        f"TILE_CHEST '{TILE_CHEST}' collides with existing palette"
+    )
+
+
+def test_chests_opened_empty_after_reset(env):
+    """_chests_opened is an empty dict after reset."""
+    assert hasattr(env, "_chests_opened")
+    assert isinstance(env._chests_opened, dict)
+    assert env._chests_opened == {}
+
+
+def test_first_chest_opened_empty_after_reset(env):
+    """_first_chest_opened is an empty dict after reset."""
+    assert hasattr(env, "_first_chest_opened")
+    assert isinstance(env._first_chest_opened, dict)
+    assert env._first_chest_opened == {}
+
+
+def test_chests_opened_resets_on_new_episode(env):
+    """Manually setting _chests_opened and resetting clears it."""
+    env._chests_opened[1] = {(5, 5)}
+    env.reset(seed=99)
+    assert env._chests_opened == {}
+
+
+def test_first_chest_opened_resets_on_new_episode(env):
+    """Manually setting _first_chest_opened and resetting clears it."""
+    env._first_chest_opened[1] = True
+    env.reset(seed=99)
+    assert env._first_chest_opened == {}
+
+
+# ---------------------------------------------------------------------------
+# T13β: Chest loot interaction
+# ---------------------------------------------------------------------------
+
+def _place_chest_in_front(env) -> tuple[int, int]:
+    """Place a TILE_CHEST tile in the cell the agent is facing.
+
+    Moves the agent to a safe position (10, 10) facing right so that the
+    facing cell (11, 10) is always in-bounds for both dungeon (32x32) and
+    surface (64x64) grids.
+
+    Returns (fx, fy) — the chest position.
+    """
+    from glyphbench.envs.craftax.base import TILE_CHEST, TILE_DUNGEON_FLOOR
+    env._agent_x = 10
+    env._agent_y = 10
+    env._facing = (1, 0)
+    grid = env._current_grid()
+    fx = env._agent_x + env._facing[0]  # = 11
+    fy = env._agent_y + env._facing[1]  # = 10
+    grid[fy][fx] = TILE_CHEST
+    return fx, fy
+
+
+def test_opening_chest_changes_inventory(env):
+    """DO on a chest tile produces at least one inventory change."""
+    env._current_floor = 2  # floor 2: no first-chest gating
+    _place_chest_in_front(env)
+    inv_before = {k: (dict(v) if isinstance(v, dict) else v)
+                  for k, v in env._inventory.items()}
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    # At least one item must have changed.
+    changed = False
+    for k, v in env._inventory.items():
+        if isinstance(v, dict):
+            for ck, cv in v.items():
+                if cv != inv_before.get(k, {}).get(ck, 0):
+                    changed = True
+                    break
+        else:
+            if v != inv_before.get(k, 0):
+                changed = True
+                break
+    assert changed, "Opening a chest should change at least one inventory item"
+
+
+def test_opening_chest_deterministic_with_seed():
+    """Two envs with the same seed open a chest the same way."""
+    from glyphbench.envs.craftax.base import TILE_CHEST
+
+    def run(seed):
+        e = CraftaxFullEnv(max_turns=500)
+        e.reset(seed=seed)
+        e._current_floor = 2
+        e._agent_x = 10
+        e._agent_y = 10
+        e._facing = (1, 0)
+        e._current_grid()[10][11] = TILE_CHEST
+        do_idx = e.action_spec.names.index("DO")
+        e.step(do_idx)
+        return {k: (dict(v) if isinstance(v, dict) else v)
+                for k, v in e._inventory.items()}
+
+    inv_a = run(7)
+    inv_b = run(7)
+    assert inv_a == inv_b, "Same seed must produce same chest loot"
+
+
+def test_opening_chest_twice_does_nothing(env):
+    """Attempting to open an already-opened chest is a no-op."""
+    env._current_floor = 2
+    fx, fy = _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)  # first open
+    inv_after_first = {k: (dict(v) if isinstance(v, dict) else v)
+                       for k, v in env._inventory.items()}
+    # Place the chest tile back (it is NOT removed from the grid after opening).
+    from glyphbench.envs.craftax.base import TILE_CHEST
+    env._current_grid()[fy][fx] = TILE_CHEST
+    env.step(do_idx)  # second open — should be a no-op
+    for k, v in env._inventory.items():
+        if isinstance(v, dict):
+            for ck, cv in v.items():
+                assert cv == inv_after_first.get(k, {}).get(ck, 0), (
+                    f"Second chest open changed {k}[{ck}]: "
+                    f"{inv_after_first.get(k, {}).get(ck, 0)} -> {cv}"
+                )
+        else:
+            assert v == inv_after_first.get(k, 0), (
+                f"Second chest open changed {k}: {inv_after_first.get(k, 0)} -> {v}"
+            )
+
+
+def test_opening_chest_fires_open_chest_achievement(env):
+    """DO on a chest fires the open_chest achievement."""
+    env._current_floor = 2
+    _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    assert "open_chest" in env._achievements_unlocked, (
+        "open_chest achievement should fire on first chest open"
+    )
+
+
+def test_open_chest_achievement_in_all_full_achievements():
+    """open_chest is listed in ALL_FULL_ACHIEVEMENTS."""
+    from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
+    assert "open_chest" in ALL_FULL_ACHIEVEMENTS
+
+
+def test_find_bow_achievement_in_all_full_achievements():
+    """find_bow is listed in ALL_FULL_ACHIEVEMENTS."""
+    from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
+    assert "find_bow" in ALL_FULL_ACHIEVEMENTS
+
+
+# ---------------------------------------------------------------------------
+# T14β: First-chest gating (bow on floor 1, book on floors 3-4)
+# ---------------------------------------------------------------------------
+
+def test_first_chest_floor1_grants_bow(env):
+    """Opening the first chest on floor 1 grants a bow."""
+    env._current_floor = 1
+    env._inventory["bow"] = 0
+    _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    assert env._inventory.get("bow", 0) >= 1, (
+        "First chest on floor 1 should grant a bow"
+    )
+
+
+def test_first_chest_floor1_fires_find_bow_achievement(env):
+    """Opening the first chest on floor 1 fires find_bow achievement."""
+    env._current_floor = 1
+    env._inventory["bow"] = 0
+    _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    assert "find_bow" in env._achievements_unlocked, (
+        "find_bow achievement should fire after first chest on floor 1"
+    )
+
+
+def test_second_chest_floor1_does_not_grant_bow(env):
+    """Opening a second chest on floor 1 does NOT grant another bow."""
+    from glyphbench.envs.craftax.base import TILE_CHEST
+    env._current_floor = 1
+    env._inventory["bow"] = 0
+    fx, fy = _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)  # first chest — grants bow
+    bow_after_first = env._inventory.get("bow", 0)
+    # Place second chest (at different position to avoid double-open guard).
+    grid = env._current_grid()
+    fx2 = env._agent_x + env._facing[0]
+    fy2 = env._agent_y + env._facing[1]
+    # Use a fresh position.
+    fsize = env._floor_size()
+    from glyphbench.envs.craftax.base import TILE_DUNGEON_FLOOR
+    # Try a nearby free cell.
+    for ddx in range(2, 6):
+        nx = env._agent_x + ddx
+        if 0 <= nx < fsize:
+            grid[env._agent_y][nx] = TILE_CHEST
+            env._facing = (1, 0)
+            env._agent_x = nx - 1
+            break
+    env.step(do_idx)  # second chest — should NOT grant additional bow
+    assert env._inventory.get("bow", 0) == bow_after_first, (
+        "Second chest on floor 1 should not grant another bow"
+    )
+
+
+def test_first_chest_floor3_grants_book(env):
+    """Opening the first chest on floor 3 grants a book."""
+    env._current_floor = 3
+    env._inventory["book"] = 0
+    _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    assert env._inventory.get("book", 0) >= 1, (
+        "First chest on floor 3 should grant a book"
+    )
+
+
+def test_first_chest_floor3_fires_find_book_achievement(env):
+    """Opening the first chest on floor 3 fires find_book achievement."""
+    env._current_floor = 3
+    env._inventory["book"] = 0
+    _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    assert "find_book" in env._achievements_unlocked, (
+        "find_book achievement should fire after first chest on floor 3"
+    )
+
+
+def test_floor3_first_chest_then_floor4_first_chest_grants_only_one_book(env):
+    """Opening the first chest on floor 3 then floor 4 grants only 1 book total."""
+    from glyphbench.envs.craftax.base import TILE_CHEST
+    env._inventory["book"] = 0
+    # Floor 3 first chest.
+    env._current_floor = 3
+    _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    book_after_floor3 = env._inventory.get("book", 0)
+    assert book_after_floor3 >= 1, "Floor 3 first chest should give a book"
+    # Floor 4 first chest — floors 1..5 already generated in _reset.
+    env._current_floor = 4
+    # Re-place a chest in front (floor 4 grid).
+    grid = env._current_grid()
+    fx = env._agent_x + env._facing[0]
+    fy = env._agent_y + env._facing[1]
+    grid[fy][fx] = TILE_CHEST
+    env.step(do_idx)
+    book_after_floor4 = env._inventory.get("book", 0)
+    assert book_after_floor4 == book_after_floor3, (
+        "Floor 4 first chest should NOT grant another book if floor 3 already did"
+    )
+
+
+def test_floor4_first_chest_grants_book_if_floor3_not_opened(env):
+    """First chest on floor 4 grants book when floor 3 was never opened."""
+    from glyphbench.envs.craftax.base import TILE_CHEST
+    env._inventory["book"] = 0
+    env._current_floor = 4
+    _place_chest_in_front(env)
+    do_idx = env.action_spec.names.index("DO")
+    env.step(do_idx)
+    assert env._inventory.get("book", 0) >= 1, (
+        "First chest on floor 4 (no floor-3 chest opened) should grant a book"
+    )

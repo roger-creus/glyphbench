@@ -180,6 +180,10 @@ TILE_SLIMEBALL = "◐" # ◐ half black circle (left)
 TILE_SAPPHIRE = "♦"  # ♦ U+2666 black diamond suit — sapphire ore
 TILE_RUBY = "▲"      # ▲ U+25B2 black up-pointing triangle — ruby ore
 
+# Phase β chest tile (T12β). "$" is single-codepoint and disjoint from the
+# existing palette.
+TILE_CHEST = "$"  # $ dollar sign — chest (interactable loot container)
+
 # Stage 0 achievements (first 8, kept for backward compatibility)
 STAGE0_ACHIEVEMENTS = (
     "collect_wood",
@@ -325,7 +329,10 @@ ALL_FULL_ACHIEVEMENTS = (
     "learn_fireball",
     "learn_iceball",
     "find_book",
-    # -- Total: 83 (phase β: 3 legacy potion achievements consolidated to 1; +3 spell/book) --
+    # -- Phase β chest system (2; T12-T14β) --
+    "open_chest",
+    "find_bow",
+    # -- Total: 85 (phase β: +2 chest achievements) --
 )
 
 # Visible window dimensions

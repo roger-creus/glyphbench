@@ -25,6 +25,7 @@ from glyphbench.envs.craftax.base import (
     TILE_BAT,
     TILE_BOSS,
     TILE_BOSS_DOOR,
+    TILE_CHEST,
     TILE_COAL,
     TILE_COW,
     TILE_DAGGER,
@@ -373,6 +374,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._stairs_up_pos: dict[int, tuple[int, int]] = {}
         # Boss alive tracking
         self._bosses_alive: dict[int, bool] = {}
+        # Chest tracking (T12β): per-floor set of opened (x, y) coords.
+        self._chests_opened: dict[int, set[tuple[int, int]]] = {}
+        # First-chest gating (T14β): per-floor bool for first-chest bonus.
+        self._first_chest_opened: dict[int, bool] = {}
 
     # ---------------------------------------------------------------
     # Identity
@@ -1409,6 +1414,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._stairs_down_pos = {}
         self._stairs_up_pos = {}
         self._bosses_alive = {}
+        self._chests_opened = {}
+        self._first_chest_opened = {}
 
         self._generate_surface()
         for fl in range(1, _NUM_DUNGEON_FLOORS + 1):
@@ -1630,6 +1637,17 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         grid = self._current_grid()
         tile = grid[fy][fx]
+
+        # ---- Chest interaction (T12β / T13β / T14β) ----
+        if tile == TILE_CHEST:
+            floor = self._current_floor
+            opened_on_floor = self._chests_opened.get(floor, set())
+            if (fx, fy) in opened_on_floor:
+                self._message = "This chest is already open."
+                return 0.0
+            reward += self._open_chest(fx, fy, floor)
+            return reward
+
         if tile in INTERACTABLE_TILES:
             resource = INTERACTABLE_TILES[tile]
             if tile in PICKAXE_REQUIRED:
@@ -1669,6 +1687,147 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 )
             # Resource milestones
             reward += self._check_resource_milestones()
+        return reward
+
+    # Pickaxe and sword tiers ordered by level (1-indexed as in upstream).
+    _PICKAXE_BY_LEVEL: tuple[str, ...] = (
+        "wood_pickaxe", "stone_pickaxe", "iron_pickaxe", "diamond_pickaxe",
+    )
+    _SWORD_BY_LEVEL: tuple[str, ...] = (
+        "wood_sword", "stone_sword", "iron_sword", "diamond_sword",
+    )
+
+    def _open_chest(self, fx: int, fy: int, floor: int) -> float:
+        """Roll loot from a chest and apply first-chest gating (T13β + T14β).
+
+        Parameters
+        ----------
+        fx, fy : int
+            Position of the chest tile on the current floor grid.
+        floor : int
+            Current dungeon floor number.
+        """
+        reward = 0.0
+        loot_parts: list[str] = []
+
+        # ---- Generic loot table (T13β) ----
+        # Wood (60 %)
+        if self.rng.random() < 0.6:
+            amount = int(self.rng.integers(1, 6))  # 1-5 inclusive
+            self._inventory["wood"] = self._inventory.get("wood", 0) + amount
+            loot_parts.append(f"{amount} wood")
+
+        # Torches (60 %)
+        if self.rng.random() < 0.6:
+            amount = int(self.rng.integers(4, 8))  # 4-7 inclusive
+            self._inventory["torch"] = self._inventory.get("torch", 0) + amount
+            loot_parts.append(f"{amount} torches")
+
+        # Ore (60 %, mutually exclusive)
+        if self.rng.random() < 0.6:
+            ore_roll = self.rng.random()
+            # Probabilities: coal 30 %, iron 30 %, diamond 15 %,
+            # sapphire 12.5 %, ruby 12.5 %
+            if ore_roll < 0.30:
+                amount = int(self.rng.integers(1, 4))  # 1-3
+                self._inventory["coal"] = self._inventory.get("coal", 0) + amount
+                loot_parts.append(f"{amount} coal")
+            elif ore_roll < 0.60:
+                amount = int(self.rng.integers(1, 3))  # 1-2
+                self._inventory["iron"] = self._inventory.get("iron", 0) + amount
+                loot_parts.append(f"{amount} iron")
+            elif ore_roll < 0.75:
+                self._inventory["diamond"] = self._inventory.get("diamond", 0) + 1
+                loot_parts.append("1 diamond")
+            elif ore_roll < 0.875:
+                self._inventory["sapphire"] = self._inventory.get("sapphire", 0) + 1
+                loot_parts.append("1 sapphire")
+            else:
+                self._inventory["ruby"] = self._inventory.get("ruby", 0) + 1
+                loot_parts.append("1 ruby")
+
+        # Potions (50 %)
+        if self.rng.random() < 0.5:
+            _potion_colors = ("red", "green", "blue", "pink", "cyan", "yellow")
+            color_idx = int(self.rng.integers(0, 6))
+            amount = int(self.rng.integers(1, 3))  # 1-2
+            color = _potion_colors[color_idx]
+            potions = self._inventory.get("potions", {})
+            potions[color] = potions.get(color, 0) + amount
+            self._inventory["potions"] = potions
+            loot_parts.append(f"{amount} {color} potion(s)")
+
+        # Arrows (25 %)
+        if self.rng.random() < 0.25:
+            amount = int(self.rng.integers(1, 5))  # 1-4
+            self._inventory["arrows"] = self._inventory.get("arrows", 0) + amount
+            loot_parts.append(f"{amount} arrows")
+
+        # Pickaxe upgrade (20 %)
+        if self.rng.random() < 0.2:
+            level_roll = self.rng.random()
+            if level_roll < 0.40:
+                level = 1
+            elif level_roll < 0.70:
+                level = 2
+            elif level_roll < 0.90:
+                level = 3
+            else:
+                level = 4
+            new_key = self._PICKAXE_BY_LEVEL[level - 1]
+            # Keep max: only grant if this is better than what we have.
+            current_best = 0
+            for li, pk in enumerate(self._PICKAXE_BY_LEVEL):
+                if self._inventory.get(pk, 0) > 0:
+                    current_best = li + 1
+            if level > current_best:
+                self._inventory[new_key] = self._inventory.get(new_key, 0) + 1
+                loot_parts.append(f"{new_key.replace('_', ' ')}")
+
+        # Sword upgrade (20 %)
+        if self.rng.random() < 0.2:
+            level_roll = self.rng.random()
+            if level_roll < 0.40:
+                level = 1
+            elif level_roll < 0.70:
+                level = 2
+            elif level_roll < 0.90:
+                level = 3
+            else:
+                level = 4
+            new_key = self._SWORD_BY_LEVEL[level - 1]
+            current_best = 0
+            for li, sw in enumerate(self._SWORD_BY_LEVEL):
+                if self._inventory.get(sw, 0) > 0:
+                    current_best = li + 1
+            if level > current_best:
+                self._inventory[new_key] = self._inventory.get(new_key, 0) + 1
+                loot_parts.append(f"{new_key.replace('_', ' ')}")
+
+        # Mark chest as opened.
+        self._chests_opened.setdefault(floor, set()).add((fx, fy))
+        reward += self._try_unlock("open_chest")
+
+        # ---- First-chest gating (T14β) ----
+        if floor == 1 and not self._first_chest_opened.get(1):
+            self._inventory["bow"] = max(self._inventory.get("bow", 0), 1)
+            self._first_chest_opened[1] = True
+            reward += self._try_unlock("find_bow")
+            loot_parts.append("bow")
+
+        if floor in (3, 4):
+            already_got_book = (
+                self._first_chest_opened.get(3)
+                or self._first_chest_opened.get(4)
+            )
+            if not already_got_book:
+                self._inventory["book"] = self._inventory.get("book", 0) + 1
+                self._first_chest_opened[floor] = True
+                reward += self._try_unlock("find_book")
+                loot_parts.append("book")
+
+        loot_str = ", ".join(loot_parts) if loot_parts else "nothing"
+        self._message = f"Opened chest: {loot_str}."
         return reward
 
     def _check_resource_milestones(self) -> float:
