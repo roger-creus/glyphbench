@@ -42,7 +42,7 @@ CRAFTAX_ACTION_SPEC = ActionSpec(
     ),
 )
 
-# Full Craftax action spec (36 actions)
+# Full Craftax action spec (37 actions)
 CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
     names=(
         "NOOP", "MOVE_LEFT", "MOVE_RIGHT", "MOVE_UP", "MOVE_DOWN",
@@ -62,6 +62,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "MAKE_ARROW",
         "MAKE_TORCH",
         "SHOOT_ARROW",
+        "REST",
     ),
     descriptions=(
         "do nothing this turn",
@@ -100,6 +101,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "craft 2 arrows (1 wood + 1 stone, requires adjacent table)",
         "craft 4 torches (1 wood + 1 coal, requires adjacent table)",
         "shoot an arrow in your facing direction (requires bow + 1 arrow)",
+        "rest in place to recover HP (wakes on full HP, 0 food, or 0 drink)",
     ),
 )
 

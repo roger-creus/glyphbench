@@ -235,11 +235,12 @@ def test_full_action_spec_size_and_ordering_post_phase_alpha() -> None:
     """Phase α net: -2 (CAST_HEAL T04, MAKE_SPELL_SCROLL T05) + 3
     (MAKE_ARROW T14, MAKE_TORCH T15, SHOOT_ARROW T17) = +1.
     Original full spec was 35; phase α leaves it at 36.
-    Phase β will add REST + DRINK_POTION_* (6 colours) + READ_BOOK.
+    Phase β T02β adds REST (+1) → 37. Further β additions (potion colours,
+    READ_BOOK) will push the count higher.
     Phase γ will add LEVEL_UP_* (3) + ENCHANT_BOW.
     """
     spec = CRAFTAX_FULL_ACTION_SPEC
-    assert len(spec.names) == 36, f"expected 36, got {len(spec.names)}: {spec.names}"
+    assert len(spec.names) == 37, f"expected 37, got {len(spec.names)}: {spec.names}"
     # Required new names present (T14/T15/T17):
     for name in ("SHOOT_ARROW", "MAKE_ARROW", "MAKE_TORCH"):
         assert name in spec.names, f"missing required action {name!r}"

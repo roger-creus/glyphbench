@@ -73,3 +73,50 @@ def test_achievements_phase_beta_independent_of_unlocked(env):
     assert env._achievements_phase_beta is not env._achievements_unlocked
     assert isinstance(env._achievements_phase_beta, dict)
     assert isinstance(env._achievements_unlocked, set)
+
+
+# ---------------------------------------------------------------------------
+# T02β: REST action + _is_resting state machine
+# ---------------------------------------------------------------------------
+
+_REST_ACTION = 36   # index of REST in CRAFTAX_FULL_ACTION_SPEC
+_NOOP_ACTION = 0    # index of NOOP
+
+
+def test_rest_action_in_spec():
+    """REST is in CRAFTAX_FULL_ACTION_SPEC at index 36 (spec is now 37 actions)."""
+    from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
+    assert len(CRAFTAX_FULL_ACTION_SPEC.names) == 37
+    assert CRAFTAX_FULL_ACTION_SPEC.names[_REST_ACTION] == "REST"
+
+
+def test_rest_sets_is_resting(env):
+    """REST action sets _is_resting = True."""
+    assert env._is_resting is False
+    env.step(_REST_ACTION)
+    assert env._is_resting is True
+
+
+def test_rest_regens_hp_per_tick(env):
+    """While resting, HP increases by 1 each tick."""
+    env._is_resting = True
+    env._hp = 5
+    env.step(_NOOP_ACTION)
+    assert env._hp == 6
+
+
+def test_rest_exits_on_full_hp(env):
+    """Resting exits when HP reaches max and HP is capped at max_hp."""
+    env._is_resting = True
+    env._hp = env._max_hp - 1
+    env.step(_NOOP_ACTION)
+    assert env._hp == env._max_hp
+    assert env._is_resting is False
+
+
+def test_rest_exits_on_damage(env):
+    """Taking damage while resting cancels the REST state."""
+    env._is_resting = True
+    env._hp = 5
+    env._take_damage(1)
+    assert env._is_resting is False

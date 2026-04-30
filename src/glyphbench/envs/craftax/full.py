@@ -337,6 +337,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._player_projectiles: list[ProjectileEntity] = []
         self._mob_projectiles: list[ProjectileEntity] = []
         self._is_sleeping: bool = False
+        self._is_resting: bool = False
         self._pending_step_reward: float = 0.0
         # Plants
         self._plants: dict[tuple[int, int], int] = {}
@@ -865,6 +866,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             raw = int(round(raw * 3.5))
         actual = max(1, raw - defense)
         self._hp = max(0, self._hp - actual)
+        # Phase β: damage cancels REST state.
+        self._is_resting = False
 
     def _attack_mob(self, mob: Mob) -> float:
         damage = 1 + self._best_weapon_bonus()
@@ -1374,6 +1377,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._player_projectiles = []
         self._mob_projectiles = []
         self._is_sleeping = False
+        self._is_resting = False
         self._pending_step_reward: float = 0.0
         self._torches = {0: set()}
         self._stairs_down_pos = {}
@@ -1430,6 +1434,17 @@ class CraftaxFullEnv(BaseGlyphEnv):
         name = self.action_spec.names[action]
         self._message = ""
         reward = 0.0
+
+        # Phase β: REST state machine — regen HP before action handler runs.
+        if self._is_resting:
+            self._hp = min(self._max_hp, self._hp + 1)
+            # Check exit conditions.
+            if (
+                self._hp >= self._max_hp
+                or self._food <= 0
+                or self._water <= 0
+            ):
+                self._is_resting = False
 
         handler = self._ACTION_DISPATCH.get(name)
         if handler is not None:
@@ -2314,6 +2329,14 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return self._try_unlock("enchant_armor")
         return 0.0
 
+    # -- REST --
+
+    def _handle_rest(self) -> float:
+        """Enter REST state: regen +1 HP/tick until full, starving, or hit."""
+        self._is_resting = True
+        self._message = "You rest."
+        return 0.0
+
     # -- Action dispatch table --
 
     _ACTION_DISPATCH: dict[str, Any] = {  # method refs
@@ -2352,6 +2375,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "MAKE_ARROW": _handle_make_arrow,
         "MAKE_TORCH": _handle_make_torch,
         "SHOOT_ARROW": _handle_shoot_arrow,
+        "REST": _handle_rest,
     }
 
     # ---------------------------------------------------------------
