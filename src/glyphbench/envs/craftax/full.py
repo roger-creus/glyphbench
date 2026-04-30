@@ -314,7 +314,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return _SURFACE_SIZE
         return _DUNGEON_SIZE
 
-    def _in_bounds(self, x: int, y: int) -> bool:
+    def _is_in_bounds(self, x: int, y: int) -> bool:
         size = self._floor_size()
         return 0 <= x < size and 0 <= y < size
 
@@ -1667,7 +1667,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # Spawn one tile in front of the agent.
         dx, dy = self._facing
         spawn_x, spawn_y = self._agent_x + dx, self._agent_y + dy
-        if not self._in_bounds(spawn_x, spawn_y):
+        if not self._is_in_bounds(spawn_x, spawn_y):
             self._message = "No room to launch fireball."
             return 0.0
         self._mana -= 2

@@ -50,3 +50,29 @@ def test_cast_fireball_spawns_projectile_entity_no_aoe() -> None:
     assert (p.x, p.y) == (6, 5)  # spawned in the cell the agent is facing
     assert (p.dx, p.dy) == (1, 0)
     assert env._mana == 3, "cost is 2 mana per upstream"
+
+
+def test_cast_fireball_no_op_without_spells_learned() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._spells_learned = 0
+    env._mana = 5
+    initial_mana = env._mana
+
+    env._handle_cast_fireball()
+
+    assert env._player_projectiles == []
+    assert env._mana == initial_mana, "no mana consumed when no spells learned"
+
+
+def test_cast_fireball_no_op_without_enough_mana() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._spells_learned = 1
+    env._mana = 1  # below the 2-mana cost
+    initial_mana = env._mana
+
+    env._handle_cast_fireball()
+
+    assert env._player_projectiles == []
+    assert env._mana == initial_mana, "no mana consumed below cost"
