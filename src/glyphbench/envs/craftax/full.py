@@ -300,8 +300,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "MAGIC\n"
             "MAKE_SPELL_SCROLL (1 wood+1 coal+1 iron, "
             "table+furnace) to learn spells. "
-            "CAST_FIREBALL (3 mana), CAST_ICEBALL (2 mana), "
-            "CAST_HEAL (4 mana).\n\n"
+            "CAST_FIREBALL (3 mana), CAST_ICEBALL (2 mana).\n\n"
             "DUNGEONS\n"
             "DESCEND on > goes deeper. ASCEND on < goes up. "
             "Dungeons are dark; PLACE_TORCH for light. "
@@ -1704,18 +1703,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
             self._message = "Iceball cast, but no target."
         return self._try_unlock("cast_iceball")
 
-    def _handle_cast_heal(self) -> float:
-        if self._spells_learned < 1:
-            self._message = "No spells learned yet."
-            return 0.0
-        if self._mana < 4:
-            self._message = "Not enough mana! (need 4)"
-            return 0.0
-        self._mana -= 4
-        self._hp = min(self._max_hp, self._hp + 3)
-        self._message = "Healed 3 HP."
-        return self._try_unlock("cast_heal")
-
     def _attack_mob_kill(self, mob: Mob) -> float:
         """Handle mob death from spells (mob already at <= 0 HP)."""
         if mob in self._mobs:
@@ -1985,7 +1972,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "MAKE_DIAMOND_ARMOR": _handle_make_diamond_armor,
         "CAST_FIREBALL": _handle_cast_fireball,
         "CAST_ICEBALL": _handle_cast_iceball,
-        "CAST_HEAL": _handle_cast_heal,
         "DRINK_POTION": _handle_drink_potion,
         "EAT_PLANT": _handle_eat_plant,
         "DRINK_WATER": _handle_drink_water,

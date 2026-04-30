@@ -55,7 +55,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "MAKE_IRON_SWORD", "MAKE_DIAMOND_SWORD",
         "MAKE_WOOD_ARMOR", "MAKE_STONE_ARMOR",
         "MAKE_IRON_ARMOR", "MAKE_DIAMOND_ARMOR",
-        "CAST_FIREBALL", "CAST_ICEBALL", "CAST_HEAL",
+        "CAST_FIREBALL", "CAST_ICEBALL",
         "DRINK_POTION", "EAT_PLANT", "DRINK_WATER",
         "DESCEND", "ASCEND",
         "ENCHANT_WEAPON", "ENCHANT_ARMOR",
@@ -88,7 +88,6 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "craft diamond armor (1 diamond+1 iron, table+furnace)",
         "cast fireball (3 mana, 4 dmg in 2-tile radius)",
         "cast iceball (2 mana, freeze mob in front 5 turns)",
-        "cast heal (4 mana, restore 3 HP)",
         "drink a potion from inventory",
         "eat a ripe plant you face to restore food",
         "drink water you face to restore thirst",
@@ -213,10 +212,9 @@ ALL_FULL_ACHIEVEMENTS = (
     # -- Torch & scrolls (2) --
     "place_torch",
     "make_spell_scroll",
-    # -- Magic (3) --
+    # -- Magic (2) --
     "cast_fireball",
     "cast_iceball",
-    "cast_heal",
     # -- Potions (3) --
     "drink_health_potion",
     "drink_fire_resist_potion",
