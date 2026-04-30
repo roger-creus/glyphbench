@@ -134,7 +134,6 @@ def _place_full_mob(
                 "y": y,
                 "hp": actual_hp,
                 "max_hp": actual_max,
-                "frozen_turns": 0,
                 "is_boss": is_boss,
                 "floor": floor,
             }

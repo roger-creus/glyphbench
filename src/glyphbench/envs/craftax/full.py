@@ -182,7 +182,6 @@ class Mob(TypedDict):
     y: int
     hp: int
     max_hp: int
-    frozen_turns: int
     is_boss: bool
     floor: int
 
@@ -584,7 +583,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "y": boss_y,
             "hp": bdef["hp"],
             "max_hp": bdef["hp"],
-            "frozen_turns": 0,
             "is_boss": True,
             "floor": floor,
         }
@@ -623,7 +621,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         "y": my,
                         "hp": stats["hp"],
                         "max_hp": stats["hp"],
-                        "frozen_turns": 0,
                         "is_boss": False,
                         "floor": floor,
                     }
@@ -653,7 +650,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         "x": x, "y": y,
                         "hp": _MOB_STATS["cow"]["hp"],
                         "max_hp": _MOB_STATS["cow"]["hp"],
-                        "frozen_turns": 0,
                         "is_boss": False,
                         "floor": 0,
                     }
@@ -867,11 +863,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
         for mob in list(self._mobs):
             if mob["floor"] != self._current_floor:
                 continue
-            # Frozen mobs don't act
-            if mob["frozen_turns"] > 0:
-                mob["frozen_turns"] -= 1
-                continue
-
             mx, my = mob["x"], mob["y"]
             mtype = mob["type"]
 
@@ -971,7 +962,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
                         "x": x, "y": y,
                         "hp": _MOB_STATS[mt]["hp"],
                         "max_hp": _MOB_STATS[mt]["hp"],
-                        "frozen_turns": 0,
                         "is_boss": False,
                         "floor": 0,
                     }
@@ -1682,24 +1672,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return reward
 
     def _handle_cast_iceball(self) -> float:
-        if self._spells_learned < 1:
-            self._message = "No spells learned yet."
-            return 0.0
-        if self._mana < 2:
-            self._message = "Not enough mana! (need 2)"
-            return 0.0
-        self._mana -= 2
-        fx = self._agent_x + self._facing[0]
-        fy = self._agent_y + self._facing[1]
-        mob = self._mob_at(fx, fy)
-        if mob is not None:
-            mob["frozen_turns"] = 5
-            self._message = (
-                f"Froze {mob['type']} for 5 turns!"
-            )
-        else:
-            self._message = "Iceball cast, but no target."
-        return self._try_unlock("cast_iceball")
+        """No-op placeholder — Task 11 reintroduces iceball as a travelling projectile."""
+        self._message = "iceball is unavailable this turn (phase α placeholder)"
+        return 0.0
 
     def _attack_mob_kill(self, mob: Mob) -> float:
         """Handle mob death from spells (mob already at <= 0 HP)."""
