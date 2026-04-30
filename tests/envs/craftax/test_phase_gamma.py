@@ -669,10 +669,10 @@ def _make_full_env(seed: int = 0) -> "CraftaxFullEnv":  # type: ignore[name-defi
     return env
 
 
-def test_num_dungeon_floors_is_7():
-    """_NUM_DUNGEON_FLOORS must be 7 after T13-T15γ."""
+def test_num_dungeon_floors_is_8():
+    """_NUM_DUNGEON_FLOORS must be 8 after T16γ adds floor 8 (Graveyard)."""
     from glyphbench.envs.craftax.full import _NUM_DUNGEON_FLOORS
-    assert _NUM_DUNGEON_FLOORS == 7
+    assert _NUM_DUNGEON_FLOORS == 8
 
 
 def test_floor_5_exists_after_reset():
@@ -868,3 +868,305 @@ def test_floor7_spawns_frost_troll_or_ice_elemental():
         if found:
             break
     assert found, "Floor 7 has no frost_troll or ice_elemental mobs across 10 seeds"
+
+
+# ---------------------------------------------------------------------------
+# T16γ: Floor 8 (Graveyard) + necromancer placement
+# ---------------------------------------------------------------------------
+
+def test_num_dungeon_floors_is_8_constant():
+    """_NUM_DUNGEON_FLOORS must be 8 (floors 0-8 = 9 total)."""
+    from glyphbench.envs.craftax.full import _NUM_DUNGEON_FLOORS
+    assert _NUM_DUNGEON_FLOORS == 8
+
+
+def test_floor_8_exists_after_reset():
+    """Floor 8 must be generated and present in _floors after reset."""
+    env = _make_full_env(seed=0)
+    assert 8 in env._floors, "Floor 8 missing from env._floors"
+    grid = env._floors[8]
+    assert len(grid) > 0, "Floor 8 grid is empty"
+
+
+def test_floor_8_has_exactly_one_necromancer_tile():
+    """Floor 8 must contain exactly one NECROMANCER (or NECROMANCER_VULNERABLE) tile."""
+    from glyphbench.envs.craftax.base import TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE
+    env = _make_full_env(seed=0)
+    grid = env._floors[8]
+    count = sum(
+        1 for row in grid
+        for cell in row
+        if cell in (TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE)
+    )
+    assert count == 1, f"Floor 8 should have exactly 1 necromancer tile; found {count}"
+
+
+def test_floor_8_has_stair_up():
+    """Floor 8 must have a stair-up tile."""
+    from glyphbench.envs.craftax.base import TILE_STAIRS_UP
+    env = _make_full_env(seed=0)
+    grid = env._floors[8]
+    found = any(cell == TILE_STAIRS_UP for row in grid for cell in row)
+    assert found, "Floor 8 has no STAIRS_UP tile"
+
+
+def test_floor_8_has_no_stair_down():
+    """Floor 8 must NOT have a stair-down tile (it is the terminal floor)."""
+    from glyphbench.envs.craftax.base import TILE_STAIRS_DOWN
+    env = _make_full_env(seed=0)
+    grid = env._floors[8]
+    found = any(cell == TILE_STAIRS_DOWN for row in grid for cell in row)
+    assert not found, "Floor 8 should have no STAIRS_DOWN tile (terminal floor)"
+
+
+def test_floor_8_stair_down_not_in_stairs_down_pos():
+    """_stairs_down_pos must not contain an entry for floor 8."""
+    env = _make_full_env(seed=0)
+    assert 8 not in env._stairs_down_pos, (
+        "_stairs_down_pos[8] should not be set (no stairs down on floor 8)"
+    )
+
+
+def test_descend_floor7_to_floor8():
+    """Player can descend from floor 7 to floor 8 via DESCEND on a stair-down."""
+    env = _make_full_env(seed=0)
+    env._current_floor = 7
+    pos = env._stairs_down_pos.get(7)
+    assert pos is not None, "Floor 7 has no stair-down tile (should connect to floor 8)"
+    env._agent_x, env._agent_y = pos
+    env._handle_descend()
+    assert env._current_floor == 8, f"Expected floor 8, got {env._current_floor}"
+
+
+def test_floor_8_has_grave_tiles():
+    """Floor 8 (Graveyard) should contain at least one GRAVE tile."""
+    from glyphbench.envs.craftax.base import TILE_GRAVE
+    found = False
+    for seed in range(10):
+        env = _make_full_env(seed=seed)
+        grid = env._floors[8]
+        if any(cell == TILE_GRAVE for row in grid for cell in row):
+            found = True
+            break
+    assert found, "Floor 8 (Graveyard) has no GRAVE tiles across 10 seeds"
+
+
+# ---------------------------------------------------------------------------
+# T17γ: Necromancer state machine + 8-hit win
+# ---------------------------------------------------------------------------
+
+def _make_env_on_floor8() -> "CraftaxFullEnv":  # type: ignore[name-defined]
+    """Return an env with the player teleported to floor 8."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftax.base import TILE_STAIRS_UP
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._current_floor = 8
+    # Place player at stairs-up of floor 8.
+    pos = env._stairs_up_pos.get(8)
+    if pos:
+        env._agent_x, env._agent_y = pos
+    else:
+        env._agent_x, env._agent_y = 2, 2
+    return env
+
+
+def test_boss_progress_starts_at_zero():
+    """_boss_progress must be 0 after reset."""
+    env = _make_full_env(seed=0)
+    assert env._boss_progress == 0
+
+
+def test_boss_summon_timer_starts_at_zero():
+    """_boss_summon_timer must be 0 after reset."""
+    env = _make_full_env(seed=0)
+    assert env._boss_summon_timer == 0
+
+
+def test_necromancer_vulnerable_when_no_mobs_and_timer_zero():
+    """is_necromancer_vulnerable returns True when no hostile mobs on floor 8 and timer=0."""
+    from glyphbench.envs.craftax.mechanics.boss import is_necromancer_vulnerable
+    env = _make_env_on_floor8()
+    # Ensure no hostile mobs on floor 8 (only passive mobs or none at all).
+    env._mobs = [m for m in env._mobs if m["floor"] != 8]
+    env._boss_summon_timer = 0
+    assert is_necromancer_vulnerable(env) is True
+
+
+def test_necromancer_not_vulnerable_when_hostile_mob_on_floor8():
+    """is_necromancer_vulnerable returns False when hostile mobs exist on floor 8."""
+    from glyphbench.envs.craftax.mechanics.boss import is_necromancer_vulnerable
+    env = _make_env_on_floor8()
+    # Clear then add one zombie (hostile) on floor 8.
+    env._mobs = [m for m in env._mobs if m["floor"] != 8]
+    env._mobs.append({
+        "type": "zombie", "x": 5, "y": 5,
+        "hp": 3, "max_hp": 3,
+        "is_boss": False, "floor": 8, "attack_cooldown": 0,
+    })
+    env._boss_summon_timer = 0
+    assert is_necromancer_vulnerable(env) is False
+
+
+def test_necromancer_not_vulnerable_when_summon_timer_active():
+    """is_necromancer_vulnerable returns False when _boss_summon_timer > 0."""
+    from glyphbench.envs.craftax.mechanics.boss import is_necromancer_vulnerable
+    env = _make_env_on_floor8()
+    env._mobs = [m for m in env._mobs if m["floor"] != 8]
+    env._boss_summon_timer = 7  # timer active
+    assert is_necromancer_vulnerable(env) is False
+
+
+def test_do_on_necromancer_when_vulnerable_increments_progress():
+    """DOing the necromancer tile when vulnerable increments _boss_progress and sets timer."""
+    from glyphbench.envs.craftax.base import TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE
+    from glyphbench.envs.craftax.mechanics.boss import BOSS_FIGHT_SPAWN_TURNS
+    env = _make_env_on_floor8()
+    # Clear hostile mobs; set timer to 0 so boss is vulnerable.
+    env._mobs = [m for m in env._mobs if m["floor"] != 8]
+    env._boss_summon_timer = 0
+    # Find the necromancer tile and place player adjacent to it (facing it).
+    grid = env._floors[8]
+    size = len(grid)
+    nec_x, nec_y = None, None
+    for y, row in enumerate(grid):
+        for x, cell in enumerate(row):
+            if cell in (TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE):
+                nec_x, nec_y = x, y
+    assert nec_x is not None, "No necromancer tile found on floor 8"
+    # Place player to the left of the necromancer, facing right.
+    px = nec_x - 1
+    py = nec_y
+    if px < 1:
+        px = nec_x + 1
+        env._facing = (-1, 0)
+    else:
+        env._facing = (1, 0)
+    env._agent_x, env._agent_y = px, py
+    # Ensure player position is passable.
+    grid[py][px] = "▪"  # TILE_DUNGEON_FLOOR
+
+    progress_before = env._boss_progress
+    env._handle_do()
+    assert env._boss_progress == progress_before + 1
+    assert env._boss_summon_timer == BOSS_FIGHT_SPAWN_TURNS
+
+
+def test_do_on_necromancer_when_invulnerable_no_progress():
+    """DOing the necromancer tile when invulnerable does NOT increment _boss_progress."""
+    from glyphbench.envs.craftax.base import TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE
+    env = _make_env_on_floor8()
+    env._boss_summon_timer = 7  # invulnerable (timer active)
+    grid = env._floors[8]
+    nec_x, nec_y = None, None
+    for y, row in enumerate(grid):
+        for x, cell in enumerate(row):
+            if cell in (TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE):
+                nec_x, nec_y = x, y
+    assert nec_x is not None
+    px = nec_x - 1
+    py = nec_y
+    if px < 1:
+        px = nec_x + 1
+        env._facing = (-1, 0)
+    else:
+        env._facing = (1, 0)
+    env._agent_x, env._agent_y = px, py
+    grid[py][px] = "▪"
+
+    progress_before = env._boss_progress
+    env._handle_do()
+    assert env._boss_progress == progress_before
+
+
+def test_8_hits_to_necromancer_sets_win_condition():
+    """After 8 hits to the necromancer, boss_progress_win returns True."""
+    from glyphbench.envs.craftax.mechanics.boss import boss_progress_win
+    env = _make_env_on_floor8()
+    env._boss_progress = 8
+    assert boss_progress_win(env) is True
+
+
+def test_7_hits_not_yet_win():
+    """With 7 hits, boss_progress_win returns False."""
+    from glyphbench.envs.craftax.mechanics.boss import boss_progress_win
+    env = _make_env_on_floor8()
+    env._boss_progress = 7
+    assert boss_progress_win(env) is False
+
+
+def test_defeat_necromancer_achievement_fires_on_8th_hit():
+    """After 8 successful DO actions on the necromancer, defeat_necromancer achievement fires."""
+    from glyphbench.envs.craftax.base import TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE, TILE_DUNGEON_FLOOR
+    from glyphbench.envs.craftax.mechanics.boss import BOSS_FIGHT_SPAWN_TURNS
+    env = _make_env_on_floor8()
+
+    # Find necromancer tile.
+    grid = env._floors[8]
+    nec_x, nec_y = None, None
+    for y, row in enumerate(grid):
+        for x, cell in enumerate(row):
+            if cell in (TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE):
+                nec_x, nec_y = x, y
+    assert nec_x is not None, "No necromancer tile on floor 8"
+
+    px = nec_x - 1 if nec_x > 1 else nec_x + 1
+    py = nec_y
+    env._facing = (1, 0) if px < nec_x else (-1, 0)
+    grid[py][px] = TILE_DUNGEON_FLOOR
+
+    # Land 7 hits: clear mobs, reset timer, do, repeat.
+    for _ in range(7):
+        env._mobs = [m for m in env._mobs if m["floor"] != 8]
+        env._boss_summon_timer = 0
+        env._agent_x, env._agent_y = px, py
+        env._handle_do()
+
+    assert env._boss_progress == 7
+    assert "defeat_necromancer" not in env._achievements_unlocked
+
+    # 8th hit: should fire the achievement.
+    env._mobs = [m for m in env._mobs if m["floor"] != 8]
+    env._boss_summon_timer = 0
+    env._agent_x, env._agent_y = px, py
+    reward = env._handle_do()
+
+    assert env._boss_progress == 8
+    assert "defeat_necromancer" in env._achievements_unlocked
+    # Reward must include the +10 boss-kill bonus.
+    assert reward >= 10.0
+
+
+def test_necromancer_tile_constants_are_single_codepoint_and_disjoint():
+    """TILE_NECROMANCER and TILE_NECROMANCER_VULNERABLE must be 1 codepoint each, disjoint."""
+    from glyphbench.envs.craftax import base
+    nm = base.TILE_NECROMANCER
+    nmv = base.TILE_NECROMANCER_VULNERABLE
+    assert len(nm) == 1, f"TILE_NECROMANCER not single-codepoint: {nm!r}"
+    assert len(nmv) == 1, f"TILE_NECROMANCER_VULNERABLE not single-codepoint: {nmv!r}"
+    assert nm != nmv, "TILE_NECROMANCER and TILE_NECROMANCER_VULNERABLE must differ"
+    all_tiles = {
+        v for k, v in vars(base).items()
+        if k.startswith("TILE_") and k not in ("TILE_NECROMANCER", "TILE_NECROMANCER_VULNERABLE")
+        and isinstance(v, str)
+    }
+    assert nm not in all_tiles, f"TILE_NECROMANCER collides with existing tile: {nm!r}"
+    assert nmv not in all_tiles, f"TILE_NECROMANCER_VULNERABLE collides with existing tile: {nmv!r}"
+
+
+def test_tile_grave_is_single_codepoint_and_disjoint():
+    """TILE_GRAVE must be exactly one Unicode codepoint and disjoint from existing tiles."""
+    from glyphbench.envs.craftax import base
+    g = base.TILE_GRAVE
+    assert len(g) == 1, f"TILE_GRAVE not single-codepoint: {g!r}"
+    all_tiles = {
+        v for k, v in vars(base).items()
+        if k.startswith("TILE_") and k != "TILE_GRAVE" and isinstance(v, str)
+    }
+    assert g not in all_tiles, f"TILE_GRAVE collides with existing tile: {g!r}"
+
+
+def test_defeat_necromancer_in_achievement_list():
+    """defeat_necromancer must be in ALL_FULL_ACHIEVEMENTS."""
+    from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
+    assert "defeat_necromancer" in ALL_FULL_ACHIEVEMENTS

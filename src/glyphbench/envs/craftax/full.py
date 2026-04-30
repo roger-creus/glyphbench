@@ -64,6 +64,9 @@ from glyphbench.envs.craftax.base import (
     TILE_FIRE_ELEMENTAL,
     TILE_FROST_TROLL,
     TILE_ICE_ELEMENTAL,
+    TILE_GRAVE,
+    TILE_NECROMANCER,
+    TILE_NECROMANCER_VULNERABLE,
     TILE_STAIRS_DOWN,
     TILE_STAIRS_UP,
     TILE_STONE,
@@ -256,8 +259,9 @@ _SOLID_TILES: frozenset[str] = frozenset({
 _SURFACE_SIZE = 64
 _DUNGEON_SIZE = 32
 # Phase γ T13-T15γ: bumped from 5 to 7 for floors 5 (Troll Mines),
-# 6 (Fire Realm), 7 (Ice Realm).  Floor 8 (Graveyard) deferred to T16γ.
-_NUM_DUNGEON_FLOORS = 7
+# 6 (Fire Realm), 7 (Ice Realm).  Floor 8 (Graveyard) added in T16γ.
+# Floors 0-8 = 9 total (0=surface, 1-8=dungeons).
+_NUM_DUNGEON_FLOORS = 8
 
 # ----------------------------------------------------------------
 # Mob definitions
@@ -452,6 +456,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._dex: int = 1
         self._str: int = 1
         self._int_attr: int = 1
+        # Phase γ T17γ: Necromancer state machine (floor 8).
+        # _boss_progress: number of vulnerable hits landed on the necromancer [0..8].
+        # _boss_summon_timer: turns remaining before necromancer becomes vulnerable again.
+        self._boss_progress: int = 0
+        self._boss_summon_timer: int = 0
 
     # ---------------------------------------------------------------
     # Identity
@@ -704,6 +713,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # ---- Phase-γ smoothgen generator for floors 5-7 (T13-T15γ) ----
         if floor in (5, 6, 7):
             self._generate_dungeon_floor_smoothgen(floor)
+            return
+
+        # ---- Phase-γ floor 8: Graveyard with necromancer (T16γ) ----
+        if floor == 8:
+            self._generate_dungeon_floor_graveyard()
             return
 
         # ---- Legacy generator for floors 2, 5 ----
@@ -1049,10 +1063,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         All three floors:
         - Stair-up placed in top-left quadrant.
-        - Stair-down placed in bottom-right quadrant (not on floor 7 since it
-          is the last floor; T16γ will add stair-down 7→8).
-        - Boss from _BOSS_DEFS[floor] spawned (if defined; floor 5 keeps its
-          legacy lich boss until T16γ moves the necromancer to floor 8).
+        - Stair-down placed in bottom-right quadrant (floor 7 now has stair-down
+          to floor 8; added T16γ).
+        - Boss from _BOSS_DEFS[floor] spawned only on floor 5 (lich).
+          The necromancer boss lives on floor 8 and is NOT a mob entity — it is
+          a tile (TILE_NECROMANCER) managed by the boss.py state machine (T17γ).
         - Per-floor mob roster from FLOOR_MOB_MAPPING.
         """
         from glyphbench.envs.craftax.mechanics.mobs import FLOOR_MOB_MAPPING
@@ -1162,7 +1177,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._stairs_up_pos[floor] = (up_x, up_y)
 
         # --- Stairs down (bottom-right quadrant) ---
-        # Floor 7 is last floor until T16γ adds floor 8.
+        # Floor 7 now has stair-down (to floor 8 Graveyard, added T16γ).
+        # Floor 8 itself has no stair-down (it is the terminal floor).
         if floor < _NUM_DUNGEON_FLOORS:
             down_x = int(self.rng.integers(2 * size // 3, size - 2))
             down_y = int(self.rng.integers(2 * size // 3, size - 2))
@@ -1234,6 +1250,76 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._floors[floor] = grid
         self._torches[floor] = set()
 
+    def _generate_dungeon_floor_graveyard(self) -> None:
+        """Generate floor 8 — the Graveyard — where the necromancer boss lives.
+
+        Layout:
+        - DUNGEON_FLOOR base tile (open area).
+        - Thin wall border around the perimeter.
+        - 10-20 GRAVE (⚰) tombstone decorations scattered randomly.
+        - NECROMANCER tile (N) placed at the centre of the map.
+        - STAIRS_UP in the top-left quadrant (so the player can escape).
+        - NO STAIRS_DOWN — floor 8 is the terminal dungeon floor.
+        - No pre-spawned regular mobs; the necromancer's wave-summoning
+          system (T17γ) handles mob creation during the boss fight.
+
+        The necromancer is represented as a static tile (TILE_NECROMANCER or
+        TILE_NECROMANCER_VULNERABLE), not a mob entity. The boss.py state
+        machine manages the fight logic.
+        """
+        floor = 8
+        size = _DUNGEON_SIZE
+
+        # --- Base grid: all DUNGEON_FLOOR ---
+        grid = [
+            [TILE_DUNGEON_FLOOR for _ in range(size)]
+            for _ in range(size)
+        ]
+
+        # --- Thin wall border ---
+        for x in range(size):
+            grid[0][x] = TILE_DUNGEON_WALL
+            grid[size - 1][x] = TILE_DUNGEON_WALL
+        for y in range(size):
+            grid[y][0] = TILE_DUNGEON_WALL
+            grid[y][size - 1] = TILE_DUNGEON_WALL
+
+        # --- Scatter 10-20 grave decorations ---
+        num_graves = int(self.rng.integers(10, 21))
+        for _ in range(num_graves):
+            for _att in range(20):
+                gx = int(self.rng.integers(2, size - 2))
+                gy = int(self.rng.integers(2, size - 2))
+                if grid[gy][gx] == TILE_DUNGEON_FLOOR:
+                    grid[gy][gx] = TILE_GRAVE
+                    break
+
+        # --- Place necromancer at centre ---
+        cx = size // 2
+        cy = size // 2
+        # Ensure centre is not a wall (it shouldn't be, but guard against
+        # edge cases in very small maps).
+        if grid[cy][cx] in (TILE_DUNGEON_WALL,):
+            cx = size // 2 + 1
+        grid[cy][cx] = TILE_NECROMANCER
+        # Record necromancer position for DO targeting.
+        self._necromancer_pos: tuple[int, int] = (cx, cy)
+
+        # --- Stairs up (top-left quadrant) ---
+        up_x = int(self.rng.integers(2, size // 3))
+        up_y = int(self.rng.integers(2, size // 3))
+        # Must not land on the necromancer tile.
+        if (up_x, up_y) == (cx, cy):
+            up_x = min(up_x + 2, size - 2)
+        grid[up_y][up_x] = TILE_STAIRS_UP
+        self._stairs_up_pos[floor] = (up_x, up_y)
+
+        # --- NO STAIRS DOWN (floor 8 is the end) ---
+        # self._stairs_down_pos[8] is intentionally NOT set.
+
+        self._floors[floor] = grid
+        self._torches[floor] = set()
+
     # ---------------------------------------------------------------
     # Cow spawning
     # ---------------------------------------------------------------
@@ -1260,6 +1346,95 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     }
                     self._mobs.append(mob)
                     break
+
+    # ---------------------------------------------------------------
+    # Necromancer boss helpers (T17γ)
+    # ---------------------------------------------------------------
+
+    def _spawn_necromancer_wave(self) -> None:
+        """Spawn 1 zombie (melee) + 1 skeleton (ranged) near the player on floor 8.
+
+        Respects caps: at most 3 alive melee and 2 alive ranged per floor-8.
+        Tries to place each mob on a walkable DUNGEON_FLOOR tile within 6
+        tiles (Chebyshev) of the player. If no valid tile is found in 30
+        attempts, that mob is skipped.
+
+        Per upstream wave semantics: mob types are taken from
+        FLOOR_MOB_MAPPING[8] (zombie + skeleton), which intensify with each
+        necromancer hit at phase-γ fidelity (a simplification of the upstream
+        progress-indexed roster, which is wired in T22γ).
+        """
+        floor = 8
+        size = _DUNGEON_SIZE
+        grid = self._floors.get(floor)
+        if grid is None:
+            return
+        px, py = self._agent_x, self._agent_y
+        radius = 6
+        # Count current floor-8 melee and ranged mobs.
+        floor8_melee = [
+            m for m in self._mobs
+            if m["floor"] == floor and m["type"] == "zombie" and m["hp"] > 0
+        ]
+        floor8_ranged = [
+            m for m in self._mobs
+            if m["floor"] == floor and m["type"] == "skeleton" and m["hp"] > 0
+        ]
+        spawn_specs = []
+        if len(floor8_melee) < 3:
+            spawn_specs.append("zombie")
+        if len(floor8_ranged) < 2:
+            spawn_specs.append("skeleton")
+        for mtype in spawn_specs:
+            stats = _MOB_STATS[mtype]
+            for _att in range(30):
+                dx = int(self.rng.integers(-radius, radius + 1))
+                dy = int(self.rng.integers(-radius, radius + 1))
+                mx, my = px + dx, py + dy
+                if not (1 <= mx < size - 1 and 1 <= my < size - 1):
+                    continue
+                tile = grid[my][mx]
+                if tile not in (TILE_DUNGEON_FLOOR,):
+                    continue
+                if self._mob_at(mx, my, floor):
+                    continue
+                wave_mob: Mob = {
+                    "type": mtype,
+                    "x": mx,
+                    "y": my,
+                    "hp": stats["hp"],
+                    "max_hp": stats["hp"],
+                    "is_boss": False,
+                    "floor": floor,
+                    "attack_cooldown": 0,
+                }
+                self._mobs.append(wave_mob)
+                break
+
+    def _update_necromancer_tile_glyph(self) -> None:
+        """Flip the necromancer tile between NECROMANCER and NECROMANCER_VULNERABLE.
+
+        The rendered observation shows NECROMANCER_VULNERABLE when the boss is
+        hittable; NECROMANCER when invulnerable (summoning / timer active).
+        This gives the agent explicit visual feedback about when to attack.
+        """
+        from glyphbench.envs.craftax.mechanics.boss import is_necromancer_vulnerable
+        floor = 8
+        grid = self._floors.get(floor)
+        if grid is None:
+            return
+        # Find the necromancer tile on the grid.
+        size = _DUNGEON_SIZE
+        target_glyph = (
+            TILE_NECROMANCER_VULNERABLE
+            if is_necromancer_vulnerable(self)
+            else TILE_NECROMANCER
+        )
+        for y in range(size):
+            for x in range(size):
+                if grid[y][x] in (TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE):
+                    grid[y][x] = target_glyph
+                    return
 
     # ---------------------------------------------------------------
     # Adjacency helpers
@@ -1528,7 +1703,17 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return r
 
     def _is_in_boss_fight(self) -> bool:
-        """True iff a boss mob is alive on the agent's current floor."""
+        """True iff the agent is on a floor with an active boss encounter.
+
+        For floors 1-5: a boss mob (is_boss=True) with HP > 0 on this floor.
+        For floor 8 (Graveyard): the necromancer tile is still alive
+          (boss_progress < win threshold); the necromancer is a tile, not a mob.
+        """
+        from glyphbench.envs.craftax.mechanics.boss import (
+            NECROMANCER_FLOOR, BOSS_PROGRESS_WIN_THRESHOLD,
+        )
+        if self._current_floor == NECROMANCER_FLOOR:
+            return self._boss_progress < BOSS_PROGRESS_WIN_THRESHOLD
         return any(
             m["is_boss"] and m["floor"] == self._current_floor and m["hp"] > 0
             for m in self._mobs
@@ -2075,6 +2260,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._dex = 1
         self._str = 1
         self._int_attr = 1
+        # Phase γ T17γ: necromancer boss state reset.
+        self._boss_progress = 0
+        self._boss_summon_timer = 0
         # Phase γ T09γ: recompute max stats from fresh attributes, then fill.
         self._recompute_max_stats()
         self._hp = self._max_hp
@@ -2168,6 +2356,30 @@ class CraftaxFullEnv(BaseGlyphEnv):
             )
         ]
 
+        # Phase γ T17γ: Necromancer boss timer + wave summoning.
+        # Only active while the player is on floor 8 and necromancer not yet defeated.
+        from glyphbench.envs.craftax.mechanics.boss import (
+            NECROMANCER_FLOOR, BOSS_PROGRESS_WIN_THRESHOLD, BOSS_FIGHT_SPAWN_TURNS,
+            boss_progress_win,
+        )
+        if (
+            self._current_floor == NECROMANCER_FLOOR
+            and self._boss_progress < BOSS_PROGRESS_WIN_THRESHOLD
+        ):
+            # Tick down summon timer.
+            if self._boss_summon_timer > 0:
+                self._boss_summon_timer -= 1
+                # Spawn wave mobs while timer is active.
+                self._spawn_necromancer_wave()
+            # Update the necromancer tile glyph to reflect vulnerability.
+            self._update_necromancer_tile_glyph()
+
+        # Phase γ T17γ: Check for necromancer defeat win condition.
+        necromancer_won = (
+            self._current_floor == NECROMANCER_FLOOR
+            and boss_progress_win(self)
+        )
+
         # Check stat milestones
         if self._hp == self._max_hp:
             reward += self._try_unlock("full_health")
@@ -2177,9 +2389,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # Exploration milestones
         reward += self._check_exploration_milestones()
 
-        terminated = self._hp <= 0
-        if terminated:
+        terminated = self._hp <= 0 or necromancer_won
+        if self._hp <= 0:
             self._message = "You died."
+        elif necromancer_won:
+            self._message = "The necromancer is defeated! You win!"
 
         info: dict[str, Any] = {
             "agent_pos": (self._agent_x, self._agent_y),
@@ -2263,6 +2477,27 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         grid = self._current_grid()
         tile = grid[fy][fx]
+
+        # ---- Necromancer interaction (T17γ) ----
+        # Both TILE_NECROMANCER and TILE_NECROMANCER_VULNERABLE are valid
+        # targets — the vulnerability check is done inside boss.py.
+        if tile in (TILE_NECROMANCER, TILE_NECROMANCER_VULNERABLE):
+            from glyphbench.envs.craftax.mechanics.boss import (
+                damage_necromancer_if_vulnerable,
+                boss_progress_win,
+            )
+            if damage_necromancer_if_vulnerable(self):
+                self._message = "You struck the necromancer!"
+                # Flip necromancer tile back to invulnerable glyph immediately.
+                grid[fy][fx] = TILE_NECROMANCER
+                if boss_progress_win(self):
+                    # Necromancer defeated!
+                    self._message = "The necromancer is defeated! You win!"
+                    reward += self._try_unlock("defeat_necromancer")
+                    reward += 10.0
+            else:
+                self._message = "The necromancer is invulnerable!"
+            return reward
 
         # ---- Chest interaction (T12β / T13β / T14β) ----
         if tile == TILE_CHEST:
@@ -3141,6 +3376,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             self._message = "Entered the Fire Realm."
         elif new_floor == 7:
             self._message = "Entered the Ice Realm."
+        elif new_floor == 8:
+            self._message = "Entered the Graveyard. The necromancer awaits..."
         # Phase γ T06γ: first entry to any new floor grants +1 XP.
         if new_floor not in self._xp_floors_visited:
             self._xp_floors_visited.add(new_floor)
@@ -3707,6 +3944,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
             TILE_ICEBALL: "iceball projectile",
             TILE_ICEBALL2: "iceball2 projectile",
             TILE_SLIMEBALL: "slimeball projectile",
+            # Phase γ floor-8 Graveyard tiles (T16-T17γ)
+            TILE_GRAVE: "grave marker (decoration)",
+            TILE_NECROMANCER: "necromancer (invulnerable — clear arena first)",
+            TILE_NECROMANCER_VULNERABLE: "necromancer (VULNERABLE — DO to hit!)",
         }
         legend_entries: dict[str, str] = {}
         for sym in symbols_seen:

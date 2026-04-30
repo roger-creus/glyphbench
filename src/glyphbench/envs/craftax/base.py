@@ -218,6 +218,14 @@ TILE_FIRE_ELEMENTAL = "F"   # F — fire elemental (floor 6 ranged)
 TILE_FROST_TROLL = "r"      # r — frost troll (floor 7 melee)
 TILE_ICE_ELEMENTAL = "i"    # i — ice elemental (floor 7 ranged)
 
+# Phase γ floor-8 Graveyard tiles (T16γ). All single-codepoint and disjoint.
+# TILE_GRAVE: tombstone decoration tile for the Graveyard biome.
+# TILE_NECROMANCER / TILE_NECROMANCER_VULNERABLE: the boss tile (changes glyph
+# to signal vulnerability — used by the renderer so the agent can read state).
+TILE_GRAVE = "⚰"              # ⚰ U+26B0 coffin — grave marker decoration
+TILE_NECROMANCER = "N"         # N — necromancer (invulnerable / summoning)
+TILE_NECROMANCER_VULNERABLE = "n"  # n — necromancer (vulnerable — can be hit)
+
 # Stage 0 achievements (first 8, kept for backward compatibility)
 STAGE0_ACHIEVEMENTS = (
     "collect_wood",
@@ -371,7 +379,9 @@ ALL_FULL_ACHIEVEMENTS = (
     "level_up_dexterity",
     "level_up_strength",
     "level_up_intelligence",
-    # -- Total: 89 (phase γ T12γ: +1 enchant_bow; enchant_weapon→enchant_sword) --
+    # -- Phase γ necromancer boss kill (1; T17γ) --
+    "defeat_necromancer",
+    # -- Total: 90 (phase γ T12γ: +1 enchant_bow; T17γ: +1 defeat_necromancer) --
 )
 
 # Visible window dimensions
