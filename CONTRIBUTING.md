@@ -20,7 +20,7 @@ Results on the leaderboard must be reproducible. A valid submission includes:
 **How to submit:**
 
 ```bash
-# 1. Run the official eval (25 episodes, all 292 envs, each env's natural step budget)
+# 1. Run the official eval (25 episodes, all 300 envs, each env's natural step budget)
 uv run python eval/run_eval.py \
     --model <your-model-id> \
     --episodes 25 \

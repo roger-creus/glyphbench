@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Full eval: all 292 envs × $EPISODES (default 10) × $MODEL.
+# Full eval: all 300 envs × $EPISODES (default 10) × $MODEL.
 #
 # Prereq: a vLLM server at $VLLM_BASE_URL serving the target model. e.g.:
 #   uv run vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 16384

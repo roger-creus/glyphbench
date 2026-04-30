@@ -1,4 +1,4 @@
-"""GlyphBench: unified benchmark of 292 text-rendered RL environments."""
+"""GlyphBench: unified benchmark of 300 text-rendered RL environments."""
 
 __version__ = "0.1.0"
 

@@ -1,6 +1,6 @@
 # GlyphBench
 
-A benchmark of **292 text-rendered reinforcement-learning environments** for evaluating LLM agents on sequential decision-making.
+A benchmark of **300 text-rendered reinforcement-learning environments** for evaluating LLM agents on sequential decision-making.
 
 Every environment renders its state as a Unicode text grid with a legend and discrete named actions. The agent sees only the grid — no privileged state-channel — so every game-relevant fact must be readable off the glyphs themselves. Observations are deterministic (seeded), making results fully reproducible.
 
@@ -91,7 +91,7 @@ Two turnkey wrappers are provided:
 # Short smoke (1 env, 1 episode) — useful for wiring checks
 bash eval/run_debug.sh
 
-# Full sweep (all 292 envs, configurable episodes via $EPISODES / $MODEL)
+# Full sweep (all 300 envs, configurable episodes via $EPISODES / $MODEL)
 bash eval/run_full.sh
 ```
 
@@ -163,11 +163,14 @@ uv run python scripts/record_random_gifs.py --output docs/leaderboard/gifs/
 ## Interactive demo
 
 ```bash
-# Watch a random agent play a short clip of each env
-uv run python scripts/demo_all_envs.py --steps 10 --delay 0.3 --pause
+# Watch a random agent play each env in the gb-replay TUI layout
+uv run python scripts/demo_all_envs.py --pause
 
-# Single env, slower playback
+# Single env, slower continuous playback
 uv run python scripts/demo_all_envs.py --env glyphbench/craftax-classic-v0 --delay 0.2
+
+# Filter by suite
+uv run python scripts/demo_all_envs.py --suite minigrid --delay 0.05
 ```
 
 The renderer is flicker-free (single-write frame with ANSI cursor-home).
@@ -196,7 +199,7 @@ print(f"Episode return: {total}")
 ```
 src/glyphbench/
     core/                  # BaseGlyphEnv, GridObservation, ActionSpec, registry
-    envs/                  # 6 suites · 292 envs
+    envs/                  # 6 suites · 300 envs
     verifiers_integration/ # prompt builder, parser, multi-turn env, rubric
     plotting/              # parquet loaders + paper-figure generators
 eval/                      # vf-eval wrappers, random baseline

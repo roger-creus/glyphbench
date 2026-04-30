@@ -1,6 +1,6 @@
 # GlyphBench Environment Catalog
 
-Total environments: 293
+Total environments: 301
 
 ## __Dummy (1 environments)
 
@@ -125,11 +125,11 @@ Total environments: 293
 | `glyphbench/classics-warehouse-v0` | 6 |
 | `glyphbench/classics-wavedefense-v0` | 4 |
 
-## Craftax (35 environments)
+## Craftax (43 environments)
 
 | Env ID | Actions |
 |--------|---------|
-| `glyphbench/craftax-bossfight-v0` | 35 |
+| `glyphbench/craftax-bossfight-v0` | 45 |
 | `glyphbench/craftax-build-shelter-v0` | 19 |
 | `glyphbench/craftax-choptrees-v0` | 19 |
 | `glyphbench/craftax-classic-v0` | 19 |
@@ -137,33 +137,41 @@ Total environments: 293
 | `glyphbench/craftax-craftchain-v0` | 19 |
 | `glyphbench/craftax-craftpickaxe-v0` | 19 |
 | `glyphbench/craftax-craftsword-v0` | 19 |
+| `glyphbench/craftax-diamond-bootstrap-v0` | 19 |
 | `glyphbench/craftax-dungeonclear-v0` | 19 |
 | `glyphbench/craftax-dungeonexplore-v0` | 19 |
-| `glyphbench/craftax-fight-archers-v0` | 35 |
-| `glyphbench/craftax-fight-bats-v0` | 35 |
+| `glyphbench/craftax-fight-archers-v0` | 45 |
+| `glyphbench/craftax-fight-bats-v0` | 45 |
 | `glyphbench/craftax-fight-cow-v0` | 19 |
 | `glyphbench/craftax-fight-skeletons-v0` | 19 |
-| `glyphbench/craftax-fight-spiders-v0` | 35 |
+| `glyphbench/craftax-fight-spiders-v0` | 45 |
 | `glyphbench/craftax-fight-zombies-v0` | 19 |
 | `glyphbench/craftax-fightzombie-v0` | 19 |
 | `glyphbench/craftax-find-diamond-v0` | 19 |
 | `glyphbench/craftax-find-water-v0` | 19 |
 | `glyphbench/craftax-firstday-v0` | 19 |
-| `glyphbench/craftax-floor1-v0` | 35 |
-| `glyphbench/craftax-floor2-v0` | 35 |
-| `glyphbench/craftax-floor3-v0` | 35 |
+| `glyphbench/craftax-floor1-v0` | 45 |
+| `glyphbench/craftax-floor2-v0` | 45 |
+| `glyphbench/craftax-floor3-v0` | 45 |
+| `glyphbench/craftax-floor4-v0` | 45 |
+| `glyphbench/craftax-floor5-v0` | 45 |
+| `glyphbench/craftax-floor6-v0` | 45 |
+| `glyphbench/craftax-floor7-v0` | 45 |
 | `glyphbench/craftax-gatherresources-v0` | 19 |
+| `glyphbench/craftax-iron-bootstrap-v0` | 19 |
+| `glyphbench/craftax-mine-iron-v0` | 19 |
 | `glyphbench/craftax-minestone-v0` | 19 |
+| `glyphbench/craftax-necromancer-v0` | 45 |
 | `glyphbench/craftax-plant-farm-v0` | 19 |
-| `glyphbench/craftax-reach-dungeon-v0` | 35 |
-| `glyphbench/craftax-smelt-iron-v0` | 19 |
-| `glyphbench/craftax-speedrun-v0` | 35 |
+| `glyphbench/craftax-reach-dungeon-v0` | 45 |
+| `glyphbench/craftax-speedrun-v0` | 45 |
 | `glyphbench/craftax-survive-hunger-v0` | 19 |
 | `glyphbench/craftax-survive-night-v0` | 19 |
 | `glyphbench/craftax-survive-thirst-v0` | 19 |
 | `glyphbench/craftax-survive-wild-v0` | 19 |
 | `glyphbench/craftax-survivehorde-v0` | 19 |
-| `glyphbench/craftax-v0` | 35 |
+| `glyphbench/craftax-v0` | 45 |
+| `glyphbench/craftax-wave-defense-v0` | 19 |
 
 ## Minigrid (71 environments)
 

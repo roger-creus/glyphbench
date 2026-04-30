@@ -13,7 +13,7 @@ uv run vllm serve Qwen/Qwen3.5-4B --port 8000
 # 2) smoke test (1 env × 2 episodes)
 bash eval/run_debug.sh
 
-# 3) full eval (292 envs × N episodes)
+# 3) full eval (300 envs × N episodes)
 bash eval/run_full.sh
 ```
 
