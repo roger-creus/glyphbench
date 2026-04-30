@@ -363,3 +363,128 @@ def test_level_up_intelligence_works():
     env._handle_level_up_intelligence()
     assert env._int_attr == 2
     assert env._xp == 0
+
+
+# ---------------------------------------------------------------------------
+# T09γ: Per-attribute scaling functions
+# ---------------------------------------------------------------------------
+
+from glyphbench.envs.craftax.mechanics.progression import (
+    damage_scale_phys,
+    damage_scale_arrow,
+    damage_scale_spell,
+    decay_scale,
+    max_hp_from_str,
+    max_food_from_dex,
+    max_mana_from_int,
+)
+
+
+def test_damage_scale_phys_at_1():
+    """damage_scale_phys(1) == 1.0 (no multiplier at base str)."""
+    assert damage_scale_phys(1) == 1.0
+
+
+def test_damage_scale_phys_at_5():
+    """damage_scale_phys(5) == 2.0 (capped at 2×)."""
+    assert damage_scale_phys(5) == 2.0
+
+
+def test_damage_scale_arrow_at_5():
+    """damage_scale_arrow(5) == 1.8."""
+    assert abs(damage_scale_arrow(5) - 1.8) < 1e-9
+
+
+def test_damage_scale_spell_at_5():
+    """damage_scale_spell(5) == 1.2."""
+    assert abs(damage_scale_spell(5) - 1.2) < 1e-9
+
+
+def test_decay_scale_at_5():
+    """decay_scale(5) == 0.5 (50% chance of decay at max dex)."""
+    assert abs(decay_scale(5) - 0.5) < 1e-9
+
+
+def test_max_hp_from_str():
+    """max_hp_from_str(9, 5) == 13 (base 9 + 4 extra for str=5)."""
+    assert max_hp_from_str(9, 5) == 13
+
+
+def test_max_food_from_dex():
+    """max_food_from_dex(9, 5) == 17 (base 9 + 8 extra for dex=5)."""
+    assert max_food_from_dex(9, 5) == 17
+
+
+def test_max_mana_from_int():
+    """max_mana_from_int(9, 5) == 21 (base 9 + 12 extra for int=5)."""
+    assert max_mana_from_int(9, 5) == 21
+
+
+def test_recompute_max_stats_raises_max_hp_on_str():
+    """Setting _str = 5 and calling _recompute_max_stats raises _max_hp to base + 4."""
+    env = _make_env()
+    base_max_hp = env._max_hp  # should be 9 at str=1
+    env._str = 5
+    env._recompute_max_stats()
+    assert env._max_hp == base_max_hp + 4
+
+
+def test_sword_attack_scales_with_str():
+    """STR=5 melee attack does ~2× the damage of STR=1 attack."""
+    from glyphbench.envs.craftax.full import CraftaxFullEnv
+
+    # STR=1 (baseline)
+    env1 = CraftaxFullEnv()
+    env1.reset(seed=42)
+    env1._str = 1
+    mob1: dict = {"type": "zombie", "x": 0, "y": 0, "hp": 100, "max_hp": 100,
+                  "is_boss": False, "floor": 0, "attack_cooldown": 0}
+    env1._mobs.append(mob1)  # type: ignore[arg-type]
+    hp_before1 = mob1["hp"]
+    env1._attack_mob(mob1)  # type: ignore[arg-type]
+    dmg1 = hp_before1 - mob1["hp"]
+
+    # STR=5 (max)
+    env5 = CraftaxFullEnv()
+    env5.reset(seed=42)
+    env5._str = 5
+    mob5: dict = {"type": "zombie", "x": 0, "y": 0, "hp": 100, "max_hp": 100,
+                  "is_boss": False, "floor": 0, "attack_cooldown": 0}
+    env5._mobs.append(mob5)  # type: ignore[arg-type]
+    hp_before5 = mob5["hp"]
+    env5._attack_mob(mob5)  # type: ignore[arg-type]
+    dmg5 = hp_before5 - mob5["hp"]
+
+    # STR=5 should do exactly 2× the damage of STR=1
+    assert dmg5 == 2 * dmg1, f"Expected {2*dmg1}, got {dmg5}"
+
+
+def test_arrow_damage_scales_with_dex():
+    """DEX=5 arrow damage is ~1.8× DEX=1 arrow damage (rounded to int)."""
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
+    env1 = _make_env()
+    env1._dex = 1
+    env1._inventory["bow"] = 1
+    env1._inventory["arrows"] = 5
+    env1._handle_shoot_arrow()
+    proj1 = env1._player_projectiles[-1]
+    dmg1 = proj1.damage
+
+    env5 = _make_env()
+    env5._dex = 5
+    env5._inventory["bow"] = 1
+    env5._inventory["arrows"] = 5
+    env5._handle_shoot_arrow()
+    proj5 = env5._player_projectiles[-1]
+    dmg5 = proj5.damage
+
+    # dex=5: damage = round(2 * 1.8) = round(3.6) = 4; dex=1: damage = round(2 * 1.0) = 2
+    # Integer rounding means the ratio is 2.0 in practice, which is still
+    # "roughly 1.8×" (within 25% of 1.8).
+    assert proj1.kind == ProjectileType.ARROW
+    assert proj5.kind == ProjectileType.ARROW
+    assert dmg5 == 4
+    assert dmg1 == 2
+    # The scaled damage is larger — that's what matters.
+    assert dmg5 > dmg1

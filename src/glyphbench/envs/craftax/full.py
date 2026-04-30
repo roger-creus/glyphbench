@@ -207,6 +207,9 @@ _MAX_ENERGY = 9
 _MAX_MANA = 10
 _MANA_REGEN_INTERVAL = 20
 
+# Phase γ T09γ: base max HP before attribute scaling.
+_BASE_MAX_HP = 9
+
 _PLANT_RIPEN_STEPS = 20
 _SAPLING_DROP_CHANCE = 0.3
 
@@ -352,13 +355,18 @@ class CraftaxFullEnv(BaseGlyphEnv):
             n: False for n in UPSTREAM_ACHIEVEMENT_NAMES
         }
         self._message: str = ""
-        # Vitals
-        self._hp: int = 9
-        self._max_hp: int = 9
-        self._food: int = _MAX_FOOD
-        self._water: int = _MAX_WATER
-        self._energy: int = _MAX_ENERGY
-        self._mana: int = _MAX_MANA
+        # Vitals — Phase γ T09γ: per-instance max stats (attribute-scaled).
+        # At init, str=dex=int_attr=1, so max values equal the base constants.
+        self._max_hp: int = _BASE_MAX_HP
+        self._max_food: int = _MAX_FOOD
+        self._max_drink: int = _MAX_WATER
+        self._max_energy: int = _MAX_ENERGY
+        self._max_mana: int = _MAX_MANA
+        self._hp: int = self._max_hp
+        self._food: int = self._max_food
+        self._water: int = self._max_drink
+        self._energy: int = self._max_energy
+        self._mana: int = self._max_mana
         # Spells learned (per-spell dict; T10β)
         self._learned_spells: dict[str, bool] = {"fireball": False, "iceball": False}
         # Day/night
@@ -1116,7 +1124,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._is_sleeping = False
 
     def _attack_mob(self, mob: Mob) -> float:
-        damage = 1 + self._best_weapon_bonus()
+        from glyphbench.envs.craftax.mechanics.progression import damage_scale_phys
+        base_damage = 1 + self._best_weapon_bonus()
+        damage = int(round(base_damage * damage_scale_phys(self._str)))
         mob["hp"] -= damage
         reward = 0.0
         if mob["hp"] <= 0:
@@ -1152,7 +1162,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 self._message = "Defeated a skeleton!"
                 reward += self._try_unlock("defeat_skeleton")
             elif mtype == "cow":
-                self._food = min(_MAX_FOOD, self._food + 5)
+                self._food = min(self._max_food, self._food + 5)
                 self._message = (
                     "Defeated a cow! Ate beef. (+5 food)"
                 )
@@ -1594,23 +1604,56 @@ class CraftaxFullEnv(BaseGlyphEnv):
     # Survival mechanics
     # ---------------------------------------------------------------
 
+    def _recompute_max_stats(self) -> None:
+        """Phase γ T09γ: recompute all 5 stat ceilings from current attributes.
+
+        Call after attributes change (reset + each LEVEL_UP_* handler).
+        """
+        from glyphbench.envs.craftax.mechanics.progression import (
+            max_hp_from_str,
+            max_food_from_dex,
+            max_drink_from_dex,
+            max_energy_from_dex,
+            max_mana_from_int,
+        )
+        self._max_hp = max_hp_from_str(_BASE_MAX_HP, self._str)
+        self._max_food = max_food_from_dex(_MAX_FOOD, self._dex)
+        self._max_drink = max_drink_from_dex(_MAX_WATER, self._dex)
+        self._max_energy = max_energy_from_dex(_MAX_ENERGY, self._dex)
+        self._max_mana = max_mana_from_int(_MAX_MANA, self._int_attr)
+
     def _apply_survival_drain(self) -> None:
+        from glyphbench.envs.craftax.mechanics.progression import (
+            decay_scale,
+            mana_regen_scale,
+        )
         if self._food == 0:
             self._hp -= 1
         if self._water == 0:
             self._hp -= 1
         self._hp = max(0, self._hp)
 
+        # Phase γ T09γ: DEX slows need-decay; decay_scale(dex=1) == 1.0 (no change).
+        # We implement stochastic fractional decay: on each drain tick, apply the
+        # fractional multiplier by converting the interval: higher DEX means the
+        # effective drain fires less often. We use a probabilistic approach:
+        # on the normal tick, drain with probability decay_scale(dex).
+        ds = decay_scale(self._dex)
+
         step = self._day_counter
         if step > 0 and step % _FOOD_DRAIN_INTERVAL == 0:
-            self._food = max(0, self._food - 1)
+            if self.rng.random() < ds:
+                self._food = max(0, self._food - 1)
         if step > 0 and step % _WATER_DRAIN_INTERVAL == 0:
-            self._water = max(0, self._water - 1)
+            if self.rng.random() < ds:
+                self._water = max(0, self._water - 1)
         if step > 0 and step % _ENERGY_DRAIN_INTERVAL == 0:
-            self._energy = max(0, self._energy - 1)
-        # Mana regen
+            if self.rng.random() < ds:
+                self._energy = max(0, self._energy - 1)
+        # Mana regen — Phase γ T09γ: INT scales regen amount.
         if step > 0 and step % _MANA_REGEN_INTERVAL == 0:
-            self._mana = min(_MAX_MANA, self._mana + 1)
+            regen = max(1, int(round(mana_regen_scale(self._int_attr))))
+            self._mana = min(self._max_mana, self._mana + regen)
 
         # Tick effects
         if self._speed_turns > 0:
@@ -1691,11 +1734,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._achievements_unlocked = set()
         self._achievements_phase_beta = {n: False for n in UPSTREAM_ACHIEVEMENT_NAMES}
         self._message = ""
-        self._hp = self._max_hp
-        self._food = _MAX_FOOD
-        self._water = _MAX_WATER
-        self._energy = _MAX_ENERGY
-        self._mana = _MAX_MANA
         self._learned_spells = {"fireball": False, "iceball": False}
         self._day_counter = 0
         self._day_night = "day"
@@ -1723,6 +1761,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._dex = 1
         self._str = 1
         self._int_attr = 1
+        # Phase γ T09γ: recompute max stats from fresh attributes, then fill.
+        self._recompute_max_stats()
+        self._hp = self._max_hp
+        self._food = self._max_food
+        self._water = self._max_drink
+        self._energy = self._max_energy
+        self._mana = self._max_mana
 
         self._spawn_initial_cows()
         # Compute initial lightmaps for all generated floors.
@@ -1761,8 +1806,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # the intended game-play path).
         if self._is_sleeping:
             self._hp = min(self._max_hp, self._hp + 2)
-            self._energy = min(_MAX_ENERGY, self._energy + 2)
-            if self._energy >= _MAX_ENERGY:
+            self._energy = min(self._max_energy, self._energy + 2)
+            if self._energy >= self._max_energy:
                 self._is_sleeping = False
                 reward += self._try_unlock("wake_up")
 
@@ -1812,7 +1857,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # Check stat milestones
         if self._hp == self._max_hp:
             reward += self._try_unlock("full_health")
-        if self._mana == _MAX_MANA:
+        if self._mana == self._max_mana:
             reward += self._try_unlock("full_mana")
 
         # Exploration milestones
@@ -1919,10 +1964,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # Drinking from a fountain refills water to max. The tile is NOT
         # consumed — fountains are reusable.
         if tile == TILE_FOUNTAIN:
-            if self._water >= _MAX_WATER:
+            if self._water >= self._max_drink:
                 self._message = "The fountain is full — you are not thirsty."
                 return 0.0
-            self._water = _MAX_WATER
+            self._water = self._max_drink
             self._total_water_drunk += 1
             self._message = "You drink deeply from the fountain. Water restored!"
             reward += self._try_unlock("collect_drink")
@@ -2503,13 +2548,15 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # state.player_position; the same-step advance by _move_player_projectile
         # then carries it to player_pos + 1*dir). Player is always in-bounds,
         # so the old bounds check on spawn_x/spawn_y was vacuous.
+        from glyphbench.envs.craftax.mechanics.progression import damage_scale_spell
         dx, dy = self._facing
         self._mana -= 2
+        fireball_damage = int(round(4 * damage_scale_spell(self._int_attr)))
         self._player_projectiles.append(
             ProjectileEntity(
                 kind=ProjectileType.FIREBALL,
                 x=self._agent_x, y=self._agent_y, dx=dx, dy=dy,
-                damage=4,  # phase-α scalar; phase γ promotes to 3-vector
+                damage=fireball_damage,
             )
         )
         self._message = "You cast a fireball."
@@ -2536,13 +2583,15 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return 0.0
         # Spawn at the player's tile (upstream-faithful; same-step advance
         # carries it to player_pos + 1*dir). Player is always in-bounds.
+        from glyphbench.envs.craftax.mechanics.progression import damage_scale_spell
         dx, dy = self._facing
         self._mana -= 2
+        iceball_damage = int(round(3 * damage_scale_spell(self._int_attr)))
         self._player_projectiles.append(
             ProjectileEntity(
                 kind=ProjectileType.ICEBALL,
                 x=self._agent_x, y=self._agent_y, dx=dx, dy=dy,
-                damage=3,
+                damage=iceball_damage,
             )
         )
         self._message = "You cast an iceball."
@@ -2589,14 +2638,16 @@ class CraftaxFullEnv(BaseGlyphEnv):
         if self._inventory.get("arrows", 0) < 1:
             self._message = "No arrows."
             return 0.0
+        from glyphbench.envs.craftax.mechanics.progression import damage_scale_arrow
         dx, dy = self._facing
         self._inventory["arrows"] -= 1
+        arrow_damage = int(round(2 * damage_scale_arrow(self._dex)))
         self._player_projectiles.append(
             ProjectileEntity(
                 kind=ProjectileType.ARROW,
                 x=self._agent_x, y=self._agent_y,
                 dx=dx, dy=dy,
-                damage=2,  # phase-α scalar; phase γ promotes to 3-vector
+                damage=arrow_damage,
             )
         )
         self._message = "You fired an arrow."
@@ -2627,7 +2678,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         elif mtype == "skeleton":
             reward += self._try_unlock("defeat_skeleton")
         elif mtype == "cow":
-            self._food = min(_MAX_FOOD, self._food + 5)
+            self._food = min(self._max_food, self._food + 5)
             reward += self._try_unlock("eat_cow")
         elif mtype == "kobold":
             reward += self._try_unlock("defeat_kobold")
@@ -2694,7 +2745,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 self._current_grid()[fy][fx] = (
                     TILE_DUNGEON_FLOOR
                 )
-            self._food = min(_MAX_FOOD, self._food + 3)
+            self._food = min(self._max_food, self._food + 3)
             self._total_plants_eaten += 1
             self._message = "Ate a plant. (+3 food)"
             r = self._try_unlock("eat_plant")
@@ -2712,7 +2763,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             and 0 <= fy < fsize
             and self._current_grid()[fy][fx] == TILE_WATER
         ):
-            self._water = _MAX_WATER
+            self._water = self._max_drink
             self._total_water_drunk += 1
             self._message = "Drank water. (water restored)"
             r = self._try_unlock("collect_drink")
@@ -2868,6 +2919,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return 0.0
         self._xp -= 1
         self._dex += 1
+        self._recompute_max_stats()
         self._message = f"Dexterity raised to {self._dex}!"
         return self._try_unlock("level_up_dexterity")
 
@@ -2881,6 +2933,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return 0.0
         self._xp -= 1
         self._str += 1
+        self._recompute_max_stats()
         self._message = f"Strength raised to {self._str}!"
         return self._try_unlock("level_up_strength")
 
@@ -2894,6 +2947,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             return 0.0
         self._xp -= 1
         self._int_attr += 1
+        self._recompute_max_stats()
         self._message = f"Intelligence raised to {self._int_attr}!"
         return self._try_unlock("level_up_intelligence")
 
@@ -3191,10 +3245,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         hud = (
             f"HP: {self._hp}/{self._max_hp}  "
-            f"Food: {self._food}/{_MAX_FOOD}  "
-            f"Water: {self._water}/{_MAX_WATER}  "
-            f"Energy: {self._energy}/{_MAX_ENERGY}  "
-            f"Mana: {self._mana}/{_MAX_MANA}\n"
+            f"Food: {self._food}/{self._max_food}  "
+            f"Water: {self._water}/{self._max_drink}  "
+            f"Energy: {self._energy}/{self._max_energy}  "
+            f"Mana: {self._mana}/{self._max_mana}\n"
             f"Facing: {facing_name}  "
             f"Floor: {floor_str}  "
             f"Time: {time_str}  "
