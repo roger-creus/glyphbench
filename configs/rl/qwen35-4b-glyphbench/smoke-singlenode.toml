@@ -74,7 +74,11 @@ type = "default"
 [[orchestrator.train.env]]
 id = "glyphbench"
 name = "glyphbench-smoke"
-args = { num_episodes = 4, n_frames = 0, max_turns = 20, use_memory = true, memory_update_max_tokens = 1024, max_output_tokens = 2048 }
+# memory disabled for smoke: prime-rl's pretokenizer requires each step's
+# completion to be all-assistant, but memory mode currently packs
+# [assistant_action, user_memory_prompt, assistant_memory_response] into
+# one step. Re-enable after task #24 (split into 2 trajectory steps).
+args = { num_episodes = 4, n_frames = 0, max_turns = 20, use_memory = false, max_output_tokens = 2048 }
 
 [orchestrator.train.sampling]
 temperature = 1.0
@@ -96,7 +100,9 @@ rollouts_per_example = 1
 [[orchestrator.eval.env]]
 id = "glyphbench"
 name = "smoke-eval-minigrid"
-args = { task_id = "glyphbench/minigrid-empty-5x5-v0", num_episodes = 2, n_frames = 0, max_turns = 15, use_memory = true, memory_update_max_tokens = 1024, max_output_tokens = 2048 }
+# memory disabled to match training (eval doesn't pretokenize, so it
+# would technically pass even with memory on, but keep them aligned).
+args = { task_id = "glyphbench/minigrid-empty-5x5-v0", num_episodes = 2, n_frames = 0, max_turns = 15, use_memory = false, max_output_tokens = 2048 }
 
 # --- Inference ---
 
