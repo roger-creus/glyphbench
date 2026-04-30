@@ -112,12 +112,15 @@ check_ssh() {
 
 check_vllm() {
     local host="$1"
-    local url="http://${host}:${INFERENCE_PORT}/v1/models"
+    # Resolve SSH alias -> IP because system DNS doesn't know sf-node-*.
+    local ip
+    ip=$(ssh -G "$host" 2>/dev/null | awk '/^hostname / {print $2}')
+    local url="http://${ip}:${INFERENCE_PORT}/v1/models"
     # No API-key header — prime-rl's inference doesn't enforce auth.
     if curl -fsS --max-time 8 "$url" >/dev/null 2>&1; then
-        echo "  OK:   vllm $host:$INFERENCE_PORT"
+        echo "  OK:   vllm $host:$INFERENCE_PORT (resolved $ip)"
     else
-        echo "  FAIL: vllm $host:$INFERENCE_PORT not responding"
+        echo "  FAIL: vllm $host:$INFERENCE_PORT (resolved $ip) not responding"
         EXIT=1
     fi
 }

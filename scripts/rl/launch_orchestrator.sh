@@ -33,11 +33,13 @@ export NCCL_SOCKET_IFNAME
 
 # Build the comma-separated list of base URLs from the inference nodes array.
 # prime-rl's client.base-url accepts multiple URLs (round-robin / replica pool).
+# Resolve SSH-config aliases to IPs because the orchestrator's HTTP client
+# uses system DNS (which doesn't know sf-node-*).
 BASE_URLS=()
 for n in "${INFERENCE_NODES[@]}"; do
-    BASE_URLS+=("http://${n}:${INFERENCE_PORT}/v1")
+    ip=$(ssh -G "$n" 2>/dev/null | awk '/^hostname / {print $2}')
+    BASE_URLS+=("http://${ip}:${INFERENCE_PORT}/v1")
 done
-# Bash array -> CSV
 BASE_URL_CSV=$(IFS=','; echo "${BASE_URLS[*]}")
 
 mkdir -p "$OUTPUT_DIR"

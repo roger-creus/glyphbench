@@ -62,6 +62,19 @@ for h in "${INFERENCE_NODES[@]}"; do
     "
 done
 
+# Resolve SSH-config aliases (sf-node-*) to IPs for curl/HTTP — system
+# DNS doesn't know these hostnames; only ~/.ssh/config does.
+ssh_resolved_host() {
+    ssh -G "$1" 2>/dev/null | awk '/^hostname / {print $2}'
+}
+
+# Build {hostname -> ip} for the inference nodes for use in curl/HTTP probes.
+declare -A IFER_IP
+for h in "${INFERENCE_NODES[@]}"; do
+    IFER_IP[$h]=$(ssh_resolved_host "$h")
+    echo "  resolved $h -> ${IFER_IP[$h]}"
+done
+
 # 3. Wait for vLLM HTTP endpoints to come up (up to 15 min — first model
 # load is slow). No auth header (prime-rl's inference doesn't enforce auth).
 echo "==> waiting for vllm endpoints (up to 15 min for model load)"
@@ -69,7 +82,8 @@ deadline=$((SECONDS + 900))
 while [ $SECONDS -lt $deadline ]; do
     all_up=1
     for h in "${INFERENCE_NODES[@]}"; do
-        if ! curl -fsS --max-time 4 "http://${h}:${INFERENCE_PORT}/v1/models" >/dev/null 2>&1; then
+        ip="${IFER_IP[$h]}"
+        if ! curl -fsS --max-time 4 "http://${ip}:${INFERENCE_PORT}/v1/models" >/dev/null 2>&1; then
             all_up=0
             break
         fi
