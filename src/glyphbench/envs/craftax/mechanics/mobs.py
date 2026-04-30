@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from enum import Enum
 
+from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
 
 class MobType(Enum):
     """Upstream constants.py:118-123."""
@@ -63,3 +65,17 @@ FLOOR_MOB_MAPPING: tuple[dict[str, str], ...] = (
     # 8 — Boss: [0, 0, 0] — wave-summon defaults; phase γ adds boss progression
     {"passive": "cow", "melee": "zombie", "ranged": "skeleton"},
 )
+
+
+# Maps each ranged-mob name to the projectile type it fires.
+# Upstream: constants.py:320-331 — RANGED_MOB_TYPE_TO_PROJECTILE_TYPE_MAPPING.
+RANGED_MOB_TO_PROJECTILE: dict[str, ProjectileType] = {
+    "skeleton": ProjectileType.ARROW,
+    "gnome_archer": ProjectileType.ARROW,
+    "orc_mage": ProjectileType.FIREBALL,
+    "kobold": ProjectileType.DAGGER,
+    "knight_archer": ProjectileType.ARROW2,
+    "deep_thing": ProjectileType.SLIMEBALL,
+    "fire_elemental": ProjectileType.FIREBALL2,
+    "ice_elemental": ProjectileType.ICEBALL2,
+}

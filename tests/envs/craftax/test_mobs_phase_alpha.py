@@ -52,3 +52,30 @@ def test_floor_mob_mapping_has_nine_floors() -> None:
     assert FLOOR_MOB_MAPPING[0]["passive"] == "cow"
     # Floor 8 is the boss/graveyard floor.
     assert FLOOR_MOB_MAPPING[8]["melee"] == "zombie"
+
+
+def test_ranged_mob_to_projectile_mapping_matches_upstream() -> None:
+    """Upstream constants.py:320-331."""
+    from glyphbench.envs.craftax.mechanics.mobs import RANGED_MOB_TO_PROJECTILE
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
+    expected = {
+        "skeleton": ProjectileType.ARROW,
+        "gnome_archer": ProjectileType.ARROW,
+        "orc_mage": ProjectileType.FIREBALL,
+        "kobold": ProjectileType.DAGGER,
+        "knight_archer": ProjectileType.ARROW2,
+        "deep_thing": ProjectileType.SLIMEBALL,
+        "fire_elemental": ProjectileType.FIREBALL2,
+        "ice_elemental": ProjectileType.ICEBALL2,
+    }
+    assert RANGED_MOB_TO_PROJECTILE == expected
+
+
+def test_ranged_mob_to_projectile_covers_all_ranged_names() -> None:
+    """Every ranged-mob name has a projectile mapping."""
+    from glyphbench.envs.craftax.mechanics.mobs import (
+        RANGED_MOB_TO_PROJECTILE,
+        RANGED_MOB_NAMES,
+    )
+    assert set(RANGED_MOB_TO_PROJECTILE.keys()) == set(RANGED_MOB_NAMES)
