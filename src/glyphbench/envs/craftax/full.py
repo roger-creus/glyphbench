@@ -188,6 +188,12 @@ _DAY_LENGTH = 200
 _NIGHT_LENGTH = 100
 _CYCLE_LENGTH = _DAY_LENGTH + _NIGHT_LENGTH
 
+# Night mob spawn base chance (phase β T17β).
+# At full darkness (light=0.0): effective_chance = _NIGHT_SPAWN_BASE_CHANCE * (1-0)² = 1.0
+# At night ambient (light=0.3): effective_chance ≈ 0.49
+# At full light (light=1.0):  effective_chance = 0.0 (no spawn)
+_NIGHT_SPAWN_BASE_CHANCE = 1.0
+
 _FOOD_DRAIN_INTERVAL = 50
 _WATER_DRAIN_INTERVAL = 40
 _ENERGY_DRAIN_INTERVAL = 100
@@ -1278,6 +1284,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         if self._current_floor != 0:
             return
         num = int(self.rng.integers(2, 5))
+        lm = self._lightmap.get(0)
         for _ in range(num):
             mt = "zombie"  # upstream floor-0 melee mob only (T_FOLLOWUP_A)
             for _att in range(20):
@@ -1296,16 +1303,21 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     and (x, y)
                     != (self._agent_x, self._agent_y)
                 ):
-                    mob: Mob = {
-                        "type": mt,
-                        "x": x, "y": y,
-                        "hp": _MOB_STATS[mt]["hp"],
-                        "max_hp": _MOB_STATS[mt]["hp"],
-                        "is_boss": False,
-                        "floor": 0,
-                        "attack_cooldown": 0,
-                    }
-                    self._mobs.append(mob)
+                    # Phase β T17β: scale spawn chance by (1 - light_level)².
+                    # Darker tiles attract more mobs quadratically (upstream mechanic).
+                    light = float(lm[y, x]) if lm is not None else 0.0
+                    effective_chance = _NIGHT_SPAWN_BASE_CHANCE * (1.0 - light) ** 2
+                    if self.rng.random() < effective_chance:
+                        mob: Mob = {
+                            "type": mt,
+                            "x": x, "y": y,
+                            "hp": _MOB_STATS[mt]["hp"],
+                            "max_hp": _MOB_STATS[mt]["hp"],
+                            "is_boss": False,
+                            "floor": 0,
+                            "attack_cooldown": 0,
+                        }
+                        self._mobs.append(mob)
                     break
 
     def _despawn_night_mobs(self) -> None:

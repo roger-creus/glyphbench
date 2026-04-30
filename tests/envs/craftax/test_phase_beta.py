@@ -1364,3 +1364,97 @@ def test_tiles_past_torch_radius_remain_dark():
     assert float(lm[11, 5]) <= VISIBILITY_THRESHOLD, (
         f"Tile at distance {TORCH_RADIUS+1} should be dark, got {lm[11,5]}"
     )
+
+
+# ---------------------------------------------------------------------------
+# T17β: Darkness²-scaled mob spawn rate
+# ---------------------------------------------------------------------------
+
+def _make_dark_env(light_level: float) -> CraftaxFullEnv:
+    """Return a night-time env with the floor-0 lightmap overridden to *light_level*."""
+    import numpy as np
+    from glyphbench.envs.craftax.full import _SURFACE_SIZE
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=42)
+    # Force night so _spawn_night_mobs is logically active.
+    e._day_night = "night"
+    # Override the entire floor-0 lightmap to the given uniform light level.
+    e._lightmap[0] = np.full((_SURFACE_SIZE, _SURFACE_SIZE), light_level, dtype=float)
+    return e
+
+
+def test_spawn_full_dark_base_chance_one_always_spawns():
+    """With light=0.0 and base_chance=1.0, effective=(1-0)²=1.0 → mobs always spawn.
+
+    We call _spawn_night_mobs 30 times in pitch darkness and assert at least one
+    zombie is spawned (chance of zero zombies in 30 tries is astronomically small).
+    """
+    e = _make_dark_env(light_level=0.0)
+    e._mobs = []  # clear any existing mobs
+    for _ in range(30):
+        e._spawn_night_mobs()
+    zombies = [m for m in e._mobs if m["type"] == "zombie" and m["floor"] == 0]
+    assert len(zombies) > 0, (
+        "At full darkness (light=0.0) with base_chance=1.0, mobs should always spawn"
+    )
+
+
+def test_spawn_full_lit_never_spawns():
+    """With light=1.0, effective=(1-1)²=0.0 → no mobs spawn regardless of base_chance.
+
+    100 calls to _spawn_night_mobs with a fully lit map must produce zero zombies.
+    """
+    e = _make_dark_env(light_level=1.0)
+    e._mobs = []
+    for _ in range(100):
+        e._spawn_night_mobs()
+    zombies = [m for m in e._mobs if m["type"] == "zombie" and m["floor"] == 0]
+    assert len(zombies) == 0, (
+        f"At full light (light=1.0), effective_chance=0 → no mobs should spawn; "
+        f"got {len(zombies)}"
+    )
+
+
+def test_spawn_half_light_quadratic_dampening():
+    """With light=0.5, effective=base*(1-0.5)²=0.25 → ~25% of base-rate spawns.
+
+    Strategy: run many spawn calls at light=0.5 using a fresh env per seed so
+    the probability gate fires independently.  Over 500 fresh envs each calling
+    _spawn_night_mobs once, at light=0.5 we expect ~25% of at-most-4 slots to
+    produce a zombie.  We assert the total < what we get at light=0.0 (all spawns).
+    To avoid RNG-synchronisation artifacts we vary the seed per trial.
+    """
+    import numpy as np
+    from glyphbench.envs.craftax.full import _SURFACE_SIZE
+
+    n_trials = 500
+
+    def count_spawned(light: float) -> int:
+        total = 0
+        for seed in range(n_trials):
+            e = CraftaxFullEnv(max_turns=500)
+            e.reset(seed=seed)
+            e._day_night = "night"
+            e._lightmap[0] = np.full(
+                (_SURFACE_SIZE, _SURFACE_SIZE), light, dtype=float
+            )
+            e._mobs = []
+            e._spawn_night_mobs()
+            total += sum(
+                1 for m in e._mobs if m["type"] == "zombie" and m["floor"] == 0
+            )
+        return total
+
+    count_dark = count_spawned(0.0)   # effective_chance = 1.0 → all valid positions spawn
+    count_half = count_spawned(0.5)   # effective_chance = 0.25 → ~25% spawn
+
+    # At light=0.0 every valid candidate spawns; at light=0.5 only ~25% do.
+    # Over 500 seeds the gap is large enough to be robust.
+    assert count_half < count_dark, (
+        f"light=0.5 should produce fewer spawns than light=0.0 "
+        f"(got dark={count_dark}, half={count_half})"
+    )
+    # Sanity: at least some mobs spawned in the dark (deterministic at 1.0 chance).
+    assert count_dark > 0, (
+        "Expected >0 zombies in pitch darkness across 500 spawn calls"
+    )
