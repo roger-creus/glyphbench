@@ -1,5 +1,8 @@
 # Craftax — Boss: The Necromancer
 
+> Canonical anchors (locked API): `boss`.
+
+<!-- :section boss -->
 ## Location and context
 
 The Necromancer is the final boss, located exclusively on **floor 8 (Graveyard)**. Floor 8 has no STAIRS_DOWN; the player cannot leave once the fight begins. Food, drink, and energy do **not** decay on floor 8 — vitals are frozen for the encounter.
@@ -71,3 +74,4 @@ All incoming damage on floor 8 is multiplied by **1.5×** (applied after armor r
 7. Repeat steps 4–6 **8 times total** to win.
 
 Each wave is manageable individually. The danger is being overwhelmed if vitals are low or armor is insufficient. Potions and REST can be used between waves. Since vitals do not decay on floor 8, there is no time pressure between waves.
+<!-- :end -->
