@@ -54,6 +54,7 @@ from glyphbench.envs.craftax.base import (
     TILE_RUBY,
     TILE_SAPPHIRE,
     TILE_ENCHANT_FIRE,
+    TILE_ENCHANT_ICE,
     TILE_STAIRS_DOWN,
     TILE_STAIRS_UP,
     TILE_STONE,
@@ -444,7 +445,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "DESCEND on > goes deeper. ASCEND on < goes up. "
             "Dungeons are dark; PLACE_TORCH (consumes 1 crafted torch) for light. "
             "Each floor has a boss (W behind B door). "
-            "Floor 4 (Vaults) contains a fire enchantment table (Ⓔ); "
+            "Floor 3 (Sewers) hosts an ice enchantment table (Ⓘ); "
+            "Floor 4 (Vaults) hosts a fire enchantment table (Ⓔ); "
             "enchantment-table interaction is unlocked in phase γ.\n\n"
             + self.action_spec.render_for_prompt()
         )
@@ -818,10 +820,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
         probability per room.  Boss, mob spawning, and resource scattering are
         then layered on top of the generated grid.
 
-        Floor 4 (Vaults) additionally receives 1 ``TILE_ENCHANT_FIRE`` tile
-        placed in the middle of the second room (deterministic position given
-        the seeded generator).  Phase γ will wire the enchantment-table
-        interaction semantics; this task only places the tile.
+        Floor 3 (Sewers) receives 1 ``TILE_ENCHANT_ICE`` tile and floor 4
+        (Vaults) receives 1 ``TILE_ENCHANT_FIRE`` tile, each placed on the
+        first available dungeon-floor cell in row-major order (deterministic
+        for a given seed).  Phase γ will wire the enchantment-table
+        interaction semantics; this task only places the tiles.
         """
         from glyphbench.envs.craftax.mechanics.world_gen import generate_dungeon_floor
 
@@ -895,10 +898,26 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     grid[ry][rx] = res
                     break
 
-        # T20β: Floor 4 (Vaults) — place 1 TILE_ENCHANT_FIRE tile.
+        # T20β fixup: Floor 3 (Sewers) — place 1 TILE_ENCHANT_ICE tile.
+        # T20β:        Floor 4 (Vaults) — place 1 TILE_ENCHANT_FIRE tile.
         # We scan the grid in row-major order and place it on the first
         # TILE_DUNGEON_FLOOR cell that is not a stair or reserved position.
         # This gives a deterministic location for a given seed.
+        if floor == 3:
+            _reserved = {stairs_up_pos, stairs_down_pos}
+            _placed_enchant = False
+            for _ey in range(size):
+                if _placed_enchant:
+                    break
+                for _ex in range(size):
+                    if (
+                        grid[_ey][_ex] == TILE_DUNGEON_FLOOR
+                        and (_ex, _ey) not in _reserved
+                    ):
+                        grid[_ey][_ex] = TILE_ENCHANT_ICE
+                        _placed_enchant = True
+                        break
+
         if floor == 4:
             _reserved = {stairs_up_pos, stairs_down_pos}
             _placed_enchant = False

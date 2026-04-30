@@ -1816,6 +1816,51 @@ def test_floor_4_has_enchant_fire_tile():
     )
 
 
+# ---------------------------------------------------------------------------
+# T20β fixup: TILE_ENCHANT_ICE on floor 3 (Sewers)
+# ---------------------------------------------------------------------------
+
+def test_tile_enchant_ice_is_single_codepoint():
+    """TILE_ENCHANT_ICE must be exactly 1 Unicode code point."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_ICE
+    assert len(TILE_ENCHANT_ICE) == 1, (
+        f"TILE_ENCHANT_ICE must be a single codepoint, got len={len(TILE_ENCHANT_ICE)!r}"
+    )
+
+
+def test_tile_enchant_ice_disjoint_from_palette():
+    """TILE_ENCHANT_ICE must not collide with any other tile constant."""
+    from glyphbench.envs.craftax import base as _base
+    all_tiles = {
+        name: getattr(_base, name)
+        for name in dir(_base)
+        if name.startswith("TILE_") and name != "TILE_ENCHANT_ICE"
+    }
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_ICE
+    for name, glyph in all_tiles.items():
+        assert glyph != TILE_ENCHANT_ICE, (
+            f"TILE_ENCHANT_ICE collides with {name} (both = {TILE_ENCHANT_ICE!r})"
+        )
+
+
+def test_floor_3_has_enchant_ice_tile():
+    """Floor 3 must contain at least 1 TILE_ENCHANT_ICE tile after reset."""
+    from glyphbench.envs.craftax.base import TILE_ENCHANT_ICE
+
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=42)
+
+    floor3_grid = e._floors[3]
+    found = any(
+        cell == TILE_ENCHANT_ICE
+        for row in floor3_grid
+        for cell in row
+    )
+    assert found, (
+        "Floor 3 (Sewers) should have at least 1 TILE_ENCHANT_ICE tile"
+    )
+
+
 def test_floor_4_has_stairs_down_from_floor_3():
     """Floor 3 must have a TILE_STAIRS_DOWN leading to floor 4 after reset."""
     from glyphbench.envs.craftax.base import TILE_STAIRS_DOWN

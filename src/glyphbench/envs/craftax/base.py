@@ -188,10 +188,12 @@ TILE_CHEST = "$"  # $ dollar sign — chest (interactable loot container)
 # from the existing palette.
 TILE_FOUNTAIN = "⊙"  # ⊙ U+2299 circled dot — dungeon fountain (refills water)
 
-# Phase β enchantment-table tiles (T20β). "Ⓔ" U+24BA (circled E) is
-# single-codepoint and disjoint from the existing palette. Phase γ will wire
-# the enchant-table semantics; this task only places the tile on floor 4.
-TILE_ENCHANT_FIRE = "Ⓔ"  # Ⓔ U+24BA circled latin capital letter E — fire enchantment table
+# Phase β enchantment-table tiles (T20β). "Ⓔ" U+24BA (circled E) and
+# "Ⓘ" U+24BE (circled I) are both single-codepoint and disjoint from the
+# existing palette. Phase γ will wire the enchant-table semantics.
+# Floor 3 (Sewers) hosts the ice table; floor 4 (Vaults) hosts the fire table.
+TILE_ENCHANT_FIRE = "Ⓔ"  # Ⓔ U+24BA circled latin capital letter E — fire enchantment table (floor 4)
+TILE_ENCHANT_ICE  = "Ⓘ"  # Ⓘ U+24BE circled latin capital letter I — ice enchantment table (floor 3)
 
 # Stage 0 achievements (first 8, kept for backward compatibility)
 STAGE0_ACHIEVEMENTS = (
