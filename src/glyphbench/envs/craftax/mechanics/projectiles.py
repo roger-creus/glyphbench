@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Callable
 
 
 class ProjectileType(Enum):
@@ -37,3 +38,30 @@ class ProjectileEntity:
         """Move one tile along the direction vector."""
         self.x += self.dx
         self.y += self.dy
+
+
+def step_player_projectiles(
+    projectiles: list[ProjectileEntity],
+    *,
+    map_w: int,
+    map_h: int,
+    blocked_fn: Callable[[int, int], bool],
+    hit_fn: Callable[[int, int], bool],
+) -> list[ProjectileEntity]:
+    """Advance each projectile one tile. Drop those that:
+    - go out of map bounds, OR
+    - land on a blocked tile (solid block), OR
+    - register a hit on a target (mob).
+    Returns the surviving projectiles list.
+    """
+    survivors: list[ProjectileEntity] = []
+    for p in projectiles:
+        p.advance()
+        if p.x < 0 or p.x >= map_w or p.y < 0 or p.y >= map_h:
+            continue
+        if blocked_fn(p.x, p.y):
+            continue
+        if hit_fn(p.x, p.y):
+            continue
+        survivors.append(p)
+    return survivors

@@ -3,6 +3,7 @@ from glyphbench.envs.craftax.full import CraftaxFullEnv
 from glyphbench.envs.craftax.mechanics.projectiles import (
     ProjectileEntity,
     ProjectileType,
+    step_player_projectiles,
 )
 
 
@@ -57,3 +58,15 @@ def test_full_env_has_projectile_lists_after_reset() -> None:
     # New state fields exist and start empty.
     assert env._player_projectiles == []
     assert env._mob_projectiles == []
+
+
+def test_player_projectile_advances_each_step() -> None:
+    proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=2)
+    step_player_projectiles([proj], map_w=20, map_h=20, blocked_fn=lambda x, y: False, hit_fn=lambda x, y: False)
+    assert (proj.x, proj.y) == (6, 5)
+
+
+def test_player_projectile_expires_off_map() -> None:
+    proj = ProjectileEntity(kind=ProjectileType.ARROW, x=19, y=5, dx=1, dy=0, damage=2)
+    survivors = step_player_projectiles([proj], map_w=20, map_h=20, blocked_fn=lambda x, y: False, hit_fn=lambda x, y: False)
+    assert survivors == []
