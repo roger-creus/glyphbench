@@ -85,7 +85,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "craft stone armor (2 stone, table)",
         "craft iron armor (2 iron, table+furnace)",
         "craft diamond armor (1 diamond+1 iron, table+furnace)",
-        "cast fireball (3 mana, 4 dmg in 2-tile radius)",
+        "cast fireball (2 mana, single-target projectile)",
         "cast iceball (temporarily unavailable in this build)",
         "drink a potion from inventory",
         "eat a ripe plant you face to restore food",
