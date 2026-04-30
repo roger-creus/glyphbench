@@ -174,8 +174,8 @@ class PlunderEnv(ProcgenBase):
 
     def _task_description(self) -> str:
         return (
-            "You captain a ship (@) on the sea (\u2248). Pirate ships (P) approach "
-            "from the top. FIRE shoots cannonballs (^) upward. "
+            "You captain a ship (@) on the sea (\u2248). Pirate ships (P) "
+            "approach across the water; FIRE launches cannonballs (^). "
             "+1 per pirate sunk. -1 per civilian (c) hit. "
             "Colliding with any ship destroys you."
         )

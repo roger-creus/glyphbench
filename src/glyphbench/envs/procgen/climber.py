@@ -197,7 +197,7 @@ class ClimberEnv(ProcgenBase):
 
     def _task_description(self) -> str:
         return (
-            "Climb upward by jumping between platforms. Collect stars (*) "
-            "for +1 each. Reach the goal (G) at the top for +5. "
+            "Jump between platforms to climb. Collect stars (*) for +1 "
+            "each. Reach the goal (G) for +5. "
             "Avoid enemies (E) that patrol platforms."
         )

@@ -192,6 +192,6 @@ class JumperEnv(ProcgenBase):
 
     def _task_description(self) -> str:
         return (
-            "Run and jump across platforms to reach the goal (G) at the "
-            "right end for +5 reward. Avoid spikes (^) and enemies (E)."
+            "Run and jump across platforms to reach the goal (G) for "
+            "+5 reward. Avoid spikes (^) and enemies (E)."
         )

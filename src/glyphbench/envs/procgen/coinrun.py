@@ -92,8 +92,8 @@ class CoinRunEnv(BaseGlyphEnv):
         return (
             "You are playing Procgen CoinRun.\n\n"
             "TASK\n"
-            "Run right through a side-scrolling level, jump over obstacles, "
-            "and collect the coin (C) at the end for +5 reward. Falling into "
+            "Move through a side-scrolling level, jump over obstacles, "
+            "and collect the coin (C) for +5 reward. Falling into "
             "a pit (P), touching a saw blade (S), or hitting an enemy (m/M) "
             "kills you (0 reward).\n\n"
             "VIEW\n"

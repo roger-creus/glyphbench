@@ -184,7 +184,7 @@ class StarPilotEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "You pilot a ship (@) in a horizontal shoot-em-up. "
-            "Enemies (E, V) approach from the right. FIRE shoots bullets (-). "
+            "Enemies (E, V) approach across the field. FIRE shoots bullets (-). "
             "+1 per enemy destroyed, +5 per power-up ($) collected. "
             "Colliding with an enemy destroys you."
         )

@@ -262,7 +262,7 @@ class LeaperEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Cross roads (avoid cars V) and rivers (ride logs \u25ac) to reach "
-            "the goal row (G) at the top for +5 reward. Water (\u2248) is deadly "
+            "the goal row (G) for +5 reward. Water (\u2248) is deadly "
             "unless you stand on a log."
         )
 

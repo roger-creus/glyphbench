@@ -182,7 +182,7 @@ class _SnakeBase(BaseGlyphEnv):
             "Avoid hitting the walls or your own body.\n\n"
             "RULES\n"
             f"- The grid is {self._grid_size}x{self._grid_size} with walls around the border.\n"
-            "- The snake starts at length 3 in the center moving right.\n"
+            "- The snake starts at length 3 moving right.\n"
             "- Each food eaten grows the snake by 1 and gives +1 reward.\n"
             "- The game ends if you hit a wall or your own body.\n"
             "- You cannot reverse direction (e.g., moving RIGHT cannot switch to LEFT).\n\n"
