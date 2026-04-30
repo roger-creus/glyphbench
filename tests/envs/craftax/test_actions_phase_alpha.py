@@ -231,6 +231,38 @@ def test_shoot_arrow_no_op_without_arrows() -> None:
     assert env._player_projectiles == []
 
 
+def test_full_action_spec_size_and_ordering_post_phase_alpha() -> None:
+    """Phase α net: -2 (CAST_HEAL T04, MAKE_SPELL_SCROLL T05) + 3
+    (MAKE_ARROW T14, MAKE_TORCH T15, SHOOT_ARROW T17) = +1.
+    Original full spec was 35; phase α leaves it at 36.
+    Phase β will add REST + DRINK_POTION_* (6 colours) + READ_BOOK.
+    Phase γ will add LEVEL_UP_* (3) + ENCHANT_BOW.
+    """
+    spec = CRAFTAX_FULL_ACTION_SPEC
+    assert len(spec.names) == 36, f"expected 36, got {len(spec.names)}: {spec.names}"
+    # Required new names present (T14/T15/T17):
+    for name in ("SHOOT_ARROW", "MAKE_ARROW", "MAKE_TORCH"):
+        assert name in spec.names, f"missing required action {name!r}"
+    # Spell + place actions retained (semantics changed but names same):
+    for name in ("CAST_FIREBALL", "CAST_ICEBALL", "PLACE_TORCH"):
+        assert name in spec.names, f"missing required action {name!r}"
+    # Removed names absent (T04/T05):
+    for name in ("CAST_HEAL", "MAKE_SPELL_SCROLL"):
+        assert name not in spec.names, f"removed action {name!r} still in spec"
+    # Names tuple length matches descriptions tuple length.
+    assert len(spec.names) == len(spec.descriptions), (
+        f"names ({len(spec.names)}) and descriptions ({len(spec.descriptions)}) misaligned"
+    )
+
+
+def test_full_action_spec_descriptions_well_formed() -> None:
+    """Each description is a non-empty string."""
+    spec = CRAFTAX_FULL_ACTION_SPEC
+    for name, desc in zip(spec.names, spec.descriptions):
+        assert isinstance(desc, str), f"description for {name} is not a str"
+        assert desc.strip(), f"description for {name} is empty/whitespace"
+
+
 def test_full_env_prompt_mentions_new_phase_alpha_actions() -> None:
     """T27: phase-α actions are present, removed actions are absent."""
     env = CraftaxFullEnv()
