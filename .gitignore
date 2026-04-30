@@ -46,6 +46,8 @@ outputs/
 specs/
 plans/
 notebooks/
+.worktrees/
+worktrees/
 .claude/
 .claude*
 .cursor/
