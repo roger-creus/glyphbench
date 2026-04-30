@@ -14,7 +14,7 @@ src/glyphbench/
     rl/                     # custom advantage / loss hooks for prime-rl
     cli.py                  # `glyphbench` / `gb replay` CLI entry point
 
-eval/                       # vf-eval wrappers, random-agent baseline
+eval/                       # `prime eval run` wrappers, random-agent baseline
 configs/                    # endpoint registry (endpoints.toml)
 scripts/                    # demo, trajectory replay, GIF export, upload tools
 docs/                       # this directory + REPLAY, OBSERVATION_FORMAT,
