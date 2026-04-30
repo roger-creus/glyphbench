@@ -210,7 +210,8 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             vf.SystemMessage(content=system_text),
             vf.UserMessage(content=initial_user_text),
         ]
-        return await super().setup_state(state)
+        await super().setup_state(state)
+        return state
 
     def _render_action_user(
         self, game: BaseGlyphEnv, state: dict[str, Any], *, turn: int

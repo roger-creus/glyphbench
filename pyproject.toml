@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "verifiers @ git+https://github.com/PrimeIntellect-ai/verifiers.git@77a9f28",
+    "verifiers @ git+https://github.com/PrimeIntellect-ai/verifiers.git@980a9ea",
     "datasets>=3.0",
     "openai>=1.50",
     "numpy>=2.0",
@@ -51,10 +51,10 @@ eval = [
     "vllm>=0.8",
     "torch>=2.4",
 ]
-# RL training (prime-rl, heavy install — wired up in Milestone 6 via Dockerfile;
-# installing locally requires the full set of uv sources prime-rl itself defines,
-# so this extra is deliberately empty for now and is satisfied inside the container)
-rl = []
+# RL training (prime-rl pinned at a specific commit; bump deliberately).
+rl = [
+    "prime-rl @ git+https://github.com/PrimeIntellect-ai/prime-rl.git@af17a555fe8a697e665ec2235935a07f182607a0",
+]
 # Analysis and plotting
 analysis = [
     "pyarrow>=17.0",
@@ -88,6 +88,13 @@ allow-direct-references = true
 
 [tool.uv]
 managed = true
+environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+]
+override-dependencies = [
+    "transformers>=5.1.0.dev0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
