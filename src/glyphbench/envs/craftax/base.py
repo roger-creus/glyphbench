@@ -42,7 +42,7 @@ CRAFTAX_ACTION_SPEC = ActionSpec(
     ),
 )
 
-# Full Craftax action spec (35 actions)
+# Full Craftax action spec (36 actions)
 CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
     names=(
         "NOOP", "MOVE_LEFT", "MOVE_RIGHT", "MOVE_UP", "MOVE_DOWN",
@@ -61,6 +61,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "ENCHANT_WEAPON", "ENCHANT_ARMOR",
         "MAKE_ARROW",
         "MAKE_TORCH",
+        "SHOOT_ARROW",
     ),
     descriptions=(
         "do nothing this turn",
@@ -98,6 +99,7 @@ CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
         "enchant armor (+1 def, diamond+coal, table+furnace)",
         "craft 2 arrows (1 wood + 1 stone, requires adjacent table)",
         "craft 4 torches (1 wood + 1 coal, requires adjacent table)",
+        "shoot an arrow in your facing direction (requires bow + 1 arrow)",
     ),
 )
 
@@ -178,7 +180,7 @@ ALL_CLASSIC_ACHIEVEMENTS = (
     "eat_cow",
 )
 
-# All 80 Craftax Full achievements
+# All 81 Craftax Full achievements
 ALL_FULL_ACHIEVEMENTS = (
     # -- Classic 22 --
     "collect_wood",
@@ -277,10 +279,11 @@ ALL_FULL_ACHIEVEMENTS = (
     "collect_10_wood",
     "collect_5_stone",
     "collect_3_iron",
-    # -- Phase α additions (2) --
+    # -- Phase α additions (3) --
     "make_arrow",
     "make_torch",
-    # -- Total: 80 --
+    "fire_bow",
+    # -- Total: 81 --
 )
 
 # Visible window dimensions

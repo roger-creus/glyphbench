@@ -181,3 +181,51 @@ def test_place_torch_no_op_when_target_tile_not_empty() -> None:
     env.step(action_idx)
 
     assert env._inventory["torch"] == 1, "torch NOT consumed when placement fails"
+
+
+def test_shoot_arrow_spawns_arrow_projectile_consumes_one_arrow() -> None:
+    """Upstream SHOOT_ARROW: requires bow + 1 arrow, spawns ARROW projectile at player tile."""
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["bow"] = 1
+    env._inventory["arrows"] = 3
+    env._facing = (1, 0)
+    env._agent_x, env._agent_y = 5, 5
+
+    reward = env._handle_shoot_arrow()
+
+    assert isinstance(reward, float)
+    assert env._inventory["arrows"] == 2
+    assert len(env._player_projectiles) == 1
+    p = env._player_projectiles[0]
+    assert p.kind == ProjectileType.ARROW
+    # Upstream-faithful spawn: at the player's tile, NOT player+dir.
+    # The per-step driver will advance it +dir on the same step.
+    assert (p.x, p.y) == (5, 5)
+    assert (p.dx, p.dy) == (1, 0)
+
+
+def test_shoot_arrow_no_op_without_bow() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["bow"] = 0
+    env._inventory["arrows"] = 5
+    initial_arrows = env._inventory["arrows"]
+
+    env._handle_shoot_arrow()
+
+    assert env._inventory["arrows"] == initial_arrows, "no arrows consumed without bow"
+    assert env._player_projectiles == []
+
+
+def test_shoot_arrow_no_op_without_arrows() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._inventory["bow"] = 1
+    env._inventory["arrows"] = 0
+
+    env._handle_shoot_arrow()
+
+    assert env._player_projectiles == []

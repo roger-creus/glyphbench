@@ -308,7 +308,10 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "Enchant adds +2 weapon dmg or +1 armor def.\n\n"
             "CRAFTING (at adjacent table)\n"
             "MAKE_ARROW: 1 wood + 1 stone -> 2 arrows (table required).\n"
-            "MAKE_TORCH: 1 wood + 1 coal -> 4 torches (table required).\n\n"
+            "MAKE_TORCH: 1 wood + 1 coal -> 4 torches (table required).\n"
+            "Note: bows are not craftable in phase α; they drop from chests (phase β).\n\n"
+            "RANGED\n"
+            "SHOOT_ARROW: fires 1 arrow forward (requires bow + arrow).\n\n"
             "MAGIC\n"
             "CAST_FIREBALL / CAST_ICEBALL (2 mana each): spawn a fireball / iceball projectile one tile in front of you; travels 1 tile/turn until it hits a target or wall.\n\n"
             "DUNGEONS\n"
@@ -1818,6 +1821,38 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._message = "You cast an iceball."
         return self._try_unlock("cast_iceball")
 
+    def _handle_shoot_arrow(self) -> float:
+        """Spawn an arrow projectile at the player's tile.
+
+        Mirrors upstream SHOOT_ARROW (action 24). Requires a bow and at least
+        1 arrow in inventory. Spawn position is the player's own tile; the
+        per-step driver advances the projectile +1 tile/turn in the agent's
+        facing direction.
+        """
+        from glyphbench.envs.craftax.mechanics.projectiles import (
+            ProjectileEntity,
+            ProjectileType,
+        )
+
+        if self._inventory.get("bow", 0) < 1:
+            self._message = "You need a bow to shoot arrows."
+            return 0.0
+        if self._inventory.get("arrows", 0) < 1:
+            self._message = "No arrows."
+            return 0.0
+        dx, dy = self._facing
+        self._inventory["arrows"] -= 1
+        self._player_projectiles.append(
+            ProjectileEntity(
+                kind=ProjectileType.ARROW,
+                x=self._agent_x, y=self._agent_y,
+                dx=dx, dy=dy,
+                damage=2,  # phase-α scalar; phase γ promotes to 3-vector
+            )
+        )
+        self._message = "You fired an arrow."
+        return self._try_unlock("fire_bow")
+
     def _attack_mob_kill(self, mob: Mob) -> float:
         """Handle mob death from spells (mob already at <= 0 HP)."""
         if mob in self._mobs:
@@ -2070,6 +2105,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         "ENCHANT_ARMOR": _handle_enchant_armor,
         "MAKE_ARROW": _handle_make_arrow,
         "MAKE_TORCH": _handle_make_torch,
+        "SHOOT_ARROW": _handle_shoot_arrow,
     }
 
     # ---------------------------------------------------------------
