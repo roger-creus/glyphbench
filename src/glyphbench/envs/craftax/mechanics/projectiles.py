@@ -23,7 +23,7 @@ class ProjectileType(Enum):
     ICEBALL2 = 7
 
 
-@dataclass
+@dataclass(slots=True)
 class ProjectileEntity:
     """A projectile travelling 1 tile/turn along (dx, dy)."""
     kind: ProjectileType

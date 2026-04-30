@@ -27,6 +27,19 @@ def test_projectile_type_enum_has_eight_upstream_variants() -> None:
     assert {p.name for p in ProjectileType} == expected
 
 
+def test_projectile_type_enum_integer_values_match_upstream() -> None:
+    """Pin integer values — downstream code (T19 RANGED_MOB_TO_PROJECTILE,
+    T26 renderer) indexes by .value, so order matters as much as names."""
+    assert ProjectileType.ARROW.value == 0
+    assert ProjectileType.DAGGER.value == 1
+    assert ProjectileType.FIREBALL.value == 2
+    assert ProjectileType.ICEBALL.value == 3
+    assert ProjectileType.ARROW2.value == 4
+    assert ProjectileType.SLIMEBALL.value == 5
+    assert ProjectileType.FIREBALL2.value == 6
+    assert ProjectileType.ICEBALL2.value == 7
+
+
 def test_projectile_advances_one_tile_per_step() -> None:
     p = ProjectileEntity(
         kind=ProjectileType.ARROW, x=5, y=7, dx=1, dy=0, damage=2,
