@@ -297,7 +297,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "iron armor 3, diamond armor 4.\n"
             "Enchant adds +2 weapon dmg or +1 armor def.\n\n"
             "MAGIC\n"
-            "CAST_FIREBALL (3 mana), CAST_ICEBALL (2 mana).\n\n"
+            "CAST_FIREBALL (3 mana). CAST_ICEBALL is temporarily unavailable.\n\n"
             "DUNGEONS\n"
             "DESCEND on > goes deeper. ASCEND on < goes up. "
             "Dungeons are dark; PLACE_TORCH for light. "
@@ -1672,8 +1672,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return reward
 
     def _handle_cast_iceball(self) -> float:
-        """No-op placeholder — Task 11 reintroduces iceball as a travelling projectile."""
-        self._message = "iceball is unavailable this turn (phase α placeholder)"
+        """Placeholder until T11 reintroduces iceball as a travelling projectile."""
+        self._message = "Iceball is temporarily unavailable."
         return 0.0
 
     def _attack_mob_kill(self, mob: Mob) -> float:
