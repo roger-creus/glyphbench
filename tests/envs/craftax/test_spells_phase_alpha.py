@@ -8,26 +8,53 @@ def test_mob_typeddict_no_frozen_turns_field() -> None:
     assert "frozen_turns" not in Mob.__annotations__
 
 
-def test_cast_iceball_placeholder_is_a_no_op() -> None:
-    """T06 leaves CAST_ICEBALL as a placeholder until T11 reintroduces it as a projectile.
+def test_cast_iceball_spawns_projectile_entity_no_freeze() -> None:
+    """Upstream cast_spell:2547-2599 spawns a projectile; no freeze, no AOE.
+    Mirror of test_cast_fireball_spawns_projectile_entity_no_aoe."""
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
 
-    Call the handler directly (not via env.step) so the per-step achievement-message
-    machinery does not overwrite the placeholder text. The handler-level contract is:
-    return 0.0, do not consume mana, set a player-facing (non-dev) message.
-    """
     env = CraftaxFullEnv()
     env.reset(seed=0)
     env._mana = 5
-    initial_mana = env._mana
+    env._spells_learned = 1
+    env._facing = (0, 1)
+    env._agent_x, env._agent_y = 5, 5
 
     reward = env._handle_cast_iceball()
 
-    assert reward == 0.0, "placeholder must return 0 reward"
-    assert env._mana == initial_mana, "placeholder must not consume mana"
-    assert "iceball" in env._message.lower(), "message should mention iceball"
-    # No internal-development metadata should leak into agent-visible text.
-    assert "phase" not in env._message.lower()
-    assert "placeholder" not in env._message.lower()
+    assert isinstance(reward, float)
+    assert len(env._player_projectiles) == 1
+    p = env._player_projectiles[0]
+    assert p.kind == ProjectileType.ICEBALL
+    assert (p.x, p.y) == (5, 6)
+    assert (p.dx, p.dy) == (0, 1)
+    assert env._mana == 3, "cost is 2 mana per upstream"
+
+
+def test_cast_iceball_no_op_without_spells_learned() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._spells_learned = 0
+    env._mana = 5
+    initial_mana = env._mana
+
+    env._handle_cast_iceball()
+
+    assert env._player_projectiles == []
+    assert env._mana == initial_mana
+
+
+def test_cast_iceball_no_op_without_enough_mana() -> None:
+    env = CraftaxFullEnv()
+    env.reset(seed=0)
+    env._spells_learned = 1
+    env._mana = 1
+    initial_mana = env._mana
+
+    env._handle_cast_iceball()
+
+    assert env._player_projectiles == []
+    assert env._mana == initial_mana
 
 
 def test_cast_fireball_spawns_projectile_entity_no_aoe() -> None:

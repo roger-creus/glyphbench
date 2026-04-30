@@ -297,7 +297,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             "iron armor 3, diamond armor 4.\n"
             "Enchant adds +2 weapon dmg or +1 armor def.\n\n"
             "MAGIC\n"
-            "CAST_FIREBALL (2 mana): spawns a fireball projectile one tile in front of you; travels 1 tile/turn until it hits a target or wall. CAST_ICEBALL is temporarily unavailable.\n\n"
+            "CAST_FIREBALL / CAST_ICEBALL (2 mana each): spawn a fireball / iceball projectile one tile in front of you; travels 1 tile/turn until it hits a target or wall.\n\n"
             "DUNGEONS\n"
             "DESCEND on > goes deeper. ASCEND on < goes up. "
             "Dungeons are dark; PLACE_TORCH for light. "
@@ -1682,9 +1682,39 @@ class CraftaxFullEnv(BaseGlyphEnv):
         return self._try_unlock("cast_fireball")
 
     def _handle_cast_iceball(self) -> float:
-        """Placeholder until T11 reintroduces iceball as a travelling projectile."""
-        self._message = "Iceball is temporarily unavailable."
-        return 0.0
+        """Spawn an iceball projectile in front of the agent.
+
+        Mirrors upstream cast_spell:2547-2599 — point projectile, NOT a freeze
+        and NOT an AOE. Cost: 2 mana. Phase α uses scalar damage; phase γ
+        promotes to a (physical, fire, ice) 3-vector that bypasses ice
+        defense.
+        """
+        from glyphbench.envs.craftax.mechanics.projectiles import (
+            ProjectileEntity,
+            ProjectileType,
+        )
+
+        if self._spells_learned < 1:
+            self._message = "No spells learned yet."
+            return 0.0
+        if self._mana < 2:
+            self._message = "Not enough mana! (need 2)"
+            return 0.0
+        dx, dy = self._facing
+        spawn_x, spawn_y = self._agent_x + dx, self._agent_y + dy
+        if not self._is_in_bounds(spawn_x, spawn_y):
+            self._message = "No room to launch iceball."
+            return 0.0
+        self._mana -= 2
+        self._player_projectiles.append(
+            ProjectileEntity(
+                kind=ProjectileType.ICEBALL,
+                x=spawn_x, y=spawn_y, dx=dx, dy=dy,
+                damage=3,
+            )
+        )
+        self._message = "You cast an iceball."
+        return self._try_unlock("cast_iceball")
 
     def _attack_mob_kill(self, mob: Mob) -> float:
         """Handle mob death from spells (mob already at <= 0 HP)."""
