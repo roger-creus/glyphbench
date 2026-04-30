@@ -33,13 +33,21 @@ class EpisodicReturnRubric(vf.Rubric):
         return float(state.get("episode_return", 0.0))
 
     async def episode_length(self, state: dict[str, Any]) -> float:
-        return float(len(state.get("trajectory", [])))
+        # Use num_turns (env-action turns) rather than len(trajectory):
+        # in memory mode we emit two trajectory steps (action + memory)
+        # per env turn, so trajectory length would double-count.
+        n = state.get("num_turns")
+        if n is None:
+            n = len(state.get("trajectory", []))
+        return float(n)
 
     async def parse_failure_rate(self, state: dict[str, Any]) -> float:
-        traj_len = len(state.get("trajectory", []))
-        if traj_len == 0:
+        n = state.get("num_turns")
+        if n is None:
+            n = len(state.get("trajectory", []))
+        if n == 0:
             return 0.0
-        return float(state.get("parse_failures", 0)) / traj_len
+        return float(state.get("parse_failures", 0)) / float(n)
 
     async def terminated_flag(self, state: dict[str, Any]) -> float:
         return 1.0 if state.get("terminated") else 0.0

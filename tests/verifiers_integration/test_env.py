@@ -199,7 +199,7 @@ async def test_env_response_applies_action_and_updates_state():
 
 
 @pytest.mark.asyncio
-async def test_memory_add_model_response_combines_action_and_memory_turn(monkeypatch):
+async def test_memory_add_model_response_emits_two_steps(monkeypatch):
     env = load_environment(
         task_id="glyphbench/__dummy-v0",
         num_episodes=1,
@@ -239,7 +239,11 @@ async def test_memory_add_model_response_combines_action_and_memory_turn(monkeyp
 
     await env.add_model_response(state, prompt_messages, action_response)
 
-    assert len(state["trajectory"]) == 1
+    # One env turn → two trajectory steps (action + memory). Each step's
+    # completion is purely assistant tokens, which prime-rl's pretokenize
+    # path requires.
+    assert len(state["trajectory"]) == 2
+    assert state["num_turns"] == 1
     assert state["memory"] == "moved east once"
     assert seen["sampling_args"] == {
         "max_tokens": 3,
@@ -254,14 +258,25 @@ async def test_memory_add_model_response_combines_action_and_memory_turn(monkeyp
     assert "[HUD]" not in memory_update_prompt
     assert "Pos:" not in memory_update_prompt
 
-    step = state["trajectory"][0]
-    assert [m["role"] for m in step["completion"]] == ["assistant", "user", "assistant"]
-    assert step["reward"] == 0.0
-    assert step["extras"]["glyphbench_memory"]["previous_memory"] == ""
-    assert step["extras"]["glyphbench_memory"]["stored_memory"] == "moved east once"
-    assert step["extras"]["glyphbench_memory"]["extraction_mode"] == "tag"
-    assert step["tokens"]["completion_ids"] == [3, 4, 5, 6, 7, 8]
-    assert step["tokens"]["completion_mask"] == [1, 1, 0, 0, 1, 1]
+    action_step, memory_step = state["trajectory"]
+    assert [m["role"] for m in action_step["completion"]] == ["assistant"]
+    assert action_step["reward"] == 0.0
+    assert action_step["extras"]["glyphbench_step_role"] == "action"
+    assert action_step["tokens"]["completion_ids"] == [3, 4]
+
+    # memory_step's prompt extends the action_step's prompt+completion with
+    # the new memory_update_user message, and its completion is the
+    # assistant memory response only.
+    assert memory_step["prompt"][: len(prompt_messages)] == list(prompt_messages)
+    assert memory_step["prompt"][-1]["role"] == "user"
+    assert "Parsed action: EAST" in memory_step["prompt"][-1]["content"]
+    assert [m["role"] for m in memory_step["completion"]] == ["assistant"]
+    assert memory_step["reward"] == 0.0  # same per-turn reward
+    assert memory_step["extras"]["glyphbench_step_role"] == "memory"
+    assert memory_step["extras"]["glyphbench_memory"]["previous_memory"] == ""
+    assert memory_step["extras"]["glyphbench_memory"]["stored_memory"] == "moved east once"
+    assert memory_step["extras"]["glyphbench_memory"]["extraction_mode"] == "tag"
+    assert memory_step["tokens"]["completion_ids"] == [7, 8]
 
     next_prompt = await env.get_prompt_messages(state)
     assert len(next_prompt) == 2
@@ -293,8 +308,11 @@ async def test_memory_add_model_response_keeps_step_without_token_data(monkeypat
         _response("<action>NORTH</action>"),
     )
 
-    assert len(state["trajectory"]) == 1
+    # Both action_step and memory_step exist; both lack token data because
+    # the fake responses don't carry any.
+    assert len(state["trajectory"]) == 2
     assert state["trajectory"][0]["tokens"] is None
+    assert state["trajectory"][1]["tokens"] is None
     assert state["memory"] == "wall north"
 
 
@@ -350,10 +368,12 @@ async def test_memory_rollout_uses_two_model_calls_for_one_env_turn(monkeypatch)
             assert state_arg["trajectory"] == []
             return _response("<think>try east</think><action>EAST</action>")
         assert len(calls) == 2
+        # By the second model call, the action step has been appended.
         assert len(state_arg["trajectory"]) == 1
         assert [m["role"] for m in state_arg["trajectory"][0]["completion"]] == [
             "assistant"
         ]
+        assert state_arg["trajectory"][0]["extras"]["glyphbench_step_role"] == "action"
         assert prompt_arg[-1]["role"] == "user"
         return _response("<think>update</think><memory>moved east</memory>")
 
@@ -367,14 +387,15 @@ async def test_memory_rollout_uses_two_model_calls_for_one_env_turn(monkeypatch)
     )
 
     assert len(calls) == 2
-    assert len(state["trajectory"]) == 1
+    # One env turn → two trajectory steps; both completions are assistant-only.
+    assert len(state["trajectory"]) == 2
+    assert state["num_turns"] == 1
     assert state["memory"] == "moved east"
     assert state["stop_condition"] == "has_final_env_response"
-    assert [m["role"] for m in state["trajectory"][0]["completion"]] == [
-        "assistant",
-        "user",
-        "assistant",
-    ]
+    assert [m["role"] for m in state["trajectory"][0]["completion"]] == ["assistant"]
+    assert [m["role"] for m in state["trajectory"][1]["completion"]] == ["assistant"]
+    assert state["trajectory"][0]["extras"]["glyphbench_step_role"] == "action"
+    assert state["trajectory"][1]["extras"]["glyphbench_step_role"] == "memory"
 
 
 @pytest.mark.asyncio
@@ -384,3 +405,95 @@ async def test_is_done_terminates_on_game_end():
     assert await env.is_done(state) is False
     state["done"] = True
     assert await env.is_done(state) is True
+
+
+@pytest.mark.asyncio
+async def test_memory_rollout_every_step_completion_is_assistant_only(monkeypatch):
+    """prime-rl's pretokenize_rollout_trajectory asserts each step's
+    completion is all-assistant. Run a 3-turn memory rollout and verify
+    every trajectory step satisfies that invariant — both action steps and
+    memory steps."""
+
+    env = load_environment(
+        task_id="glyphbench/__dummy-v0",
+        num_episodes=1,
+        max_turns=3,
+        use_memory=True,
+    )
+    row = env.dataset[0]
+    call_idx = {"n": 0}
+
+    async def fake_get_model_response(state_arg, prompt_arg, **kwargs):
+        call_idx["n"] += 1
+        # Action calls are odd; memory calls are even.
+        if call_idx["n"] % 2 == 1:
+            return _response(f"<think>t{call_idx['n']}</think><action>EAST</action>")
+        return _response(f"<memory>turn-{call_idx['n']}</memory>")
+
+    monkeypatch.setattr(env, "get_model_response", fake_get_model_response)
+
+    state = await env.rollout(
+        input=row,
+        client=_NoopClient(object()),
+        model="test-model",
+        sampling_args={"max_tokens": 16},
+    )
+
+    # 3 env turns × 2 steps/turn = 6 trajectory steps.
+    assert state["num_turns"] >= 1
+    assert len(state["trajectory"]) == 2 * state["num_turns"]
+    for i, step in enumerate(state["trajectory"]):
+        roles = [m["role"] for m in step["completion"]]
+        assert roles == ["assistant"], (
+            f"step {i} ({step['extras'].get('glyphbench_step_role')!r}) "
+            f"has non-assistant completion roles: {roles}"
+        )
+    # Even-indexed steps are action turns, odd-indexed are memory updates.
+    for i, step in enumerate(state["trajectory"]):
+        expected = "action" if i % 2 == 0 else "memory"
+        assert step["extras"]["glyphbench_step_role"] == expected
+
+
+@pytest.mark.asyncio
+async def test_memory_render_completion_stitches_split_steps(monkeypatch):
+    """state['completion'] (the human-readable transcript) must look the
+    same after the memory-step split as it did before — diff-based
+    render_completion picks up only new messages from each step's prompt."""
+
+    env = load_environment(
+        task_id="glyphbench/__dummy-v0",
+        num_episodes=1,
+        max_turns=2,
+        use_memory=True,
+    )
+    row = env.dataset[0]
+    call_idx = {"n": 0}
+
+    async def fake_get_model_response(state_arg, prompt_arg, **kwargs):
+        call_idx["n"] += 1
+        if call_idx["n"] % 2 == 1:
+            return _response(f"<think>t{call_idx['n']}</think><action>EAST</action>")
+        return _response(f"<memory>turn-{call_idx['n']}</memory>")
+
+    monkeypatch.setattr(env, "get_model_response", fake_get_model_response)
+
+    state = await env.rollout(
+        input=row,
+        client=_NoopClient(object()),
+        model="test-model",
+        sampling_args={"max_tokens": 16},
+    )
+
+    full_transcript = list(state["prompt"]) + list(state["completion"])
+    # Roles: starts with system + first user observation.
+    assert full_transcript[0]["role"] == "system"
+    assert full_transcript[1]["role"] == "user"
+
+    # No two consecutive duplicate role/content pairs (i.e. the diff-based
+    # stitcher didn't double-up the action message that lives in both
+    # the action_step's completion and the memory_step's prompt).
+    for a, b in zip(full_transcript, full_transcript[1:]):
+        if a["role"] == b["role"] and a.get("content") == b.get("content"):
+            raise AssertionError(
+                f"render_completion produced consecutive duplicate messages: {a}"
+            )
