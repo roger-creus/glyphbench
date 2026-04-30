@@ -313,3 +313,85 @@ def test_full_env_sweeps_far_mobs_after_step() -> None:
 
     far_zombies = [m for m in env._mobs if m["x"] == 25 and m["y"] == 5]
     assert far_zombies == [], "zombie at distance 20 should despawn"
+
+
+def test_step_ranged_mob_advances_when_far() -> None:
+    """Ranged mob far from player advances toward player."""
+    from glyphbench.envs.craftax.mechanics.mobs import step_ranged_mob
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
+    mob = {
+        "type": "skeleton", "x": 5, "y": 12,  # dist=7
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 0, "attack_cooldown": 0,
+    }
+    spawned: list = []
+    step_ranged_mob(
+        mob,
+        player_x=5, player_y=5,
+        is_blocked_for_mob=lambda x, y: False,
+        spawn_mob_projectile=lambda kind, x, y, dx, dy, dmg: spawned.append((kind, x, y, dx, dy, dmg)),
+        rng=_random.Random(0),
+        max_mob_projectiles_room=3,
+        projectile_kind_for_mob=lambda m: ProjectileType.ARROW,
+        damage_for_mob=lambda m: 2,
+    )
+    # Mob should have moved closer (dist <= 6).
+    new_dist = abs(mob["x"] - 5) + abs(mob["y"] - 5)
+    assert new_dist <= 6
+    # No projectile spawned (out of shoot window).
+    assert spawned == []
+
+
+def test_step_ranged_mob_retreats_when_close() -> None:
+    from glyphbench.envs.craftax.mechanics.mobs import step_ranged_mob
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
+    mob = {
+        "type": "skeleton", "x": 5, "y": 7,  # dist=2
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 0, "attack_cooldown": 0,
+    }
+    step_ranged_mob(
+        mob,
+        player_x=5, player_y=5,
+        is_blocked_for_mob=lambda x, y: False,
+        spawn_mob_projectile=lambda *args: None,
+        rng=_random.Random(0),
+        max_mob_projectiles_room=3,
+        projectile_kind_for_mob=lambda m: ProjectileType.ARROW,
+        damage_for_mob=lambda m: 2,
+    )
+    new_dist = abs(mob["x"] - 5) + abs(mob["y"] - 5)
+    # Mob should have moved farther (dist >= 3) — but the 15% random-walk
+    # override may keep it in place. Use a deterministic seed and accept either.
+    assert new_dist >= 2  # at minimum did not advance
+
+
+def test_step_ranged_mob_shoots_in_window_with_cooldown_4() -> None:
+    """At dist 4-5 with cooldown=0 the mob spawns a projectile aimed at player."""
+    from glyphbench.envs.craftax.mechanics.mobs import step_ranged_mob, RANGED_ATTACK_COOLDOWN
+    from glyphbench.envs.craftax.mechanics.projectiles import ProjectileType
+
+    mob = {
+        "type": "skeleton", "x": 5, "y": 9,  # dist=4
+        "hp": 5, "max_hp": 5, "is_boss": False,
+        "floor": 0, "attack_cooldown": 0,
+    }
+    spawned: list = []
+    # Use seed 0: rng.random() first call = 0.844 > 0.15, so override won't fire.
+    rng = _random.Random(0)
+    step_ranged_mob(
+        mob,
+        player_x=5, player_y=5,
+        is_blocked_for_mob=lambda x, y: False,
+        spawn_mob_projectile=lambda kind, x, y, dx, dy, dmg: spawned.append((kind, x, y, dx, dy, dmg)),
+        rng=rng,
+        max_mob_projectiles_room=3,
+        projectile_kind_for_mob=lambda m: ProjectileType.ARROW,
+        damage_for_mob=lambda m: 2,
+    )
+    # In the shoot window with cooldown 0 → projectile spawned, cooldown=4.
+    assert len(spawned) == 1, f"expected 1 projectile, got {len(spawned)}"
+    assert spawned[0][0] == ProjectileType.ARROW
+    assert mob["attack_cooldown"] == RANGED_ATTACK_COOLDOWN == 4

@@ -938,13 +938,14 @@ class CraftaxFullEnv(BaseGlyphEnv):
         """Move mobs on current floor and handle attacks.
 
         Phase α: melee mobs (zombie, skeleton) use the cooldown-aware
-        step_melee_mob from mechanics/mobs.py. Ranged (skeleton_archer)
-        and passive (cow, bat, spider) mobs still use the inline logic
-        until T24 (ranged) and a future passive-AI task.
+        step_melee_mob from mechanics/mobs.py. Ranged mobs (skeleton_archer)
+        use step_ranged_mob with kiting AI + cooldown=4 + projectile spawn
+        (T24). Passive (cow, bat, spider) mobs still use the inline logic
+        until a future passive-AI task.
 
-        Turn order: attack-then-move per upstream. step_melee_mob
-        encapsulates that for melee; the inline branches mirror it for
-        non-melee.
+        Turn order: attack-then-move per upstream. step_melee_mob and
+        step_ranged_mob encapsulate that; the inline branches mirror it for
+        non-melee/non-ranged.
         """
         from glyphbench.envs.craftax.mechanics.mobs import step_melee_mob
 
@@ -982,6 +983,38 @@ class CraftaxFullEnv(BaseGlyphEnv):
                     apply_damage_to_player=self._take_damage,
                     rng=random.Random(int(self.rng.integers(0, 2**31))),
                     is_fighting_boss=False,
+                    damage_for_mob=_damage_for,
+                )
+                continue
+
+            # Phase-α ranged mob: skeleton_archer uses step_ranged_mob with
+            # kiting AI + cooldown=4 + real projectile spawn.
+            # Legacy mapping: "skeleton_archer" → upstream "knight_archer" →
+            # ProjectileType.ARROW2.  Will be replaced when T_FOLLOWUP_A
+            # renames the mob to its upstream-faithful name.
+            elif mtype == "skeleton_archer":
+                from glyphbench.envs.craftax.mechanics.projectiles import (
+                    ProjectileEntity,
+                    ProjectileType,
+                )
+                from glyphbench.envs.craftax.mechanics.mobs import step_ranged_mob
+
+                def _spawn_proj(kind, x, y, dx, dy, dmg):
+                    self._mob_projectiles.append(
+                        ProjectileEntity(kind=kind, x=x, y=y, dx=dx, dy=dy, damage=dmg)
+                    )
+
+                step_ranged_mob(
+                    mob,
+                    player_x=self._agent_x,
+                    player_y=self._agent_y,
+                    is_blocked_for_mob=_is_blocked,
+                    spawn_mob_projectile=_spawn_proj,
+                    rng=random.Random(int(self.rng.integers(0, 2**31))),
+                    max_mob_projectiles_room=3 - sum(
+                        1 for _ in self._mob_projectiles
+                    ),
+                    projectile_kind_for_mob=lambda m: ProjectileType.ARROW2,  # legacy mapping until T_FOLLOWUP_A
                     damage_for_mob=_damage_for,
                 )
                 continue

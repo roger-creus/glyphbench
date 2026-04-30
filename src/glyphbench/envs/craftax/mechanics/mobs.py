@@ -155,6 +155,96 @@ def step_melee_mob(
         mob["x"], mob["y"] = nx, ny
 
 
+def step_ranged_mob(
+    mob: MobLike,
+    *,
+    player_x: int,
+    player_y: int,
+    is_blocked_for_mob: Callable[[int, int], bool],
+    spawn_mob_projectile: Callable[..., None],
+    rng: random.Random,
+    max_mob_projectiles_room: int,
+    projectile_kind_for_mob: Callable[[MobLike], "ProjectileType"],
+    damage_for_mob: Callable[[MobLike], int],
+) -> None:
+    """Advance one ranged mob for one tick. Mirrors upstream
+    _move_ranged_mob (game_logic.py:1391-1608) at phase-α fidelity:
+
+    - Cooldown ticks down each call.
+    - Shoot window: dist_sum in [4, 5] AND cooldown <= 0 AND projectile slot
+      available → spawn projectile aimed at player; cooldown = 4. No move.
+    - 15% chance to override into random walk regardless of distance.
+    - dist >= 6: advance toward player.
+    - dist <= 3: retreat away.
+    - 3 < dist < 6 (and not in shoot window): random walk.
+
+    `spawn_mob_projectile(kind, x, y, dx, dy, damage)` is the callback that
+    appends a ProjectileEntity to the env's mob-projectile list.
+    `projectile_kind_for_mob(mob)` returns the ProjectileType for this mob's
+    type — the caller maps via RANGED_MOB_TO_PROJECTILE or a legacy fallback.
+    `damage_for_mob(mob)` returns scalar damage for phase-α.
+
+    Cornered fallback (upstream forces shoot when too close + can't retreat):
+    deferred to phase β/γ. Phase α simply ends the tick with no action when
+    the mob is cornered.
+    """
+    if mob["attack_cooldown"] > 0:
+        mob["attack_cooldown"] -= 1
+
+    dist = abs(mob["x"] - player_x) + abs(mob["y"] - player_y)
+    in_shoot_window = 4 <= dist <= 5
+
+    # Shoot first (pre-empts movement) when conditions met.
+    # The 15% override check applies here too: if override fires, fall through
+    # to the movement block instead of shooting.
+    if (
+        in_shoot_window
+        and mob["attack_cooldown"] <= 0
+        and max_mob_projectiles_room > 0
+        and rng.random() >= 0.15  # 15% override also suppresses shoot
+    ):
+        # Pick a single-axis direction toward the player.
+        if abs(player_x - mob["x"]) >= abs(player_y - mob["y"]):
+            dx = 1 if player_x > mob["x"] else (-1 if player_x < mob["x"] else 0)
+            dy = 0
+        else:
+            dx = 0
+            dy = 1 if player_y > mob["y"] else (-1 if player_y < mob["y"] else 0)
+        kind = projectile_kind_for_mob(mob)
+        spawn_mob_projectile(
+            kind, mob["x"] + dx, mob["y"] + dy, dx, dy, damage_for_mob(mob),
+        )
+        mob["attack_cooldown"] = RANGED_ATTACK_COOLDOWN
+        return
+
+    # Movement.
+    if rng.random() < 0.15:
+        dx, dy = rng.choice([(1, 0), (-1, 0), (0, 1), (0, -1), (0, 0)])
+    elif dist >= 6:
+        # Advance toward player.
+        if abs(player_x - mob["x"]) >= abs(player_y - mob["y"]):
+            dx = 1 if player_x > mob["x"] else (-1 if player_x < mob["x"] else 0)
+            dy = 0
+        else:
+            dx = 0
+            dy = 1 if player_y > mob["y"] else (-1 if player_y < mob["y"] else 0)
+    elif dist <= 3:
+        # Retreat away from player.
+        if abs(player_x - mob["x"]) >= abs(player_y - mob["y"]):
+            dx = -1 if player_x > mob["x"] else (1 if player_x < mob["x"] else 0)
+            dy = 0
+        else:
+            dx = 0
+            dy = -1 if player_y > mob["y"] else (1 if player_y < mob["y"] else 0)
+    else:
+        # dist in (3, 6) and not in shoot window (4-5): random walk.
+        dx, dy = rng.choice([(1, 0), (-1, 0), (0, 1), (0, -1), (0, 0)])
+
+    nx, ny = mob["x"] + dx, mob["y"] + dy
+    if not is_blocked_for_mob(nx, ny):
+        mob["x"], mob["y"] = nx, ny
+
+
 def should_despawn(
     mob: MobLike,
     *,
