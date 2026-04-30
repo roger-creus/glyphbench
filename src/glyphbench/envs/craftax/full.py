@@ -1158,7 +1158,11 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._agent_x = _SURFACE_SIZE // 2
         self._agent_y = _SURFACE_SIZE // 2
         self._facing = (1, 0)
-        self._inventory = {}
+        self._inventory = {
+            "bow": 0,
+            "arrows": 0,
+            "torch": 0,
+        }
         self._achievements_unlocked = set()
         self._message = ""
         self._hp = self._max_hp
