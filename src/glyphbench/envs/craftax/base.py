@@ -308,12 +308,15 @@ ALL_FULL_ACHIEVEMENTS = (
     "enchant_sword",
     "enchant_armor",
     "enchant_bow",
-    # -- Dungeon progression (6) --
+    # -- Dungeon progression (9; phase γ +3 for floors 6/7/8) --
     "enter_dungeon",
     "reach_floor_2",
     "reach_floor_3",
     "reach_floor_4",
     "reach_floor_5",
+    "enter_fire_realm",
+    "enter_ice_realm",
+    "enter_graveyard",
     "return_to_surface",
     # -- Bosses (5) --
     "defeat_knight",
@@ -381,7 +384,8 @@ ALL_FULL_ACHIEVEMENTS = (
     "level_up_intelligence",
     # -- Phase γ necromancer boss kill (1; T17γ) --
     "defeat_necromancer",
-    # -- Total: 90 (phase γ T12γ: +1 enchant_bow; T17γ: +1 defeat_necromancer) --
+    # -- Total: 93 (phase γ T12γ: +1 enchant_bow; T17γ: +1 defeat_necromancer;
+    #              T22γ: +3 enter_fire_realm / enter_ice_realm / enter_graveyard) --
 )
 
 # Visible window dimensions

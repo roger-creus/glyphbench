@@ -152,6 +152,16 @@ UPSTREAM_ACHIEVEMENT_NAMES: tuple[str, ...] = (
 )
 
 # ----------------------------------------------------------------
+# Phase γ T21γ: mapping from glyphbench lowercase achievement names to their
+# upstream UPPERCASE bitmap keys (for the cases that differ in spelling).
+# ----------------------------------------------------------------
+_BITMAP_ALIAS: dict[str, str] = {
+    "ENCHANT_ARMOR": "ENCHANT_ARMOUR",
+    "MAKE_IRON_ARMOR": "MAKE_IRON_ARMOUR",
+    "MAKE_DIAMOND_ARMOR": "MAKE_DIAMOND_ARMOUR",
+}
+
+# ----------------------------------------------------------------
 # Walkable / interactable tile sets
 # ----------------------------------------------------------------
 SURFACE_WALKABLE = frozenset({
@@ -469,55 +479,110 @@ class CraftaxFullEnv(BaseGlyphEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-v0"
 
-    def system_prompt(self) -> str:
+    def system_prompt(self) -> str:  # noqa: PLR0912 (many sections)
         ach_list = ", ".join(self._ALL_ACHIEVEMENTS)
         return (
             "You are playing Craftax Full.\n\n"
             "TASK\n"
-            "Gather resources, craft tools, fight mobs, explore "
-            "dungeons, learn magic, and survive. Each new "
-            "achievement gives +1 reward.\n"
-            f"Achievements ({len(self._ALL_ACHIEVEMENTS)}): "
-            f"{ach_list}.\n\n"
-            "WORLD\n"
-            "Surface: 64x64 grid. Dungeons: 5 floors (32x32). "
-            "11x9 view centered on you.\n"
-            "Biomes: grass(.), tree(T), stone(S), coal(C), "
-            "iron(I), diamond(D), water(~), lava(L), sand(s).\n"
-            "Dungeon: wall(#), floor(_), stairs down(>), "
-            "stairs up(<), torch(!), boss door(B).\n"
-            "Mobs: zombie(z), cow(c), "
-            "skeleton(a), kobold(q), bat(b), boss(W).\n\n"
+            "Gather resources, craft tools, fight mobs, explore dungeons, "
+            "learn magic, and survive. Each new achievement gives +1 reward.\n"
+            f"Achievements ({len(self._ALL_ACHIEVEMENTS)}): {ach_list}.\n\n"
+
+            "BACKGROUND\n"
+            "The world has 9 floors total:\n"
+            "  0 = Overworld (64x64 grass/forest/stone surface)\n"
+            "  1 = Dungeon (32x32 rooms+corridors, skeletons/zombies)\n"
+            "  2 = Gnomish Mines (kobolds, gnome warriors, sapphire/ruby ore)\n"
+            "  3 = Sewers (Ⓘ ice enchantment table, orc mages, lizards)\n"
+            "  4 = Vaults (Ⓔ fire enchantment table, vault knights)\n"
+            "  5 = Troll Mines (trolls, deep_things, snails)\n"
+            "  6 = Fire Realm (pigmen, fire elementals, lava + ruby ore)\n"
+            "  7 = Ice Realm (frost trolls, ice elementals, water + sapphire ore)\n"
+            "  8 = Graveyard (Ⓝ Necromancer boss — the final boss)\n"
+            "Dungeon floors are 32x32. 11x9 viewport centered on you.\n\n"
+
+            "WORLD GLYPHS\n"
+            "Surface: grass(.), tree(T), stone(S), coal(C), iron(I), "
+            "diamond(D), water(~), lava(L), sand(s), sapling(Y), plant(P).\n"
+            "Dungeon: wall(#), floor(_), stairs-down(>), stairs-up(<), "
+            "torch(!), boss-door(B), chest($), fountain(⊙).\n"
+            "Gems: sapphire(♦), ruby(▼).\n"
+            "Enchant tables: Ⓔ=fire (floor 4), Ⓘ=ice (floor 3).\n"
+            "Boss floor 8: grave(⚰), necromancer(Ⓝ/ⓝ=vulnerable).\n"
+            "Mobs: zombie(z), cow(c), skeleton(a), kobold(q), bat(b), boss(W), "
+            "troll(t), deep_thing(d), snail(n), pigman(g), fire_elemental(f), "
+            "frost_troll(r), ice_elemental(i).\n"
+            "Projectiles: ↗/↘=arrow, †=dagger, ●/◉=fireball, ○/◎=iceball, ◐=slimeball.\n\n"
+
             "SURVIVAL\n"
             "- Food drains 1/50 steps. 0 food: -1 HP/step.\n"
             "- Water drains 1/40 steps. 0 water: -1 HP/step.\n"
             "- Energy drains 1/100 steps. 0: 50% move fail.\n"
-            "- Mana: max 10, regen 1/20 steps. Used for spells.\n\n"
+            "- Mana: base max 10, regen 1/20 steps (faster with INT). Used for spells.\n"
+            "- SLEEP: continuous +2 HP/+2 energy per tick; wakes on full energy or damage.\n"
+            "- REST: +1 HP per tick while still; cancels on any action or damage.\n\n"
+
             "COMBAT\n"
-            "DO facing mob attacks. Dmg = 1 + weapon bonus "
-            "(+enchant). Armor reduces incoming damage.\n"
-            "WEAPON DAMAGE: wood sword +1, stone sword +2, "
-            "iron sword +3, diamond sword +4.\n"
-            "ARMOR DEFENSE: wood armor 1, stone armor 2, "
-            "iron armor 3, diamond armor 4.\n"
-            "Enchant adds +2 weapon dmg or +1 armor def.\n\n"
-            "CRAFTING (at adjacent table)\n"
-            "MAKE_ARROW: 1 wood + 1 stone -> 2 arrows (table required).\n"
-            "MAKE_TORCH: 1 wood + 1 coal -> 4 torches (table required).\n"
-            "Note: bows are not craftable in phase α; they drop from chests (phase β).\n\n"
+            "DO while facing a mob attacks it. Base dmg = 1 + weapon bonus.\n"
+            "WEAPON DAMAGE BONUS: wood sword +1, stone sword +2, iron sword +3, "
+            "diamond sword +4. Enchanted sword adds +2 bonus + elemental component.\n"
+            "4 ARMOR SLOTS (helmet/chest/legs/boots). Craft with MAKE_IRON_ARMOUR / "
+            "MAKE_DIAMOND_ARMOUR — fills the lowest empty slot.\n"
+            "Armor defense: each filled slot reduces physical damage by 10%. "
+            "An enchanted slot also reduces the matching element (fire or ice) by 20%.\n"
+            "Damage types: physical, fire, ice. Elemental mobs are immune to their own element.\n"
+            "Boss-floor (floor 8) incoming damage is multiplied 1.5x (after armor).\n"
+            "Sleeping takes 3.5x damage on hit (after armor + boss multiplier).\n\n"
+
+            "ATTRIBUTES (3 RPG stats; each capped at 5; start at 1)\n"
+            "Spend 1 XP per level-up. XP: +1 on first entry to each new floor.\n"
+            "LEVEL_UP_DEXTERITY: +arrow range/decay; +food capacity.\n"
+            "LEVEL_UP_STRENGTH:  +physical melee damage; +max HP.\n"
+            "LEVEL_UP_INTELLIGENCE: +spell damage; +mana regen speed.\n\n"
+
             "RANGED\n"
-            "SHOOT_ARROW: fires 1 arrow forward (requires bow + arrow).\n\n"
+            "SHOOT_ARROW: fires 1 arrow forward (requires bow + 1 arrow). "
+            "Bows drop from first chest on floor 1.\n"
+            "Arrow range and decay scale with DEX.\n\n"
+
             "MAGIC\n"
-            "CAST_FIREBALL / CAST_ICEBALL (2 mana each): spawn a fireball / iceball projectile one tile in front of you; travels 1 tile/turn until it hits a target or wall.\n\n"
-            "PROJECTILES (mid-flight glyphs)\n"
-            "↗/↘=arrow, †=dagger, ●/◉=fireball, ○/◎=iceball, ◐=slimeball.\n\n"
+            "Spells require learning first (READ_BOOK on a book item). "
+            "Books drop from the first chest on floors 3 or 4.\n"
+            "CAST_FIREBALL / CAST_ICEBALL (2 mana each): spawn a projectile "
+            "1 tile in front; travels 1 tile/turn. Fire/ice element bypasses "
+            "normal armor if the target has fire/ice immunity.\n"
+            "Spell damage scales with INT.\n\n"
+
+            "ENCHANTMENTS\n"
+            "ENCHANT_SWORD / ENCHANT_ARMOUR / ENCHANT_BOW: requires:\n"
+            "  - Adjacency to Ⓔ (fire, floor 4) or Ⓘ (ice, floor 3).\n"
+            "  - 1 ruby (fire) OR 1 sapphire (ice).\n"
+            "  - 9 mana.\n"
+            "Fire enchant sets element=fire; ice enchant sets element=ice. "
+            "Enchanted sword adds +2 dmg + 0.5x elemental component. "
+            "Enchanted armor slot adds 20% resistance to the matching element. "
+            "Enchanted bow adds elemental damage to arrows.\n\n"
+
+            "POTIONS (6 colors; per-game hidden shuffle)\n"
+            "Drink with DRINK_POTION_RED/GREEN/BLUE/PINK/CYAN/YELLOW. "
+            "Effect unknown until first use; identify by trial. "
+            "Colors may give: +HP, +mana, speed, +food, +energy, or damage.\n\n"
+
+            "BOSS — The Necromancer (floor 8)\n"
+            "Ⓝ = invulnerable, ⓝ = vulnerable. "
+            "Becomes vulnerable only when no other mobs are alive on floor 8 "
+            "AND the summon timer has expired. "
+            "DO while adjacent and facing ⓝ deals 1 hit. Each successful hit "
+            "triggers a 7-turn summon wave (zombies + skeletons spawn near you). "
+            "8 hits wins: +10 reward + defeat_necromancer achievement.\n\n"
+
             "DUNGEONS\n"
-            "DESCEND on > goes deeper. ASCEND on < goes up. "
-            "Dungeons are dark; PLACE_TORCH (consumes 1 crafted torch) for light. "
-            "Each floor has a boss (W behind B door). "
-            "Floor 3 (Sewers) hosts an ice enchantment table (Ⓘ); "
-            "Floor 4 (Vaults) hosts a fire enchantment table (Ⓔ); "
-            "enchantment-table interaction is unlocked in phase γ.\n\n"
+            "DESCEND on > goes to next floor. ASCEND on < goes up one floor. "
+            "Dungeons are dark; PLACE_TORCH (consumes 1 crafted torch from inventory) "
+            "for light. Light radius scales with torches placed.\n"
+            "Chests ($): DO to open. First chest on floor 1 gives a bow. "
+            "First chest on floors 3-4 gives a book. Other chests give random loot.\n\n"
+
             + self.action_spec.render_for_prompt()
         )
 
@@ -1522,6 +1587,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
             self._achievements_unlocked.add(name)
             pretty = name.replace("_", " ").title()
             self._message = f"ACHIEVEMENT: {pretty}!"
+            # Phase γ T21γ: also flip the upstream-faithful bitmap if this
+            # achievement has an UPSTREAM_ACHIEVEMENT_NAMES entry.
+            # Special-case: upstream spells "ARMOUR" not "ARMOR".
+            upstream_key = name.upper()
+            upstream_key = _BITMAP_ALIAS.get(upstream_key, upstream_key)
+            if upstream_key in self._achievements_phase_beta:
+                self._achievements_phase_beta[upstream_key] = True
             return 1.0
         return 0.0
 
@@ -3374,10 +3446,13 @@ class CraftaxFullEnv(BaseGlyphEnv):
             reward += self._try_unlock("reach_floor_5")
         elif new_floor == 6:
             self._message = "Entered the Fire Realm."
+            reward += self._try_unlock("enter_fire_realm")
         elif new_floor == 7:
             self._message = "Entered the Ice Realm."
+            reward += self._try_unlock("enter_ice_realm")
         elif new_floor == 8:
             self._message = "Entered the Graveyard. The necromancer awaits..."
+            reward += self._try_unlock("enter_graveyard")
         # Phase γ T06γ: first entry to any new floor grants +1 XP.
         if new_floor not in self._xp_floors_visited:
             self._xp_floors_visited.add(new_floor)
@@ -3779,6 +3854,9 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         ach_count = len(self._achievements_unlocked)
         total_ach = len(self._ALL_ACHIEVEMENTS)
+        # Phase γ T21γ: upstream-faithful bitmap count (67 upstream achievements).
+        bitmap_count = sum(1 for v in self._achievements_phase_beta.values() if v)
+        _UPSTREAM_TOTAL = len(UPSTREAM_ACHIEVEMENT_NAMES)  # 67
         # Phase β: per-color potion inventory (never reveal effect mapping)
         potions_dict = self._inventory.get("potions", {})
         potion_parts = [
@@ -3894,7 +3972,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
             f"Nearby mobs: {mob_str}\n"
             f"Inventory: {inv_str}\n"
             f"Achievements: {ach_name_str} "
-            f"({ach_count}/{total_ach})"
+            f"({ach_count}/{total_ach})\n"
+            f"Upstream achievements: {bitmap_count} / {_UPSTREAM_TOTAL}"
         )
         if boss_parts:
             hud += "\nBoss: " + "; ".join(boss_parts)

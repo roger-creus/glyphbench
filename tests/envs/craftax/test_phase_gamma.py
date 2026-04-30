@@ -1323,3 +1323,222 @@ def test_ranged_mob_not_cornered_does_not_force_shoot():
     )
     # Mob has an escape tile — cornered fallback must NOT fire.
     assert spawned == [], f"non-cornered mob should not force-shoot; got {spawned}"
+
+
+# ---------------------------------------------------------------------------
+# T21γ: HUD achievement count — upstream bitmap in rendered observation
+# ---------------------------------------------------------------------------
+
+def test_hud_upstream_achievement_line_present():
+    """T21γ: rendered observation hud contains 'Upstream achievements: 0 / 67' at start."""
+    env = _make_env()
+    obs = env._render_current_observation()
+    assert "Upstream achievements: 0 / 67" in obs.hud, (
+        f"HUD missing upstream achievement count. hud={obs.hud!r}"
+    )
+
+
+def test_hud_bitmap_count_increments_on_unlock():
+    """T21γ: bitmap count increases after an achievement that has an upstream key."""
+    env = _make_env()
+    obs_before = env._render_current_observation()
+    assert "0 / 67" in obs_before.hud
+
+    # Fire a wood-collect achievement (COLLECT_WOOD is in the upstream bitmap).
+    env._inventory["wood"] = 1
+    env._try_unlock("collect_wood")
+
+    obs_after = env._render_current_observation()
+    assert "1 / 67" in obs_after.hud, (
+        f"bitmap count should have incremented; hud={obs_after.hud!r}"
+    )
+
+
+def test_bitmap_alias_enchant_armour():
+    """T21γ: make_iron_armor unlocks MAKE_IRON_ARMOUR bitmap key (ARMOUR spelling)."""
+    env = _make_env()
+    env._try_unlock("make_iron_armor")
+    assert env._achievements_phase_beta.get("MAKE_IRON_ARMOUR") is True, (
+        "MAKE_IRON_ARMOUR bitmap should be set via alias"
+    )
+
+
+def test_bitmap_not_set_for_unknown_key():
+    """T21γ: achievements without a bitmap counterpart don't crash _try_unlock."""
+    env = _make_env()
+    # 'explore_all_floors' has no upstream equivalent.
+    env._try_unlock("explore_all_floors")
+    # Should not raise; bitmap count stays 0.
+    assert sum(v for v in env._achievements_phase_beta.values()) == 0
+
+
+# ---------------------------------------------------------------------------
+# T22γ: Phase γ achievement-fires — floor 6/7/8 entry
+# ---------------------------------------------------------------------------
+
+def _make_env_on_floor(target_floor: int):
+    """Return env sitting on floor (target_floor-1) with stairs-down placed,
+    ready for _handle_descend to transition to target_floor."""
+    from glyphbench.envs.craftax.full import TILE_STAIRS_DOWN, TILE_DUNGEON_FLOOR
+    env = _make_env()
+    # Generate all floors up to target_floor.
+    for f in range(1, target_floor + 1):
+        if f not in env._floors:
+            env._generate_dungeon_floor(f)
+        if f not in env._stairs_up_pos:
+            env._stairs_up_pos[f] = (5, 5)
+        if f not in env._stairs_down_pos and f < target_floor:
+            env._stairs_down_pos[f] = (6, 6)
+
+    prev_floor = target_floor - 1
+    env._current_floor = prev_floor
+
+    if prev_floor == 0:
+        # Surface: use agent's surface coords (valid for 64x64 grid).
+        ax, ay = env._agent_x, env._agent_y
+    else:
+        # Dungeon floor: pick a safe fixed coord (5, 5 in 32x32).
+        ax, ay = 5, 5
+        env._agent_x, env._agent_y = ax, ay
+
+    # Place stairs-down at the agent's position.
+    env._floors[prev_floor][ay][ax] = TILE_STAIRS_DOWN
+    env._stairs_down_pos[prev_floor] = (ax, ay)
+    return env
+
+
+def test_enter_fire_realm_achievement_fires():
+    """T22γ: descending to floor 6 fires enter_fire_realm achievement."""
+    from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
+    assert "enter_fire_realm" in ALL_FULL_ACHIEVEMENTS
+
+    env = _make_env_on_floor(6)
+    reward = env._handle_descend()
+    assert "enter_fire_realm" in env._achievements_unlocked, (
+        "enter_fire_realm should be unlocked on descend to floor 6"
+    )
+    assert reward >= 1.0
+
+
+def test_enter_ice_realm_achievement_fires():
+    """T22γ: descending to floor 7 fires enter_ice_realm achievement."""
+    from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
+    assert "enter_ice_realm" in ALL_FULL_ACHIEVEMENTS
+
+    env = _make_env_on_floor(7)
+    reward = env._handle_descend()
+    assert "enter_ice_realm" in env._achievements_unlocked, (
+        "enter_ice_realm should be unlocked on descend to floor 7"
+    )
+    assert reward >= 1.0
+
+
+def test_enter_graveyard_achievement_fires():
+    """T22γ: descending to floor 8 fires enter_graveyard achievement."""
+    from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
+    assert "enter_graveyard" in ALL_FULL_ACHIEVEMENTS
+
+    env = _make_env_on_floor(8)
+    reward = env._handle_descend()
+    assert "enter_graveyard" in env._achievements_unlocked, (
+        "enter_graveyard should be unlocked on descend to floor 8"
+    )
+    assert reward >= 1.0
+
+
+def test_all_full_achievements_count_is_93():
+    """T22γ: ALL_FULL_ACHIEVEMENTS total is 93 post-phase-γ."""
+    from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
+    assert len(ALL_FULL_ACHIEVEMENTS) == 93, (
+        f"Expected 93 achievements, got {len(ALL_FULL_ACHIEVEMENTS)}"
+    )
+
+
+def test_level_up_dex_fires_achievement():
+    """T22γ verify: LEVEL_UP_DEXTERITY is wired to _try_unlock."""
+    env = _make_env()
+    env._xp = 5
+    env._dex = 1
+    reward = env._handle_level_up_dexterity()
+    assert "level_up_dexterity" in env._achievements_unlocked
+    assert reward >= 1.0
+
+
+def test_enchant_sword_fires_achievement():
+    """T22γ verify: enchant_sword achievement fires via _handle_enchant_weapon."""
+    from glyphbench.envs.craftax.full import TILE_ENCHANT_FIRE
+    env = _make_env()
+    # Stay on floor 0; handler only needs an adjacent TILE_ENCHANT_FIRE tile.
+    ax, ay = env._agent_x, env._agent_y
+    size = env._floor_size()
+    if ax + 1 < size:
+        env._floors[0][ay][ax + 1] = TILE_ENCHANT_FIRE
+    else:
+        env._floors[0][ay][ax - 1] = TILE_ENCHANT_FIRE
+    env._inventory["iron_sword"] = 1
+    env._inventory["ruby"] = 1
+    env._mana = 9
+    reward = env._handle_enchant_weapon()
+    assert "enchant_sword" in env._achievements_unlocked
+    assert reward >= 1.0
+
+
+def test_defeat_necromancer_fires_achievement():
+    """T22γ verify: defeat_necromancer achievement is in _ALL_ACHIEVEMENTS."""
+    from glyphbench.envs.craftax.base import ALL_FULL_ACHIEVEMENTS
+    assert "defeat_necromancer" in ALL_FULL_ACHIEVEMENTS
+
+
+# ---------------------------------------------------------------------------
+# T23γ: System prompt — phase γ keywords
+# ---------------------------------------------------------------------------
+
+def test_system_prompt_background_section():
+    """T23γ: system prompt contains the 9-floor dungeon stack."""
+    env = _make_env()
+    prompt = env.system_prompt()
+    assert "Graveyard" in prompt, "Graveyard not in system prompt"
+    assert "Overworld" in prompt, "Overworld not in system prompt"
+    assert "Necromancer" in prompt, "Necromancer not in system prompt"
+
+
+def test_system_prompt_4_armor_slots():
+    """T23γ: system prompt mentions 4 armor slots."""
+    env = _make_env()
+    prompt = env.system_prompt()
+    assert "4 ARMOR SLOTS" in prompt or "4 armor slots" in prompt.lower(), (
+        "4 armor slots not mentioned in system prompt"
+    )
+
+
+def test_system_prompt_level_up_keywords():
+    """T23γ: system prompt contains LEVEL_UP_DEXTERITY/STRENGTH/INTELLIGENCE."""
+    env = _make_env()
+    prompt = env.system_prompt()
+    for kw in ("LEVEL_UP_DEXTERITY", "LEVEL_UP_STRENGTH", "LEVEL_UP_INTELLIGENCE"):
+        assert kw in prompt, f"{kw!r} missing from system prompt"
+
+
+def test_system_prompt_enchantment_tables():
+    """T23γ: system prompt mentions both Ⓔ and Ⓘ enchantment tables."""
+    env = _make_env()
+    prompt = env.system_prompt()
+    assert "Ⓔ" in prompt, "fire enchant table glyph missing from system prompt"
+    assert "Ⓘ" in prompt, "ice enchant table glyph missing from system prompt"
+
+
+def test_system_prompt_boss_section():
+    """T23γ: system prompt contains necromancer vulnerability and 8-hit win."""
+    env = _make_env()
+    prompt = env.system_prompt()
+    assert "8 hits" in prompt, "'8 hits' missing from system prompt boss section"
+    assert "summon" in prompt.lower(), "'summon' missing from system prompt boss section"
+
+
+def test_system_prompt_potions_section():
+    """T23γ: system prompt mentions 6 colors and hidden shuffle."""
+    env = _make_env()
+    prompt = env.system_prompt()
+    assert "6 colors" in prompt or "6-color" in prompt.lower() or "RED/GREEN/BLUE" in prompt, (
+        "potion section missing from system prompt"
+    )
