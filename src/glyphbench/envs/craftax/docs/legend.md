@@ -1,83 +1,131 @@
 # Craftax — Legend
 
-The ASCII renderer uses a single Unicode codepoint per grid cell. Colors are present in upstream Craftax renders but this port uses single-codepoint glyphs only — color encoding is not used; the glyph alone identifies the tile.
+> Canonical anchors (locked API): `legend:player`, `legend:terrain`, `legend:mobs:overworld`, `legend:mobs:dungeon`, `legend:mobs:boss`, `legend:items`, `legend:projectiles`, `legend:hud`.
 
+The ASCII renderer uses a single Unicode codepoint per grid cell. Color encoding is not used; the glyph alone identifies the tile.
+
+<!-- :section legend:player -->
+## Player
+
+| Glyph | Name |
+|---|---|
+| `@` | Player agent |
+<!-- :end -->
+
+<!-- :section legend:terrain -->
 ## Terrain tiles
 
-| Glyph | Name | Category |
+Surface terrain (floor 0):
+
+| Glyph | Name |
+|---|---|
+| `·` | Grass |
+| `♣` | Tree (choppable) |
+| `S` | Stone (mineable) |
+| `C` | Coal ore |
+| `I` | Iron ore |
+| `D` | Diamond ore |
+| `≈` | Water |
+| `♨` | Lava |
+| `░` | Sand |
+| `=` | Placed stone |
+| `+` | Sapling (planted) |
+| `*` | Ripe plant (edible) |
+
+Dungeon terrain (floors 1+):
+
+| Glyph | Name |
+|---|---|
+| `█` | Dungeon wall |
+| `▪` | Dungeon floor |
+
+Biome decorations (per floor):
+
+| Glyph | Name | Floor |
 |---|---|---|
-| `·` | Grass | terrain |
-| `♣` | Tree (choppable) | terrain |
-| `S` | Stone (mineable) | terrain |
-| `C` | Coal ore | terrain |
-| `I` | Iron ore | terrain |
-| `D` | Diamond ore | terrain |
-| `♦` | Sapphire ore | terrain |
-| `▲` | Ruby ore | terrain |
-| `≈` | Water | terrain |
-| `♨` | Lava | terrain |
-| `░` | Sand | terrain |
-| `█` | Dungeon wall | terrain |
-| `▪` | Dungeon floor | terrain |
-| `=` | Placed stone | terrain |
+| `♠` | Fire tree (decoration) | 6 |
+| `❄` | Ice shrub (decoration) | 7 |
+| `⚰` | Grave marker (decoration) | 8 |
+<!-- :end -->
 
-## Special / interactive tiles
+<!-- :section legend:mobs:overworld -->
+## Overworld mobs (floor 0)
 
-| Glyph | Name | Category |
+| Glyph | Name | Behavior |
 |---|---|---|
-| `⇣` | Stairs down | special |
-| `⇡` | Stairs up | special |
-| `t` | Crafting table | special |
-| `f` | Furnace | special |
-| `!` | Placed torch | special |
-| `B` | Boss door | special |
-| `$` | Chest (lootable) | special |
-| `⊙` | Fountain (drink) | special |
-| `Ⓔ` | Fire enchant table (floor 4) | special |
-| `Ⓘ` | Ice enchant table (floor 3) | special |
-| `♠` | Fire tree (floor 6 decoration) | special |
-| `❄` | Ice shrub (floor 7 decoration) | special |
-| `⚰` | Grave marker (floor 8 decoration) | special |
-| `+` | Sapling (planted) | terrain |
-| `*` | Ripe plant (edible) | terrain |
-| `;` | Sapling (inventory — placed with PLACE_PLANT) | items |
+| `z` | Zombie | melee, hostile |
+| `c` | Cow | passive, edible |
+| `a` | Skeleton | ranged (arrows), hostile |
+<!-- :end -->
 
-## Mob tiles
+<!-- :section legend:mobs:dungeon -->
+## Dungeon mobs (floors 1–7)
 
-| Glyph | Name | Category |
+| Glyph | Name | Behavior | Floor |
+|---|---|---|---|
+| `q` | Kobold | ranged (daggers), hostile | 3 |
+| `b` | Bat | passive, edible | 2/5/6/7 |
+| `s` | Snail | passive | 1/3/4 |
+| `T` | Troll | melee, hostile | 5 |
+| `d` | Deep thing | ranged (slimeballs), hostile | 5 |
+| `p` | Pigman | melee, hostile, fire-immune | 6 |
+| `F` | Fire elemental | ranged (fireballs), hostile, fire-immune | 6 |
+| `r` | Frost troll | melee, hostile, ice-immune | 7 |
+| `i` | Ice elemental | ranged (iceballs), hostile, ice-immune | 7 |
+| `W` | Boss (legacy) | melee, hostile | varies |
+
+Note: gnome_warrior, gnome_archer (floor 2), orc_soldier, orc_mage (floor 1), lizard, knight, knight_archer (floor 4) use upstream tile mappings from `mechanics/mobs.py`.
+<!-- :end -->
+
+<!-- :section legend:mobs:boss -->
+## Boss mob (floor 8)
+
+| Glyph | Name | Notes |
 |---|---|---|
-| `@` | Player agent | special |
-| `z` | Zombie (melee, floor 0) | mobs |
-| `c` | Cow (passive, floor 0) | mobs |
-| `a` | Skeleton (ranged, floor 0) | mobs |
-| `q` | Kobold (ranged, floor 3) | mobs |
-| `b` | Bat (passive, floors 2/5/6/7) | mobs |
-| `s` | Snail (passive, floors 1/3/4) | mobs |
-| `T` | Troll (melee, floor 5) | mobs |
-| `d` | Deep thing (ranged, floor 5) | mobs |
-| `p` | Pigman (melee, floor 6) | mobs |
-| `F` | Fire elemental (ranged, floor 6) | mobs |
-| `r` | Frost troll (melee, floor 7) | mobs |
-| `i` | Ice elemental (ranged, floor 7) | mobs |
-| `W` | Boss (legacy floor bosses) | mobs |
-| `N` | Necromancer (invulnerable) | mobs |
-| `n` | Necromancer (vulnerable — can be hit) | mobs |
+| `N` | Necromancer (invulnerable) | DO has no effect |
+| `n` | Necromancer (vulnerable) | DO while adjacent + facing lands a hit |
 
-Note: gnome_warrior, gnome_archer, orc_soldier, orc_mage, lizard, knight, knight_archer use the upstream tile mapping from mobs.py; the glyphs above cover all tiles defined in base.py.
+The Necromancer's glyph alternates between `N` and `n` as the boss state machine advances. See `boss.md`.
+<!-- :end -->
 
+<!-- :section legend:items -->
+## Special / interactive tiles and items
+
+| Glyph | Name |
+|---|---|
+| `⇣` | Stairs down |
+| `⇡` | Stairs up |
+| `t` | Crafting table |
+| `f` | Furnace |
+| `!` | Placed torch |
+| `B` | Boss door |
+| `$` | Chest (lootable) |
+| `⊙` | Fountain (refills water) |
+| `Ⓔ` | Fire enchantment table (floor 4) |
+| `Ⓘ` | Ice enchantment table (floor 3) |
+| `;` | Sapling (placed via PLACE_PLANT) |
+| `♦` | Sapphire ore |
+| `▲` | Ruby ore |
+<!-- :end -->
+
+<!-- :section legend:projectiles -->
 ## Projectile tiles
 
-| Glyph | Name | Category |
+| Glyph | Name | Source |
 |---|---|---|
-| `↗` | Arrow (variant 1) | projectiles |
-| `↘` | Arrow (variant 2) | projectiles |
-| `†` | Dagger (kobold) | projectiles |
-| `●` | Fireball (variant 1) | projectiles |
-| `◉` | Fireball (variant 2, fire elemental) | projectiles |
-| `○` | Iceball (variant 1) | projectiles |
-| `◎` | Iceball (variant 2, ice elemental) | projectiles |
-| `◐` | Slimeball (deep thing) | projectiles |
+| `↗` | Arrow (variant 1) | player or skeleton/gnome_archer |
+| `↘` | Arrow (variant 2) | knight_archer |
+| `†` | Dagger | kobold |
+| `●` | Fireball (variant 1) | player CAST_FIREBALL or orc_mage |
+| `◉` | Fireball (variant 2) | fire_elemental |
+| `○` | Iceball (variant 1) | player CAST_ICEBALL |
+| `◎` | Iceball (variant 2) | ice_elemental |
+| `◐` | Slimeball | deep_thing (mixed phys/fire/ice damage) |
 
+Projectiles travel 1 tile/turn; collision is checked at pre-advance and post-advance positions. See `combat.md` (`combat:projectiles`).
+<!-- :end -->
+
+<!-- :section legend:hud -->
 ## HUD fields
 
 The HUD shows the following fields every turn:
@@ -94,9 +142,10 @@ The HUD shows the following fields every turn:
 | STR | Strength attribute (1-5) |
 | INT | Intelligence attribute (1-5) |
 | Floor | Current floor number (0-8) |
-| Step | Turn counter |
-| Inventory | Counts for every item held |
-| Armor | Per-slot tier + enchant element |
-| Achievements | Upstream bitmap count (X / 67) |
+| Step | Turn counter formatted `T / N` |
+| Inventory | Per-item counts |
+| Armor | Per-slot tier and enchant element |
+| Achievements | Achievement count (X / 93 for full; X / 22 for classic) |
 
 For per-floor tile details see `floors.md`. For attribute scaling see `progression.md`.
+<!-- :end -->
