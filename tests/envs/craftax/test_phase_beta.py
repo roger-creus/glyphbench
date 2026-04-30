@@ -523,3 +523,66 @@ def test_collect_ruby_achievement_fires_on_mining():
     do_idx = e.action_spec.names.index("DO")
     e.step(do_idx)
     assert "collect_ruby" in e._achievements_unlocked
+
+
+# ---------------------------------------------------------------------------
+# T07β: Lava damage on contact
+# ---------------------------------------------------------------------------
+
+def _setup_lava_test():
+    """Create env with agent standing on a lava tile (surface)."""
+    from glyphbench.envs.craftax.base import TILE_LAVA
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=0)
+    # Force agent to surface floor 0 and place lava at agent position.
+    e._current_floor = 0
+    ax, ay = e._agent_x, e._agent_y
+    e._floors[0][ay][ax] = TILE_LAVA
+    return e
+
+
+def test_lava_tile_is_walkable():
+    """Player can move onto a lava tile (movement is not blocked)."""
+    from glyphbench.envs.craftax.base import TILE_LAVA, TILE_GRASS
+    e = CraftaxFullEnv(max_turns=500)
+    e.reset(seed=0)
+    e._current_floor = 0
+    # Place lava one tile to the right of the agent.
+    ax, ay = e._agent_x, e._agent_y
+    e._floors[0][ay][ax + 1] = TILE_LAVA
+    e._facing = (1, 0)
+    move_right_idx = e.action_spec.names.index("MOVE_RIGHT")
+    e.step(move_right_idx)
+    assert (e._agent_x, e._agent_y) == (ax + 1, ay), (
+        "Player should have moved onto the lava tile"
+    )
+
+
+def test_standing_on_lava_deals_2_damage_per_tick():
+    """Standing on lava deals exactly 2 damage per tick (armour-reduced by max(1, 2-def))."""
+    e = _setup_lava_test()
+    # Strip all armor so damage = max(1, 2 - 0) = 2.
+    for armor_key in ("wood_armor", "stone_armor", "iron_armor", "diamond_armor"):
+        e._inventory[armor_key] = 0
+    hp_before = e._hp
+    noop_idx = e.action_spec.names.index("NOOP")
+    e.step(noop_idx)
+    assert e._hp == hp_before - 2, (
+        f"Expected HP to drop by 2 (lava), got {hp_before} -> {e._hp}"
+    )
+
+
+def test_multiple_lava_ticks_drain_hp_linearly():
+    """Three ticks on lava drain HP by 6 total (2 per tick, no armor)."""
+    e = _setup_lava_test()
+    for armor_key in ("wood_armor", "stone_armor", "iron_armor", "diamond_armor"):
+        e._inventory[armor_key] = 0
+    # Set HP high enough to survive 3 ticks.
+    e._hp = 20
+    e._max_hp = 20
+    noop_idx = e.action_spec.names.index("NOOP")
+    for _ in range(3):
+        e.step(noop_idx)
+    assert e._hp == 14, (
+        f"Expected HP=14 after 3 lava ticks (20 - 6), got {e._hp}"
+    )

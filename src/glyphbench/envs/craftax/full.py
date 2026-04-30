@@ -140,12 +140,16 @@ SURFACE_WALKABLE = frozenset({
     TILE_GRASS, TILE_SAND, TILE_TABLE, TILE_FURNACE,
     TILE_PLACED_STONE, TILE_SAPLING, TILE_RIPE_PLANT,
     TILE_STAIRS_DOWN, TILE_TORCH,
+    # Phase β T07β: lava is now walkable but deals 2 dmg/tick.
+    TILE_LAVA,
 })
 
 DUNGEON_WALKABLE = frozenset({
     TILE_DUNGEON_FLOOR, TILE_TABLE, TILE_FURNACE,
     TILE_PLACED_STONE, TILE_STAIRS_DOWN, TILE_STAIRS_UP,
     TILE_TORCH, TILE_BOSS_DOOR,
+    # Phase β T07β: lava is walkable in dungeons too.
+    TILE_LAVA,
 })
 
 INTERACTABLE_TILES: dict[str, str] = {
@@ -354,7 +358,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
         # Potions
         self._potions: list[str] = []
         # Active effects
-        self._fire_resist_turns: int = 0
         self._speed_turns: int = 0
         # Milestone counters
         self._total_kills: int = 0
@@ -1354,8 +1357,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
             self._mana = min(_MAX_MANA, self._mana + 1)
 
         # Tick effects
-        if self._fire_resist_turns > 0:
-            self._fire_resist_turns -= 1
         if self._speed_turns > 0:
             self._speed_turns -= 1
 
@@ -1437,7 +1438,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._night_count = 0
         self._plants = {}
         self._potions = []
-        self._fire_resist_turns = 0
         self._speed_turns = 0
         self._weapon_enchanted = False
         self._armor_enchanted = False
@@ -1485,6 +1485,15 @@ class CraftaxFullEnv(BaseGlyphEnv):
             if self._energy >= _MAX_ENERGY:
                 self._is_sleeping = False
                 reward += self._try_unlock("wake_up")
+
+        # Phase β T07β: lava damage tick — applied BEFORE the action handler so
+        # damage state (HP, REST/SLEEP cancel via _take_damage) is already
+        # updated before any movement this tick.
+        if (
+            self._is_in_bounds(self._agent_x, self._agent_y)
+            and self._tile_at(self._agent_x, self._agent_y) == TILE_LAVA
+        ):
+            self._take_damage(2)
 
         handler = self._ACTION_DISPATCH.get(name)
         if handler is not None:
@@ -1583,15 +1592,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
                 and 0 <= ny < fsize
                 and grid[ny][nx] in walkable
                 and not self._mob_at(nx, ny)
-            ):
-                self._agent_x = nx
-                self._agent_y = ny
-            # Lava damage
-            if (
-                0 <= nx < fsize
-                and 0 <= ny < fsize
-                and grid[ny][nx] == TILE_LAVA
-                and self._fire_resist_turns > 0
             ):
                 self._agent_x = nx
                 self._agent_y = ny
@@ -2188,12 +2188,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
             self._hp = min(self._max_hp, self._hp + 5)
             self._message = "Drank health potion! (+5 HP)"
             reward += self._try_unlock("drink_health_potion")
-        elif potion == "fire_resist":
-            self._fire_resist_turns = 30
-            self._message = "Drank fire resistance potion!"
-            reward += self._try_unlock(
-                "drink_fire_resist_potion"
-            )
         elif potion == "speed":
             self._speed_turns = 20
             self._message = "Drank speed potion!"
@@ -2625,10 +2619,6 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         # Active potion effects
         effects: list[str] = []
-        if self._fire_resist_turns > 0:
-            effects.append(
-                f"fire_resist ({self._fire_resist_turns} turns)"
-            )
         if self._speed_turns > 0:
             effects.append(
                 f"speed ({self._speed_turns} turns)"
@@ -2693,7 +2683,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
             TILE_SAPPHIRE: "sapphire ore (needs iron pickaxe)",
             TILE_RUBY: "ruby ore (needs iron pickaxe)",
             TILE_WATER: "water (DRINK_WATER)",
-            TILE_LAVA: "lava (deadly)",
+            TILE_LAVA: "lava (2 dmg/tick)",
             TILE_SAND: "sand",
             TILE_TABLE: "crafting table",
             TILE_FURNACE: "furnace",
