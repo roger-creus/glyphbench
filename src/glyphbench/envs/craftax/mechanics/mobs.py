@@ -269,3 +269,45 @@ def should_despawn(
         return False
     dist_sum = abs(mob["x"] - player_x) + abs(mob["y"] - player_y)
     return dist_sum >= MOB_DESPAWN_DISTANCE
+
+
+from glyphbench.envs.craftax.mechanics.damage import DamageVec  # noqa: E402
+
+
+# Per-mob defense vector: fraction of incoming damage REDUCED for each
+# element (phys, fire, ice). Mirrors upstream constants.py:289-318.
+# Names match T18β's MELEE_MOB_NAMES + RANGED_MOB_NAMES + PASSIVE_MOB_NAMES.
+MOB_DEFENSE_VEC: dict[str, DamageVec] = {
+    # Floors 0-3 mobs: no defense.
+    "zombie": (0.0, 0.0, 0.0),
+    "skeleton": (0.0, 0.0, 0.0),
+    "kobold": (0.0, 0.0, 0.0),
+    "gnome_warrior": (0.0, 0.0, 0.0),
+    "gnome_archer": (0.0, 0.0, 0.0),
+    "orc_soldier": (0.0, 0.0, 0.0),
+    "orc_mage": (0.0, 0.0, 0.0),
+    "lizard": (0.0, 0.0, 0.0),
+    # Floor 4: vault knight has 0.5 phys defense.
+    "knight": (0.5, 0.0, 0.0),
+    "knight_archer": (0.5, 0.0, 0.0),
+    # Floor 5: troll/deep_thing 0.2 phys.
+    "troll": (0.2, 0.0, 0.0),
+    "deep_thing": (0.2, 0.0, 0.0),
+    # Floor 6 fire realm: 0.9 phys + 1.0 fire (immune to fire).
+    "pigman": (0.9, 1.0, 0.0),
+    "fire_elemental": (0.9, 1.0, 0.0),
+    # Floor 7 ice realm: 0.9 phys + 1.0 ice (immune to ice).
+    "frost_troll": (0.9, 0.0, 1.0),
+    "ice_elemental": (0.9, 0.0, 1.0),
+    # Passive mobs: no defense (rarely targeted but listed for completeness).
+    "cow": (0.0, 0.0, 0.0),
+    "bat": (0.0, 0.0, 0.0),
+    "snail": (0.0, 0.0, 0.0),
+}
+
+
+def damage_dealt_to_mob(mob_type: str, damage_vec: DamageVec) -> int:
+    """Apply per-mob defense vector to incoming damage. Returns rounded int."""
+    def_v = MOB_DEFENSE_VEC.get(mob_type, (0.0, 0.0, 0.0))
+    net = sum(d * (1.0 - dv) for d, dv in zip(damage_vec, def_v))
+    return max(0, int(round(net)))
