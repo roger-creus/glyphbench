@@ -1,10 +1,10 @@
 <div align="center">
 
-# GlyphBench
+# █  ★  →  GlyphBench  ←  ★  █
 
 **A benchmark of 300 text-rendered reinforcement-learning environments for evaluating LLM agents on sequential decision-making.**
 
-<img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/hero.gif" width="900" />
+<img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/hero.gif" width="500" />
 
 [Leaderboard](https://roger-creus.github.io/glyphbench/leaderboard/) · [Paper (coming soon)](#) · [Quickstart](#quickstart) · [Contributing](CONTRIBUTING.md)
 
@@ -69,19 +69,22 @@ print(obs)
 vf_env = glyphbench.load_environment(task_id="glyphbench/minigrid-empty-5x5-v0")
 ```
 
-## Tools
+## Trajectory replay
 
-### Trajectory replay
+<img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/gb_replay.gif" width="700" />
 
-<img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/gb_replay.gif" width="900" />
+`glyphbench replay` is a rich TUI for stepping through saved rollouts: per-turn grid + reasoning + memory + HUD. In `--pause` mode the hotkeys drop into a pager for any panel:
 
-`glyphbench replay` is a rich TUI for stepping through saved rollouts: per-turn grid + reasoning + memory + HUD, with hotkey hops to a pager for full system prompt / reasoning / memory views. → [docs/REPLAY.md](docs/REPLAY.md)
+| Key | Opens |
+|---|---|
+| `s` | full system prompt |
+| `r` | full reasoning chain for this turn |
+| `m` | previous + updated memory (side-by-side) |
+| `l` | full legend (glyph table) |
+| `←` / `→` | step backward / forward |
+| `q` | exit current rollout, advance to next match |
 
-### Interactive demo
-
-<img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/demo_all_envs.gif" width="900" />
-
-`scripts/demo_all_envs.py` runs a uniform-random agent through any env in the same TUI layout `gb replay` uses. → [scripts/README.md](scripts/README.md)
+Full reference: [docs/REPLAY.md](docs/REPLAY.md).
 
 ## Documentation
 
@@ -89,7 +92,7 @@ vf_env = glyphbench.load_environment(task_id="glyphbench/minigrid-empty-5x5-v0")
 - [LLM evaluation (vLLM / verifiers / `prime eval run`)](eval/README.md)
 - [RL framework hooks (prime-rl)](src/glyphbench/rl/README.md)
 - [Trajectory replay tool](docs/REPLAY.md)
-- [Interactive demo & scripts](scripts/README.md)
+- [Top-level scripts (demo, replay, GIF export, upload)](scripts/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Use with your own agent](docs/INTEGRATION.md)
 - [Contributing](CONTRIBUTING.md)
