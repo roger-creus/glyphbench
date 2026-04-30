@@ -245,6 +245,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         from glyphbench.envs.craftax.mechanics.projectiles import ProjectileEntity
         self._player_projectiles: list[ProjectileEntity] = []
         self._mob_projectiles: list[ProjectileEntity] = []
+        self._pending_step_reward: float = 0.0
         # Plants
         self._plants: dict[tuple[int, int], int] = {}
         # Potions
@@ -874,41 +875,39 @@ class CraftaxFullEnv(BaseGlyphEnv):
         - Mob hit: damage the first mob the projectile lands on; projectile dies.
         Mirrors upstream _move_player_projectile:1719-1823 (post-advance check
         only; pre-advance dual-position check is deferred to phase γ).
+
+        blocked_fn and hit_fn both receive the ProjectileEntity directly.
+        This avoids the stale next()-lookup bug where two projectiles advancing
+        to the same tile would both resolve to the first one in the list.
+        pending_kills is a local variable (not an instance attribute) so a raise
+        inside _attack_mob_kill cannot leave a dangling attribute.
         """
+        if not self._player_projectiles:
+            return
         from glyphbench.envs.craftax.mechanics.projectiles import (
             step_player_projectiles,
         )
 
-        if not self._player_projectiles:
-            return
-
         size = self._floor_size()
+        pending_kills: list = []  # local, no instance attr
 
-        def _blocked(x: int, y: int) -> bool:
-            return self._tile_at(x, y) in _SOLID_TILES
+        def _blocked(p) -> bool:
+            return self._tile_at(p.x, p.y) in _SOLID_TILES
 
-        def _hit(x: int, y: int) -> bool:
+        def _hit(p) -> bool:
             for mob in self._mobs:
                 if (
                     mob["floor"] == self._current_floor
-                    and mob["x"] == x
-                    and mob["y"] == y
+                    and mob["x"] == p.x
+                    and mob["y"] == p.y
                     and mob["hp"] > 0
                 ):
-                    # Use the projectile's damage (the first projectile in the list
-                    # whose post-advance position equals (x, y)).
-                    proj = next(
-                        p for p in self._player_projectiles
-                        if p.x == x and p.y == y
-                    )
-                    mob["hp"] -= proj.damage
+                    mob["hp"] -= p.damage
                     if mob["hp"] <= 0:
-                        # Collect for post-advance kill resolution.
-                        self._pending_projectile_kills.append(mob)
+                        pending_kills.append(mob)
                     return True
             return False
 
-        self._pending_projectile_kills: list = []
         self._player_projectiles = step_player_projectiles(
             self._player_projectiles,
             map_w=size, map_h=size,
@@ -917,10 +916,8 @@ class CraftaxFullEnv(BaseGlyphEnv):
 
         # Resolve any pending kills (fire achievement, accumulate reward).
         # _attack_mob_kill removes the mob from self._mobs itself.
-        self._pending_step_reward = getattr(self, "_pending_step_reward", 0.0)
-        for dead_mob in self._pending_projectile_kills:
+        for dead_mob in pending_kills:
             self._pending_step_reward += self._attack_mob_kill(dead_mob)
-        del self._pending_projectile_kills
 
     def _mob_ai(self) -> None:
         """Move mobs on current floor and handle attacks.
@@ -1147,6 +1144,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._mobs = []
         self._player_projectiles = []
         self._mob_projectiles = []
+        self._pending_step_reward: float = 0.0
         self._torches = {0: set()}
         self._stairs_down_pos = {}
         self._stairs_up_pos = {}
@@ -1213,7 +1211,7 @@ class CraftaxFullEnv(BaseGlyphEnv):
         self._tick_plants()
         # Phase α — advance player projectiles after the action handler runs.
         self._step_player_projectiles()
-        reward += getattr(self, "_pending_step_reward", 0.0)
+        reward += self._pending_step_reward
         self._pending_step_reward = 0.0
         self._mob_ai()
 
@@ -1757,17 +1755,16 @@ class CraftaxFullEnv(BaseGlyphEnv):
         if self._mana < 2:
             self._message = "Not enough mana! (need 2)"
             return 0.0
-        # Spawn one tile in front of the agent.
+        # Spawn at the player's tile (upstream spawn_projectile places at
+        # state.player_position; the same-step advance by _move_player_projectile
+        # then carries it to player_pos + 1*dir). Player is always in-bounds,
+        # so the old bounds check on spawn_x/spawn_y was vacuous.
         dx, dy = self._facing
-        spawn_x, spawn_y = self._agent_x + dx, self._agent_y + dy
-        if not self._is_in_bounds(spawn_x, spawn_y):
-            self._message = "No room to launch fireball."
-            return 0.0
         self._mana -= 2
         self._player_projectiles.append(
             ProjectileEntity(
                 kind=ProjectileType.FIREBALL,
-                x=spawn_x, y=spawn_y, dx=dx, dy=dy,
+                x=self._agent_x, y=self._agent_y, dx=dx, dy=dy,
                 damage=4,  # phase-α scalar; phase γ promotes to 3-vector
             )
         )
@@ -1793,16 +1790,14 @@ class CraftaxFullEnv(BaseGlyphEnv):
         if self._mana < 2:
             self._message = "Not enough mana! (need 2)"
             return 0.0
+        # Spawn at the player's tile (upstream-faithful; same-step advance
+        # carries it to player_pos + 1*dir). Player is always in-bounds.
         dx, dy = self._facing
-        spawn_x, spawn_y = self._agent_x + dx, self._agent_y + dy
-        if not self._is_in_bounds(spawn_x, spawn_y):
-            self._message = "No room to launch iceball."
-            return 0.0
         self._mana -= 2
         self._player_projectiles.append(
             ProjectileEntity(
                 kind=ProjectileType.ICEBALL,
-                x=spawn_x, y=spawn_y, dx=dx, dy=dy,
+                x=self._agent_x, y=self._agent_y, dx=dx, dy=dy,
                 damage=3,
             )
         )

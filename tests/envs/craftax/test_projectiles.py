@@ -62,13 +62,13 @@ def test_full_env_has_projectile_lists_after_reset() -> None:
 
 def test_player_projectile_advances_each_step() -> None:
     proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=2)
-    step_player_projectiles([proj], map_w=20, map_h=20, blocked_fn=lambda x, y: False, hit_fn=lambda x, y: False)
+    step_player_projectiles([proj], map_w=20, map_h=20, blocked_fn=lambda p: False, hit_fn=lambda p: False)
     assert (proj.x, proj.y) == (6, 5)
 
 
 def test_player_projectile_expires_off_map() -> None:
     proj = ProjectileEntity(kind=ProjectileType.ARROW, x=19, y=5, dx=1, dy=0, damage=2)
-    survivors = step_player_projectiles([proj], map_w=20, map_h=20, blocked_fn=lambda x, y: False, hit_fn=lambda x, y: False)
+    survivors = step_player_projectiles([proj], map_w=20, map_h=20, blocked_fn=lambda p: False, hit_fn=lambda p: False)
     assert survivors == []
 
 
@@ -81,8 +81,8 @@ def test_player_projectile_stops_at_solid_block() -> None:
     survivors = step_player_projectiles(
         [proj],
         map_w=20, map_h=20,
-        blocked_fn=lambda x, y: (x, y) in blocked,
-        hit_fn=lambda x, y: False,
+        blocked_fn=lambda p: (p.x, p.y) in blocked,
+        hit_fn=lambda p: False,
     )
     assert survivors == []
     # Terminal position is the blocked tile (proj advanced into it before being dropped).
@@ -102,16 +102,16 @@ def test_player_projectile_damages_one_mob_then_dies() -> None:
     proj = ProjectileEntity(kind=ProjectileType.ARROW, x=5, y=5, dx=1, dy=0, damage=2)
     mob_hits: list[tuple[int, int, int]] = []  # (x, y, damage)
 
-    def hit_and_damage(x: int, y: int) -> bool:
+    def hit_and_damage(p) -> bool:
         # Tile (6,5) holds a mob.
-        if (x, y) == (6, 5):
-            mob_hits.append((x, y, proj.damage))
+        if (p.x, p.y) == (6, 5):
+            mob_hits.append((p.x, p.y, p.damage))
             return True  # absorb the projectile
         return False
 
     survivors = step_player_projectiles(
         [proj], map_w=20, map_h=20,
-        blocked_fn=lambda x, y: False,
+        blocked_fn=lambda p: False,
         hit_fn=hit_and_damage,
     )
     assert survivors == []

@@ -45,8 +45,8 @@ def step_player_projectiles(
     *,
     map_w: int,
     map_h: int,
-    blocked_fn: Callable[[int, int], bool],
-    hit_fn: Callable[[int, int], bool],
+    blocked_fn: Callable[[ProjectileEntity], bool],
+    hit_fn: Callable[[ProjectileEntity], bool],
 ) -> list[ProjectileEntity]:
     """Advance each projectile one tile. Drop those that:
     - go out of map bounds, OR
@@ -58,15 +58,20 @@ def step_player_projectiles(
     Upstream Craftax (game_logic.py:1786-1799) also checks the pre-advance
     tile so a stationary mob walked into by a moving projectile is hit;
     we defer that to Phase γ when projectile damage becomes 3-vector.
+
+    blocked_fn and hit_fn both receive the ProjectileEntity (not raw x, y
+    coordinates). This lets hit_fn read p.damage directly, avoiding the
+    stale-lookup bug that arose when two projectiles shared a post-advance
+    tile and next() resolved to the wrong one.
     """
     survivors: list[ProjectileEntity] = []
     for p in projectiles:
         p.advance()
         if p.x < 0 or p.x >= map_w or p.y < 0 or p.y >= map_h:
             continue
-        if blocked_fn(p.x, p.y):
+        if blocked_fn(p):
             continue
-        if hit_fn(p.x, p.y):
+        if hit_fn(p):
             continue
         survivors.append(p)
     return survivors
