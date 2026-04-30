@@ -1,4 +1,4 @@
-"""Craftax Full environment (80 achievements).
+"""Craftax Full environment (78 achievements).
 
 Extends Craftax Classic with multi-floor dungeons, magic, bosses,
 armor, enchantments, potions, and new mob types.
@@ -190,7 +190,7 @@ class Mob(TypedDict):
 class CraftaxFullEnv(BaseGlyphEnv):
     """Craftax Full: survival crafting with dungeons and magic.
 
-    80 achievements spanning resource gathering, crafting, combat,
+    78 achievements spanning resource gathering, crafting, combat,
     dungeon exploration, magic, bosses, and survival milestones.
 
     Surface: 64x64, Dungeons: 32x32 per floor, 5 floors.

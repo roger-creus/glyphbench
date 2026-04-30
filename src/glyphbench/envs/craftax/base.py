@@ -42,7 +42,7 @@ CRAFTAX_ACTION_SPEC = ActionSpec(
     ),
 )
 
-# Full Craftax action spec (35 actions)
+# Full Craftax action spec (33 actions)
 CRAFTAX_FULL_ACTION_SPEC = ActionSpec(
     names=(
         "NOOP", "MOVE_LEFT", "MOVE_RIGHT", "MOVE_UP", "MOVE_DOWN",
