@@ -22,8 +22,8 @@ class BreakoutEnv(AtariBase):
     Break all bricks to clear the level.
 
     Actions: NOOP, FIRE, LEFT, RIGHT
-    Reward: +1 per brick broken
-
+    Pattern A: +1/_WIN_TARGET per brick broken (full-scope = 60 bricks
+    in the full wall). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -45,6 +45,9 @@ class BreakoutEnv(AtariBase):
     _BRICK_START_X = 2
     _BRICK_END_X = 17  # exclusive
 
+    # Pattern A full-scope target: 60 bricks (4 rows x 15 columns).
+    _WIN_TARGET: int = 60
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._paddle_x: int = 0  # left edge of paddle
@@ -54,9 +57,14 @@ class BreakoutEnv(AtariBase):
         self._ball_dy: int = 0
         self._serving: bool = True
         self._bricks: set[tuple[int, int]] = set()
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-breakout-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -190,8 +198,10 @@ class BreakoutEnv(AtariBase):
                 self._bricks.discard((new_x, new_y))
                 self._ball_dy = -self._ball_dy
                 self._on_point_scored(1)
-                reward += 1
-                self._message = f"Brick! +1 ({len(self._bricks)} left)"
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = f"Brick! ({len(self._bricks)} left)"
                 # Don't move into the brick cell, bounce back
                 new_y = self._ball_y
             # Also check horizontal brick hit
@@ -199,16 +209,22 @@ class BreakoutEnv(AtariBase):
                 self._bricks.discard((new_x, self._ball_y))
                 self._ball_dx = -self._ball_dx
                 self._on_point_scored(1)
-                reward += 1
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
                 new_x = self._ball_x
 
             self._ball_x = new_x
             self._ball_y = new_y
 
-            # Check level clear
-            if len(self._bricks) == 0:
-                self._on_point_scored(5)
-                reward += 5
+            # Win check
+            if self._progress_count >= self._WIN_TARGET:
+                self._game_over = True
+                info["won"] = True
+                self._message = "Wall cleared!"
+
+            # Check level clear (regenerate; no reward bonus)
+            if len(self._bricks) == 0 and not self._game_over:
                 self._message = "Level clear!"
                 self._level += 1
                 self._generate_level(self._level)
