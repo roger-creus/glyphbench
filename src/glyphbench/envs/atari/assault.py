@@ -21,8 +21,8 @@ class AssaultEnv(AtariBase):
     at bottom can move left/right and fire upward.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Reward: +1 per enemy, +2 per formation leader
-
+    Pattern A: +1/_WIN_TARGET per enemy killed (full-scope = 5 waves x
+    6 enemies = 30 progress units). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -39,6 +39,9 @@ class AssaultEnv(AtariBase):
     _HEIGHT = 20
     _PLAYER_Y = 18
 
+    # Pattern A full-scope target: 5 waves x 6 enemies = 30 progress units.
+    _WIN_TARGET: int = 30
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._enemies: list[AtariEntity] = []
@@ -46,9 +49,14 @@ class AssaultEnv(AtariBase):
         self._enemy_bullets: list[AtariEntity] = []
         self._step_counter: int = 0
         self._spawn_timer: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-assault-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -128,8 +136,10 @@ class AssaultEnv(AtariBase):
                     b.alive = False
                     pts = 2 if e.etype == "leader" else 1
                     self._on_point_scored(pts)
-                    reward += pts
-                    self._message = f"Enemy hit! +{pts}"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Enemy hit!"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -181,9 +191,15 @@ class AssaultEnv(AtariBase):
                 self._message = "Enemy reached you!"
         self._enemies = [e for e in self._enemies if e.alive]
 
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All waves cleared!"
+
         # Spawn new formations periodically
         self._spawn_timer += 1
-        if not self._enemies or self._spawn_timer >= 30:
+        if (not self._enemies or self._spawn_timer >= 30) and not self._game_over:
             if not self._enemies:
                 self._level += 1
                 self._message = "Wave cleared!"
