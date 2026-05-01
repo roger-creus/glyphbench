@@ -192,7 +192,7 @@ class CraftaxFloor1Env(CraftaxFullEnv):
             "You are on dungeon floor 1 (Sewers entry). Find the stairs down "
             "(⇣) and use DESCEND to reach floor 2. You start with a stone "
             "sword and stone pickaxe. Enemies (zombies, skeletons, kobolds, "
-            "bats) lurk in the dark — fight with DO or evade. Reward: +10 "
+            "bats) lurk in the dark — fight with DO or evade. Reward: +1 "
             "for descending to floor 2."
         )
 
@@ -219,14 +219,25 @@ class CraftaxFloor1Env(CraftaxFullEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_floor = self._current_floor
         obs, reward, terminated, truncated, info = super()._step(action)
-        # Check if player descended to floor 2
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on reaching the next floor (terminal).
+        reward = 0.0
         if self._current_floor == 2 and old_floor == 1:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -264,7 +275,7 @@ class CraftaxFloor2Env(CraftaxFullEnv):
             "You are on dungeon floor 2. Find the stairs down (⇣) and use "
             "DESCEND to reach floor 3. You start with an iron sword, full "
             "iron armor, and torches. Enemies are tougher than floor 1. "
-            "Reward: +10 for descending to floor 3."
+            "Reward: +1 for descending to floor 3."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -290,13 +301,25 @@ class CraftaxFloor2Env(CraftaxFullEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_floor = self._current_floor
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on reaching the next floor (terminal).
+        reward = 0.0
         if self._current_floor == 3 and old_floor == 2:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -334,7 +357,7 @@ class CraftaxFloor3Env(CraftaxFullEnv):
         return (
             "You are on dungeon floor 3 (Sewers — hosts the ice enchant table). "
             "Find the stairs down (⇣) and use DESCEND to reach floor 4. You "
-            "have iron gear, learned spells, and potions. Reward: +10 for "
+            "have iron gear, learned spells, and potions. Reward: +1 for "
             "descending to floor 4."
         )
 
@@ -364,13 +387,25 @@ class CraftaxFloor3Env(CraftaxFullEnv):
         self._mana = _MAX_MANA
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_floor = self._current_floor
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on reaching the next floor (terminal).
+        reward = 0.0
         if self._current_floor == 4 and old_floor == 3:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -2116,7 +2151,7 @@ class CraftaxFloor4Env(CraftaxFullEnv):
             "table Ⓔ). Find the stairs down (⇣) and use DESCEND to reach "
             "floor 5. You start with a diamond sword, iron armor, learned "
             "spells, and 2 health potions. Vault knights have 0.5 physical "
-            "defense — use spells or enchanted attacks. Reward: +10 for "
+            "defense — use spells or enchanted attacks. Reward: +1 for "
             "descending to floor 5."
         )
 
@@ -2146,13 +2181,25 @@ class CraftaxFloor4Env(CraftaxFullEnv):
         self._mana = _MAX_MANA
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_floor = self._current_floor
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on reaching the next floor (terminal).
+        reward = 0.0
         if self._current_floor == 5 and old_floor == 4:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -2193,7 +2240,7 @@ class CraftaxFloor5Env(CraftaxFullEnv):
             "torches, learned spells, and potions. The floor is dark — "
             "PLACE_TORCH to see. Trolls (T, 12 HP, 4 damage) hit hard; deep "
             "things (d) kite from range and fire mixed-element slimeballs. "
-            "Reward: +10 for descending to floor 6."
+            "Reward: +1 for descending to floor 6."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -2224,13 +2271,25 @@ class CraftaxFloor5Env(CraftaxFullEnv):
         self._mana = _MAX_MANA
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_floor = self._current_floor
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on reaching the next floor (terminal).
+        reward = 0.0
         if self._current_floor == 6 and old_floor == 5:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -2272,7 +2331,7 @@ class CraftaxFloor6Env(CraftaxFullEnv):
             "your ice-enchanted diamond sword. You start with full diamond "
             "armor (ice-enchanted), ice-enchanted sword, bow + 10 arrows, "
             "iceball spell learned, torches, and 2 health potions. Avoid "
-            "stepping on lava (♨, 2 HP/tick). Reward: +10 for descending to "
+            "stepping on lava (♨, 2 HP/tick). Reward: +1 for descending to "
             "floor 7."
         )
 
@@ -2310,13 +2369,25 @@ class CraftaxFloor6Env(CraftaxFullEnv):
         self._mana = _MAX_MANA
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_floor = self._current_floor
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on reaching the next floor (terminal).
+        reward = 0.0
         if self._current_floor == 7 and old_floor == 6:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -2358,7 +2429,7 @@ class CraftaxFloor7Env(CraftaxFullEnv):
             "— use CAST_FIREBALL or your fire-enchanted diamond sword. You "
             "start with full diamond armor (fire-enchanted), fire-enchanted "
             "sword, bow + 10 arrows, fireball spell learned, torches, and "
-            "2 health potions. Reward: +10 for descending to floor 8."
+            "2 health potions. Reward: +1 for descending to floor 8."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -2393,13 +2464,25 @@ class CraftaxFloor7Env(CraftaxFullEnv):
         self._mana = _MAX_MANA
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_floor = self._current_floor
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on reaching the next floor (terminal).
+        reward = 0.0
         if self._current_floor == 8 and old_floor == 7:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
