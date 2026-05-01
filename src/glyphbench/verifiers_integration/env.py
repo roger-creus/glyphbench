@@ -16,7 +16,7 @@ from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.registry import REGISTRY, make_env
 from glyphbench.core.task_selection import list_task_ids
 from glyphbench.verifiers_integration.memory import (
-    action_response_text,
+    action_reasoning_text,
     build_memory_update_user,
     extract_memory_update,
     memory_sampling_args,
@@ -466,7 +466,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         # new obs. See memory.build_memory_update_user docstring for the
         # rationale on each section.
         memory_user = build_memory_update_user(
-            action_text=action_response_text(action_completion),
+            action_reasoning=action_reasoning_text(action_completion),
             action_chosen=str(action_result["action_chosen"]),
             parse_failed=bool(action_result["parse_failed"]),
             parse_failure_reason=action_result["parse_failure_reason"],

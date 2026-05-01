@@ -41,7 +41,7 @@ def extract_memory_update(text: str) -> MemoryExtraction:
 
 def build_memory_update_user(
     *,
-    action_text: str,
+    action_reasoning: str,
     action_chosen: str,
     parse_failed: bool,
     parse_failure_reason: str | None,
@@ -55,15 +55,16 @@ def build_memory_update_user(
 
     Sections, in order:
 
-      [Last Action]      — your previous response (raw reasoning + action
-                           tag) plus the parser's outcome (action applied
-                           or forfeit + reason) and an output-truncated
-                           flag. The chat template strips ``<think>`` from
-                           prior assistant turns by default, so this block
-                           re-injects the reasoning as plain text — gives
-                           the memory writer continuity with the action
-                           turn's analysis instead of forcing it to redo
-                           the work from scratch.
+      [Last Action]      — the model's ``<think>`` reasoning trace
+                           (re-injected because the chat template strips
+                           it from prior assistant turns) PLUS an Outcome
+                           block reporting what the parser actually
+                           applied (``Action applied`` / ``Parse status`` /
+                           ``Output truncated``). The literal ``<action>``
+                           tag is NOT repeated here — it is already in
+                           the conversation prefix as
+                           ``assistant_action_T.content`` and structured
+                           as ``Action applied: NAME``.
 
       [Env Response]     — reward, terminated, truncated (episode-level).
 
@@ -86,18 +87,25 @@ def build_memory_update_user(
     else:
         parse_status = "ok"
 
-    last_action_text = action_text.strip() if action_text else "(empty)"
+    reasoning_clean = action_reasoning.strip() if action_reasoning else ""
+    if reasoning_clean:
+        reasoning_block = (
+            "Reasoning that led to the action (re-injected because the "
+            "chat template strips <think> from prior assistant turns):\n"
+            "---\n"
+            f"{reasoning_clean}\n"
+            "---\n"
+        )
+    else:
+        reasoning_block = "Reasoning: (none emitted)\n"
 
     last_action = (
         "[Last Action]\n"
-        "Your previous response (raw):\n"
-        "---\n"
-        f"{last_action_text}\n"
-        "---\n"
-        "Outcome:\n"
-        f"  Action applied: {action_chosen}\n"
-        f"  Parse status: {parse_status}\n"
-        f"  Output truncated: {str(bool(action_truncated)).lower()}"
+        + reasoning_block
+        + "Outcome:\n"
+        + f"  Action applied: {action_chosen}\n"
+        + f"  Parse status: {parse_status}\n"
+        + f"  Output truncated: {str(bool(action_truncated)).lower()}"
     )
 
     env_response_block = (
@@ -132,25 +140,33 @@ def build_memory_update_user(
     return vf.UserMessage(content=content)
 
 
-def action_response_text(action_completion: list[Any]) -> str:
-    """Stitch the action turn's full text from a vf assistant message list.
+def action_reasoning_text(action_completion: list[Any]) -> str:
+    """Extract just the action turn's ``<think>`` reasoning content.
 
-    Qwen3.5's chat template prefills ``<think>\\n`` and emits
-    ``reasoning_content`` separately from ``content``. To preserve the
-    full reasoning trace for the memory-turn re-injection, we glue them
-    back together with explicit ``<think>`` delimiters when reasoning is
-    set; otherwise the raw content already contains everything (for
-    older / non-thinking responses, or for chat templates that don't
-    split out the reasoning).
+    The ``<action>`` tag is intentionally excluded — it is already
+    present in the conversation prefix as the assistant_action_T
+    message's ``content`` (which the chat template does carry over to
+    prior turns), and its parsed value is also reported as
+    ``Action applied: NAME`` in the [Last Action] Outcome section.
+    Repeating the literal tag in the [Last Action] re-injection would
+    triple it in the memory call's input.
+
+    Returns ``""`` if the response had no reasoning trace (non-thinking
+    response, or a model that emitted only the action tag).
     """
     if not action_completion:
         return ""
     msg = action_completion[-1]
-    content = msg.get("content", "") or ""
-    reasoning = msg.get("reasoning_content") or ""
+    reasoning = msg.get("reasoning_content")
     if reasoning:
-        return f"<think>\n{reasoning}\n</think>\n{content}".strip()
-    return content.strip()
+        return reasoning.strip()
+    content = msg.get("content", "") or ""
+    if "</think>" in content:
+        before = content.split("</think>", 1)[0].lstrip()
+        if before.startswith("<think>"):
+            before = before[len("<think>"):].lstrip("\n")
+        return before.strip()
+    return ""
 
 
 def memory_sampling_args(

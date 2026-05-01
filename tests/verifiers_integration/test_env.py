@@ -274,12 +274,15 @@ async def test_memory_add_model_response_emits_two_steps(monkeypatch):
     assert "[Next Observation]" in memory_update_prompt
     assert "[Memory Update]" in memory_update_prompt
     assert "Reward: +0.000" in memory_update_prompt
-    # Action transcript is re-injected (workaround for chat-template <think>
-    # stripping) so the memory writer can use the action turn's reasoning.
-    assert "<action>EAST</action>" in memory_update_prompt
+    # Action's reasoning is re-injected as plain text (workaround for the
+    # chat template's <think>-stripping on prior turns); the Outcome block
+    # provides the structured action result.
     assert "Action applied: EAST" in memory_update_prompt
     assert "Parse status: ok" in memory_update_prompt
     assert "Output truncated: false" in memory_update_prompt
+    # The literal <action> tag is NOT in [Last Action] — it's already in
+    # the prior assistant turn + Outcome. Avoids triple-printing it.
+    assert "<action>EAST</action>" not in memory_update_prompt
     # Next obs grid surfaces in the [Next Observation] block.
     assert "[Grid]" in memory_update_prompt
     # Removed legacy block names should NOT appear (these were the pre-rework
@@ -390,10 +393,11 @@ async def test_memory_update_prompt_reinjects_action_reasoning(monkeypatch):
     assert "[Env Response]" in memory_update_prompt
     assert "[Next Observation]" in memory_update_prompt
     assert "[Memory Update]" in memory_update_prompt
-    # Reasoning + tag re-injected as plain text in [Last Action] block.
-    assert "<think>" in memory_update_prompt
+    # Reasoning is re-injected (chat template would otherwise strip it).
     assert "The goal is east" in memory_update_prompt
-    assert "<action>EAST</action>" in memory_update_prompt
+    # The action tag itself is NOT duplicated into [Last Action] — already
+    # in the prior assistant turn + structured "Action applied: EAST".
+    assert "<action>EAST</action>" not in memory_update_prompt
     assert "Action applied: EAST" in memory_update_prompt
     # Old block names are gone (replaced by [Last Action] / [Env Response]).
     assert "[Action Response]" not in memory_update_prompt

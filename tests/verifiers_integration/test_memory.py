@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from glyphbench.verifiers_integration.memory import (
-    action_response_text,
+    action_reasoning_text,
     build_memory_update_user,
     extract_memory_update,
     memory_sampling_args,
@@ -58,7 +58,7 @@ def test_extract_memory_empty_string_signals_parse_failure():
 
 def test_build_memory_update_user_includes_all_four_sections():
     msg = build_memory_update_user(
-        action_text="<think>go east</think>\n<action>EAST</action>",
+        action_reasoning="The goal is east, so I move east.",
         action_chosen="EAST",
         parse_failed=False,
         parse_failure_reason=None,
@@ -74,9 +74,9 @@ def test_build_memory_update_user_includes_all_four_sections():
     assert "[Env Response]" in text
     assert "[Next Observation]" in text
     assert "[Memory Update]" in text
-    # Last Action: raw response and parsed outcome
-    assert "<think>go east</think>" in text
-    assert "<action>EAST</action>" in text
+    # Last Action: reasoning re-injected, action tag NOT duplicated.
+    assert "The goal is east, so I move east." in text
+    assert "<action>EAST</action>" not in text  # tag is in prior assistant turn + Outcome
     assert "Action applied: EAST" in text
     assert "Parse status: ok" in text
     assert "Output truncated: false" in text
@@ -94,9 +94,26 @@ def test_build_memory_update_user_includes_all_four_sections():
     assert "Do NOT re-describe the grid" in text
 
 
+def test_build_memory_update_user_renders_no_reasoning_when_empty():
+    msg = build_memory_update_user(
+        action_reasoning="",
+        action_chosen="EAST",
+        parse_failed=False,
+        parse_failure_reason=None,
+        action_truncated=False,
+        reward=0.0,
+        terminated=False,
+        truncated=False,
+        next_obs=_OBS,
+    )
+    text = msg["content"]
+    assert "Reasoning: (none emitted)" in text
+    assert "Action applied: EAST" in text
+
+
 def test_build_memory_update_user_renders_parse_failure_explicitly():
     msg = build_memory_update_user(
-        action_text="i forgot the action tag",
+        action_reasoning="I'm thinking but never emitted an action tag.",
         action_chosen="FORFEIT",
         parse_failed=True,
         parse_failure_reason="no_action_tag",
@@ -115,7 +132,7 @@ def test_build_memory_update_user_renders_parse_failure_explicitly():
 
 def test_build_memory_update_user_flags_output_truncation():
     msg = build_memory_update_user(
-        action_text="<think>thinking",
+        action_reasoning="thinking but ran out of tokens",
         action_chosen="FORFEIT",
         parse_failed=True,
         parse_failure_reason="no_action_tag",
@@ -131,7 +148,7 @@ def test_build_memory_update_user_flags_output_truncation():
 
 def test_build_memory_update_user_handles_negative_reward_and_truncation():
     msg = build_memory_update_user(
-        action_text="<action>NORTH</action>",
+        action_reasoning="moving north",
         action_chosen="NORTH",
         parse_failed=False,
         parse_failure_reason=None,
@@ -147,31 +164,52 @@ def test_build_memory_update_user_handles_negative_reward_and_truncation():
     assert "Truncated: true" in text
 
 
-def test_action_response_text_stitches_reasoning_when_separate():
+def test_action_reasoning_text_returns_only_reasoning_when_separate():
     completion = [{
         "role": "assistant",
         "content": "<action>EAST</action>",
         "reasoning_content": "the goal is east",
     }]
-    out = action_response_text(completion)
-    assert "<think>" in out
-    assert "the goal is east" in out
-    assert "</think>" in out
-    assert "<action>EAST</action>" in out
+    out = action_reasoning_text(completion)
+    assert out == "the goal is east"
+    # No action tag in the reasoning text.
+    assert "<action>" not in out
+    assert "EAST" not in out
 
 
-def test_action_response_text_uses_content_when_no_reasoning_field():
+def test_action_reasoning_text_strips_tags_from_inline_content():
     completion = [{
         "role": "assistant",
-        "content": "thinking</think><action>EAST</action>",
+        "content": "<think>thinking text</think>\n<action>EAST</action>",
         "reasoning_content": None,
     }]
-    out = action_response_text(completion)
-    assert out == "thinking</think><action>EAST</action>"
+    out = action_reasoning_text(completion)
+    assert out == "thinking text"
 
 
-def test_action_response_text_handles_empty_completion():
-    assert action_response_text([]) == ""
+def test_action_reasoning_text_handles_template_prefilled_think():
+    # Qwen3.5 chat template prefills <think>\n on the assistant side, so
+    # the model's emitted content typically lacks the opening <think> tag.
+    completion = [{
+        "role": "assistant",
+        "content": "thinking text\n</think>\n\n<action>EAST</action>",
+        "reasoning_content": None,
+    }]
+    out = action_reasoning_text(completion)
+    assert out == "thinking text"
+
+
+def test_action_reasoning_text_returns_empty_for_no_thinking_response():
+    completion = [{
+        "role": "assistant",
+        "content": "<action>EAST</action>",
+        "reasoning_content": None,
+    }]
+    assert action_reasoning_text(completion) == ""
+
+
+def test_action_reasoning_text_handles_empty_completion():
+    assert action_reasoning_text([]) == ""
 
 
 def test_memory_sampling_args_defaults_to_existing_action_args():

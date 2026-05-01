@@ -76,6 +76,49 @@ single-generation loop. Memory-aware trajectories show previous and updated
 memory in `gb replay`; the standalone trajectory / GIF renderer also
 includes stored memory when present.
 
+### Failure handling
+
+Both failure modes are surfaced explicitly:
+
+- **Memory parse failure** (no `<memory>...</memory>` tag in the response):
+  the trajectory step's extras carry `memory_parse_failed=True`, the
+  rollout-level counter `state["memory_parse_failures"]` is incremented,
+  and the rubric reports `memory_parse_failure_rate`. The previous memory
+  is **retained** so the next turn's `[Memory]` block still shows the
+  most recent valid scratchpad.
+
+- **Memory output truncation** (response hit `memory_update_max_tokens`):
+  the trajectory step's `is_truncated=True`, the counter
+  `state["memory_completion_truncations"]` is incremented, and the rubric
+  reports `memory_completion_truncation_rate`. The truncation is
+  surfaced *to the next memory turn* via the `Output truncated` line in
+  `[Last Action]`, so the model sees that the prior memory write was cut
+  off and can choose to be more concise.
+
+### Budget arithmetic (`max-model-len`)
+
+The memory call's input is the action call's input plus the
+`assistant_action_T` tag, the re-injected action reasoning, the
+[Next Observation] block, and the [Memory Update] instruction. With
+`max_output_tokens=8192` (action) and `memory_update_max_tokens=4096`
+(memory) the worst-case total is roughly:
+
+```
+prompt (sys+obs)         ~  8000
++ assistant_action tag   ~    50
++ [Last Action] reasoning≤  8192
++ [Env Response]         ~    50
++ [Next Observation]     ~  1500
++ [Memory Update]        ~   200
++ memory output budget   =  4096
+                         = ~22000  → fits comfortably in 32768
+```
+
+`max-model-len=32768` is the recommended floor when memory mode is on
+(matches the cluster default in `cluster_manager/config.py`). The local
+`eval/run_full.sh` and `run_debug.sh` use 32768. With long-history runs
+(`n_frames>0`) or unusually large grids you may want to bump higher.
+
 ## Determinism
 
 All observations are deterministic — identical seeds produce identical

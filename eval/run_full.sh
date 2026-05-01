@@ -6,10 +6,17 @@
 # ``eval/run_archival.sh`` or pass ``EXCLUDE_SUITES='[]'``.
 #
 # Prereq: a vLLM server at $VLLM_BASE_URL serving the target model. e.g.:
-#   uv run vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 24576
+#   uv run vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 32768
 #
-# 24576 = 16384 input cap + 8192 action output budget. Memory turns send
-# max_tokens=4096, comfortably below the same envelope.
+# Budget arithmetic (memory mode is the default):
+#   action call:  prompt (sys+obs) + 8192 action_output_tokens   <= max-model-len
+#   memory call:  prompt (sys+obs+action_tag+lean_user) + 4096   <= max-model-len
+#                 where lean_user re-injects the action reasoning (<=8192 tok)
+#                 plus the next-obs grid (~1500 tok) and the [Memory Update]
+#                 instruction.
+# 32768 covers the worst case: ~8K prompt + 8K reasoning re-injection +
+# 1.5K next-obs + 0.5K wrappers + 4K memory output budget = ~22K, with
+# margin for craftax-sized grids and longer system prompts.
 #
 # After it finishes, view results with: prime eval tui
 
