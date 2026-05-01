@@ -97,6 +97,8 @@ class _FloodFillBase(BaseGlyphEnv):
         self._board: list[list[int]] = []
         self._total_cells: int = 0
         self._region_size: int = 0
+        # Cells outside the starting region: total absorbable progress.
+        self._cells_to_absorb: int = 0
         self._filled: bool = False
 
     def env_id(self) -> str:
@@ -111,6 +113,8 @@ class _FloodFillBase(BaseGlyphEnv):
         ]
         region = _flood_region(self._board, self._grid_rows, self._grid_cols)
         self._region_size = len(region)
+        # Pattern A: cumulative reward across full absorption = 1.0.
+        self._cells_to_absorb = max(1, self._total_cells - self._region_size)
         self._filled = False
         return self._render_current_observation()
 
@@ -128,12 +132,13 @@ class _FloodFillBase(BaseGlyphEnv):
 
         absorbed = _apply_flood(self._board, self._grid_rows, self._grid_cols, new_color)
         self._region_size += absorbed
-        reward = 0.01 * absorbed
+        # Pattern A: each absorbed cell yields 1/_cells_to_absorb so that
+        # full fill sums to exactly 1.0.
+        reward = float(absorbed) / self._cells_to_absorb
 
         # Check if filled
         if self._region_size >= self._total_cells:
             self._filled = True
-            reward += 1.0
             return self._render_current_observation(), reward, True, False, info
 
         info["region_size"] = self._region_size
@@ -181,7 +186,7 @@ class _FloodFillBase(BaseGlyphEnv):
             "absorbing any adjacent cells already of that color.\n"
             "- Choosing your current color wastes a move.\n"
             f"- You have {self._max_steps} moves to fill the entire board.\n"
-            "- +0.01 reward per cell absorbed, +1 bonus for filling the whole board.\n"
+            "- Reward is normalized so that cumulative reward = 1.0 on a full board fill.\n"
             "- Strategy: pick the color that borders the most cells of your current region.\n\n"
             + self.action_spec.render_for_prompt()
         )
