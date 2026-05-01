@@ -22,8 +22,8 @@ class AtlantisEnv(AtariBase):
     destroyed.
 
     Actions: NOOP, FIRE_LEFT, FIRE_CENTER, FIRE_RIGHT
-    Reward: +1 per enemy destroyed
-    Lives: lost when all buildings destroyed
+    Pattern D: +1/_WIN_TARGET per enemy destroyed (full-scope = 30
+    waves defended). -1.0 if the city is destroyed.
     """
 
     action_spec = ActionSpec(
@@ -43,6 +43,10 @@ class AtlantisEnv(AtariBase):
     _TURRET_CENTER = 15
     _TURRET_RIGHT = 27
 
+    # Pattern D full-scope target: 30 enemy flyers destroyed (waves).
+    _WIN_TARGET: int = 30
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._flyers: list[AtariEntity] = []
@@ -50,9 +54,14 @@ class AtlantisEnv(AtariBase):
         self._buildings: list[tuple[int, int]] = []
         self._step_counter: int = 0
         self._spawn_interval: int = 10
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-atlantis-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -151,8 +160,10 @@ class AtlantisEnv(AtariBase):
                     f.alive = False
                     b.alive = False
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Enemy destroyed! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Enemy destroyed!"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -197,13 +208,17 @@ class AtlantisEnv(AtariBase):
 
         self._flyers = [f for f in self._flyers if f.alive]
 
-        # Check game over: all buildings destroyed
-        if not self._buildings:
+        # Check game over: all buildings destroyed (Pattern D death penalty)
+        if not self._buildings and not self._game_over:
             self._on_life_lost()
-            if not self._game_over:
-                self._buildings = []
-                self._generate_level(self._level)
-                self._message = "City damaged! Rebuilding..."
+            reward = self._DEATH_PENALTY
+            self._message = "City destroyed!"
+
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All waves defended!"
 
         # Level up every 10 points
         if self._score >= self._level * 10:
