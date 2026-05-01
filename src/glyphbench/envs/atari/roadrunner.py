@@ -29,7 +29,9 @@ class RoadRunnerEnv(AtariBase):
     Mines (*) can stun the Coyote if he hits them.
 
     Grid: 30x16.
-    Reward: +1 per seed, +3 if Coyote hits mine.
+    Pattern D: +1/_WIN_TARGET per progress unit (seed or
+    coyote-stunned-by-mine). -1 on collision with rock or
+    coyote.
     """
 
     action_spec = ActionSpec(
@@ -42,6 +44,13 @@ class RoadRunnerEnv(AtariBase):
         ),
     )
 
+    # Pattern D full-scope: 50 progress events (seeds collected or
+    # coyote-mine-stuns) along the scrolling road. Each yields
+    # +1/50; collision with a rock or the coyote ends the episode
+    # with -1.
+    _WIN_TARGET: int = 50
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._scroll_timer: int = 0
@@ -50,9 +59,14 @@ class RoadRunnerEnv(AtariBase):
         self._jump_timer: int = 0
         self._coyote_stun: int = 0
         self._spawn_timer: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-roadrunner-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         rng = np.random.default_rng(
@@ -175,10 +189,12 @@ class RoadRunnerEnv(AtariBase):
             ):
                 e.alive = False
                 self._on_point_scored(1)
-                reward += 1
-                self._message = "Birdseed! +1"
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Birdseed!"
 
-        # Rock collision
+        # Rock collision -- terminal failure
         for e in self._entities:
             if (
                 e.etype == "rock"
@@ -187,13 +203,11 @@ class RoadRunnerEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 self._on_life_lost()
-                self._message = "Hit a rock!"
-                if not self._game_over:
-                    self._player_x = 8
-                    self._player_y = _ROAD_Y
+                self._message = "Hit a rock! Game Over."
+                reward = self._DEATH_PENALTY
                 return reward, self._game_over, info
 
-        # Coyote-mine collision
+        # Coyote-mine collision (counts as progress)
         if coyote and coyote.alive:
             for e in self._entities:
                 if (
@@ -205,11 +219,13 @@ class RoadRunnerEnv(AtariBase):
                     e.alive = False
                     self._coyote_stun = 20
                     coyote.x = max(1, coyote.x - 8)
-                    self._on_point_scored(3)
-                    reward += 3
-                    self._message = "Coyote hit mine! +3"
+                    self._on_point_scored(1)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Coyote hit mine!"
 
-        # Coyote catches player
+        # Coyote catches player -- terminal failure
         if (
             coyote
             and coyote.alive
@@ -218,11 +234,18 @@ class RoadRunnerEnv(AtariBase):
             and abs(coyote.y - self._player_y) <= 1
         ):
             self._on_life_lost()
-            self._message = "Caught by Coyote!"
-            if not self._game_over:
-                self._player_x = 8
-                self._player_y = _ROAD_Y
-                coyote.x = 1
+            self._message = "Caught by Coyote! Game Over."
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Run complete!"
             return reward, self._game_over, info
 
         self._entities = [
@@ -318,14 +341,15 @@ class RoadRunnerEnv(AtariBase):
             "coyote steps onto a mine, the mine explodes, stunning "
             "the coyote for 20 steps and pushing it 8 cells back.\n\n"
             "SCORING\n"
-            "+1 reward per birdseed collected. +3 reward when "
-            "the coyote hits a mine. No per-step penalty. Reaching "
-            "100 + 30*level distance advances the level.\n\n"
+            "Pattern D: +1/50 reward per progress event "
+            "(birdseed collected or coyote stunned by mine). -1 "
+            "reward on collision with a rock or the coyote. "
+            "Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Hitting a rock or being caught by the "
-            "coyote (when not stunned) costs a life and respawns "
-            "you at (8, road). Episode ends at 0 lives or after "
-            "max_turns.\n\n"
+            "Single-life: hitting a rock or being caught by the "
+            "coyote ends the episode with reward -1. Reaching 50 "
+            "progress events ends with cumulative +1. Episode "
+            "also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, seeds on screen, and "
             "coyote state (chasing or stunned).\n\n"

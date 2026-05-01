@@ -25,7 +25,8 @@ class RobotankEnv(AtariBase):
     a random system. Lose all sensors = lose a life.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +2 per enemy tank destroyed
+    Pattern D: +1/_WIN_TARGET per tank destroyed,
+    -1 when all sensors are knocked out (terminates).
     """
 
     action_spec = ActionSpec(
@@ -41,6 +42,10 @@ class RobotankEnv(AtariBase):
     _HEIGHT = 20
     _SENSORS = ("radar", "cannon", "treads", "video")
 
+    # Pattern D full-scope: 12 tank kills before death.
+    _WIN_TARGET: int = 12
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._tanks: list[AtariEntity] = []
@@ -52,9 +57,14 @@ class RobotankEnv(AtariBase):
         self._sensors: dict[str, bool] = {}
         self._kills = 0
         self._bushes: set[tuple[int, int]] = set()
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-robotank-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _reset_pos(self) -> None:
         self._player_x = self._WIDTH // 2
@@ -163,9 +173,11 @@ class RobotankEnv(AtariBase):
                     if t.data["hp"] <= 0:
                         t.alive = False
                         self._kills += 1
-                        self._on_point_scored(2)
-                        reward += 2
-                        self._message = "Tank destroyed! +2"
+                        self._on_point_scored(1)
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
+                        self._message = "Tank destroyed!"
                     else:
                         self._message = "Tank hit!"
                     break
@@ -221,15 +233,29 @@ class RobotankEnv(AtariBase):
                   and eb.y == self._player_y):
                 eb.alive = False
                 self._take_damage()
-        # Player-tank collision
+        # Player-tank collision (rams the tank)
         for t in self._tanks:
             if (t.alive and t.x == self._player_x
                     and t.y == self._player_y):
                 t.alive = False
                 self._take_damage()
                 self._kills += 1
-                self._on_point_scored(2)
-                reward += 2
+                self._on_point_scored(1)
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+        # If all sensors knocked out, the player died
+        if self._game_over:
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
+
+        # Win check
+        if self._progress_count >= self._WIN_TARGET:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All tanks destroyed!"
+            return reward, self._game_over, info
+
         # Respawn
         alive = [t for t in self._tanks if t.alive]
         if len(alive) < 2 and self._step_counter % 25 == 0:
@@ -251,10 +277,9 @@ class RobotankEnv(AtariBase):
             self._sensors[s] = False
             self._message = f"{s.title()} damaged!"
         if not any(self._sensors.values()):
+            # Single-life model: total destruction ends the episode.
             self._on_life_lost()
-            self._message = "All systems destroyed!"
-            self._sensors = {s: True for s in self._SENSORS}
-            self._reset_pos()
+            self._message = "All systems destroyed! Game Over."
 
     def _redraw(self) -> None:
         for y in range(1, self._HEIGHT - 1):
@@ -332,13 +357,13 @@ class RobotankEnv(AtariBase):
             "'cannon' stops FIRE; 'treads' stops movement; 'video' "
             "is cosmetic.\n\n"
             "SCORING\n"
-            "+2 reward per enemy tank destroyed (takes 2 bullets). "
-            "No per-step penalty.\n\n"
+            "Pattern D: +1/12 reward per enemy tank destroyed "
+            "(takes 2 bullets). -1 reward when all 4 sensors are "
+            "knocked out. Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Losing all 4 sensors counts as losing a "
-            "life (sensors reset and tank respawns). Enemy bullet "
-            "or collision damages a sensor. Episode ends at 0 "
-            "lives or after max_turns.\n\n"
+            "Single-life: losing all 4 sensors ends the episode "
+            "with reward -1. Destroying 12 tanks ends with "
+            "cumulative +1. Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, sensor statuses (ok / DMG), "
             "and kills.\n\n"

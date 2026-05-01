@@ -81,7 +81,9 @@ class TestQbert:
         env.reset(0)
         dr = env.action_spec.index_of("DOWN_RIGHT")
         _, r, _, _, _ = env.step(dr)
-        assert r >= 1  # +25 for coloring a cube
+        # Pattern D: +1/_WIN_TARGET per cube colored
+        assert r > 0
+        assert abs(r - 1.0 / env._WIN_TARGET) < 1e-9
 
     def test_rollout_no_crash(self) -> None:
         env = self._make_env(max_turns=200)

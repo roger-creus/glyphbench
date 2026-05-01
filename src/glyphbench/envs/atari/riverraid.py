@@ -20,8 +20,8 @@ class RiverRaidEnv(AtariBase):
     Running out of fuel or crashing ends the game.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE
-    Reward: +1 enemy, +2 fuel depot
-
+    Pattern D: +1/_WIN_TARGET per progress unit (enemy destroyed
+    or fuel depot collected). -1 on collision / out-of-fuel.
     """
 
     action_spec = ActionSpec(
@@ -44,6 +44,10 @@ class RiverRaidEnv(AtariBase):
     _MAX_FUEL = 100
     _MAX_BULLETS = 2
 
+    # Pattern D full-scope: 31 progress events (~30 obstacles plus boss).
+    _WIN_TARGET: int = 31
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._bullets: list[AtariEntity] = []
@@ -54,9 +58,14 @@ class RiverRaidEnv(AtariBase):
         self._step_counter: int = 0
         self._river_l: list[int] = []
         self._river_r: list[int] = []
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-riverraid-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -170,17 +179,21 @@ class RiverRaidEnv(AtariBase):
                     b.alive = False
                     if obs.etype == "fuel":
                         obs.alive = False
-                        self._on_point_scored(2)
-                        reward += 2
+                        self._on_point_scored(1)
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
                         self._fuel = min(
                             self._MAX_FUEL, self._fuel + 30
                         )
-                        self._message = "Fuel! +2 & refuel"
+                        self._message = "Fuel & refuel"
                     else:
                         obs.alive = False
                         self._on_point_scored(1)
-                        reward += 1
-                        self._message = "Enemy destroyed! +1"
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
+                        self._message = "Enemy destroyed!"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -207,11 +220,13 @@ class RiverRaidEnv(AtariBase):
             ):
                 obs.alive = False
                 self._fuel = min(self._MAX_FUEL, self._fuel + 30)
-                self._on_point_scored(2)
-                reward += 2
-                self._message = "Fuel pickup! +2"
+                self._on_point_scored(1)
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Fuel pickup!"
 
-        # Player collision with enemies
+        # Player collision with enemies -- terminal failure
         for obs in self._obstacles:
             if (
                 obs.alive
@@ -221,23 +236,35 @@ class RiverRaidEnv(AtariBase):
             ):
                 obs.alive = False
                 self._on_life_lost()
-                self._message = "Crash! Lost a life."
-                self._player_x = self._WIDTH // 2
-                break
+                self._message = "Crash! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
 
-        # Bank collision
+        # Bank collision -- terminal failure
         rl = self._river_l[self._player_y]
         rr = self._river_r[self._player_y]
         if self._player_x <= rl or self._player_x >= rr:
             self._on_life_lost()
-            self._message = "Hit the bank! Lost a life."
-            self._player_x = self._WIDTH // 2
+            self._message = "Hit the bank! Game Over."
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
 
         # Fuel consumption
         self._fuel -= 1
         if self._fuel <= 0:
             self._game_over = True
-            self._message = "Out of fuel! Game Over!"
+            self._message = "Out of fuel! Game Over."
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "River cleared!"
 
         self._obstacles = [o for o in self._obstacles if o.alive]
         self._redraw()
@@ -328,14 +355,15 @@ class RiverRaidEnv(AtariBase):
             "every 3 steps, reversing at the banks. Fuel decreases "
             "1 per step.\n\n"
             "SCORING\n"
-            "+1 reward per enemy ship or helicopter destroyed. "
-            "+2 reward per fuel depot (shot or touched); also "
-            "adds +30 fuel (capped at 100). No per-step penalty "
-            "beyond fuel timer.\n\n"
+            "Pattern D: +1/31 reward per progress event (enemy "
+            "destroyed or fuel depot collected). -1 reward on "
+            "collision with bank, enemy, or running out of fuel. "
+            "Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Touching a bank, enemy, or running out "
-            "of fuel costs a life / ends the run. Episode ends at "
-            "0 lives or after max_turns.\n\n"
+            "Single-life: any collision or out-of-fuel ends the "
+            "episode with reward -1. Reaching 31 progress events "
+            "ends with cumulative +1. Episode also ends after "
+            "max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, fuel, and enemy count.\n\n"
             + self.action_spec.render_for_prompt()

@@ -21,7 +21,8 @@ class QbertEnv(AtariBase):
     Mapped to a 15x15 grid. Enemies descend periodically.
 
     Actions: NOOP, UP_RIGHT, UP_LEFT, DOWN_RIGHT, DOWN_LEFT
-    Reward: +1 per cube colored, +5 level clear
+    Pattern D: +1/_WIN_TARGET per first-time cube colored,
+    -1.0 on enemy contact (terminates).
     """
 
     action_spec = ActionSpec(
@@ -40,6 +41,12 @@ class QbertEnv(AtariBase):
     _NUM_ROWS = 7
     _ENEMY_SPAWN_INTERVAL = 8
 
+    # Pattern D full-scope: every cube of the 7-row pyramid
+    # (1+2+...+7 = 28 cubes). Each first-time colour yields
+    # +1/28 reward. Enemy contact / falling off terminates with -1.
+    _WIN_TARGET: int = 28
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         # (row, col) -> colored?  row 0 is top of pyramid
@@ -49,9 +56,14 @@ class QbertEnv(AtariBase):
         self._player_row: int = 0
         self._player_col: int = 0
         self._step_counter: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-qbert-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _build_cube_positions(self) -> None:
         """Compute grid coordinates for each cube in the pyramid."""
@@ -132,33 +144,36 @@ class QbertEnv(AtariBase):
                 if not self._cubes[(new_row, new_col)]:
                     self._cubes[(new_row, new_col)] = True
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Cube colored! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Cube colored!"
             else:
-                # Fell off the pyramid
+                # Fell off the pyramid -- terminal failure
                 self._on_life_lost()
-                self._message = "Fell off! Lost a life."
-                # Reset to top
-                self._player_row = 0
-                self._player_col = 0
-                gx, gy = self._cube_positions[(0, 0)]
-                self._player_x = gx
-                self._player_y = gy
+                self._message = "Fell off! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
 
-        # Check level complete
-        if all(self._cubes.values()):
-            self._on_point_scored(5)
-            reward += 5
-            self._message = "Level clear! +5"
-            self._level += 1
-            self._cubes = {pos: False for pos in self._cube_positions}
+        # Check win (all cubes colored at least once)
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Pyramid cleared!"
+            return reward, self._game_over, info
 
         # Spawn enemies periodically
         if self._step_counter % self._ENEMY_SPAWN_INTERVAL == 0:
             self._spawn_enemy()
 
-        # Move and check enemy collisions
-        self._move_enemies()
+        # Move and check enemy collisions (may set game_over via death)
+        enemy_killed = self._move_enemies()
+        if enemy_killed:
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
 
         self._redraw_pyramid()
 
@@ -175,8 +190,9 @@ class QbertEnv(AtariBase):
         e.data["prow"] = 0
         e.data["pcol"] = 0
 
-    def _move_enemies(self) -> None:
-        """Move enemies down the pyramid."""
+    def _move_enemies(self) -> bool:
+        """Move enemies down the pyramid; return True if a hit killed player."""
+        killed = False
         for e in self._entities:
             if not e.alive:
                 continue
@@ -198,18 +214,18 @@ class QbertEnv(AtariBase):
                 e.x = gx
                 e.y = gy
 
-                # Check collision with player
-                if new_row == self._player_row and new_col == self._player_col:
+                # Check collision with player -- terminal failure
+                if (
+                    new_row == self._player_row
+                    and new_col == self._player_col
+                ):
                     self._on_life_lost()
-                    self._message = "Hit by enemy! Lost a life."
-                    self._player_row = 0
-                    self._player_col = 0
-                    gx2, gy2 = self._cube_positions[(0, 0)]
-                    self._player_x = gx2
-                    self._player_y = gy2
+                    self._message = "Hit by enemy! Game Over."
                     e.alive = False
+                    killed = True
             else:
                 e.alive = False
+        return killed
 
     def _advance_entities(self) -> None:
         # Enemies are moved in _game_step
@@ -250,8 +266,7 @@ class QbertEnv(AtariBase):
             "TASK\n"
             "Hop across every cube of a 7-row isometric pyramid "
             "(28 cubes total) to color each one; avoid the "
-            "descending enemies. Coloring all 28 cubes clears the "
-            "level.\n\n"
+            "descending enemies. Coloring all 28 cubes wins.\n\n"
             "BOARD\n"
             "15x15 grid displaying the pyramid. Uncolored cubes are "
             "shown as '.' and colored cubes as '#'. Enemies: snakes "
@@ -265,15 +280,16 @@ class QbertEnv(AtariBase):
             "apex every 8 steps and descend randomly along diagonal "
             "edges one cube at a time.\n\n"
             "SCORING\n"
-            "+1 reward per cube colored (only the first visit to a "
-            "cube counts). +5 reward when every cube is colored "
-            "(level clear). No per-step penalty.\n\n"
+            "Pattern D: +1/28 reward per cube colored on its first "
+            "visit (cumulative reward bound: [-1, +1]). -1 reward "
+            "if you fall off the pyramid or are hit by an enemy.\n\n"
             "TERMINATION\n"
-            ". Falling off the pyramid or landing on an "
-            "enemy's cube costs a life and respawns at the apex. "
-            "Episode ends at 0 lives or after max_turns.\n\n"
+            "Single-life: falling off the pyramid or contact with "
+            "an enemy ends the episode with reward -1. Colouring "
+            "all 28 cubes ends the episode with cumulative +1. "
+            "Episode also ends after max_turns.\n\n"
             "HUD\n"
-            "Shows score, lives, level, and cubes colored out of "
-            "total 28.\n\n"
+            "Shows score, level, and cubes colored out of total "
+            "28.\n\n"
             + self.action_spec.render_for_prompt()
         )
