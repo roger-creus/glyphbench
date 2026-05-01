@@ -143,7 +143,9 @@ def test_fight_zombie_death_penalty_is_reachable():
     """Previously the -10 death branch in CraftaxFightZombieEnv was
     unreachable because _SubtaskMixin._step only ran _subtask_check
     when the parent had not already terminated the episode. After the
-    fix, killing the agent should produce a -10 component."""
+    fix, killing the agent produces a death-penalty component. The
+    magnitude was rescaled to -1.0 for the [-1, 1] reward-bound rule
+    (P2-B reward sweep)."""
     env = make_env("glyphbench/craftax-fightzombie-v0")
     env.reset(seed=0)
     # Force the agent to 1 HP and make the zombie adjacent so it dies
@@ -156,6 +158,6 @@ def test_fight_zombie_death_penalty_is_reachable():
     noop = _action_idx(env, "NOOP")
     _, r, terminated, _, _ = env.step(noop)
     assert terminated
-    # Death branch returns -10. Parent reward on death is 0, so total
-    # step reward should be -10.
-    assert r == pytest.approx(-10.0, abs=0.5)
+    # Death branch returns -1.0. Parent reward on death is 0, so total
+    # step reward should be exactly -1.0.
+    assert r == pytest.approx(-1.0, abs=1e-6)

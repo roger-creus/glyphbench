@@ -60,7 +60,6 @@ KNOWN_REWARD_VIOLATORS: set[str] = {
     "glyphbench/craftax-fight-archers-v0",
     "glyphbench/craftax-fight-bats-v0",
     "glyphbench/craftax-fight-spiders-v0",
-    "glyphbench/craftax-fightzombie-v0",
     "glyphbench/craftax-floor1-v0",
     "glyphbench/craftax-floor2-v0",
     "glyphbench/craftax-floor3-v0",
@@ -74,6 +73,5 @@ KNOWN_REWARD_VIOLATORS: set[str] = {
     "glyphbench/craftax-speedrun-v0",
     "glyphbench/craftax-survive-night-v0",
     "glyphbench/craftax-survive-wild-v0",
-    "glyphbench/craftax-survivehorde-v0",
     "glyphbench/craftaxfull-v0",
 }

@@ -567,6 +567,9 @@ class CraftaxFightZombieEnv(_SubtaskMixin, CraftaxClassicEnv):
     Goal: kill it without dying."""
 
     _subtask_max_turns = 30
+    # Pattern D: Kill 1 zombie → +1.0; death → -1.0.
+    _KILL_TARGET = 1
+    _DEATH_PENALTY = -1.0
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -584,7 +587,7 @@ class CraftaxFightZombieEnv(_SubtaskMixin, CraftaxClassicEnv):
     def _task_description(self) -> str:
         return (
             "Fight one zombie spawned next to you on the overworld. Kill it with "
-            "DO while facing it. Reward: +1 on kill, -10 on death. Episode ends "
+            "DO while facing it. Reward: +1 on kill, -1 on death. Episode ends "
             "on either."
         )
 
@@ -597,6 +600,12 @@ class CraftaxFightZombieEnv(_SubtaskMixin, CraftaxClassicEnv):
         # Spawn a zombie 3 tiles to the right
         _spawn_mob(self._mobs, "zombie", cx + 3, cy)
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _subtask_check(
         self, base_reward: float, info: dict[str, Any]
     ) -> tuple[float, bool]:
@@ -604,10 +613,10 @@ class CraftaxFightZombieEnv(_SubtaskMixin, CraftaxClassicEnv):
         hostiles = [m for m in self._mobs if m["type"] != "cow"]
         if not hostiles:
             self._message = "Goal complete! Zombie defeated."
-            return 10.0, True
+            return 1.0, True
         # Death handled by parent (terminated = True when hp <= 0)
         if self._hp <= 0:
-            return -10.0, True
+            return self._DEATH_PENALTY, True
         return 0.0, False
 
 
@@ -620,6 +629,9 @@ class CraftaxSurviveHordeEnv(_SubtaskMixin, CraftaxClassicEnv):
     Survive and kill all."""
 
     _subtask_max_turns = 50
+    # Pattern D: 5 mobs to kill. +1/N per kill (sums to +1.0). -1.0 on death.
+    _KILL_TARGET = 5
+    _DEATH_PENALTY = -1.0
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -637,8 +649,8 @@ class CraftaxSurviveHordeEnv(_SubtaskMixin, CraftaxClassicEnv):
     def _task_description(self) -> str:
         return (
             "Survive a wave of hostile mobs. Use DO to fight, place stone for "
-            "shelter, sleep when safe to recover energy. Reward: +1 per turn "
-            "survived; -10 on death."
+            "shelter, sleep when safe to recover energy. Reward: +1/5 per mob "
+            "killed; -1 on death."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -661,6 +673,12 @@ class CraftaxSurviveHordeEnv(_SubtaskMixin, CraftaxClassicEnv):
             _spawn_mob(self._mobs, mob_type, mx, my)
         self._horde_kills: int = 0
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _handle_do(self) -> float:
         old_count = len(self._mobs)
         reward = super()._handle_do()
@@ -668,7 +686,7 @@ class CraftaxSurviveHordeEnv(_SubtaskMixin, CraftaxClassicEnv):
         killed = old_count - new_count
         if killed > 0:
             self._horde_kills += killed
-            reward += killed * 5.0  # +5 per mob killed
+            reward += killed * (1.0 / self._KILL_TARGET)  # +1/N per mob killed
         return reward
 
     def _subtask_check(
@@ -677,9 +695,9 @@ class CraftaxSurviveHordeEnv(_SubtaskMixin, CraftaxClassicEnv):
         hostiles = [m for m in self._mobs if m["type"] != "cow"]
         if not hostiles:
             self._message = "Goal complete! Horde defeated."
-            return 10.0, True
+            return 0.0, True
         if self._hp <= 0:
-            return -10.0, True
+            return self._DEATH_PENALTY, True
         return 0.0, False
 
 

@@ -805,28 +805,49 @@ def _render_rollout_rich(
                       border_style="yellow", padding=(0, 1)),
                 3,
             ))
+        # HUD + legend share a row (HUD on the left, legend on the right)
+        # so neither consumes a dedicated band of vertical space. The
+        # legend gets the wider half because per-glyph descriptions are
+        # denser than the HUD's space-separated key:value tokens, which
+        # tolerate wrapping.
+        hud_panel: Panel | None = None
+        hud_rows = 0
         if hud_residual:
             hud_lines = max(2, min(6, hud_residual.count("\n") + 1))
             hud_txt = _clip_to_lines(hud_residual, hud_lines, mode="tail",
                                      max_line_width=line_width_cap)
-            right_entries.append((
-                Panel(Text(hud_txt, style="cyan", overflow="fold"),
-                      title="HUD", title_align="left",
-                      border_style="cyan", padding=(0, 1)),
-                hud_lines + 2,
-            ))
+            hud_panel = Panel(
+                Text(hud_txt, style="cyan", overflow="fold"),
+                title="HUD", title_align="left",
+                border_style="cyan", padding=(0, 1),
+            )
+            hud_rows = hud_lines + 2
+        legend_panel: Panel | None = None
+        legend_rows = 0
         if legend:
             legend_cap = max(4, min(memory_cap, console_h // 5))
             legend_txt = _clip_to_lines(
                 legend.strip(), legend_cap, mode="head",
                 max_line_width=line_width_cap,
             )
-            right_entries.append((
-                Panel(Text(legend_txt, style="bright_cyan", overflow="fold"),
-                      title="legend", title_align="left",
-                      border_style="bright_cyan", padding=(0, 1)),
-                legend_cap + 2,
-            ))
+            legend_panel = Panel(
+                Text(legend_txt, style="bright_cyan", overflow="fold"),
+                title="legend", title_align="left",
+                border_style="bright_cyan", padding=(0, 1),
+            )
+            legend_rows = legend_cap + 2
+        if hud_panel is not None and legend_panel is not None:
+            row_size = max(hud_rows, legend_rows)
+            row_layout = Layout(name="hud_legend")
+            row_layout.split_row(
+                Layout(hud_panel, name="hud", ratio=1),
+                Layout(legend_panel, name="legend", ratio=2),
+            )
+            right_entries.append((row_layout, row_size))
+        elif hud_panel is not None:
+            right_entries.append((hud_panel, hud_rows))
+        elif legend_panel is not None:
+            right_entries.append((legend_panel, legend_rows))
         # Reasoning panel is rendered separately on the LEFT column,
         # below the grid box, so that the unused vertical space the
         # grid would otherwise leave empty gets reclaimed for chain
@@ -906,8 +927,14 @@ def _render_rollout_rich(
             # column so it doesn't sit pinned to the top with empty
             # space below.
             body["left"].update(grid_panel)
+        def _as_sized_layout(item: object, size: int) -> Layout:
+            if isinstance(item, Layout):
+                item.size = size
+                return item
+            return Layout(item, size=size)
+
         body["right"].split_column(
-            *[Layout(panel, size=size) for panel, size in right_entries]
+            *[_as_sized_layout(panel, size) for panel, size in right_entries]
         )
 
         root = Layout(name="root")
