@@ -12,6 +12,17 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 
+# Canonical set of observability/failure-mode rate columns emitted by the
+# glyphbench rubric (P3+). Plotting scripts use this list to iterate over
+# all new metrics rather than hard-coding column names.
+# See docs/llm-agent-failure-modes.md for definitions.
+NEW_OBSERVABILITY_METRICS = (
+    "forfeit_rate",
+    "action_completion_truncation_rate",
+    "memory_completion_truncation_rate",
+    "memory_parse_failure_rate",
+)
+
 
 def _read_parquet(path: Path) -> pd.DataFrame:
     """Read a parquet file if it exists, else return empty DataFrame."""
