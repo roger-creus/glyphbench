@@ -18,6 +18,11 @@ from glyphbench.core.observation import GridObservation
 _WIDTH = 10
 _HEIGHT = 20
 
+# Target line-clear units for cumulative reward = 1.0. The original raw
+# reward map was {1: 1, 2: 3, 3: 5, 4: 8}; we divide each by _TARGET_UNITS
+# and cap the cumulative reward at 1.0.
+_TARGET_UNITS = 40
+
 _SYM_EMPTY = "\u00b7"  # ·
 _SYM_ACTIVE = "\u2593"  # ▓
 
@@ -120,6 +125,9 @@ class TetrisEnv(BaseGlyphEnv):
         self._game_over: bool = False
         self._score: int = 0
         self._lines_cleared: int = 0
+        # Tracks cumulative reward earned so far (capped at 1.0 by reward
+        # normalization).
+        self._reward_total: float = 0.0
 
     def env_id(self) -> str:
         return "glyphbench/classics-tetris-v0"
@@ -196,9 +204,26 @@ class TetrisEnv(BaseGlyphEnv):
         self._game_over = False
         self._score = 0
         self._lines_cleared = 0
+        self._reward_total = 0.0
         if not self._spawn_piece():
             self._game_over = True
         return self._render_current_observation()
+
+    # ------------------------------------------------------------------
+    # Reward helpers
+    # ------------------------------------------------------------------
+
+    def _reward_for_clear(self, cleared: int) -> float:
+        """Pattern A: normalize raw line-clear units by _TARGET_UNITS and
+        cap against remaining headroom so cumulative reward <= 1.0.
+        """
+        raw_map = {1: 1.0, 2: 3.0, 3: 5.0, 4: 8.0}
+        raw = raw_map.get(cleared, 8.0)
+        normalized = raw / _TARGET_UNITS
+        room = max(0.0, 1.0 - self._reward_total)
+        gained = min(normalized, room)
+        self._reward_total += gained
+        return gained
 
     def _step(
         self, action: int
@@ -241,9 +266,8 @@ class TetrisEnv(BaseGlyphEnv):
             cleared = self._clear_lines()
             if cleared > 0:
                 self._lines_cleared += cleared
-                reward_map = {1: 1.0, 2: 3.0, 3: 5.0, 4: 8.0}
-                reward = reward_map.get(cleared, 8.0)
-                self._score += int(reward)
+                reward = self._reward_for_clear(cleared)
+                self._score += cleared
             # Spawn next
             if not self._spawn_piece():
                 self._game_over = True
@@ -258,9 +282,8 @@ class TetrisEnv(BaseGlyphEnv):
             cleared = self._clear_lines()
             if cleared > 0:
                 self._lines_cleared += cleared
-                reward_map = {1: 1.0, 2: 3.0, 3: 5.0, 4: 8.0}
-                reward = reward_map.get(cleared, 8.0)
-                self._score += int(reward)
+                reward = self._reward_for_clear(cleared)
+                self._score += cleared
             # Spawn next
             if not self._spawn_piece():
                 self._game_over = True
@@ -320,8 +343,9 @@ class TetrisEnv(BaseGlyphEnv):
             "Tetrominoes (I, O, T, S, Z, J, L) fall from the top.\n"
             "Each turn: your action is applied, then gravity drops the piece 1 row.\n"
             "If the piece cannot drop further, it locks in place and a new piece spawns.\n"
-            "Complete horizontal lines are cleared for points:\n"
-            "  1 line = +1, 2 lines = +3, 3 lines = +5, 4 lines (Tetris) = +8.\n"
+            "Complete horizontal lines are cleared for normalized rewards.\n"
+            "Raw line-clear units are {1: 1, 2: 3, 3: 5, 4 (Tetris): 8}; the env\n"
+            "divides each by a target denominator and caps cumulative reward at 1.0.\n"
             "The game ends when a new piece cannot spawn.\n\n"
             "STRATEGY\n"
             "Stack pieces flat. Keep the board low. Save space for line clears.\n"

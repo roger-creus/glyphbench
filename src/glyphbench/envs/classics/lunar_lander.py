@@ -160,7 +160,7 @@ class LunarLanderEnv(BaseGlyphEnv):
                     self._done = True
                     self._done_msg = "Successful landing!"
                     self._y = float(terrain_y)
-                    return self._render_current_observation(), 5.0, True, False, info
+                    return self._render_current_observation(), 1.0, True, False, info
                 else:
                     self._done = True
                     if not on_pad:
@@ -235,7 +235,7 @@ class LunarLanderEnv(BaseGlyphEnv):
             f"- Gravity pulls the craft down by {GRAVITY} per step.\n"
             "- Thrusters add velocity in the chosen direction.\n"
             f"- You start with {MAX_FUEL} fuel. Each thrust costs {THRUST_COST} fuel.\n"
-            "- Successful landing (on pad, |vx| <= 1, |vy| <= 1.5): +5 reward.\n"
+            "- Successful landing (on pad, |vx| <= 1, |vy| <= 1.5): +1 reward.\n"
             "- Crash (high velocity or off-pad): -1 reward.\n"
             "- Drift off screen: -1 reward.\n"
             "- Position updates: new_pos = old_pos + velocity each step.\n"

@@ -156,6 +156,10 @@ class NonogramEnv(BaseGlyphEnv):
         n2 = n * n
         reward = 0.0
 
+        # Pattern A: each correct/incorrect classification yields +/-1/n2
+        # so cumulative reward = 1.0 on a perfect solve. No win bonus.
+        per_cell = 1.0 / n2
+
         if action < n2:
             # FILL action
             idx = action
@@ -163,10 +167,10 @@ class NonogramEnv(BaseGlyphEnv):
             if self._player[r, c] == 0:
                 self._player[r, c] = 1
                 if self._solution[r, c]:
-                    reward = 0.01
+                    reward = per_cell
                     self._last_msg = f"Filled ({r},{c}): correct!"
                 else:
-                    reward = -0.01
+                    reward = -per_cell
                     self._last_msg = f"Filled ({r},{c}): incorrect."
             else:
                 self._last_msg = f"Cell ({r},{c}) already set."
@@ -177,10 +181,10 @@ class NonogramEnv(BaseGlyphEnv):
             if self._player[r, c] == 0:
                 self._player[r, c] = 2
                 if not self._solution[r, c]:
-                    reward = 0.01
+                    reward = per_cell
                     self._last_msg = f"Marked ({r},{c}) empty: correct!"
                 else:
-                    reward = -0.01
+                    reward = -per_cell
                     self._last_msg = f"Marked ({r},{c}) empty: incorrect."
             else:
                 self._last_msg = f"Cell ({r},{c}) already set."
@@ -188,7 +192,6 @@ class NonogramEnv(BaseGlyphEnv):
         # Check completion
         if self._check_complete():
             self._completed = True
-            reward += 1.0
             self._last_msg = "Puzzle complete! You win!"
             info["win"] = True
 
@@ -255,8 +258,8 @@ class NonogramEnv(BaseGlyphEnv):
             f"MARK_i (i=0..{n*n-1}): mark cell as empty.\n"
             "Each cell can only be set once.\n\n"
             "SCORING\n"
-            "+0.01 per correct action, -0.01 per incorrect.\n"
-            "+1.0 bonus when puzzle is complete.\n\n"
+            "+/-1/(n*n) per correct/incorrect classification, where n is the\n"
+            "grid side. Cumulative reward = 1.0 on a perfect solve.\n\n"
             "STRATEGY\n"
             "Start with rows/columns that have large clues (most constrained). "
             "Use overlap logic: if a clue forces certain cells to be filled "

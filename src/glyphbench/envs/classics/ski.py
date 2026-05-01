@@ -23,6 +23,11 @@ SKIER_ROW = HEIGHT - 3  # row 17 (near bottom)
 TOTAL_TERRAIN_ROWS = 100
 OBSTACLE_DENSITY = 0.15
 
+# Target gates passed for cumulative reward = 1.0. With gates every 5-9
+# rows over 100 rows, the theoretical max is ~20 gates. Cap at 20 so a
+# perfect run earns cumulative reward = 1.0.
+_TARGET_GATES = 20
+
 SKI_ACTION_SPEC = ActionSpec(
     names=("LEFT", "RIGHT", "NOOP"),
     descriptions=(
@@ -124,9 +129,13 @@ class SkiEnv(BaseGlyphEnv):
                 self._alive = False
                 return self._render_current_observation(), -1.0, True, False, info
             elif cell == SYM_FLAG:
-                # Passing through a flag gate
+                # Passing through a flag gate. Pattern A: each gate yields
+                # 1/_TARGET_GATES, capped against remaining headroom so
+                # cumulative reward never exceeds 1.0.
                 self._flags_passed += 1
-                reward = 1.0
+                already = (self._flags_passed - 1) / _TARGET_GATES
+                room = max(0.0, 1.0 - already)
+                reward = min(1.0 / _TARGET_GATES, room)
                 self._score += reward
 
         # Check if terrain completed
@@ -197,7 +206,8 @@ class SkiEnv(BaseGlyphEnv):
             f"- Your skier (\u2193) is fixed at row {SKIER_ROW} near the bottom.\n"
             "- Terrain scrolls upward 1 row per step (you move downhill automatically).\n"
             "- Trees (\u2663) and rocks (\u25c6) are obstacles: hitting one ends the game (-1).\n"
-            "- Flag gates (\u2691) appear every 5-8 rows: passing through earns +1.\n"
+            "- Flag gates (\u2691) appear every 5-8 rows: passing through earns a\n"
+            f"  small reward (cumulative reward = 1.0 if you pass {_TARGET_GATES} gates).\n"
             f"- Complete {TOTAL_TERRAIN_ROWS} rows of terrain to finish.\n"
             "- Move LEFT or RIGHT to dodge obstacles and aim for gates.\n"
             "- Look ahead at upcoming terrain to plan your path!\n\n"

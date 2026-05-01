@@ -252,17 +252,22 @@ class PlatformerEnv(BaseGlyphEnv):
                 info["outcome"] = "enemy"
                 return self._render_current_observation(), reward, terminated, False, info
 
-        # --- Check flag ---
+        # --- Check flag (terminal +0.5 to combine with up-to-0.5 progress
+        # giving cumulative max = 1.0) ---
         if self._px == self._flag_x and self._py == self._flag_y:
             terminated = True
-            reward = 5.0
+            reward = 0.5
             self._message = "Reached the flag! Victory!"
             info["outcome"] = "victory"
             return self._render_current_observation(), reward, terminated, False, info
 
-        # --- Progress reward ---
+        # --- Progress reward: each new rightward cell yields a small
+        # increment scaled so reaching the flag's x earns a maximum of 0.5
+        # before the +0.5 terminal bonus.
         if self._px > self._max_x_reached:
-            reward += 0.1 * (self._px - self._max_x_reached)
+            cells_gained = self._px - self._max_x_reached
+            denom = max(1, self._flag_x - 2)
+            reward += 0.5 * cells_gained / denom
             self._max_x_reached = self._px
 
         info["player_x"] = self._px
@@ -348,8 +353,9 @@ class PlatformerEnv(BaseGlyphEnv):
             "- Gravity pulls you down 1 cell per step when airborne.\n"
             "- Falling off the bottom of the level ends the game (-1 reward).\n"
             "- Touching an enemy ends the game (-1 reward).\n"
-            "- Reaching the flag wins (+5 reward).\n"
-            "- +0.1 reward for each new rightward position reached.\n\n"
+            "- Reaching the flag wins (+0.5 terminal reward).\n"
+            "- Up to +0.5 cumulative reward is earned across the run as you reach\n"
+            "  new rightward positions (scaled by flag distance).\n\n"
             + self.action_spec.render_for_prompt()
         )
 

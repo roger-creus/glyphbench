@@ -21,6 +21,9 @@ from glyphbench.core.observation import GridObservation
 
 GRID_SIZE = 10
 
+# Total packages -- used for [-1, 1] reward normalization.
+_NUM_PACKAGES = 3
+
 WAREHOUSE_ACTION_SPEC = ActionSpec(
     names=("UP", "DOWN", "LEFT", "RIGHT", "PICKUP", "DROP"),
     descriptions=(
@@ -158,22 +161,23 @@ class WarehouseEnv(BaseGlyphEnv):
                 pkg_idx = self._carrying
                 # Check if at the correct destination
                 if self._robot_pos == self._destinations[pkg_idx]:
-                    # Correct delivery
+                    # Correct delivery. Pattern A: each correct delivery
+                    # yields 1/_NUM_PACKAGES so cumulative reward = 1.0 on
+                    # full completion.
                     self._delivered[pkg_idx] = True
                     self._carrying = -1
-                    reward = 1.0
+                    reward = 1.0 / _NUM_PACKAGES
                     self._total_reward += reward
                 else:
                     # Wrong destination or random spot: drop package back on floor
                     self._packages[pkg_idx] = self._robot_pos
                     self._carrying = -1
 
-        # Check if all delivered
+        # Check if all delivered. No completion bonus -- the per-delivery
+        # rewards already sum to 1.0.
         terminated = False
         if all(self._delivered):
             terminated = True
-            reward += 5.0  # Completion bonus
-            self._total_reward += 5.0
 
         info["delivered"] = sum(self._delivered)
         info["carrying"] = self._carrying
@@ -249,9 +253,9 @@ class WarehouseEnv(BaseGlyphEnv):
             "  - Blue: package = \u25c6, destination = \u25c7\n"
             "  - Green: package = \u25a0, destination = \u25a1\n"
             "- Walk onto a package and use PICKUP to carry it (one at a time).\n"
-            "- Walk to the matching destination and use DROP to deliver it (+1 reward).\n"
+            f"- Walk to the matching destination and use DROP to deliver it (+{1.0/_NUM_PACKAGES:.4f} reward).\n"
             "- Dropping at the wrong location places the package on the ground.\n"
-            "- Deliver all 3 packages for a +5 completion bonus.\n\n"
+            "- Cumulative reward = 1.0 once all packages are delivered.\n\n"
             + self.action_spec.render_for_prompt()
         )
 

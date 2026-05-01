@@ -142,15 +142,16 @@ class MinesweeperEnv(BaseGlyphEnv):
             info["mine_hit"] = True
             return self._render_current_observation(), -1.0, True, False, info
 
-        # Safe reveal (with flood fill for 0-count cells)
+        # Safe reveal (with flood fill for 0-count cells). Pattern A: each
+        # newly revealed safe cell = 1/_safe_total so cumulative reward =
+        # 1.0 on full clear. No additional win bonus needed.
         newly = self._flood_reveal(r, c)
-        reward = 0.01 * newly
+        reward = float(newly) / max(1, self._safe_total)
 
         # Check win
         revealed_count = int(np.sum(self._revealed))
         if revealed_count >= self._safe_total:
             self._won = True
-            reward += 1.0
             info["win"] = True
             return self._render_current_observation(), reward, True, False, info
 
@@ -212,8 +213,8 @@ class MinesweeperEnv(BaseGlyphEnv):
             "If the cell is a mine, you die (-1 reward).\n"
             "If the cell has 0 adjacent mines, all connected 0-cells and their "
             "numbered borders are auto-revealed (flood fill).\n"
-            "Revealing all safe cells wins the game (+1 reward).\n"
-            "Each safe cell revealed gives +0.01 reward.\n\n"
+            "Reward is normalized so revealing all safe cells gives cumulative\n"
+            "reward = 1.0 (each cell yields 1/safe_total).\n\n"
             "STRATEGY\n"
             "Use the numbers to deduce mine locations. A number N means exactly "
             "N of the 8 surrounding cells contain mines.\n\n"

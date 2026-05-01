@@ -31,6 +31,10 @@ GRID_SIZE = 15
 CENTER = 7  # center of 15x15 grid (0-indexed)
 TOTAL_WAVES = 5
 
+# Total enemies across all waves: wave N has N+2 enemies for waves 0..4.
+# Sum = 2 + 3 + 4 + 5 + 6 = 20.
+_TOTAL_ENEMIES = sum(w + 2 for w in range(TOTAL_WAVES))
+
 # 8 compass directions in clockwise order
 DIRECTIONS = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
 
@@ -169,13 +173,14 @@ class WaveDefenseEnv(BaseGlyphEnv):
         if (not self._all_waves_done
                 and self._enemies_spawned_this_wave >= self._wave_enemy_count(self._current_wave)
                 and len(self._enemies) == 0):
-            # Wave cleared
-            reward += 5.0
+            # Wave cleared. Pattern A: each wave cleared yields
+            # 0.5/TOTAL_WAVES so wave-clears contribute up to 0.5 cumulative.
+            reward += 0.5 / TOTAL_WAVES
             self._waves_cleared += 1
             self._message = f"Wave {self._current_wave + 1} cleared!"
             if self._current_wave + 1 >= TOTAL_WAVES:
-                # All waves done
-                reward += 1.0
+                # All waves done -- no extra terminal bonus, the wave clears
+                # already account for the +0.5 wave-clear cap.
                 terminated = True
                 self._all_waves_done = True
                 self._message = "All waves cleared! Victory!"
@@ -267,7 +272,9 @@ class WaveDefenseEnv(BaseGlyphEnv):
         if hit_enemy_pos is not None:
             self._enemies.remove(hit_enemy_pos)
             self._kills += 1
-            hit_reward = 1.0
+            # Pattern A milestone shaping: kills contribute up to 0.5
+            # cumulative; wave clears contribute the other 0.5.
+            hit_reward = 0.5 / _TOTAL_ENEMIES
             self._message = "Hit!"
 
         self._trail = trail
@@ -349,7 +356,8 @@ class WaveDefenseEnv(BaseGlyphEnv):
             "the center each step.\n"
             "- Wave N has N+2 enemies. There are 5 waves total.\n"
             "- If any enemy reaches the center, you lose (-1 reward).\n"
-            "- If all 5 waves are cleared, you win (+1 reward).\n\n"
+            "- Each enemy killed and each wave cleared yields a small reward;\n"
+            "  cumulative reward = 1.0 if all waves are cleared without losses.\n\n"
             "REWARDS\n"
             "- +1 per enemy killed\n"
             "- +5 per wave cleared\n"

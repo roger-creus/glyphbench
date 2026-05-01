@@ -65,6 +65,11 @@ class _SnakeBase(BaseGlyphEnv):
         self._food: tuple[int, int] = (0, 0)
         self._score: int = 0
         self._alive: bool = True
+        # Pattern A: cumulative reward = 1.0 once snake fills the playable
+        # interior (theoretical max). Each food = 1/_target_food.
+        self._target_food: int = max(
+            1, (self._grid_size - 2) * (self._grid_size - 2) - 3
+        )
 
     def env_id(self) -> str:
         return f"glyphbench/classics-snake-{self._difficulty}-v0"
@@ -113,7 +118,7 @@ class _SnakeBase(BaseGlyphEnv):
 
         if (nx, ny) == self._food:
             self._score += 1
-            reward = 1.0
+            reward = 1.0 / self._target_food
             self._spawn_food()
         else:
             self._snake.pop()
@@ -183,7 +188,8 @@ class _SnakeBase(BaseGlyphEnv):
             "RULES\n"
             f"- The grid is {self._grid_size}x{self._grid_size} with walls around the border.\n"
             "- The snake starts at length 3 moving right.\n"
-            "- Each food eaten grows the snake by 1 and gives +1 reward.\n"
+            "- Each food eaten grows the snake by 1 and yields a fractional\n"
+            "  reward; cumulative reward = 1.0 if you fill the playable area.\n"
             "- The game ends if you hit a wall or your own body.\n"
             "- You cannot reverse direction (e.g., moving RIGHT cannot switch to LEFT).\n\n"
             + self.action_spec.render_for_prompt()
