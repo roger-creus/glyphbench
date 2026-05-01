@@ -24,7 +24,7 @@ Every environment renders its state as a Unicode text grid with a legend and dis
 | MiniHack | 63 | NetHack-inspired dungeons, combat, items, skills | 22 |
 | Atari | 57 | Classic arcade (Pong, Breakout, Space Invaders, …) — long-horizon archival | 3-10 |
 | Classics | 50 | Snake, Sokoban, Minesweeper, Sudoku, Nim, … | 2-256 |
-| Miniatari | 43 | Short-horizon redesigns of arcade Atari (born `[-1, 1]`-compliant) | 3-10 |
+| Miniatari | 43 | Short-horizon redesigns of arcade Atari | 3-10 |
 | Craftax | 41 | Open-world survival + crafting, dungeon floors, focused sub-tasks | 19 |
 | Procgen | 16 | Procedurally generated platformers, shooters, mazes | 4-6 |
 | Craftaxfull | 2 | Open-ended Crafter / Craftax (long-horizon archival) | 19 / 45 |
@@ -75,27 +75,11 @@ All environments use single-codepoint Unicode glyphs (`→↓←↑` for player 
 |:---:|:---:|:---:|:---:|:---:|
 | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-pong-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-breakout-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-spaceinvaders-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-freeway-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-mspacman-v0.gif" width="130" /> |
 
-Atari originals run at `max_turns=10000` and were designed for thousands of frames per game — prohibitive for LLM evaluation, where each step is an API call. **Miniatari is a curated suite of 43 short-horizon redesigns** that keeps each game's identity (mechanics, theme, core decision) while compressing the horizon to `max_turns ∈ [100, 500]`. It's the practical default for LLM eval and training; the original `atari` suite is kept as a long-horizon archival reference and excluded from default eval.
-
-The miniaturization recipe:
-
-- **Smaller play field** — typically 12×8 to 16×16 (vs ~20×20 in the originals).
-- **Tight terminal win condition** — clear 6 bricks (vs full 60-brick wall), first-to-3 (vs first-to-21), destroy 5 asteroids (vs play-forever-and-score).
-- **No frame-skip** — 1 LLM action = 1 tick. Compression comes from smaller grids and tighter wins, not time dilation.
-- **Structurally bounded reward `[-1, 1]`** — every per-step reward is `+1/N` per progress unit (Pattern A), `±1/W` per agent/opponent point (Pattern C, adversarial), or progress with terminal `−1` on death (Pattern D). The cumulative episodic return is `[-1, 1]` by construction.
-- **Calibrated against random rollouts** — each env's random success rate / mean length / mean return is recorded in its docstring; no env is trivially solvable.
-
-14 atari games are dropped from miniatari because their identity is *exploration over an unbounded map* (`montezumarevenge`, `pitfall`, `privateeye`, `solaris`, `gravitar`, `venture`, `hero`), *endurance over a long horizon* (`crazyclimber`, `videopinball`, `roadrunner`), *multi-screen multi-stage* (`krull`, `jamesbond`), or *no clear terminal win* (`tutankham`, `namethisgame`). Those stay in `atari/` for archival eval.
-
 ### Craftaxfull
 
 | **Crafter (Classic)** | **Craftax (Full)** |
 |:---:|:---:|
 | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftaxfull-classic-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftaxfull-v0.gif" width="130" /> |
-
-The two upstream-faithful Crafter / Craftax games — `craftaxfull-classic-v0` (22 achievements) and `craftaxfull-v0` (93 achievements) — extracted from the `craftax` suite into their own home. They use `max_turns=10000` and the full open-ended reward shape (per-achievement milestone summing to 1.0, terminal `−1` on death). Too long for default LLM eval, but kept as the open-ended capability ceiling.
-
-For day-to-day evaluation and training, the **41 `craftax/` subtask envs** (firstday, iron-bootstrap, fight-zombie, build-shelter, craftpickaxe, …) cover the same mechanics in a 100-300 turn budget per task. Default `eval/run_full.sh` excludes `craftaxfull`; opt in with `eval/run_archival.sh`.
 
 → [Browse all 343 environments on the leaderboard gallery](https://roger-creus.github.io/glyphbench/leaderboard/)
 

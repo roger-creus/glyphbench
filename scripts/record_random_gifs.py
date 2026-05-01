@@ -85,6 +85,8 @@ def main() -> None:
     parser.add_argument("--font-size", type=int, default=14)
     parser.add_argument("--overwrite", action="store_true",
                         help="Re-render GIFs even if they already exist")
+    parser.add_argument("--grid-only", action="store_true",
+                        help="Render only the [Grid] block (no header/Legend/HUD/Memory)")
     args = parser.parse_args()
 
     args.output.mkdir(parents=True, exist_ok=True)
@@ -121,7 +123,7 @@ def main() -> None:
                 print(f"[{i}/{len(env_ids)}] {env_id}: EMPTY trajectory, skip")
                 continue
 
-            export_gif(traj, gif_path, font_size=args.font_size)
+            export_gif(traj, gif_path, font_size=args.font_size, grid_only=args.grid_only)
             print(f"[{i}/{len(env_ids)}] {env_id}: {gif_path.name} ({len(traj)} frames)")
         except Exception as e:
             fails.append((env_id, str(e)[:150]))

@@ -238,10 +238,14 @@ def export_gif(
     output_path: Path,
     font_size: int = 14,
     width: int = 800,
+    grid_only: bool = False,
 ) -> None:
     """Export a trajectory as a GIF of rendered terminal frames.
 
     Requires Pillow (pip install Pillow).
+
+    If ``grid_only`` is True, only the [Grid] block is rendered (no header,
+    legend, HUD, or memory). The output is a tight crop around the grid only.
     """
     try:
         from PIL import Image, ImageDraw, ImageFont
@@ -281,11 +285,45 @@ def export_gif(
     for step in steps:
         obs = step["observation"]
         memory = _step_memory(step)
-        if memory:
+        if memory and not grid_only:
             obs = f"{obs}\n\n[Memory]\n{memory}"
         turn = step["turn"]
         action = step["action_name"]
         cum_reward = step["cumulative_reward"]
+
+        if grid_only:
+            # Extract only the [Grid] block (no header, no Legend/HUD/Memory).
+            grid_lines: list[str] = []
+            in_grid = False
+            for line in obs.split("\n"):
+                if line.startswith("[Grid]"):
+                    in_grid = True
+                    continue
+                if in_grid:
+                    if line.startswith("["):
+                        break
+                    grid_lines.append(line)
+            # Drop trailing blank lines.
+            while grid_lines and not grid_lines[-1].strip():
+                grid_lines.pop()
+            if not grid_lines:
+                continue
+
+            max_cols = max(len(line) for line in grid_lines)
+            img_w = max_cols * char_w + 20
+            img_h = len(grid_lines) * line_h + 20
+
+            img = Image.new("RGB", (img_w, img_h), (15, 15, 15))
+            draw = ImageDraw.Draw(img)
+            for row, line in enumerate(grid_lines):
+                y = 10 + row * line_h
+                for col, ch in enumerate(line):
+                    x = 10 + col * char_w
+                    uni = UNICODE_MAP.get(ch, ch)
+                    color = parse_color(ch)
+                    draw.text((x, y), uni, font=font, fill=color)
+            frames.append(img)
+            continue
 
         # Build header + observation lines
         header = f"Turn {turn}  Action: {action}  Return: {cum_reward:+.2f}"
