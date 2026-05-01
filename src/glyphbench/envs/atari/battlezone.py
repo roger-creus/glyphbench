@@ -24,8 +24,8 @@ class BattleZoneEnv(AtariBase):
     Obstacles provide cover. Enemies fire back.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +2 per enemy tank destroyed
-
+    Pattern D: +1/_WIN_TARGET per enemy tank destroyed (full-scope = 10
+    tanks). -1.0 if hit (single-life model).
     """
 
     action_spec = ActionSpec(
@@ -42,6 +42,10 @@ class BattleZoneEnv(AtariBase):
     _MAX_ENEMIES = 3
     _SPAWN_INTERVAL = 20
 
+    # Pattern D full-scope target: 10 tanks destroyed.
+    _WIN_TARGET: int = 10
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._tanks: list[AtariEntity] = []
@@ -51,9 +55,14 @@ class BattleZoneEnv(AtariBase):
         self._fire_dx = 0
         self._fire_dy = -1
         self._obstacles: set[tuple[int, int]] = set()
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-battlezone-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _reset_pos(self) -> None:
         self._player_x = self._WIDTH // 2
@@ -151,8 +160,10 @@ class BattleZoneEnv(AtariBase):
                     t.alive = False
                     b.alive = False
                     self._on_point_scored(2)
-                    reward += 2
-                    self._message = "Tank destroyed! +2"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Tank destroyed!"
                     break
         # Enemy AI
         for t in self._tanks:
@@ -189,7 +200,7 @@ class BattleZoneEnv(AtariBase):
                     )
                     eb.data.update(bdx=fdx, bdy=fdy)
                     self._enemy_bullets.append(eb)
-        # Move enemy bullets
+        # Move enemy bullets (Pattern D death penalty if hit)
         for eb in self._enemy_bullets:
             if not eb.alive:
                 continue
@@ -203,20 +214,26 @@ class BattleZoneEnv(AtariBase):
                   and eb.y == self._player_y):
                 eb.alive = False
                 self._on_life_lost()
+                reward = self._DEATH_PENALTY
                 self._message = "Hit by enemy fire!"
-                self._reset_pos()
-        # Player-tank collision
+        # Player-tank collision (Pattern D death penalty)
         for t in self._tanks:
             if (t.alive and t.x == self._player_x
                     and t.y == self._player_y):
                 t.alive = False
                 self._on_life_lost()
+                reward = self._DEATH_PENALTY
                 self._message = "Rammed by tank!"
-                self._reset_pos()
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All tanks destroyed!"
         # Spawn
         alive = [t for t in self._tanks if t.alive]
         if (len(alive) < self._MAX_ENEMIES
-                and self._step_counter % self._SPAWN_INTERVAL == 0):
+                and self._step_counter % self._SPAWN_INTERVAL == 0
+                and not self._game_over):
             self._spawn_enemy()
         self._bullets = [b for b in self._bullets if b.alive]
         self._enemy_bullets = [
