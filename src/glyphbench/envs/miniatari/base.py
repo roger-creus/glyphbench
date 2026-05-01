@@ -111,6 +111,15 @@ class MiniatariBase(BaseGlyphEnv):
         """Pattern D: terminal -1.0 on death/loss."""
         return -1.0
 
+    def _milestone_reward(self, share: float) -> float:
+        """Pattern B: milestone share of the cumulative 1.0 budget.
+
+        For multi-stage games where progress units have different weights;
+        the implementer is responsible for ensuring all milestone shares
+        sum to <= 1.0 across an episode.
+        """
+        return float(share)
+
     # -- lifecycle ----------------------------------------------------------
     def _on_life_lost(self) -> None:
         """Subclasses call this on death; sets game_over and won=False."""

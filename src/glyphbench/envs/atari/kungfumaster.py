@@ -29,7 +29,7 @@ class KungFuMasterEnv(AtariBase):
     at the right end of each floor.
 
     Grid: 30x16.
-    Pattern A: +1/_WIN_TARGET per enemy or boss defeated
+    Pattern D: +1/_WIN_TARGET per enemy or boss defeated
     (full-scope = 5 floors x 8 enemies = 40). -1.0 on KO.
     """
 
@@ -49,7 +49,7 @@ class KungFuMasterEnv(AtariBase):
         ),
     )
 
-    # Pattern A full-scope target: 40 (5 floors x 8 enemies).
+    # Pattern D full-scope target: 40 (5 floors x 8 enemies).
     _WIN_TARGET: int = 40
     _DEATH_PENALTY: float = -1.0
 
@@ -251,7 +251,7 @@ class KungFuMasterEnv(AtariBase):
                 if e.x <= 0 or e.x >= _W - 1:
                     e.alive = False
 
-        # Collision: projectiles hit player (Pattern A death)
+        # Collision: projectiles hit player (Pattern D death)
         for e in self._entities:
             if e.etype != "projectile" or not e.alive:
                 continue
@@ -268,7 +268,7 @@ class KungFuMasterEnv(AtariBase):
                     self._message = "Hit by projectile!"
                     return reward, self._game_over, info
 
-        # Collision: enemies touch player (Pattern A death)
+        # Collision: enemies touch player (Pattern D death)
         for e in self._entities:
             if e.etype not in ("gripper", "boss"):
                 continue
@@ -413,7 +413,7 @@ class KungFuMasterEnv(AtariBase):
             "3-7 steps that travels 1 cell per step horizontally.\n\n"
             "SCORING\n"
             "+1/40 reward per Gripper, Knife thrower, or Boss "
-            "defeated (Pattern A full-scope = 5 floors x 8 enemies "
+            "defeated (Pattern D full-scope = 5 floors x 8 enemies "
             "= 40). -1.0 on KO (enemy or knife contact while not "
             "ducking/jumping).\n\n"
             "TERMINATION\n"

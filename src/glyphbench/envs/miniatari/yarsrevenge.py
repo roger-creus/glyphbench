@@ -140,11 +140,11 @@ class MiniYarsRevengeEnv(MiniatariBase):
                 if kind == "block":
                     self._blocks_alive.discard(row)
                     self._shield_kills += 1
-                    reward += 0.1
+                    reward += self._milestone_reward(0.1)
                     self._message = f"Shield block down! ({self._shield_kills}/5)"
                 elif kind == "qotile":
                     if not self._shield_intact():
-                        reward += 0.5
+                        reward += self._milestone_reward(0.5)
                         self._message = "Qotile struck! Victory!"
                         self._on_won()
                         return reward, self._game_over, info

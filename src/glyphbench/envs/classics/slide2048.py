@@ -3,6 +3,10 @@
 Gym IDs:
   glyphbench/classics-2048-v0
 
+Reward shape: Pattern B (milestone shaping) — +0.2 each time a NEW
+max-tile milestone in {4, 8, 16, 32, 64} is reached for the first time;
+cumulative reward caps at 1.0 on full win.
+
 Design (P4 rework, 2026-05-01):
   - 3x3 board (instead of classic 4x4) for a tractable short horizon.
   - Target tile = 64. Reaching it wins the episode.

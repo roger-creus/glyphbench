@@ -3,6 +3,9 @@
 Gym IDs:
   glyphbench/classics-tetris-v0
 
+Reward shape: Pattern B (milestone shaping) — +0.2 per line cleared
+across 5 lines; cumulative reward caps at 1.0 on full clear.
+
 Design (P4 rework, 2026-05-01):
   - Well = 6 wide x 10 tall (instead of classic 10x20).
   - Goal = clear 5 lines.

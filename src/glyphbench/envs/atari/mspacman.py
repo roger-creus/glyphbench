@@ -72,7 +72,7 @@ class MsPacManEnv(AtariBase):
     """Ms. Pac-Man: eat pellets, avoid ghosts, use power pellets.
 
     Actions: NOOP, UP, RIGHT, LEFT, DOWN
-    Pattern A: +1/_WIN_TARGET per pellet/power-pellet eaten
+    Pattern D: +1/_WIN_TARGET per pellet/power-pellet eaten
     (full-scope = 213 dots; the actual count of pellets baked
     into the maze template). -1.0 if caught by a non-frightened
     ghost.
@@ -89,7 +89,7 @@ class MsPacManEnv(AtariBase):
         ),
     )
 
-    # Pattern A full-scope target: every pellet in the maze.
+    # Pattern D full-scope target: every pellet in the maze.
     # The default Ms.Pac-Man template has 209 regular + 4 power
     # pellets = 213. Each one yields +1/213.
     _WIN_TARGET: int = 213
@@ -142,7 +142,7 @@ class MsPacManEnv(AtariBase):
             "move randomly and are edible.\n\n"
             "SCORING\n"
             "+1/213 reward per pellet (regular or power) eaten "
-            "(Pattern A full-scope = 213 pellets, the maze total). "
+            "(Pattern D full-scope = 213 pellets, the maze total). "
             "Eating frightened ghosts yields no direct reward "
             "(only respawns them). -1.0 if a non-frightened ghost "
             "catches you.\n\n"
@@ -273,7 +273,7 @@ class MsPacManEnv(AtariBase):
                     e.data["released"] = False
                     e.char = e.data["color"]
                 else:
-                    # Pattern A death penalty
+                    # Pattern D death penalty
                     self._on_life_lost()
                     reward = self._DEATH_PENALTY
 

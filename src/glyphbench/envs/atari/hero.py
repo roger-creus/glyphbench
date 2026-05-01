@@ -21,7 +21,7 @@ class HeroEnv(AtariBase):
 
     Grid: 20x16.
     Actions: NOOP, FIRE, UP, RIGHT, LEFT, DOWN
-    Pattern A: +1/_WIN_TARGET per survivor rescued. -1 on death
+    Pattern D: +1/_WIN_TARGET per survivor rescued. -1 on death
     (lava / bat). Full-scope = 5 caves.
     """
 
@@ -41,7 +41,7 @@ class HeroEnv(AtariBase):
     _HEIGHT = 16
     _MAX_DYNAMITE = 6
 
-    # Pattern A full-scope target: 5 caves cleared (survivors rescued).
+    # Pattern D full-scope target: 5 caves cleared (survivors rescued).
     _WIN_TARGET: int = 5
     _DEATH_PENALTY: float = -1.0
 
@@ -160,13 +160,13 @@ class HeroEnv(AtariBase):
                 self._player_x = new_x
                 self._player_y = new_y
 
-        # Check lava (Pattern A death penalty)
+        # Check lava (Pattern D death penalty)
         if (self._player_x, self._player_y) in self._lava:
             self._on_life_lost()
             reward = self._DEATH_PENALTY
             self._message = "Lava!"
 
-        # Check enemy collision (Pattern A death penalty)
+        # Check enemy collision (Pattern D death penalty)
         for e in self._entities:
             if e.alive and e.etype == "bat" and e.x == self._player_x and e.y == self._player_y:
                 self._on_life_lost()
@@ -214,7 +214,7 @@ class HeroEnv(AtariBase):
 
     def _use_fire(self) -> float:
         """Fire laser at adjacent walls or place dynamite. No reward
-        emitted; the only Pattern A progress is survivor rescue."""
+        emitted; the only Pattern D progress is survivor rescue."""
         # Check all 4 adjacent cells for destructible walls
         for ddx, ddy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             tx = self._player_x + ddx
@@ -308,7 +308,7 @@ class HeroEnv(AtariBase):
             "you have dynamite, it blows the wall (uses 1 of 6 "
             "dynamites) and also zaps any adjacent bat.\n\n"
             "SCORING\n"
-            "+1/5 reward per survivor rescued (Pattern A full-scope "
+            "+1/5 reward per survivor rescued (Pattern D full-scope "
             "= 5 caves). Wall clearing and bat zapping yield no "
             "direct reward (only useful as means to reach the "
             "survivor). -1.0 on death (lava or bat).\n\n"

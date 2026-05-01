@@ -34,7 +34,7 @@ class PrivateEyeEnv(AtariBase):
     Examine (E) locations to discover hidden clues.
 
     Grid: 30x16.
-    Pattern A: +1/_WIN_TARGET per case solved (full-scope = 5
+    Pattern D: +1/_WIN_TARGET per case solved (full-scope = 5
     cases). -1.0 on death (caught by thug).
     """
 
@@ -53,7 +53,7 @@ class PrivateEyeEnv(AtariBase):
         ),
     )
 
-    # Pattern A full-scope target: 5 cases solved.
+    # Pattern D full-scope target: 5 cases solved.
     _WIN_TARGET: int = 5
     _DEATH_PENALTY: float = -1.0
 
@@ -279,7 +279,7 @@ class PrivateEyeEnv(AtariBase):
                 e.x -= 1
             e.x = max(1, min(e.x, _W - 2))
 
-        # Thug collision (Pattern A death)
+        # Thug collision (Pattern D death)
         for e in self._entities:
             if (
                 e.etype == "thug"
@@ -307,7 +307,7 @@ class PrivateEyeEnv(AtariBase):
             e for e in self._entities if e.alive
         ]
 
-        # Case solved: all clues found (Pattern A progress)
+        # Case solved: all clues found (Pattern D progress)
         if self._clues_found >= self._clues_total:
             if self._progress_count < self._WIN_TARGET:
                 reward += 1.0 / self._WIN_TARGET
@@ -393,7 +393,7 @@ class PrivateEyeEnv(AtariBase):
             "them. Thugs move every 2-4 steps horizontally, "
             "bouncing at walls; criminal flees from your column.\n\n"
             "SCORING\n"
-            "+1/5 reward per case solved (Pattern A full-scope = 5 "
+            "+1/5 reward per case solved (Pattern D full-scope = 5 "
             "cases). Solving a case requires collecting every clue "
             "(visible + hidden in buildings) for that case. -1.0 "
             "on death (mugged by thug).\n\n"

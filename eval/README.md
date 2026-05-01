@@ -10,7 +10,7 @@ OpenAI-compatible endpoint. Scoring is raw episodic return per (env, model)
 # Wire-check: 1 env, 2 episodes
 bash eval/run_debug.sh
 
-# Full sweep: all 300 envs, configurable via env vars
+# Full sweep: all 343 envs, configurable via env vars
 bash eval/run_full.sh
 ```
 

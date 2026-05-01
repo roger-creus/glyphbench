@@ -34,7 +34,7 @@ class JamesBondEnv(AtariBase):
     The world scrolls left; dodge or destroy threats.
 
     Grid: 30x16.
-    Pattern A: +1/_WIN_TARGET per stage cleared (full-scope = 4
+    Pattern D: +1/_WIN_TARGET per stage cleared (full-scope = 4
     environments). -1.0 on death.
     """
 
@@ -52,7 +52,7 @@ class JamesBondEnv(AtariBase):
         ),
     )
 
-    # Pattern A full-scope target: 4 mission stages.
+    # Pattern D full-scope target: 4 mission stages.
     _WIN_TARGET: int = 4
     _DEATH_PENALTY: float = -1.0
 
@@ -190,7 +190,7 @@ class JamesBondEnv(AtariBase):
                 e.alive = False
                 self._message = "Intel collected!"
 
-        # Player-enemy/obstacle collision (Pattern A death penalty)
+        # Player-enemy/obstacle collision (Pattern D death penalty)
         for e in self._entities:
             if not e.alive:
                 continue
@@ -230,7 +230,7 @@ class JamesBondEnv(AtariBase):
                     "intel", "i", _W - 2, oy, dx=-1,
                 )
 
-        # Level progression based on distance (Pattern A progress)
+        # Level progression based on distance (Pattern D progress)
         if self._distance >= 80 + self._level * 20:
             self._level += 1
             if self._progress_count < self._WIN_TARGET:
@@ -309,7 +309,7 @@ class JamesBondEnv(AtariBase):
             "steps (30 percent enemy, 40 percent obstacle, 30 percent "
             "intel).\n\n"
             "SCORING\n"
-            "+1/4 reward per mission stage cleared (Pattern A "
+            "+1/4 reward per mission stage cleared (Pattern D "
             "full-scope = 4 environments). Destroying enemies / "
             "obstacles and collecting intel yield no direct "
             "reward, only progress toward stage completion. -1.0 "

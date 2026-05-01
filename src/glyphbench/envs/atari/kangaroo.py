@@ -24,7 +24,7 @@ class KangarooEnv(AtariBase):
 
     Grid: 20 wide x 20 tall.
     Gravity: agent falls if no platform below.
-    Pattern A: +1/_WIN_TARGET per fruit picked or baby rescued
+    Pattern D: +1/_WIN_TARGET per fruit picked or baby rescued
     (full-scope = 4 levels x 5 progress markers = 20). -1.0 on
     death (monkey collision).
     """
@@ -44,7 +44,7 @@ class KangarooEnv(AtariBase):
     _WIDTH = 20
     _HEIGHT = 20
 
-    # Pattern A full-scope target: 4 levels x 5 floors = 20.
+    # Pattern D full-scope target: 4 levels x 5 floors = 20.
     _WIN_TARGET: int = 20
     _DEATH_PENALTY: float = -1.0
 
@@ -241,7 +241,7 @@ class KangarooEnv(AtariBase):
                 continue
             if e.x == self._player_x and e.y == self._player_y:
                 if e.etype == "enemy":
-                    # Pattern A death penalty
+                    # Pattern D death penalty
                     self._on_life_lost()
                     reward = self._DEATH_PENALTY
                     self._message = "Hit by monkey!"
@@ -336,7 +336,7 @@ class KangarooEnv(AtariBase):
             "platform. Monkeys reverse direction at walls/platforms.\n\n"
             "SCORING\n"
             "+1/20 reward per fruit collected. +1/20 reward per "
-            "baby rescued (Pattern A full-scope = 4 levels x 5 "
+            "baby rescued (Pattern D full-scope = 4 levels x 5 "
             "progress markers = 20). Punching monkeys yields no "
             "reward. -1.0 on death (monkey collision).\n\n"
             "TERMINATION\n"

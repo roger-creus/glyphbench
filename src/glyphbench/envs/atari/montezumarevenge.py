@@ -24,7 +24,7 @@ class MontezumaRevengeEnv(AtariBase):
 
     Grid: 30 wide x 20 tall per room (with border).
     Gravity: agent falls if no platform below.
-    Pattern A: +1/_WIN_TARGET per room cleared (full-scope = 24).
+    Pattern D: +1/_WIN_TARGET per room cleared (full-scope = 24).
     -1.0 on death (enemy contact).
     """
 
@@ -48,7 +48,7 @@ class MontezumaRevengeEnv(AtariBase):
     _ROOMS_Y = 4
     _TOTAL_ROOMS = 24
 
-    # Pattern A full-scope target: 24 rooms cleared.
+    # Pattern D full-scope target: 24 rooms cleared.
     _WIN_TARGET: int = 24
     _DEATH_PENALTY: float = -1.0
 
@@ -316,7 +316,7 @@ class MontezumaRevengeEnv(AtariBase):
                 if next_x <= 1 or next_x >= self._WIDTH - 2:
                     e.dx = -e.dx
 
-        # Check room cleared (Pattern A progress)
+        # Check room cleared (Pattern D progress)
         treasures_left = any(e.alive and e.etype == "treasure" for e in self._entities)
         enemies_left = any(e.alive and e.etype == "enemy" for e in self._entities)
         if not treasures_left and not enemies_left and rid not in self._rooms_cleared:
@@ -407,7 +407,7 @@ class MontezumaRevengeEnv(AtariBase):
             "the 6x4 grid.\n\n"
             "SCORING\n"
             "+1/24 reward the first time a room is cleared (no "
-            "treasures + no enemies remain) (Pattern A full-scope = "
+            "treasures + no enemies remain) (Pattern D full-scope = "
             "24 rooms). Treasures, keys and doors give no direct "
             "reward. -1.0 on death (enemy contact).\n\n"
             "TERMINATION\n"

@@ -39,6 +39,12 @@ def test_death_reward_is_negative_one():
     assert env._death_reward() == -1.0
 
 
+def test_milestone_reward_passes_through():
+    env = _FakeMini()
+    assert env._milestone_reward(0.2) == 0.2
+    assert env._milestone_reward(0.5) == 0.5
+
+
 def test_default_max_turns_is_200():
     env = _FakeMini()
     assert env.max_turns == 200

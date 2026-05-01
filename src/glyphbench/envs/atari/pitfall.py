@@ -24,7 +24,7 @@ class PitfallEnv(AtariBase):
 
     Grid: 40 wide x 12 tall.
     Gravity: agent falls if no platform below.
-    Pattern A: +1/_WIN_TARGET per treasure collected (full-scope =
+    Pattern D: +1/_WIN_TARGET per treasure collected (full-scope =
     32 treasures). -1.0 on death (enemy / pit fall).
     """
 
@@ -44,7 +44,7 @@ class PitfallEnv(AtariBase):
     _HEIGHT = 12
     _TOTAL_SCREENS = 255
 
-    # Pattern A full-scope target: 32 treasures collected.
+    # Pattern D full-scope target: 32 treasures collected.
     _WIN_TARGET: int = 32
     _DEATH_PENALTY: float = -1.0
 
@@ -222,7 +222,7 @@ class PitfallEnv(AtariBase):
                 below = self._player_y + 1
                 if below < self._HEIGHT and not self._is_platform(self._player_x, below):
                     self._player_y = below
-                    # Check if fell into pit (Pattern A death)
+                    # Check if fell into pit (Pattern D death)
                     if self._grid_at(self._player_x, self._player_y) == "~":
                         self._on_life_lost()
                         reward = self._DEATH_PENALTY
@@ -333,7 +333,7 @@ class PitfallEnv(AtariBase):
             "'=', '#', or 'L'. Screen transitions reset the "
             "position to x=1 or x=W-2 of the new screen.\n\n"
             "SCORING\n"
-            "+1/32 reward per treasure '$' collected (Pattern A "
+            "+1/32 reward per treasure '$' collected (Pattern D "
             "full-scope = 32 treasures across 255 screens). -1.0 "
             "on death (falling in water or touching scorpion/snake).\n\n"
             "TERMINATION\n"

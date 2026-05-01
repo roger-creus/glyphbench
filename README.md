@@ -2,7 +2,7 @@
 
 # ★  →  GlyphBench  ←  ★
 
-**A benchmark of 300 text-rendered reinforcement-learning environments for evaluating LLM agents on sequential decision-making.**
+**A benchmark of 343 text-rendered reinforcement-learning environments for evaluating LLM agents on sequential decision-making.**
 
 <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/hero.gif" width="320" />
 
@@ -67,7 +67,7 @@ All environments use single-codepoint Unicode glyphs (`→↓←↑` for player 
 |:---:|:---:|:---:|:---:|:---:|
 | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-coinrun-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-maze-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-bigfish-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-ninja-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-jumper-v0.gif" width="130" /> |
 
-→ [Browse all 300 environments on the leaderboard gallery](https://roger-creus.github.io/glyphbench/leaderboard/)
+→ [Browse all 343 environments on the leaderboard gallery](https://roger-creus.github.io/glyphbench/leaderboard/)
 
 ## Install
 

@@ -22,7 +22,7 @@ class NameThisGameEnv(AtariBase):
     Protect the fish at the bottom.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Pattern A: +1/_WIN_TARGET per enemy shot (full-scope = 5 waves
+    Pattern D: +1/_WIN_TARGET per enemy shot (full-scope = 5 waves
     x 6 enemies = 30). -1.0 on death (all fish eaten).
     """
 
@@ -43,7 +43,7 @@ class NameThisGameEnv(AtariBase):
     _FISH_Y = 17
     _MAX_BULLETS = 2
 
-    # Pattern A full-scope target: 30 (5 waves x 6 enemies).
+    # Pattern D full-scope target: 30 (5 waves x 6 enemies).
     _WIN_TARGET: int = 30
     _DEATH_PENALTY: float = -1.0
 
@@ -200,7 +200,7 @@ class NameThisGameEnv(AtariBase):
                     self._message = "Fish eaten!"
                     break
 
-        # Check all fish dead (Pattern A death penalty)
+        # Check all fish dead (Pattern D death penalty)
         alive_fish = sum(1 for f in self._fish if f.alive)
         if alive_fish == 0 and not self._game_over:
             self._on_life_lost()
@@ -313,7 +313,7 @@ class NameThisGameEnv(AtariBase):
             "row down every 6 steps. An enemy within 1 column of a "
             "fish at the fish row eats the fish and dies.\n\n"
             "SCORING\n"
-            "+1/30 reward per enemy you shoot (Pattern A "
+            "+1/30 reward per enemy you shoot (Pattern D "
             "full-scope = 5 waves x 6 enemies = 30). -1.0 if all "
             "fish are eaten (failure terminates).\n\n"
             "TERMINATION\n"

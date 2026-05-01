@@ -21,7 +21,7 @@ class PhoenixEnv(AtariBase):
     Every 3 waves a boss appears.
 
     Actions: NOOP, LEFT, RIGHT, FIRE, SHIELD
-    Pattern A: +1/_WIN_TARGET per bird shot or boss hit
+    Pattern D: +1/_WIN_TARGET per bird shot or boss hit
     (full-scope = 5 waves x 8 phoenixes = 40). -1.0 on death.
     """
 
@@ -40,7 +40,7 @@ class PhoenixEnv(AtariBase):
     _HEIGHT = 24
     _PLAYER_Y = 22
 
-    # Pattern A full-scope target: 40 (5 waves x 8 phoenixes).
+    # Pattern D full-scope target: 40 (5 waves x 8 phoenixes).
     _WIN_TARGET: int = 40
     _DEATH_PENALTY: float = -1.0
 
@@ -381,7 +381,7 @@ class PhoenixEnv(AtariBase):
             "enemy bullets).\n\n"
             "SCORING\n"
             "+1/40 reward per bird shot, plus +1/40 per boss hit "
-            "(Pattern A full-scope = 5 waves x 8 phoenixes = 40). "
+            "(Pattern D full-scope = 5 waves x 8 phoenixes = 40). "
             "-1.0 on death (enemy bullet or bird swoop while not "
             "shielded).\n\n"
             "TERMINATION\n"

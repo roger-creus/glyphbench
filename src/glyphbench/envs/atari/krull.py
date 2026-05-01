@@ -33,7 +33,7 @@ class KrullEnv(AtariBase):
     Stage 3: Storm the Black Fortress, rescue princess (P).
 
     Grid: 20x16.
-    Pattern A: +1/_WIN_TARGET per stage cleared (full-scope = 3
+    Pattern D: +1/_WIN_TARGET per stage cleared (full-scope = 3
     stages: field, swamp, fortress). -1.0 on death.
     """
 
@@ -51,7 +51,7 @@ class KrullEnv(AtariBase):
         ),
     )
 
-    # Pattern A full-scope target: 3 stages cleared (the env has
+    # Pattern D full-scope target: 3 stages cleared (the env has
     # 3 distinct stages: field, swamp, fortress).
     _WIN_TARGET: int = 3
     _DEATH_PENALTY: float = -1.0
@@ -210,7 +210,7 @@ class KrullEnv(AtariBase):
             if not self._is_solid(nx, ny):
                 cell = self._grid_at(nx, ny)
                 if cell == "~":
-                    # Swamp slows and may hurt (Pattern A death)
+                    # Swamp slows and may hurt (Pattern D death)
                     if self.rng.random() < 0.15:
                         self._on_life_lost()
                         reward = self._DEATH_PENALTY
@@ -323,7 +323,7 @@ class KrullEnv(AtariBase):
                         f"{en.etype} destroyed!"
                     )
 
-        # Player-enemy collision (Pattern A death penalty)
+        # Player-enemy collision (Pattern D death penalty)
         for e in self._entities:
             if e.etype not in etypes or not e.alive:
                 continue
@@ -488,7 +488,7 @@ class KrullEnv(AtariBase):
             "Enemies move on a 2-5 step timer toward you along one "
             "axis.\n\n"
             "SCORING\n"
-            "+1/3 reward per stage cleared (Pattern A full-scope = "
+            "+1/3 reward per stage cleared (Pattern D full-scope = "
             "3 stages: field, swamp, fortress). Killing enemies "
             "yields no direct reward (only progress toward stage "
             "completion). -1.0 on death (enemy contact or sinking "
