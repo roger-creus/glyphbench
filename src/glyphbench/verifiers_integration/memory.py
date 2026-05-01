@@ -41,33 +41,116 @@ def extract_memory_update(text: str) -> MemoryExtraction:
 
 def build_memory_update_user(
     *,
+    action_text: str,
+    action_chosen: str,
+    parse_failed: bool,
+    parse_failure_reason: str | None,
+    action_truncated: bool,
     reward: float,
     terminated: bool,
     truncated: bool,
+    next_obs: str,
 ) -> vf.UserMessage:
-    """Build the lean user message for the memory-update generation.
+    """Build the user message for the memory-update generation.
 
-    The memory writer already sees, via the conversation prefix:
-      - previous memory (in user_obs_t's [Memory] block)
-      - the obs that prompted the action (user_obs_t's [Grid]/[Legend]/[Message])
-      - the action chosen (assistant_action_t's <action> tag; <think> elided
-        by the chat template under enable_thinking=False)
+    Sections, in order:
 
-    This wrapper only adds the env's response (reward + termination flags)
-    and the write instruction. No future peeking, no duplicates.
+      [Last Action]      — your previous response (raw reasoning + action
+                           tag) plus the parser's outcome (action applied
+                           or forfeit + reason) and an output-truncated
+                           flag. The chat template strips ``<think>`` from
+                           prior assistant turns by default, so this block
+                           re-injects the reasoning as plain text — gives
+                           the memory writer continuity with the action
+                           turn's analysis instead of forcing it to redo
+                           the work from scratch.
+
+      [Env Response]     — reward, terminated, truncated (episode-level).
+
+      [Next Observation] — the new grid + legend + HUD + message produced
+                           by the env's response to the action. Not
+                           privileged: the agent will see this same view
+                           at the next action turn anyway. Surfacing it
+                           here lets memory react to the action's actual
+                           effect, which a sparse-reward signal alone
+                           cannot convey.
+
+      [Memory Update]    — write instruction with the synth/non-describe
+                           guidance.
     """
-    content = (
-        "[Memory Update]\n"
-        "The environment responded to your last action with:\n"
+    if parse_failed:
+        parse_status = (
+            f"FAILED — {parse_failure_reason or 'no <action> tag'} "
+            "(turn forfeited; env state did not advance)"
+        )
+    else:
+        parse_status = "ok"
+
+    last_action_text = action_text.strip() if action_text else "(empty)"
+
+    last_action = (
+        "[Last Action]\n"
+        "Your previous response (raw):\n"
+        "---\n"
+        f"{last_action_text}\n"
+        "---\n"
+        "Outcome:\n"
+        f"  Action applied: {action_chosen}\n"
+        f"  Parse status: {parse_status}\n"
+        f"  Output truncated: {str(bool(action_truncated)).lower()}"
+    )
+
+    env_response_block = (
+        "[Env Response]\n"
         f"  Reward: {reward:+.3f}\n"
         f"  Terminated: {str(bool(terminated)).lower()}\n"
-        f"  Truncated: {str(bool(truncated)).lower()}\n\n"
-        "Update your memory based on this turn's outcome and the observation "
-        "above. Write the updated memory inside <memory>...</memory> tags. "
-        "Anything outside the <memory> tag is discarded. Do not emit an "
-        "<action> tag in this response."
+        f"  Truncated: {str(bool(truncated)).lower()}"
+    )
+
+    next_obs_clean = next_obs.rstrip() if next_obs else "(none)"
+    next_obs_block = (
+        "[Next Observation]\n"
+        f"{next_obs_clean}"
+    )
+
+    instruction = (
+        "[Memory Update]\n"
+        "Update your memory based on the above: the action you took, the "
+        "env's response, and the new observation. Reply ONLY with "
+        "`<memory>...your concise updated memory...</memory>`. Anything "
+        "outside the <memory> tag is discarded. Do not emit an <action> "
+        "tag. Memory is for synthesis — causal facts you've established, "
+        "plans, discoveries, retracted hypotheses, what the last action "
+        "actually did vs. what you expected. Do NOT re-describe the grid: "
+        "the next observation above is shown again at the next action "
+        "turn, so duplicating its contents wastes the budget."
+    )
+
+    content = "\n\n".join(
+        [last_action, env_response_block, next_obs_block, instruction]
     )
     return vf.UserMessage(content=content)
+
+
+def action_response_text(action_completion: list[Any]) -> str:
+    """Stitch the action turn's full text from a vf assistant message list.
+
+    Qwen3.5's chat template prefills ``<think>\\n`` and emits
+    ``reasoning_content`` separately from ``content``. To preserve the
+    full reasoning trace for the memory-turn re-injection, we glue them
+    back together with explicit ``<think>`` delimiters when reasoning is
+    set; otherwise the raw content already contains everything (for
+    older / non-thinking responses, or for chat templates that don't
+    split out the reasoning).
+    """
+    if not action_completion:
+        return ""
+    msg = action_completion[-1]
+    content = msg.get("content", "") or ""
+    reasoning = msg.get("reasoning_content") or ""
+    if reasoning:
+        return f"<think>\n{reasoning}\n</think>\n{content}".strip()
+    return content.strip()
 
 
 def memory_sampling_args(

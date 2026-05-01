@@ -268,14 +268,25 @@ async def test_memory_add_model_response_emits_two_steps(monkeypatch):
     }
     assert seen["prompt"][-1]["role"] == "user"
     memory_update_prompt = seen["prompt"][-1]["content"]
-    # Lean memory_user: env feedback + write instruction only — NO duplicates
+    # Memory_user has all four sections.
+    assert "[Last Action]" in memory_update_prompt
+    assert "[Env Response]" in memory_update_prompt
+    assert "[Next Observation]" in memory_update_prompt
     assert "[Memory Update]" in memory_update_prompt
     assert "Reward: +0.000" in memory_update_prompt
+    # Action transcript is re-injected (workaround for chat-template <think>
+    # stripping) so the memory writer can use the action turn's reasoning.
+    assert "<action>EAST</action>" in memory_update_prompt
+    assert "Action applied: EAST" in memory_update_prompt
+    assert "Parse status: ok" in memory_update_prompt
+    assert "Output truncated: false" in memory_update_prompt
+    # Next obs grid surfaces in the [Next Observation] block.
+    assert "[Grid]" in memory_update_prompt
+    # Removed legacy block names should NOT appear (these were the pre-rework
+    # injection points; the new format uses [Last Action] / [Env Response]).
     assert "[Previous Memory]" not in memory_update_prompt
     assert "[Action Response]" not in memory_update_prompt
     assert "Parsed action:" not in memory_update_prompt
-    assert "[Next Observation]" not in memory_update_prompt
-    assert "[Grid]" not in memory_update_prompt
 
     action_step, memory_step = state["trajectory"]
     assert [m["role"] for m in action_step["completion"]] == ["assistant"]
@@ -292,7 +303,8 @@ async def test_memory_add_model_response_emits_two_steps(monkeypatch):
     assert memory_step["prompt"][: len(prompt_messages)] == list(prompt_messages)
     assert memory_step["prompt"][-1]["role"] == "user"
     assert "[Memory Update]" in memory_step["prompt"][-1]["content"]
-    assert "[Previous Memory]" not in memory_step["prompt"][-1]["content"]
+    assert "[Last Action]" in memory_step["prompt"][-1]["content"]
+    assert "[Next Observation]" in memory_step["prompt"][-1]["content"]
     assert [m["role"] for m in memory_step["completion"]] == ["assistant"]
     assert memory_step["reward"] == 0.0  # same per-turn reward
     assert memory_step["extras"]["glyphbench_step_role"] == "memory"
@@ -339,10 +351,11 @@ async def test_memory_add_model_response_keeps_step_without_token_data(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_memory_update_prompt_is_lean_no_action_response_injected(monkeypatch):
-    """Lean memory_user: action response text (incl. reasoning_content) is NOT
-    injected into the memory-update user prompt. The memory writer sees the
-    action via the conversation prefix (assistant_action_t), not re-stated."""
+async def test_memory_update_prompt_reinjects_action_reasoning(monkeypatch):
+    """Action turn's reasoning + tag is re-injected as plain text in the
+    memory_user. The Qwen3.5 chat template strips ``<think>`` from prior
+    assistant turns by default, so this re-injection is the only way the
+    memory writer sees the reasoning."""
     env = load_environment(
         task_id="glyphbench/__dummy-v0", num_episodes=1, use_memory=True
     )
@@ -372,15 +385,19 @@ async def test_memory_update_prompt_is_lean_no_action_response_injected(monkeypa
     )
 
     memory_update_prompt = seen["prompt"][-1]["content"]
-    # Lean wrapper: env feedback + write instruction only
+    # All four sections present.
+    assert "[Last Action]" in memory_update_prompt
+    assert "[Env Response]" in memory_update_prompt
+    assert "[Next Observation]" in memory_update_prompt
     assert "[Memory Update]" in memory_update_prompt
-    # Action response and reasoning are NOT re-injected into the memory_user
-    assert "<think>" not in memory_update_prompt
-    assert "EAST" not in memory_update_prompt
-    assert "The goal is east" not in memory_update_prompt
+    # Reasoning + tag re-injected as plain text in [Last Action] block.
+    assert "<think>" in memory_update_prompt
+    assert "The goal is east" in memory_update_prompt
+    assert "<action>EAST</action>" in memory_update_prompt
+    assert "Action applied: EAST" in memory_update_prompt
+    # Old block names are gone (replaced by [Last Action] / [Env Response]).
     assert "[Action Response]" not in memory_update_prompt
     assert "[Previous Memory]" not in memory_update_prompt
-    assert "[Next Observation]" not in memory_update_prompt
 
 
 @pytest.mark.asyncio
@@ -486,10 +503,10 @@ async def test_memory_rollout_every_step_completion_is_assistant_only(monkeypatc
         assert step["extras"]["glyphbench_step_role"] == expected
 
 
-def test_memory_mode_uses_lean_memory_user_and_records_parse_flag(monkeypatch):
+def test_memory_mode_uses_full_memory_user_and_records_parse_flag(monkeypatch):
     """End-to-end memory-mode turn: action call generates a valid action,
     memory call generates malformed memory, expectation:
-      - lean memory_user (no [Previous Memory] / [Action Response] / [Next Obs])
+      - memory_user has all four sections incl. [Last Action]+[Next Observation]
       - state['memory'] retained (== '' on first turn since no prior)
       - memory step extras has memory_parse_failed=True
     """
@@ -548,13 +565,15 @@ def test_memory_mode_uses_lean_memory_user_and_records_parse_flag(monkeypatch):
     extras = memory_step["extras"]
     assert extras["glyphbench_step_role"] == "memory"
     assert extras["memory_parse_failed"] is True
-    # Lean memory_user content check
+    # Memory_user content check — four sections present.
     memory_prompt = memory_step["prompt"]
     memory_user_text = memory_prompt[-1]["content"]
+    assert "[Last Action]" in memory_user_text
+    assert "[Env Response]" in memory_user_text
+    assert "[Next Observation]" in memory_user_text
     assert "[Memory Update]" in memory_user_text
     assert "[Previous Memory]" not in memory_user_text
     assert "[Action Response]" not in memory_user_text
-    assert "[Next Observation]" not in memory_user_text
 
 
 def test_apply_action_response_forfeits_on_parse_fail(monkeypatch):

@@ -16,6 +16,7 @@ from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.registry import REGISTRY, make_env
 from glyphbench.core.task_selection import list_task_ids
 from glyphbench.verifiers_integration.memory import (
+    action_response_text,
     build_memory_update_user,
     extract_memory_update,
     memory_sampling_args,
@@ -459,11 +460,21 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
                 state.get("action_completion_truncations", 0) + 1
             )
 
-        # Lean memory-update prompt: only env feedback + write instruction.
+        # Memory-update prompt: re-injects the action turn's reasoning
+        # (which the chat template would otherwise strip from prior
+        # assistant turns) + parse/truncation flags + env response + the
+        # new obs. See memory.build_memory_update_user docstring for the
+        # rationale on each section.
         memory_user = build_memory_update_user(
+            action_text=action_response_text(action_completion),
+            action_chosen=str(action_result["action_chosen"]),
+            parse_failed=bool(action_result["parse_failed"]),
+            parse_failure_reason=action_result["parse_failure_reason"],
+            action_truncated=bool(action_is_truncated),
             reward=turn_reward,
             terminated=bool(action_result["terminated"]),
             truncated=bool(action_result["truncated"]),
+            next_obs=state["current_obs"],
         )
         memory_prompt_messages = messages_for_action + [memory_user]
         memory_response = await self.get_model_response(

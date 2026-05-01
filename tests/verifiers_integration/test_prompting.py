@@ -98,11 +98,14 @@ def test_system_prompt_includes_memory_block_when_in_memory_mode(game):
     # The block should also tell the agent the memory budget so it can
     # plan its memory length.
     assert "4096" in sp
-    # Post-P2 lean-memory redesign: block accurately describes the lean wrapper
-    # (env feedback only; previous memory + action are in conversation history;
-    # next observation is intentionally withheld).
+    # Post-rework: memory turn now sees four sections — Last Action /
+    # Env Response / Next Observation / Memory Update.
+    assert "[Last Action]" in sp
+    assert "[Env Response]" in sp
+    assert "[Next Observation]" in sp
     assert "[Memory Update]" in sp
-    assert "intentionally NOT shown" in sp
+    # Steers memory toward synthesis rather than grid restatement.
+    assert "Do NOT re-describe the grid" in sp
 
 
 def test_user_turn_zero_no_history_section(game):
