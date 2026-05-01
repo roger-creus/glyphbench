@@ -1,11 +1,15 @@
-"""Tests for GlyphbenchXMLParser: XML-primary with JSON/regex fallback."""
+"""Tests for GlyphbenchXMLParser: strict <action>NAME</action> only."""
 
 from __future__ import annotations
 
 import pytest
 
 from glyphbench.core.action import ActionSpec
-from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
+from glyphbench.verifiers_integration.parser import (
+    GlyphbenchXMLParser,
+    NO_ACTION_TAG,
+    UNKNOWN_NAME,
+)
 
 
 @pytest.fixture
@@ -23,89 +27,86 @@ def parser():
 
 def test_well_formed_xml(parser, spec):
     text = "<think>reason</think><action>LEFT</action>"
-    idx, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (idx, name, failed) == (0, "LEFT", False)
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert (idx, name, failed, reason) == (0, "LEFT", False, None)
 
 
 def test_xml_case_insensitive(parser, spec):
     text = "<think>x</think><action>right</action>"
-    idx, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (idx, name, failed) == (1, "RIGHT", False)
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert (idx, name, failed, reason) == (1, "RIGHT", False, None)
 
 
 def test_xml_whitespace_in_action(parser, spec):
     text = "<think>x</think><action>   UP\n</action>"
-    idx, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (idx, name, failed) == (2, "UP", False)
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert (idx, name, failed, reason) == (2, "UP", False, None)
 
 
 def test_multiple_action_tags_take_last(parser, spec):
-    text = "<action>LEFT</action>some text<action>RIGHT</action>"
-    idx, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert name == "RIGHT"
+    # Models often quote <action> tags during reasoning; only the
+    # final committed tag counts.
+    text = "<action>LEFT</action>some reasoning<action>RIGHT</action>"
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert (name, failed, reason) == ("RIGHT", False, None)
 
 
-def test_unknown_action_falls_back_to_noop(parser, spec):
+def test_unknown_action_name_forfeits(parser, spec):
     text = "<think>x</think><action>FLY</action>"
-    idx, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (name, failed) == ("NOOP", True)
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert idx == spec.index_of("NOOP")
+    assert name == "NOOP"  # noop name returned for legacy step compat
+    assert failed is True
+    assert reason == UNKNOWN_NAME
 
 
-def test_missing_action_tag_falls_back(parser, spec):
+def test_missing_action_tag_forfeits(parser, spec):
     text = "<think>i have no action</think>"
-    _, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (name, failed) == ("NOOP", True)
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert failed is True
+    assert reason == NO_ACTION_TAG
 
 
-def test_empty_string_falls_back(parser, spec):
-    _, name, failed = parser.parse_action("", spec, noop="NOOP")
-    assert (name, failed) == ("NOOP", True)
+def test_empty_string_forfeits(parser, spec):
+    idx, name, failed, reason = parser.parse_action("", spec, noop="NOOP")
+    assert failed is True
+    assert reason == NO_ACTION_TAG
 
 
-def test_json_fallback(parser, spec):
-    text = 'no xml, but: {"thinking":"x","action":"DOWN"}'
-    idx, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (idx, name, failed) == (3, "DOWN", False)
+def test_unclosed_action_tag_forfeits(parser, spec):
+    # Layer-2 tolerance removed: <action>UP without </action> no longer parses.
+    text = "<action>UP"
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert failed is True
+    assert reason == NO_ACTION_TAG
 
 
-def test_json_fenced_fallback(parser, spec):
-    text = '```json\n{"action": "LEFT"}\n```'
-    _, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (name, failed) == ("LEFT", False)
+def test_json_output_forfeits(parser, spec):
+    # Layer-3 fallback removed.
+    text = '{"action": "DOWN"}'
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert failed is True
+    assert reason == NO_ACTION_TAG
 
 
-def test_bare_action_name_fallback(parser, spec):
-    # Last-resort: the response contains nothing but an action name.
-    text = "UP"
-    _, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (name, failed) == ("UP", False)
+def test_fenced_json_forfeits(parser, spec):
+    text = "```json\n{\"action\": \"LEFT\"}\n```"
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert failed is True
+    assert reason == NO_ACTION_TAG
 
 
-def test_prose_mentioning_action_does_not_trigger_bare_fallback(parser, spec):
-    # "I will go LEFT" should still parse via no-xml fallback chain — if the
-    # bare-name regex matches the only action-looking token, that's fine.
-    # This test documents the choice: the last-ditch regex picks the last
-    # uppercase token matching an action name.
-    text = "I am considering going LEFT or RIGHT. Final answer: DOWN"
-    _, name, _ = parser.parse_action(text, spec, noop="NOOP")
-    assert name == "DOWN"
+def test_bare_token_forfeits(parser, spec):
+    # Layer-4 fallback removed.
+    text = "I will go UP"
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert failed is True
+    assert reason == NO_ACTION_TAG
 
 
-def test_malformed_xml_nothing_else_works(parser, spec):
-    text = "<action>LEFT"  # no close tag, no json, no bare action at end
-    _, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    # Our fallback chain should still find "LEFT" via the bare-name regex.
-    assert name == "LEFT"
-    assert failed is False
-
-
-def test_completely_off_the_rails(parser, spec):
-    text = "asdfjkl; qwerty 12345"
-    _, name, failed = parser.parse_action(text, spec, noop="NOOP")
-    assert (name, failed) == ("NOOP", True)
-
-
-def test_get_format_reward_func_is_callable(parser):
-    # verifiers XMLParser provides a format-reward fn; we expose it.
-    fn = parser.get_format_reward_func()
-    assert callable(fn)
+def test_action_quoted_inside_think_then_committed(parser, spec):
+    # Common pattern: model quotes a candidate inside <think> then commits
+    # outside. Only the last <action> tag wins, so the committed one applies.
+    text = "<think>Maybe <action>LEFT</action>?</think><action>UP</action>"
+    idx, name, failed, reason = parser.parse_action(text, spec, noop="NOOP")
+    assert (name, failed, reason) == ("UP", False, None)

@@ -1,24 +1,17 @@
-"""GlyphbenchXMLParser: XML-primary with JSON and bare-name fallbacks.
+"""GlyphbenchXMLParser: strict <action>NAME</action> only.
 
-Wraps ``verifiers.XMLParser`` with a single ``action`` field and adds a
-3-layer fallback chain that tolerates imperfectly-formatted model output:
+The parser extracts the LAST complete ``<action>NAME</action>`` match from
+the model's response and verifies NAME against the env's ``ActionSpec``.
+Any other shape (unclosed tag, JSON, bare-token, missing tag, unknown name)
+forfeits the turn — see ``BaseGlyphEnv.forfeit_turn`` and the corresponding
+behavior in ``verifiers_integration.env._apply_action_response``.
 
-    1. XML: ``<action>NAME</action>`` (preferred, last occurrence wins).
-    2. JSON: ``{"action": "NAME"}`` inside any fence or top-level JSON object.
-    3. Bare: last uppercase/snake-case token matching a known action name.
-
-Unknown or missing action → ``(noop_idx, noop_name, parse_failed=True)``.
-
-Note: we deliberately do NOT register ``think`` as a parser field. Models
-like Qwen3 and DeepSeek-R1 auto-strip ``<think>…</think>`` in their chat
-template, which would cause verifiers' built-in format checks to fail.
-The model can still emit ``<think>`` for CoT — the system prompt asks for
-it — but the parser only needs the ``<action>`` tag to extract the action.
+Last-match-wins is preserved so that models that quote ``<action>`` tags
+inside their reasoning trace still get scored on the final committed tag.
 """
 
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
@@ -26,22 +19,29 @@ import verifiers as vf
 
 from glyphbench.core.action import ActionSpec
 
+NO_ACTION_TAG = "no_action_tag"
+UNKNOWN_NAME = "unknown_name"
+
 _XML_ACTION_RE = re.compile(
     r"<\s*action\s*>(.*?)<\s*/\s*action\s*>", re.DOTALL | re.IGNORECASE
 )
-_XML_ACTION_OPEN_RE = re.compile(
-    r"<\s*action\s*>(.*?)(?:<|\Z)", re.DOTALL | re.IGNORECASE
-)
-_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
-_BARE_NAME_RE = re.compile(r"\b([A-Z][A-Z0-9_]{1,})\b")
 
 
 class GlyphbenchXMLParser(vf.XMLParser):
-    """Parser used by the glyphbench verifiers integration.
+    """Strict XML parser for the glyphbench verifiers integration.
 
-    Instantiates ``vf.XMLParser`` with the single ``action`` field; the extra
-    ``parse_action`` method on top of the verifiers base provides the 3-layer
-    fallback chain.
+    Returns ``(idx, name, parse_failed, parse_failure_reason)`` from
+    ``parse_action``:
+
+    - on success: ``(spec.index_of(name), spec.names[idx], False, None)``
+    - on missing/unclosed/non-XML output:
+      ``(noop_idx, noop_name, True, "no_action_tag")``
+    - on tag found but NAME not in spec:
+      ``(noop_idx, noop_name, True, "unknown_name")``
+
+    The noop_idx/noop_name are returned for backward-compat with callers
+    that need a non-None action; the verifiers integration ignores these
+    and forfeits the turn instead.
     """
 
     def __init__(self, **kwargs: Any) -> None:
@@ -57,111 +57,26 @@ class GlyphbenchXMLParser(vf.XMLParser):
         spec: ActionSpec,
         *,
         noop: str,
-    ) -> tuple[int, str, bool]:
-        """Extract an action from model output.
-
-        Returns ``(action_idx, canonical_action_name, parse_failed)``.
-
-        The canonical action name is always one of ``spec.names`` — on any
-        parse failure or unknown action name we fall back to ``noop`` and
-        flag ``parse_failed=True``.
-        """
-        candidate = self._extract_candidate_with_spec(raw_text or "", spec)
-        if candidate is None:
-            return self._noop(spec, noop)
+    ) -> tuple[int, str, bool, str | None]:
+        text = raw_text or ""
+        matches = _XML_ACTION_RE.findall(text)
+        if not matches:
+            return self._noop(spec, noop, NO_ACTION_TAG)
+        candidate = matches[-1].strip()
+        if not candidate:
+            return self._noop(spec, noop, NO_ACTION_TAG)
         try:
             idx = spec.index_of(candidate)
         except KeyError:
-            return self._noop(spec, noop)
-        return idx, spec.names[idx], False
-
-    def _extract_candidate(self, text: str) -> str | None:
-        return self._extract_candidate_with_spec(text, None)
-
-    def _extract_candidate_with_spec(
-        self, text: str, spec: ActionSpec | None
-    ) -> str | None:
-        # 1. Complete <action>...</action> — take the last occurrence.
-        matches = _XML_ACTION_RE.findall(text)
-        if matches:
-            return matches[-1].strip()
-
-        # 2. Unclosed <action>... — tolerant (covers Qwen3.5 thinking mode
-        # truncation right after the agent emitted the opening tag).
-        open_match = _XML_ACTION_OPEN_RE.search(text)
-        if open_match:
-            cand = open_match.group(1).strip()
-            if cand and "<" not in cand and len(cand) < 64:
-                return cand
-
-        # 3. JSON — fenced block, then top-level object scan.
-        for body in _iter_json_bodies(text):
-            try:
-                obj = json.loads(body)
-            except (json.JSONDecodeError, ValueError):
-                continue
-            if isinstance(obj, dict) and isinstance(obj.get("action"), str):
-                return obj["action"].strip()
-
-        # 4. Bare-token fallback. When we know the spec, restrict to the LAST
-        # token that's actually a valid action name — this avoids matching
-        # incidental uppercase words from the CoT (e.g. "MOVE", "OK", "GRID")
-        # that would otherwise win the fallback and route to noop.
-        bare = _BARE_NAME_RE.findall(text)
-        if not bare:
-            return None
-        if spec is None:
-            return bare[-1].strip()
-        valid = {n.casefold() for n in spec.names}
-        for tok in reversed(bare):
-            if tok.strip().casefold() in valid:
-                return tok.strip()
-        return None
+            return self._noop(spec, noop, UNKNOWN_NAME)
+        return idx, spec.names[idx], False, None
 
     @staticmethod
-    def _noop(spec: ActionSpec, noop: str) -> tuple[int, str, bool]:
+    def _noop(
+        spec: ActionSpec, noop: str, reason: str
+    ) -> tuple[int, str, bool, str]:
         try:
             idx = spec.index_of(noop)
         except KeyError:
-            # Very defensive — an env without its declared noop: fall back to idx 0.
             idx = 0
-        return idx, spec.names[idx], True
-
-
-def _iter_json_bodies(text: str):
-    """Yield candidate JSON bodies from fenced code blocks + top-level scan."""
-    for m in _FENCE_RE.finditer(text):
-        yield m.group(1)
-    # Brace-balanced scan.
-    i = 0
-    n = len(text)
-    while i < n:
-        if text[i] != "{":
-            i += 1
-            continue
-        depth = 0
-        in_string = False
-        escape = False
-        start = i
-        j = i
-        while j < n:
-            ch = text[j]
-            if in_string:
-                if escape:
-                    escape = False
-                elif ch == "\\":
-                    escape = True
-                elif ch == '"':
-                    in_string = False
-            else:
-                if ch == '"':
-                    in_string = True
-                elif ch == "{":
-                    depth += 1
-                elif ch == "}":
-                    depth -= 1
-                    if depth == 0:
-                        yield text[start : j + 1]
-                        break
-            j += 1
-        i = j + 1
+        return idx, spec.names[idx], True, reason
