@@ -20,7 +20,8 @@ class EnduroEnv(AtariBase):
     Must pass a target number of cars each day.
 
     Actions: NOOP, LEFT, RIGHT, ACCELERATE, BRAKE
-    Reward: +1 per car passed
+    Pattern A: +1/_WIN_TARGET per car passed (full-scope = 200 cars).
+    No failure penalty (crashes only slow you down).
     """
 
     action_spec = ActionSpec(
@@ -45,6 +46,9 @@ class EnduroEnv(AtariBase):
     _PLAYER_ROW = 17
     _CARS_TARGET = 20
 
+    # Pattern A full-scope target: 200 cars overtaken.
+    _WIN_TARGET: int = 200
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._player_lane: int = 1
@@ -53,9 +57,14 @@ class EnduroEnv(AtariBase):
         self._day: int = 1
         self._spawn_timer: int = 0
         self._traffic: list[AtariEntity] = []
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-enduro-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _lane_x(self, lane: int) -> int:
         return (
@@ -129,9 +138,11 @@ class EnduroEnv(AtariBase):
                 car.alive = False
                 self._cars_passed += 1
                 self._on_point_scored(1)
-                reward += 1.0
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
                 to_remove.append(car)
-            # Collision
+            # Collision (no fail; just slow down)
             elif (
                 car.y >= self._PLAYER_ROW - 1
                 and car.y <= self._PLAYER_ROW
@@ -140,10 +151,7 @@ class EnduroEnv(AtariBase):
                 car.alive = False
                 to_remove.append(car)
                 self._speed = 1
-                self._on_life_lost()
                 self._message = "Crash! Speed reset."
-                if self._game_over:
-                    return -1.0, True, info
 
         for c in to_remove:
             if c in self._traffic:
@@ -153,6 +161,12 @@ class EnduroEnv(AtariBase):
         if self._cars_passed >= self._CARS_TARGET * self._day:
             self._day += 1
             self._message = f"Day {self._day}! Keep going!"
+
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All cars overtaken!"
 
         info["cars_passed"] = self._cars_passed
         info["speed"] = self._speed
@@ -277,11 +291,11 @@ class EnduroEnv(AtariBase):
             "steps. When a car scrolls off the bottom row while in a "
             "different lane than you it counts as passed.\n\n"
             "SCORING\n"
-            "+1 reward per car passed. No penalty for speed changes. "
-            "Colliding with a car (same lane, row 16-17) gives reward "
-            "-1, resets your speed to 1, and costs a life.\n\n"
+            "+1/200 reward per car passed (Pattern A full-scope = "
+            "200 cars). Colliding with a car (same lane, row 16-17) "
+            "only resets your speed to 1; no reward penalty.\n\n"
             "TERMINATION\n"
-            ". Episode ends at 0 lives or after max_turns. "
+            "Episode ends after passing 200 cars or after max_turns. "
             "Reaching the day's car target advances the day (no "
             "bonus), with a message 'Day N! Keep going!'.\n\n"
             "HUD\n"
