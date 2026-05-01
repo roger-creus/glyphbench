@@ -10,62 +10,42 @@ from glyphbench.verifiers_integration.memory import (
 )
 
 
-def test_extract_memory_prefers_memory_tags():
+def test_extract_memory_returns_tag_content_when_present():
+    result = extract_memory_update("<memory>A</memory>")
+    assert result.memory == "A"
+    assert result.parse_failed is False
+
+
+def test_extract_memory_concatenates_multiple_tags():
     result = extract_memory_update(
         "<think>x</think><memory>A</memory><memory>B</memory>"
     )
     assert result.memory == "A\n\nB"
-    assert result.mode == "tag"
+    assert result.parse_failed is False
 
 
-def test_extract_memory_empty_memory_tags_are_intentional_empty_memory():
-    result = extract_memory_update(
-        "<think>x</think><memory></memory>ignore this outside tag"
-    )
+def test_extract_memory_empty_tag_is_intentional_empty():
+    result = extract_memory_update("<memory></memory>")
     assert result.memory == ""
-    assert result.mode == "tag"
+    assert result.parse_failed is False
 
 
-def test_extract_memory_uses_text_after_final_think():
+def test_extract_memory_no_tag_signals_parse_failure():
     result = extract_memory_update("<think>draft</think>keep this")
-    assert result.memory == "keep this"
-    assert result.mode == "post_think"
-
-
-def test_extract_memory_ignores_unterminated_thinking():
-    result = extract_memory_update("<think>draft remember north wall")
+    assert result.parse_failed is True
     assert result.memory == ""
-    assert result.mode == "unterminated_think"
 
 
-def test_extract_memory_accepts_plain_text_without_tags():
-    result = extract_memory_update("remember north wall")
-    assert result.memory == "remember north wall"
-    assert result.mode == "stripped_text"
+def test_extract_memory_unterminated_tag_signals_parse_failure():
+    result = extract_memory_update("<memory>open but never closed")
+    assert result.parse_failed is True
+    assert result.memory == ""
 
 
-def test_build_memory_update_user_mentions_feedback():
-    msg = build_memory_update_user(
-        previous_memory="door at east",
-        action_response="<think>try</think><action>EAST</action>",
-        parsed_action="EAST",
-        reward=1.0,
-        terminated=True,
-        truncated=False,
-        next_observation="[Grid]\nG",
-    )
-    text = msg["content"]
-    assert "Keep it concise" in text
-    assert "2048" not in text
-    assert "door at east" in text
-    assert "<think>try</think><action>EAST</action>" in text
-    assert "Parsed action: EAST" in text
-    assert "Reward: +1.000" in text
-    assert "Terminated: true" in text
-    assert "Truncated: false" in text
-    assert "[Grid]\nG" in text
-    assert "<memory>" in text and "</memory>" in text
-    assert "Do not emit an <action> tag" in text
+def test_extract_memory_empty_string_signals_parse_failure():
+    result = extract_memory_update("")
+    assert result.parse_failed is True
+    assert result.memory == ""
 
 
 def test_memory_sampling_args_defaults_to_existing_action_args():

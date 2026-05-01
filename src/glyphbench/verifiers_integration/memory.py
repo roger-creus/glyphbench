@@ -9,40 +9,34 @@ from typing import Any
 import verifiers as vf
 from verifiers.types import SamplingArgs, TrajectoryStepTokens
 
+@dataclass(frozen=True)
+class MemoryExtraction:
+    """Result of parsing the memory-turn assistant response."""
+    memory: str
+    parse_failed: bool
+
+
 _MEMORY_RE = re.compile(
     r"<\s*memory\s*>(.*?)<\s*/\s*memory\s*>", re.DOTALL | re.IGNORECASE
 )
-_THINK_OPEN_RE = re.compile(r"<\s*think\s*>", re.IGNORECASE)
-_THINK_CLOSE_RE = re.compile(r"<\s*/\s*think\s*>", re.IGNORECASE)
-_THINK_TAG_RE = re.compile(r"</?\s*think\s*>", re.IGNORECASE)
-
-
-@dataclass(frozen=True)
-class MemoryExtraction:
-    memory: str
-    mode: str
 
 
 def extract_memory_update(text: str) -> MemoryExtraction:
-    """Extract stored memory from a memory-update assistant response."""
+    """Strict <memory>...</memory> extraction.
+
+    Returns ``MemoryExtraction(memory=joined_tags, parse_failed=False)`` if at
+    least one complete ``<memory>...</memory>`` tag is found (multiple tags
+    are joined with a blank-line separator). Anything else — no tag, only an
+    open tag, raw post-think text — yields ``MemoryExtraction(memory="",
+    parse_failed=True)``.
+
+    The caller (verifiers integration) keeps the previous memory on failure.
+    """
     raw = text or ""
-    tag_matches = _MEMORY_RE.findall(raw)
-    if tag_matches:
-        tagged = [m.strip() for m in tag_matches if m.strip()]
-        return MemoryExtraction(memory="\n\n".join(tagged), mode="tag")
-
-    close_matches = list(_THINK_CLOSE_RE.finditer(raw))
-    if close_matches:
-        memory = raw[close_matches[-1].end() :].strip()
-        return MemoryExtraction(memory=memory, mode="post_think")
-
-    open_match = _THINK_OPEN_RE.search(raw)
-    if open_match:
-        memory = raw[: open_match.start()].strip()
-        return MemoryExtraction(memory=memory, mode="unterminated_think")
-
-    memory = _THINK_TAG_RE.sub("", raw).strip()
-    return MemoryExtraction(memory=memory, mode="stripped_text")
+    matches = _MEMORY_RE.findall(raw)
+    if not matches:
+        return MemoryExtraction(memory="", parse_failed=True)
+    return MemoryExtraction(memory="\n\n".join(m.strip() for m in matches), parse_failed=False)
 
 
 def build_memory_update_user(
