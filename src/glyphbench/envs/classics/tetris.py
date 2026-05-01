@@ -1,10 +1,22 @@
-"""Classic Tetris falling blocks game."""
+"""Classic Tetris falling blocks game (short-horizon variant).
+
+Gym IDs:
+  glyphbench/classics-tetris-v0
+
+Design (P4 rework, 2026-05-01):
+  - Well = 6 wide x 10 tall (instead of classic 10x20).
+  - Goal = clear 5 lines.
+  - Reward = +0.2 per line cleared. Cumulative caps at 1.0 (5 lines).
+  - max_turns = 300. Truncation gives whatever cumulative reward was earned.
+  - Top-out (cannot spawn next piece) terminates with cumulative-so-far.
+
+Random baseline (seeds 0-29, max_turns=300):
+  success_rate=0% mean_length=19 mean_return=+0.000
+"""
 
 from __future__ import annotations
 
 from typing import Any
-
-import numpy as np
 
 from glyphbench.core.action import ActionSpec
 from glyphbench.core.glyph_primitives import build_legend, grid_to_string, make_empty_grid
@@ -15,13 +27,15 @@ from glyphbench.core.observation import GridObservation
 # Constants
 # ---------------------------------------------------------------------------
 
-_WIDTH = 10
-_HEIGHT = 20
+_WIDTH = 6
+_HEIGHT = 10
 
-# Target line-clear units for cumulative reward = 1.0. The original raw
-# reward map was {1: 1, 2: 3, 3: 5, 4: 8}; we divide each by _TARGET_UNITS
-# and cap the cumulative reward at 1.0.
-_TARGET_UNITS = 40
+# Lines required to win the episode. Reward per line cleared is 1.0 / _TARGET_LINES,
+# so cumulative reward caps at 1.0 when all _TARGET_LINES lines are cleared.
+_TARGET_LINES = 5
+_REWARD_PER_LINE = 1.0 / _TARGET_LINES
+
+DEFAULT_MAX_TURNS = 300
 
 _SYM_EMPTY = "\u00b7"  # ·
 _SYM_ACTIVE = "\u2593"  # ▓
@@ -108,12 +122,17 @@ TETRIS_ACTION_SPEC = ActionSpec(
 
 
 class TetrisEnv(BaseGlyphEnv):
-    """Classic Tetris on a 10x20 board."""
+    """Tetris on a 6 wide x 10 tall well; clear 5 lines to win.
+
+    Reward = +0.2 per line cleared. Cumulative caps at 1.0 once 5 lines are
+    cleared, at which point the episode terminates with ``won=True``.
+    Top-out terminates without further reward.
+    """
 
     action_spec = TETRIS_ACTION_SPEC
     noop_action_name = "NOOP"
 
-    def __init__(self, max_turns: int = 2000) -> None:
+    def __init__(self, max_turns: int = DEFAULT_MAX_TURNS) -> None:
         super().__init__(max_turns=max_turns)
         # Board: stores piece type char or empty string
         self._board: list[list[str]] = []
@@ -125,9 +144,9 @@ class TetrisEnv(BaseGlyphEnv):
         self._game_over: bool = False
         self._score: int = 0
         self._lines_cleared: int = 0
-        # Tracks cumulative reward earned so far (capped at 1.0 by reward
-        # normalization).
+        # Tracks cumulative reward earned so far (capped at 1.0).
         self._reward_total: float = 0.0
+        self._won: bool = False
 
     def env_id(self) -> str:
         return "glyphbench/classics-tetris-v0"
@@ -205,6 +224,7 @@ class TetrisEnv(BaseGlyphEnv):
         self._score = 0
         self._lines_cleared = 0
         self._reward_total = 0.0
+        self._won = False
         if not self._spawn_piece():
             self._game_over = True
         return self._render_current_observation()
@@ -214,12 +234,8 @@ class TetrisEnv(BaseGlyphEnv):
     # ------------------------------------------------------------------
 
     def _reward_for_clear(self, cleared: int) -> float:
-        """Pattern A: normalize raw line-clear units by _TARGET_UNITS and
-        cap against remaining headroom so cumulative reward <= 1.0.
-        """
-        raw_map = {1: 1.0, 2: 3.0, 3: 5.0, 4: 8.0}
-        raw = raw_map.get(cleared, 8.0)
-        normalized = raw / _TARGET_UNITS
+        """Flat +_REWARD_PER_LINE per line cleared. Cap cumulative at 1.0."""
+        normalized = _REWARD_PER_LINE * cleared
         room = max(0.0, 1.0 - self._reward_total)
         gained = min(normalized, room)
         self._reward_total += gained
@@ -268,8 +284,12 @@ class TetrisEnv(BaseGlyphEnv):
                 self._lines_cleared += cleared
                 reward = self._reward_for_clear(cleared)
                 self._score += cleared
-            # Spawn next
-            if not self._spawn_piece():
+            # Win condition check before spawning the next piece.
+            if self._lines_cleared >= _TARGET_LINES:
+                self._won = True
+                self._game_over = True
+                info["won"] = True
+            elif not self._spawn_piece():
                 self._game_over = True
                 info["game_over"] = True
             return self._render_current_observation(), reward, self._game_over, False, info
@@ -284,8 +304,12 @@ class TetrisEnv(BaseGlyphEnv):
                 self._lines_cleared += cleared
                 reward = self._reward_for_clear(cleared)
                 self._score += cleared
-            # Spawn next
-            if not self._spawn_piece():
+            # Win condition check before spawning the next piece.
+            if self._lines_cleared >= _TARGET_LINES:
+                self._won = True
+                self._game_over = True
+                info["won"] = True
+            elif not self._spawn_piece():
                 self._game_over = True
                 info["game_over"] = True
 
@@ -322,10 +346,15 @@ class TetrisEnv(BaseGlyphEnv):
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Score: {self._score}    "
-            f"Lines: {self._lines_cleared}    "
+            f"Lines: {self._lines_cleared} / {_TARGET_LINES}    "
             f"Piece: {self._piece_type}"
         )
-        msg = "Game over! The board is full." if self._game_over else ""
+        if self._won:
+            msg = f"You cleared {_TARGET_LINES} lines! You win."
+        elif self._game_over:
+            msg = "Game over! A new piece cannot spawn."
+        else:
+            msg = ""
 
         return GridObservation(
             grid=grid_to_string(grid), legend=legend, hud=hud, message=msg
@@ -337,18 +366,21 @@ class TetrisEnv(BaseGlyphEnv):
 
     def system_prompt(self) -> str:
         return (
-            f"You are playing {self.env_id()} -- classic Tetris.\n\n"
+            f"You are playing {self.env_id()} -- short-horizon Tetris.\n\n"
+            "TASK\n"
+            f"Clear {_TARGET_LINES} lines on a {_WIDTH} wide x {_HEIGHT} tall well to win.\n\n"
             "RULES\n"
-            f"The board is {_WIDTH} wide x {_HEIGHT} tall.\n"
             "Tetrominoes (I, O, T, S, Z, J, L) fall from the top.\n"
             "Each turn: your action is applied, then gravity drops the piece 1 row.\n"
             "If the piece cannot drop further, it locks in place and a new piece spawns.\n"
-            "Complete horizontal lines are cleared for normalized rewards.\n"
-            "Raw line-clear units are {1: 1, 2: 3, 3: 5, 4 (Tetris): 8}; the env\n"
-            "divides each by a target denominator and caps cumulative reward at 1.0.\n"
-            "The game ends when a new piece cannot spawn.\n\n"
+            "A horizontal line filled with locked cells is cleared and the rows above shift down.\n"
+            f"The episode ends when you have cleared {_TARGET_LINES} lines (win), when a "
+            "new piece cannot spawn (top-out), or when the step budget is exhausted.\n\n"
+            "REWARD\n"
+            f"+{_REWARD_PER_LINE:.2f} per line cleared. Cumulative reward caps at 1.0 once "
+            f"{_TARGET_LINES} lines have been cleared.\n\n"
             "STRATEGY\n"
-            "Stack pieces flat. Keep the board low. Save space for line clears.\n"
+            "Stack pieces flat. Keep the well low. Save space for line clears.\n"
             "Use HARD_DROP to instantly place a piece at the bottom.\n\n"
             + self.action_spec.render_for_prompt()
         )
