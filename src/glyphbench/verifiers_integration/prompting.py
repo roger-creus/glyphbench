@@ -106,10 +106,7 @@ def build_system_prompt(
     tokenisation as long as this content doesn't change.
     """
     header = game.system_prompt().rstrip()
-    fmt = RESPONSE_FORMAT_BLOCK_TMPL.format(
-        budget=max_output_tokens,
-        noop=game.noop_action_name,
-    )
+    fmt = RESPONSE_FORMAT_BLOCK_TMPL.format(budget=max_output_tokens)
     blocks: list[str] = [header, OBSERVATION_CONVENTIONS_BLOCK]
     # Most env classes already append `action_spec.render_for_prompt()` in
     # their own `system_prompt()` (see e.g. minigrid/base.py, procgen/base.py,
