@@ -22,8 +22,8 @@ class NameThisGameEnv(AtariBase):
     Protect the fish at the bottom.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Reward: +1 per enemy, -1 if fish eaten
-
+    Pattern A: +1/_WIN_TARGET per enemy shot (full-scope = 5 waves
+    x 6 enemies = 30). -1.0 on death (all fish eaten).
     """
 
     action_spec = ActionSpec(
@@ -43,6 +43,10 @@ class NameThisGameEnv(AtariBase):
     _FISH_Y = 17
     _MAX_BULLETS = 2
 
+    # Pattern A full-scope target: 30 (5 waves x 6 enemies).
+    _WIN_TARGET: int = 30
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._bullets: list[AtariEntity] = []
@@ -52,9 +56,14 @@ class NameThisGameEnv(AtariBase):
         self._spawn_cd: int = 0
         self._kills: int = 0
         self._wave_target: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-namethisgame-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -65,7 +74,7 @@ class NameThisGameEnv(AtariBase):
         self._step_counter = 0
         self._spawn_cd = 0
         self._kills = 0
-        self._wave_target = 10 + self._level * 3
+        self._wave_target = 6  # 6 enemies per wave
 
         # Borders
         for x in range(self._WIDTH):
@@ -151,9 +160,11 @@ class NameThisGameEnv(AtariBase):
                     e.alive = False
                     b.alive = False
                     self._on_point_scored(1)
-                    reward += 1
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
                     self._kills += 1
-                    self._message = "Enemy hit! +1"
+                    self._message = "Enemy hit!"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -174,7 +185,7 @@ class NameThisGameEnv(AtariBase):
                     if e.y < self._FISH_Y:
                         e.y += 1
 
-        # Enemies eating fish
+        # Enemies eating fish (no per-fish reward)
         for e in self._enemies:
             if not e.alive:
                 continue
@@ -186,22 +197,15 @@ class NameThisGameEnv(AtariBase):
                 ):
                     f.alive = False
                     e.alive = False
-                    self._score = max(0, self._score - 1)
-                    reward -= 1
-                    self._message = "Fish eaten! -1"
+                    self._message = "Fish eaten!"
                     break
 
-        # Check all fish dead
+        # Check all fish dead (Pattern A death penalty)
         alive_fish = sum(1 for f in self._fish if f.alive)
-        if alive_fish == 0:
+        if alive_fish == 0 and not self._game_over:
             self._on_life_lost()
-            self._message = "All fish eaten! Lost a life."
-            # Respawn fish
-            self._fish = []
-            for i in range(3):
-                fx = 5 + i * 4
-                f = self._add_entity("fish", "f", fx, self._FISH_Y)
-                self._fish.append(f)
+            reward = self._DEATH_PENALTY
+            self._message = "All fish eaten!"
 
         # Spawn enemies
         self._spawn_cd -= 1
@@ -210,13 +214,16 @@ class NameThisGameEnv(AtariBase):
             self._spawn_enemy()
             self._spawn_cd = max(4, 10 - self._level)
 
-        # Wave clear
-        if self._kills >= self._wave_target:
-            self._on_point_scored(3)
-            reward += 3
-            self._message = "Wave cleared! +3"
+        # Wave clear (no direct reward; per-enemy progress drives it)
+        if self._kills >= self._wave_target and not self._game_over:
+            self._message = "Wave cleared!"
             self._level += 1
-            self._generate_level(self._level)
+            if self._progress_count >= self._WIN_TARGET:
+                self._game_over = True
+                info["won"] = True
+                self._message = "All waves cleared!"
+            else:
+                self._generate_level(self._level)
 
         self._enemies = [e for e in self._enemies if e.alive]
         self._redraw()
@@ -306,14 +313,13 @@ class NameThisGameEnv(AtariBase):
             "row down every 6 steps. An enemy within 1 column of a "
             "fish at the fish row eats the fish and dies.\n\n"
             "SCORING\n"
-            "+1 reward per enemy you shoot. -1 reward each time a "
-            "fish is eaten (also subtracts 1 from score, floored "
-            "at 0). +3 reward when you reach the wave target "
-            "(10 + 3*level kills). No per-step penalty.\n\n"
+            "+1/30 reward per enemy you shoot (Pattern A "
+            "full-scope = 5 waves x 6 enemies = 30). -1.0 if all "
+            "fish are eaten (failure terminates).\n\n"
             "TERMINATION\n"
-            ". Losing all fish in a wave costs a life "
-            "(fish respawn). Episode ends at 0 lives or after "
-            "max_turns.\n\n"
+            "Losing all fish ends the episode with -1.0. Episode "
+            "ends after 30 enemies shot (cumulative reward "
+            "plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, kills toward wave target, "
             "fish alive.\n\n"

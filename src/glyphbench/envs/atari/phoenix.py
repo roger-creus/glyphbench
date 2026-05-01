@@ -21,8 +21,8 @@ class PhoenixEnv(AtariBase):
     Every 3 waves a boss appears.
 
     Actions: NOOP, LEFT, RIGHT, FIRE, SHIELD
-    Reward: +1 per bird, +2 per boss hit
-
+    Pattern A: +1/_WIN_TARGET per bird shot or boss hit
+    (full-scope = 5 waves x 8 phoenixes = 40). -1.0 on death.
     """
 
     action_spec = ActionSpec(
@@ -40,6 +40,10 @@ class PhoenixEnv(AtariBase):
     _HEIGHT = 24
     _PLAYER_Y = 22
 
+    # Pattern A full-scope target: 40 (5 waves x 8 phoenixes).
+    _WIN_TARGET: int = 40
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._birds: list[AtariEntity] = []
@@ -50,9 +54,14 @@ class PhoenixEnv(AtariBase):
         self._boss: AtariEntity | None = None
         self._boss_hp: int = 0
         self._wave_type: str = "birds"
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-phoenix-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -147,8 +156,10 @@ class PhoenixEnv(AtariBase):
                     bird.alive = False
                     b.alive = False
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Bird hit! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Bird hit!"
                     break
 
         # Bullet-boss collision
@@ -161,8 +172,9 @@ class PhoenixEnv(AtariBase):
                 ):
                     b.alive = False
                     self._boss_hp -= 1
-                    self._on_point_scored(2)
-                    reward += 2
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
                     if self._boss_hp <= 0:
                         self._boss.alive = False
                         self._message = "Boss destroyed!"
@@ -227,8 +239,8 @@ class PhoenixEnv(AtariBase):
             ):
                 eb.alive = False
                 self._on_life_lost()
-                self._message = "Hit! Lost a life."
-                self._player_x = self._WIDTH // 2
+                reward = self._DEATH_PENALTY
+                self._message = "Hit by enemy fire!"
 
         self._enemy_bullets = [
             eb for eb in self._enemy_bullets if eb.alive
@@ -238,24 +250,46 @@ class PhoenixEnv(AtariBase):
         for bird in self._birds:
             if bird.alive and bird.y >= self._PLAYER_Y:
                 bird.alive = False
-                if self._shield_timer <= 0:
+                if self._shield_timer <= 0 and not self._game_over:
                     self._on_life_lost()
+                    reward = self._DEATH_PENALTY
                     self._message = "Bird swooped you!"
 
         self._birds = [b for b in self._birds if b.alive]
 
         # Level clear
-        if self._wave_type == "birds" and not self._birds:
+        if (
+            self._wave_type == "birds"
+            and not self._birds
+            and not self._game_over
+        ):
             self._level += 1
             self._message = "Wave cleared!"
-            self._generate_level(self._level)
+            if self._progress_count >= self._WIN_TARGET:
+                self._game_over = True
+                info["won"] = True
+                self._message = "All waves cleared!"
+            else:
+                self._generate_level(self._level)
         elif (
             self._wave_type == "boss"
             and (self._boss is None or not self._boss.alive)
+            and not self._game_over
         ):
             self._level += 1
             self._message = "Boss defeated!"
-            self._generate_level(self._level)
+            if self._progress_count >= self._WIN_TARGET:
+                self._game_over = True
+                info["won"] = True
+                self._message = "All waves cleared!"
+            else:
+                self._generate_level(self._level)
+
+        # Win check (in case progress hits target before wave clear)
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All waves cleared!"
 
         self._redraw()
         return reward, self._game_over, info
@@ -346,13 +380,15 @@ class PhoenixEnv(AtariBase):
             "steps a random enemy fires a bullet downward (max 3 "
             "enemy bullets).\n\n"
             "SCORING\n"
-            "+1 reward per bird destroyed. +2 reward per boss "
-            "hit (boss HP = 5 + level; each hit is one point). "
-            "No per-step penalty.\n\n"
+            "+1/40 reward per bird shot, plus +1/40 per boss hit "
+            "(Pattern A full-scope = 5 waves x 8 phoenixes = 40). "
+            "-1.0 on death (enemy bullet or bird swoop while not "
+            "shielded).\n\n"
             "TERMINATION\n"
-            ". Being hit by an enemy bullet or swooped "
-            "by a bird costs a life (unless shield active). "
-            "Episode ends at 0 lives or after max_turns.\n\n"
+            "Being hit by an enemy bullet or swooped by a bird "
+            "(unless shield active) ends the episode with -1.0. "
+            "Episode ends after 40 enemies neutralized (cumulative "
+            "reward plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, wave type (birds/boss), "
             "bird count, shield timer.\n\n"
