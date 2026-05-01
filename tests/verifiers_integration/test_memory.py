@@ -48,6 +48,37 @@ def test_extract_memory_empty_string_signals_parse_failure():
     assert result.memory == ""
 
 
+def test_build_memory_update_user_is_lean():
+    msg = build_memory_update_user(
+        reward=1.0,
+        terminated=True,
+        truncated=False,
+    )
+    text = msg["content"]
+    # Required content
+    assert "[Memory Update]" in text
+    assert "Reward: +1.000" in text
+    assert "Terminated: true" in text
+    assert "Truncated: false" in text
+    assert "<memory>" in text and "</memory>" in text
+    assert "Anything outside the <memory> tag is discarded" in text
+    assert "Do not emit an <action> tag" in text
+    # Removed content (these MUST be absent — already shown elsewhere
+    # in the conversation, or future-peeking)
+    assert "[Previous Memory]" not in text
+    assert "[Action Response]" not in text
+    assert "[Next Observation]" not in text
+    assert "Parsed action:" not in text
+
+
+def test_build_memory_update_user_handles_negative_reward_and_truncation():
+    msg = build_memory_update_user(reward=-0.5, terminated=False, truncated=True)
+    text = msg["content"]
+    assert "Reward: -0.500" in text
+    assert "Terminated: false" in text
+    assert "Truncated: true" in text
+
+
 def test_memory_sampling_args_defaults_to_existing_action_args():
     assert memory_sampling_args({"max_tokens": 32}, None) is None
 

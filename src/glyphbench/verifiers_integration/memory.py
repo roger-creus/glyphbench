@@ -41,36 +41,31 @@ def extract_memory_update(text: str) -> MemoryExtraction:
 
 def build_memory_update_user(
     *,
-    previous_memory: str,
-    action_response: str,
-    parsed_action: str,
     reward: float,
     terminated: bool,
     truncated: bool,
-    next_observation: str,
 ) -> vf.UserMessage:
-    """Build the second user message for a memory-enabled environment step."""
+    """Build the lean user message for the memory-update generation.
+
+    The memory writer already sees, via the conversation prefix:
+      - previous memory (in user_obs_t's [Memory] block)
+      - the obs that prompted the action (user_obs_t's [Grid]/[Legend]/[Message])
+      - the action chosen (assistant_action_t's <action> tag; <think> elided
+        by the chat template under enable_thinking=False)
+
+    This wrapper only adds the env's response (reward + termination flags)
+    and the write instruction. No future peeking, no duplicates.
+    """
     content = (
         "[Memory Update]\n"
-        "Update the memory that will be shown on the next environment turn. "
-        "Keep it concise.\n\n"
-        "[Previous Memory]\n"
-        "<memory>\n"
-        f"{previous_memory or ''}\n"
-        "</memory>\n\n"
-        "[Action Response]\n"
-        f"{action_response or ''}\n\n"
-        "[Environment Feedback]\n"
-        f"Parsed action: {parsed_action}\n"
-        f"Reward: {reward:+.3f}\n"
-        f"Terminated: {str(bool(terminated)).lower()}\n"
-        f"Truncated: {str(bool(truncated)).lower()}\n\n"
-        "[Next Observation]\n"
-        f"{next_observation}\n\n"
-        "Write the updated memory inside <memory>...</memory> tags. "
-        "Do not emit an <action> tag in this response — this is a memory "
-        "update, not an action turn. Anything outside the <memory> tag is "
-        "discarded."
+        "The environment responded to your last action with:\n"
+        f"  Reward: {reward:+.3f}\n"
+        f"  Terminated: {str(bool(terminated)).lower()}\n"
+        f"  Truncated: {str(bool(truncated)).lower()}\n\n"
+        "Update your memory based on this turn's outcome and the observation "
+        "above. Write the updated memory inside <memory>...</memory> tags. "
+        "Anything outside the <memory> tag is discarded. Do not emit an "
+        "<action> tag in this response."
     )
     return vf.UserMessage(content=content)
 
