@@ -108,12 +108,13 @@ class _MemoryMatchBase(BaseGlyphEnv):
             reward = 0.0
             matched = self._board[self._first_flip] == self._board[idx]
 
-            # Check match
+            # Check match -- Pattern A: each pair found = 1/_num_pairs so
+            # cumulative reward = 1.0 on full completion. No completion bonus.
             if matched:
                 self._matched[self._first_flip] = True
                 self._matched[idx] = True
                 self._pairs_found += 1
-                reward = 1.0
+                reward = 1.0 / self._num_pairs
 
             # Build message before clearing state
             v1 = PAIR_LETTERS[self._board[self._first_flip]]
@@ -134,8 +135,6 @@ class _MemoryMatchBase(BaseGlyphEnv):
 
             # Check win
             terminated = self._pairs_found == self._num_pairs
-            if terminated:
-                reward += 1.0  # bonus for completing
 
             self._total_reward += reward
             info["pairs_found"] = self._pairs_found
@@ -188,13 +187,13 @@ class _MemoryMatchBase(BaseGlyphEnv):
             "RULES\n"
             f"- The board is {self._rows}x{self._cols} with {self._num_pairs} pairs of cards.\n"
             "- Each turn has two phases: flip your first card, then flip your second card.\n"
-            "- If both cards match, they stay face up permanently (+1 reward).\n"
+            f"- If both cards match, they stay face up permanently (+{1.0 / self._num_pairs:.4f} reward).\n"
             "- If they don't match, both flip back face down.\n"
             "- Cards are numbered 0 to " + str(self._total_cells - 1) + " "
             "(left-to-right, top-to-bottom).\n"
             "- Position 0 is top-left. Position " + str(self._cols - 1) + " is top-right.\n"
             "- Flipping an already-matched card does nothing.\n"
-            "- +1 bonus reward for completing all pairs.\n"
+            "- Cumulative reward = 1.0 on finding all pairs.\n"
             "- Remember which cards you've seen to find matches efficiently!\n\n"
             + self.action_spec.render_for_prompt()
         )
