@@ -58,7 +58,7 @@ All rates are floats in [0, 1] aggregated per rollout (not per-step).
 | `episode_length` | `num_turns` | Higher = longer episodes. |
 | `episode_terminated_rate` | `1 if terminated else 0` | Across rollouts: fraction that hit a terminal state. |
 | `episode_truncated_max_turns_rate` | `1 if truncated else 0` | Fraction that ran out of env clock. High value alongside low return → agent is too slow / getting lost. |
-| `forfeit_rate` | `forfeit_count / num_turns` | High value → model is failing to emit valid `<action>` tags. Often correlates with action-completion truncation; check both. |
+| `forfeit_rate` | `forfeit_count / num_action_turns` | High value → model is failing to emit valid `<action>` tags. Often correlates with action-completion truncation; check both. |
 | `action_completion_truncation_rate` | `action_completion_truncations / num_action_turns` | High value → reasoning chains exceed the 8192-token output cap. Tighten system prompt, raise the cap, or use a less verbose model. |
 | `memory_completion_truncation_rate` | `memory_completion_truncations / num_memory_turns` | High value → memory writes are exceeding 4096 tokens. Trim the memory schema or raise the cap. |
 | `memory_parse_failure_rate` | `memory_parse_failures / num_memory_turns` | High value → model is emitting memory without `<memory>` tags despite `enable_thinking=False`. Check chat template. |
