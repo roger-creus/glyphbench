@@ -22,6 +22,7 @@ from glyphbench.envs.miniatari.phoenix import MiniPhoenixEnv
 from glyphbench.envs.miniatari.qbert import MiniQbertEnv
 from glyphbench.envs.miniatari.robotank import MiniRobotankEnv
 from glyphbench.envs.miniatari.timepilot import MiniTimePilotEnv
+from glyphbench.envs.miniatari.stargunner import MiniStarGunnerEnv
 from glyphbench.envs.miniatari.upndown import MiniUpNDownEnv
 from glyphbench.envs.miniatari.demonattack import MiniDemonAttackEnv
 from glyphbench.envs.miniatari.doubledunk import MiniDoubleDunkEnv
@@ -63,6 +64,7 @@ REGISTRY: dict = {
     "glyphbench/miniatari-robotank-v0": MiniRobotankEnv,
     "glyphbench/miniatari-timepilot-v0": MiniTimePilotEnv,
     "glyphbench/miniatari-upndown-v0": MiniUpNDownEnv,
+    "glyphbench/miniatari-stargunner-v0": MiniStarGunnerEnv,
 }
 
 for env_id, cls in REGISTRY.items():
