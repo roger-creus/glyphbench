@@ -72,7 +72,7 @@ def test_load_rollouts_synthetic(tmp_path: Path) -> None:
         "episodic_return": 0.5,
         "episode_length": 7,
         "num_turns": 3,
-        "parse_failure_rate": 0.0,
+        "forfeit_rate": 0.0,
         "xml_format_reward": 0.0,
         "is_completed": True,
         "is_truncated": False,
@@ -111,6 +111,26 @@ def test_load_rollouts_missing_dir(tmp_path: Path) -> None:
     # not crash.
     df = load_rollouts(tmp_path)
     assert df.empty
+
+
+def test_load_rollouts_coalesces_legacy_parse_failure_rate(tmp_path: Path) -> None:
+    """Legacy JSONL with parse_failure_rate (not forfeit_rate) should be
+    coalesced into a forfeit_rate column by load_rollouts."""
+    rollouts_dir = tmp_path / "run_default" / "rollouts" / "step_0"
+    rollouts_dir.mkdir(parents=True)
+    rec = {
+        "example_id": 0,
+        "info": {"env_id": "glyphbench/fake-env-v0", "seed": 0},
+        "reward": 0.5,
+        "is_completed": True,
+        # Legacy key: no forfeit_rate, only parse_failure_rate
+        "parse_failure_rate": 0.25,
+    }
+    (rollouts_dir / "train_rollouts.jsonl").write_text(json.dumps(rec) + "\n")
+    df = load_rollouts(tmp_path)
+    assert len(df) == 1
+    assert "forfeit_rate" in df.columns
+    assert df.iloc[0]["forfeit_rate"] == pytest.approx(0.25)
 
 
 def test_load_rollouts_skips_bad_lines(tmp_path: Path) -> None:
