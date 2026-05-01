@@ -40,5 +40,4 @@ KNOWN_REWARD_VIOLATORS: set[str] = {
     "glyphbench/atari-tennis-v0",
     "glyphbench/atari-venture-v0",
     "glyphbench/atari-videopinball-v0",
-    "glyphbench/classics-2048-v0",
 }

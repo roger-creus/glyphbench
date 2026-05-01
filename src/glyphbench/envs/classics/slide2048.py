@@ -1,7 +1,19 @@
-"""2048 sliding tile game.
+"""2048 sliding tile game (short-horizon variant).
 
 Gym IDs:
   glyphbench/classics-2048-v0
+
+Design (P4 rework, 2026-05-01):
+  - 3x3 board (instead of classic 4x4) for a tractable short horizon.
+  - Target tile = 64. Reaching it wins the episode.
+  - Reward = +0.2 each time a NEW max-tile milestone in {4, 8, 16, 32, 64}
+    is reached for the first time. Cumulative reward caps at 1.0 (5 * 0.2).
+  - max_turns = 200. Truncation gives whatever cumulative reward was earned.
+  - No-legal-moves loss terminates with the cumulative reward earned so far
+    (no extra penalty).
+
+Random baseline (seeds 0-29, max_turns=200):
+  success_rate=0% mean_length=200 mean_return=+0.480
 """
 
 from __future__ import annotations
@@ -11,7 +23,7 @@ from typing import Any
 import numpy as np
 
 from glyphbench.core.action import ActionSpec
-from glyphbench.core.glyph_primitives import build_legend, grid_to_string
+from glyphbench.core.glyph_primitives import build_legend
 from glyphbench.core.base_env import BaseGlyphEnv
 from glyphbench.core.observation import GridObservation
 
@@ -19,7 +31,9 @@ from glyphbench.core.observation import GridObservation
 # Constants
 # ---------------------------------------------------------------------------
 
-SIZE = 4
+SIZE = 3
+TARGET_TILE = 64
+DEFAULT_MAX_TURNS = 200
 
 SLIDE_ACTION_SPEC = ActionSpec(
     names=("UP", "DOWN", "LEFT", "RIGHT"),
@@ -31,10 +45,11 @@ SLIDE_ACTION_SPEC = ActionSpec(
     ),
 )
 
-SYM_EMPTY = "\u00b7"  # ·
+SYM_EMPTY = "·"  # ·
 
-# Tile display: values -> symbol string
-# For values < 1024 use the number itself; 1024 -> K, 2048 -> W
+# Tile display: values -> symbol string. With a 3x3 / target-64 board the
+# only commonly seen values are {2, 4, 8, 16, 32, 64}; the larger entries
+# are kept as a fallback in case the player overshoots.
 _TILE_SYMS: dict[int, str] = {
     0: SYM_EMPTY,
     2: "2",
@@ -48,8 +63,6 @@ _TILE_SYMS: dict[int, str] = {
     512: "512",
     1024: "K",
     2048: "W",
-    4096: "4K",
-    8192: "8K",
 }
 
 
@@ -71,16 +84,25 @@ def _tile_sym(val: int) -> str:
 
 
 class Slide2048Env(BaseGlyphEnv):
-    """2048: slide tiles to merge and reach high values."""
+    """2048: slide tiles to merge and reach the target tile (64).
+
+    Short-horizon variant on a 3x3 board. Reward is shaped: +0.2 per new
+    max-tile milestone (4, 8, 16, 32, 64). Cumulative reward caps at 1.0.
+    """
 
     action_spec = SLIDE_ACTION_SPEC
     noop_action_name: str = "UP"
 
-    def __init__(self, max_turns: int = 2000) -> None:
+    # Tile values that grant a +0.2 reward the first time they appear.
+    _MILESTONES: tuple[int, ...] = (4, 8, 16, 32, 64)
+    _MILESTONE_REWARD: float = 0.2
+
+    def __init__(self, max_turns: int = DEFAULT_MAX_TURNS) -> None:
         super().__init__(max_turns=max_turns)
         self._board: np.ndarray = np.zeros((SIZE, SIZE), dtype=np.int32)
         self._score: int = 0
         self._max_tile: int = 0
+        self._milestones_hit: set[int] = set()
 
     def env_id(self) -> str:
         return "glyphbench/classics-2048-v0"
@@ -104,7 +126,7 @@ class Slide2048Env(BaseGlyphEnv):
 
         Returns (new_row, merge_score, num_merges) where merge_score sums the
         merged tile values (used for HUD score) and num_merges counts merge
-        events (used for reward).
+        events.
         """
         # Remove zeros
         tiles = row[row != 0].tolist()
@@ -190,6 +212,7 @@ class Slide2048Env(BaseGlyphEnv):
         self._board = np.zeros((SIZE, SIZE), dtype=np.int32)
         self._score = 0
         self._max_tile = 0
+        self._milestones_hit = set()
         self._spawn_tile()
         self._spawn_tile()
         self._max_tile = int(np.max(self._board))
@@ -201,19 +224,36 @@ class Slide2048Env(BaseGlyphEnv):
         info: dict[str, Any] = {}
         name = self.action_spec.names[action]
 
-        changed, merge_score, num_merges = self._slide(name)
+        changed, merge_score, _num_merges = self._slide(name)
 
         if changed:
             self._spawn_tile()
 
         self._score += merge_score
         self._max_tile = int(np.max(self._board))
-        reward = float(num_merges)
 
-        terminated = not self._has_valid_moves()
+        # Reward = +0.2 for each new max-tile milestone reached this step.
+        # Bound on cumulative is naturally |MILESTONES| * 0.2 = 1.0.
+        reward = 0.0
+        for m in self._MILESTONES:
+            if m <= self._max_tile and m not in self._milestones_hit:
+                self._milestones_hit.add(m)
+                reward += self._MILESTONE_REWARD
+
+        # Win condition: target tile reached.
+        won = self._max_tile >= TARGET_TILE
+        # Loss condition: no legal moves remain (board locked).
+        no_moves = not self._has_valid_moves()
+        terminated = bool(won or no_moves)
+
+        if won:
+            info["won"] = True
+        if no_moves and not won:
+            info["no_legal_moves"] = True
 
         info["score"] = self._score
         info["max_tile"] = self._max_tile
+        info["milestones_hit"] = sorted(self._milestones_hit)
         return self._render_current_observation(), reward, terminated, False, info
 
     # ------------------------------------------------------------------
@@ -247,24 +287,30 @@ class Slide2048Env(BaseGlyphEnv):
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Score: {self._score}    "
-            f"Max tile: {self._max_tile}"
+            f"Max tile: {self._max_tile} / {TARGET_TILE}    "
+            f"Milestones: {len(self._milestones_hit)}/{len(self._MILESTONES)}"
         )
 
         return GridObservation(grid=grid_str, legend=legend, hud=hud, message="")
 
     def system_prompt(self) -> str:
+        milestones = ", ".join(str(m) for m in self._MILESTONES)
         return (
             f"You are playing {self.env_id()}.\n\n"
             "TASK\n"
-            "Slide tiles on a 4x4 grid to merge matching numbers and achieve the "
-            "highest possible score.\n\n"
+            f"Slide tiles on a {SIZE}x{SIZE} grid to merge matching numbers and reach the "
+            f"target tile {TARGET_TILE}.\n\n"
             "RULES\n"
             "- Tiles slide in the chosen direction until they hit a wall or another tile.\n"
             "- Two tiles with the same value merge into one with double the value.\n"
             "- After each valid move, a new tile (2 or 4) spawns on a random empty cell.\n"
-            "- If no valid moves remain, the game ends.\n"
-            "- Reward = +1 per merge event in the step (HUD score still tracks summed tile values).\n"
-            "- Tiles: numbers show the value; K = 1024, W = 2048.\n\n"
+            f"- Reach a tile of value {TARGET_TILE} to win the game.\n"
+            "- If no valid moves remain, the game ends with whatever reward you earned.\n\n"
+            "REWARD\n"
+            f"- +{self._MILESTONE_REWARD} the first time you create a new max-tile of value "
+            f"in {{{milestones}}}.\n"
+            "- Cumulative reward caps at 1.0 (5 milestones x 0.2).\n"
+            f"- Tiles: numbers show the value (e.g. 2, 4, 8, ..., {TARGET_TILE}).\n\n"
             + self.action_spec.render_for_prompt()
         )
 
