@@ -9,6 +9,7 @@ from glyphbench.core.registry import (
     make_env,
     register_env,
 )
+from glyphbench.core.task_selection import list_task_ids
 
 __all__ = [
     "ActionSpec",
@@ -16,6 +17,7 @@ __all__ = [
     "GridObservation",
     "REGISTRY",
     "all_glyphbench_env_ids",
+    "list_task_ids",
     "make_env",
     "register_env",
 ]
