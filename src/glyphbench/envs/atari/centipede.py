@@ -21,8 +21,8 @@ class CentipedeEnv(AtariBase):
     Player moves in the bottom 4 rows.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE
-    Reward: +1 per mushroom, +2 per segment, +3 per spider
-
+    Pattern A: +1/_WIN_TARGET per kill (segment, mushroom, or spider).
+    No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -42,6 +42,10 @@ class CentipedeEnv(AtariBase):
     _PLAYER_Y = 18
     _PLAYER_ZONE_TOP = 16
 
+    # Pattern A full-scope target: 30 kills (segments + mushrooms +
+    # spiders, all counting equally toward the bound).
+    _WIN_TARGET: int = 30
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._segments: list[AtariEntity] = []
@@ -49,9 +53,14 @@ class CentipedeEnv(AtariBase):
         self._bullets: list[AtariEntity] = []
         self._step_counter: int = 0
         self._spider: AtariEntity | None = None
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-centipede-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -142,7 +151,9 @@ class CentipedeEnv(AtariBase):
                 self._mushrooms.discard((b.x, b.y))
                 b.alive = False
                 self._on_point_scored(1)
-                reward += 1
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
                 continue
             # Hit segment
             for seg in self._segments:
@@ -154,10 +165,12 @@ class CentipedeEnv(AtariBase):
                     seg.alive = False
                     b.alive = False
                     self._on_point_scored(2)
-                    reward += 2
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
                     # Leave mushroom where segment died
                     self._mushrooms.add((seg.x, seg.y))
-                    self._message = "Segment hit! +2"
+                    self._message = "Segment hit!"
                     break
             # Hit spider
             if (
@@ -170,8 +183,10 @@ class CentipedeEnv(AtariBase):
                 self._spider.alive = False
                 b.alive = False
                 self._on_point_scored(3)
-                reward += 3
-                self._message = "Spider killed! +3"
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Spider killed!"
 
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -254,8 +269,14 @@ class CentipedeEnv(AtariBase):
                     self._player_x = self._WIDTH // 2
                     self._player_y = self._PLAYER_Y
 
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "Target reached!"
+
         # Level clear
-        if not self._segments:
+        if not self._segments and not self._game_over:
             self._level += 1
             self._message = "Centipede destroyed!"
             self._generate_level(self._level)
