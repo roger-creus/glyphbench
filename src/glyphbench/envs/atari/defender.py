@@ -21,8 +21,8 @@ class DefenderEnv(AtariBase):
     ground from abducting aliens. Thrust to move faster.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE, THRUST
-    Reward: +1 per alien, +3 per rescue
-
+    Pattern A: +1/_WIN_TARGET per humanoid rescued (full-scope = 10
+    rescues). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -48,6 +48,9 @@ class DefenderEnv(AtariBase):
     _PLAYER_START_X = 10
     _PLAYER_START_Y = 8
 
+    # Pattern A full-scope target: 10 humanoids rescued.
+    _WIN_TARGET: int = 10
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._aliens: list[AtariEntity] = []
@@ -58,9 +61,14 @@ class DefenderEnv(AtariBase):
         self._world_x: int = 0
         self._facing: int = 1  # 1=right, -1=left
         self._thrust: bool = False
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-defender-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._VP_WIDTH, self._VP_HEIGHT)
@@ -169,8 +177,7 @@ class DefenderEnv(AtariBase):
                     alien.alive = False
                     laser.alive = False
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Alien destroyed! +1"
+                    self._message = "Alien destroyed!"
                     # Release any carried humanoid
                     if "carrying" in alien.data:
                         h = alien.data["carrying"]
@@ -236,7 +243,7 @@ class DefenderEnv(AtariBase):
                     self._world_x = self._PLAYER_START_X
                     self._player_y = self._PLAYER_START_Y
 
-        # Handle falling humanoids
+        # Handle falling humanoids (Pattern A: rescue is the progress unit)
         for h in self._humanoids:
             if not h.alive:
                 continue
@@ -247,13 +254,21 @@ class DefenderEnv(AtariBase):
                     h.data["falling"] = False
                     h.data.pop("carried", None)
                     self._on_point_scored(3)
-                    reward += 3
-                    self._message = "Humanoid saved! +3"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Humanoid saved!"
 
         self._aliens = [a for a in self._aliens if a.alive]
 
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All humanoids saved!"
+
         # Level clear
-        if not self._aliens:
+        if not self._aliens and not self._game_over:
             self._level += 1
             self._message = "Wave cleared!"
             self._generate_level(self._level)
