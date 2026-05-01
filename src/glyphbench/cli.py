@@ -151,16 +151,9 @@ def _extract_grid(content: str) -> str | None:
 
 _THINK_OPEN_RE = re.compile(r"<\s*think\s*>", re.IGNORECASE)
 _THINK_CLOSE_RE = re.compile(r"<\s*/\s*think\s*>", re.IGNORECASE)
-_THINK_RE_LOCAL = re.compile(
-    r"<\s*think\s*>(.*?)<\s*/\s*think\s*>", re.DOTALL | re.IGNORECASE
-)
 _ACTION_RE_LOCAL = re.compile(
     r"<\s*action\s*>(.*?)<\s*/\s*action\s*>", re.DOTALL | re.IGNORECASE
 )
-_ACTION_OPEN_RE = re.compile(
-    r"<\s*action\s*>(.*?)(?:<|\Z)", re.DOTALL | re.IGNORECASE
-)
-_BARE_NAME_RE = re.compile(r"\b([A-Z][A-Z0-9_]{1,})\b")
 
 
 def _split_assistant(content: str) -> tuple[str, str]:
@@ -189,10 +182,8 @@ def _split_assistant(content: str) -> tuple[str, str]:
         ]
         start = opens_before[-1].end() if opens_before else 0
         think = text[start:last_close.start()].strip()
-        post_think = text[last_close.end():]
     else:
         think = ""
-        post_think = text
 
     # ---- action: use the strict XML regex directly — last complete
     # <action>NAME</action> wins; no malformed-content recovery since
