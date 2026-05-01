@@ -57,6 +57,17 @@ _PLAYER_START = (14, 18)
 
 _FRIGHTENED_DURATION = 20
 
+# Pen interior + door: ghosts in this region are not yet "released"
+_PEN_XS = range(11, 17)
+_PEN_YS = range(10, 13)
+_DOOR_CELLS = {(13, 9), (14, 9)}
+
+
+def _in_pen_or_door(x: int, y: int) -> bool:
+    if (x, y) in _DOOR_CELLS:
+        return True
+    return x in _PEN_XS and y in _PEN_YS
+
 class MsPacManEnv(AtariBase):
     """Ms. Pac-Man: eat pellets, avoid ghosts, use power pellets.
 
@@ -172,6 +183,7 @@ class MsPacManEnv(AtariBase):
             ghost.data["color"] = _GHOST_CHARS[i]
             ghost.data["state"] = "scatter"  # chase / scatter / frightened
             ghost.data["dir"] = (0, -1)
+            ghost.data["released"] = False
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0
@@ -243,6 +255,7 @@ class MsPacManEnv(AtariBase):
                     e.x = e.data["home_x"]
                     e.y = e.data["home_y"]
                     e.data["state"] = "chase"
+                    e.data["released"] = False
                     e.char = e.data["color"]
                 else:
                     self._on_life_lost()
@@ -255,6 +268,7 @@ class MsPacManEnv(AtariBase):
                                 g.x = g.data["home_x"]
                                 g.y = g.data["home_y"]
                                 g.data["state"] = "scatter"
+                                g.data["released"] = False
                                 g.char = g.data["color"]
                         self._frightened_timer = 0
 
@@ -271,8 +285,28 @@ class MsPacManEnv(AtariBase):
         return reward, self._game_over, info
 
     def _move_ghost(self, ghost: AtariEntity) -> None:
-        """Simple ghost AI: chase player or move randomly."""
+        """Simple ghost AI: chase player or move randomly.
+
+        The ghost door is one-way: ghosts inside the pen can pass it to
+        leave; once released, the door is treated as a wall so they
+        cannot re-enter. Ghosts inside the pen always move randomly so
+        chase-mode targeting cannot trap them against the bottom wall.
+        """
         state = ghost.data.get("state", "chase")
+        released = ghost.data.get("released", False)
+        # Inside the pen, force random movement so chase-mode ghosts
+        # don't pin themselves to the wall closest to the player.
+        if not released and state == "chase":
+            state = "scatter"
+
+        def _passable(nx: int, ny: int) -> bool:
+            # The door is "solid" in the base classifier, but ghosts in
+            # the pen are allowed to cross it; once released, treat it
+            # as a wall so they cannot re-enter.
+            if self._grid_at(nx, ny) == "─":
+                return not released
+            return not self._is_solid(nx, ny)
+
         # Get possible directions (exclude reversing)
         cur_dir = ghost.data.get("dir", (0, -1))
         reverse = (-cur_dir[0], -cur_dir[1])
@@ -286,7 +320,7 @@ class MsPacManEnv(AtariBase):
                 nx = _MAZE_W - 1
             elif nx >= _MAZE_W:
                 nx = 0
-            if not self._is_solid(nx, ny) and self._grid_at(nx, ny) != "─":
+            if _passable(nx, ny):
                 possible.append(d)
         if not possible:
             # Allow reverse if stuck
@@ -296,7 +330,7 @@ class MsPacManEnv(AtariBase):
                     nx = _MAZE_W - 1
                 elif nx >= _MAZE_W:
                     nx = 0
-                if not self._is_solid(nx, ny):
+                if _passable(nx, ny):
                     possible.append(d)
         if not possible:
             return
@@ -324,6 +358,9 @@ class MsPacManEnv(AtariBase):
             nx = 0
         ghost.x, ghost.y = nx, ny
         ghost.data["dir"] = chosen
+        # Mark released once fully outside the pen+door region.
+        if not released and not _in_pen_or_door(ghost.x, ghost.y):
+            ghost.data["released"] = True
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()

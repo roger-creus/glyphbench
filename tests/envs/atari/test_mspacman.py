@@ -152,3 +152,51 @@ class TestMsPacMan:
         prompt = env.system_prompt()
         assert len(prompt) > 0
         assert "mspacman" in prompt.lower() or "pellet" in prompt.lower()
+
+    def test_ghosts_leave_pen(self):
+        env = self._make_env(max_turns=2000)
+        env.reset(seed=42)
+        noop = env.action_spec.index_of("NOOP")
+        pen_xs = set(range(11, 17))
+        pen_ys = {10, 11, 12}
+        door_cells = {(13, 9), (14, 9)}
+
+        def in_pen_or_door(e):
+            if (e.x, e.y) in door_cells:
+                return True
+            return e.x in pen_xs and e.y in pen_ys
+
+        ever_escaped = {
+            e.data["color"]: False
+            for e in env._entities if e.etype == "ghost"
+        }
+        for _ in range(300):
+            env.step(noop)
+            for e in env._entities:
+                if e.etype == "ghost" and not in_pen_or_door(e):
+                    ever_escaped[e.data["color"]] = True
+
+        assert all(ever_escaped.values()), (
+            f"Some ghosts never escaped the pen: {ever_escaped}"
+        )
+
+    def test_released_ghost_cannot_reenter_pen(self):
+        env = self._make_env(max_turns=2000)
+        env.reset(seed=7)
+        noop = env.action_spec.index_of("NOOP")
+        pen_xs = set(range(11, 17))
+        pen_ys = {10, 11, 12}
+
+        # Track each ghost's release status; once released, it must not
+        # re-enter the pen interior on any subsequent step.
+        for _ in range(300):
+            env.step(noop)
+            for e in env._entities:
+                if e.etype != "ghost":
+                    continue
+                in_pen = e.x in pen_xs and e.y in pen_ys
+                if e.data.get("released"):
+                    assert not in_pen, (
+                        f"Released ghost {e.data['color']} re-entered "
+                        f"pen at ({e.x}, {e.y})"
+                    )
