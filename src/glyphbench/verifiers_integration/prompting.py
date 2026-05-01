@@ -80,14 +80,16 @@ MEMORY_BLOCK_TMPL = (
     "MEMORY MODE (active for this run)\n"
     "Each environment turn is followed by a memory-update turn. After "
     "you emit the action above, you'll get a [Memory Update] prompt "
-    "containing your previous memory, your action response, the env's "
-    "feedback, and the next observation. Reply ONLY with "
+    "containing the env's response (reward + termination flags). The "
+    "previous memory and your action are visible from the conversation "
+    "history; the next observation is intentionally NOT shown — memory "
+    "captures retrospective state, not predictions. Reply ONLY with "
     "`<memory>...your concise updated memory...</memory>` — do not emit "
     "an <action> tag in the memory turn. The text inside <memory> is "
     "carried into the next turn's observation as a [Memory] block "
-    "(authoritative source for state you want to track across turns; the "
-    "current observation still wins on conflicts). Cap the memory at "
-    "{memory_budget} tokens; anything beyond will be truncated."
+    "(authoritative for state you want to track across turns; the current "
+    "observation still wins on conflicts). Cap the memory at "
+    "{memory_budget} tokens; output beyond that is discarded by the parser."
 )
 
 

@@ -98,6 +98,11 @@ def test_system_prompt_includes_memory_block_when_in_memory_mode(game):
     # The block should also tell the agent the memory budget so it can
     # plan its memory length.
     assert "4096" in sp
+    # Post-P2 lean-memory redesign: block accurately describes the lean wrapper
+    # (env feedback only; previous memory + action are in conversation history;
+    # next observation is intentionally withheld).
+    assert "[Memory Update]" in sp
+    assert "intentionally NOT shown" in sp
 
 
 def test_user_turn_zero_no_history_section(game):
