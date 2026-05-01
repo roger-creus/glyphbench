@@ -43,6 +43,10 @@ def load_environment(
     seed: int = DEFAULT_BASE_SEED,
     use_memory: bool = False,
     memory_update_max_tokens: int | None = None,
+    include_suites: list[str] | None = None,
+    exclude_suites: list[str] | None = None,
+    include_tasks: list[str] | None = None,
+    exclude_tasks: list[str] | None = None,
     **kwargs: Any,
 ) -> vf.Environment:
     """Entry point consumed by ``prime eval run`` and ``prime-rl`` orchestrator.
@@ -65,6 +69,15 @@ def load_environment(
                 trajectory segment.
         memory_update_max_tokens: optional generation limit for the memory
                 update call. ``None`` reuses the action sampling limit.
+        include_suites: when ``task_id`` is ``None``, only registered envs
+                whose first hyphen-segment matches one of these suite names
+                pass.
+        exclude_suites: removes any env whose suite is in this list. Always
+                wins over includes.
+        include_tasks: list of exact env IDs OR fnmatch patterns. Either
+                this or ``include_suites`` is sufficient for an env to pass.
+        exclude_tasks: list of exact env IDs OR fnmatch patterns to drop.
+                Always wins over includes.
 
     ``**kwargs`` is intentional: verifiers' generic loader injects
     ``env_id="<package-name>"``. We absorb it (and reject anything else) so
@@ -80,7 +93,9 @@ def load_environment(
             f"env id?"
         )
     _ensure_envs_loaded()
-    env_ids = _resolve_env_ids(task_id)
+    env_ids = _resolve_env_ids(
+        task_id, include_suites, exclude_suites, include_tasks, exclude_tasks,
+    )
     dataset = _build_dataset(env_ids, num_episodes, seed)
 
     parser = GlyphbenchXMLParser()
@@ -105,17 +120,36 @@ def _ensure_envs_loaded() -> None:
     _import_all_suites()
 
 
-def _resolve_env_ids(env_id: str | list[str] | None) -> list[str]:
-    if env_id is None:
-        return [i for i in all_glyphbench_env_ids() if "__dummy" not in i]
-    ids = [env_id] if isinstance(env_id, str) else list(env_id)
-    missing = [i for i in ids if i not in REGISTRY]
-    if missing:
-        raise KeyError(
-            f"unknown env_id(s): {missing!r}. "
-            f"Known ids (sample): {sorted(REGISTRY)[:5]}…"
-        )
-    return ids
+def _resolve_env_ids(
+    env_id: str | list[str] | None,
+    include_suites: list[str] | None,
+    exclude_suites: list[str] | None,
+    include_tasks: list[str] | None,
+    exclude_tasks: list[str] | None,
+) -> list[str]:
+    """Resolve the final list of env_ids to operate on.
+
+    If ``env_id`` is given (string or list), it takes precedence — filter
+    kwargs are ignored. Otherwise, the filter kwargs are passed through
+    list_task_ids to filter the registry.
+    """
+    from glyphbench.core.task_selection import list_task_ids
+
+    if env_id is not None:
+        ids = [env_id] if isinstance(env_id, str) else list(env_id)
+        missing = [i for i in ids if i not in REGISTRY]
+        if missing:
+            raise KeyError(
+                f"unknown env_id(s): {missing!r}. "
+                f"Known ids (sample): {sorted(REGISTRY)[:5]}…"
+            )
+        return ids
+    return list_task_ids(
+        include_suites=include_suites,
+        exclude_suites=exclude_suites,
+        include_tasks=include_tasks,
+        exclude_tasks=exclude_tasks,
+    )
 
 
 def _build_dataset(env_ids: list[str], num_episodes: int, base_seed: int) -> Dataset:
