@@ -276,7 +276,6 @@ class ProcgenBase(BaseGlyphEnv):
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Score: {self._score:.0f}    "
-            f"Pos: ({self._agent_x},{self._agent_y})    "
             f"State: {jump_info}"
         )
 

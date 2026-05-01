@@ -271,8 +271,7 @@ class MiniIceHockeyEnv(MiniatariBase):
             f"Step: {self._turn} / {self.max_turns}    "
             f"Goals: You {self._agent_score} - {self._opp_score} Opp    "
             f"First to {self._WIN_TARGET}\n"
-            f"Puck: pos=({self._puck_x},{self._puck_y}) "
-            f"vel=({self._puck_dx:+d},{self._puck_dy:+d}) "
+            f"Puck vel=({self._puck_dx:+d},{self._puck_dy:+d}) "
             f"holder={self._puck_holder}"
         )
         return GridObservation(

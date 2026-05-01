@@ -308,14 +308,11 @@ class SolarisEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        dname = self._DIR_NAMES.get(
-            (self._fire_dx, self._fire_dy), "none"
-        )
         enemies = sum(
             1 for e in self._enemies if e.alive
         )
         extra = (
-            f"Facing: {dname}  Sector: {self._sector}"
+            f"Sector: {self._sector}"
             f"  Enemies: {enemies}"
         )
         new_hud = obs.hud + "\n" + extra

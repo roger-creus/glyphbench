@@ -190,14 +190,12 @@ class MiniAsterixEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"you (facing {self._DIR_NAMES.get(self._player_dir, 'right')})"
 
-        helmets_info = " ".join(f"({hx},{hy})" for hx, hy in sorted(self._helmets))
-        enemies_info = " ".join(f"({ex},{ey})" for ex, ey in self._enemies)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Collected: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"You: ({self._player_x},{self._player_y})    "
-            f"Helmets: {helmets_info}    Enemies: {enemies_info}"
+            f"Score: {self._score:.3f}    "
+            f"Helmets: {len(self._helmets)}    "
+            f"Enemies: {len(self._enemies)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

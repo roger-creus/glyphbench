@@ -207,14 +207,11 @@ class MiniBerzerkEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"you (facing {self._DIR_NAMES.get(self._player_dir, 'up')})"
 
-        robots_info = " ".join(f"({ex},{ey})" for ex, ey in self._robots)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"You: ({self._player_x},{self._player_y}) "
-            f"facing {self._DIR_NAMES.get(self._player_dir, 'up')}    "
-            f"Robots: {robots_info}"
+            f"Score: {self._score:.3f}    "
+            f"Robots: {len(self._robots)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

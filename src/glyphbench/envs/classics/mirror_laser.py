@@ -282,8 +282,6 @@ class MirrorLaserEnv(BaseGlyphEnv):
         _, hit = self._trace_beam()
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Source: row {sy}    "
-            f"Target: ({tx}, {ty})    "
             f"Beam hits target: {'YES' if hit else 'no'}"
         )
 
@@ -312,4 +310,3 @@ class MirrorLaserEnv(BaseGlyphEnv):
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
-

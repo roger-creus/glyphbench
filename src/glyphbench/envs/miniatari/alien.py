@@ -203,14 +203,11 @@ class MiniAlienEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"you (facing {self._DIR_NAMES.get(self._player_dir, 'up')})"
 
-        aliens_info = " ".join(f"({ax},{ay})" for ax, ay in self._aliens)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"You: ({self._player_x},{self._player_y}) "
-            f"facing {self._DIR_NAMES.get(self._player_dir, 'up')}    "
-            f"Aliens: {aliens_info}"
+            f"Score: {self._score:.3f}    "
+            f"Aliens: {len(self._aliens)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

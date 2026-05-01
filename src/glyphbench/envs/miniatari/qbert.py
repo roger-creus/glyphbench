@@ -163,8 +163,7 @@ class MiniQbertEnv(MiniatariBase):
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Painted: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Position: row={self._row}, col={self._col}    "
+            f"Score: {self._score:.3f}    "
             f"Unpainted: {unpainted}"
         )
         return GridObservation(

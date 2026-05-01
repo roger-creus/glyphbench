@@ -3873,8 +3873,7 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
             pdy = py - self._agent_y
             if abs(pdx) <= half_w and abs(pdy) <= half_h:
                 grow_parts.append(
-                    f"sapling at ({px},{py})"
-                    f" - {remaining} steps left"
+                    f"sapling {remaining} steps left"
                 )
 
         hud = (
@@ -3883,7 +3882,6 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
             f"Water: {self._water}/{self._max_drink}  "
             f"Energy: {self._energy}/{self._max_energy}  "
             f"Mana: {self._mana}/{self._max_mana}\n"
-            f"Facing: {facing_name}  "
             f"Floor: {floor_str}  "
             f"Time: {time_str}  "
             f"Step: {self._turn} / {self.max_turns}\n"

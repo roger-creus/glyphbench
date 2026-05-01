@@ -298,11 +298,9 @@ class TennisEnv(AtariBase):
             symbols[pch] = f"you (facing {dname})"
         pp = self._fmt_pts(self._player_points)
         op = self._fmt_pts(self._opp_points)
-        bx = int(round(self._ball_x))
-        by = int(round(self._ball_y))
         bdx = round(self._ball_dx, 1)
         bdy = round(self._ball_dy, 1)
-        ball = f"Ball: pos=({bx},{by}) vel=({bdx},{bdy})"
+        ball = f"Ball vel=({bdx},{bdy})"
         serve = ""
         if self._serving:
             serve = f"  Serving: {self._serve_side}"

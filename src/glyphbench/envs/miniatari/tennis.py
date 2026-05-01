@@ -251,8 +251,7 @@ class MiniTennisEnv(MiniatariBase):
             f"Games: You {self._agent_score} - {self._opp_score} Opp    "
             f"First to {self._WIN_TARGET}\n"
             f"Points this game: You {self._agent_points} - {self._opp_points} Opp    "
-            f"Ball: pos=({self._ball_x},{self._ball_y}) "
-            f"vel=({self._ball_dx:+d},{self._ball_dy:+d})"
+            f"Ball vel=({self._ball_dx:+d},{self._ball_dy:+d})"
         )
         return GridObservation(
             grid=grid_to_string(grid),

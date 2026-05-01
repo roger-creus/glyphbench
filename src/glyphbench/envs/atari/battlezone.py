@@ -270,13 +270,8 @@ class BattleZoneEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        dname = self._DIR_NAMES.get(
-            (self._fire_dx, self._fire_dy), "none"
-        )
         tanks = sum(1 for t in self._tanks if t.alive)
-        extra = (
-            f"Facing: {dname}  Tanks: {tanks}"
-        )
+        extra = f"Tanks: {tanks}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

@@ -184,7 +184,6 @@ class TestAtariBaseObservation:
         obs_obj = env.get_observation()
         hud = obs_obj.hud
         # Single-life model: HUD has Score + Level (no Lives field).
-        # HUD is computed for info-dict only — never shown to the model.
         assert "Score:" in hud
         assert "Level:" in hud
         assert "Lives" not in hud

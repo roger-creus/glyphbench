@@ -211,15 +211,11 @@ class MiniSpaceInvadersEnv(MiniatariBase):
             "Y": "your cannon",
         }
 
-        bullet_str = (
-            f"({self._bullet[0]},{self._bullet[1]})" if self._bullet else "none"
-        )
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Cannon x={self._player_x}    Bullet: {bullet_str}    "
-            f"Wave shift=({self._wave_x},{self._wave_y}) sweep_dir={self._sweep_dir:+d}"
+            f"Score: {self._score:.3f}    "
+            f"Sweep dir: {self._sweep_dir:+d}"
         )
 
         return GridObservation(

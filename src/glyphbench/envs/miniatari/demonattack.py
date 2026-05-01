@@ -165,18 +165,12 @@ class MiniDemonAttackEnv(MiniatariBase):
             "*": "falling bomb",
             "Y": "your cannon",
         }
-        demons_info = " ".join(
-            f"({dx},{dy},{'+' if ddx == 1 else '-'})"
-            for dx, dy, ddx in self._demons
-        )
-        bombs_info = " ".join(f"({bx},{by})" for bx, by in self._bombs)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Cannon x={self._player_x}    "
-            f"Demons: {demons_info}    "
-            f"Bombs: {bombs_info}"
+            f"Score: {self._score:.3f}    "
+            f"Demons: {len(self._demons)}    "
+            f"Bombs: {len(self._bombs)}"
         )
 
         return GridObservation(

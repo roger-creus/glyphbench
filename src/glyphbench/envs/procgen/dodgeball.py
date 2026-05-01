@@ -171,20 +171,12 @@ class DodgeballEnv(ProcgenBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        dirs = {
-            (1, 0): "right", (-1, 0): "left",
-            (0, -1): "up", (0, 1): "down",
-        }
-        facing = dirs.get(
-            (self._facing_dx, self._facing_dy), "up"
-        )
         enemies = sum(
             1 for e in self._entities
             if e.alive and e.etype == "enemy"
         )
         extra = (
-            f"Facing: {facing}"
-            f"  Enemies: {enemies}"
+            f"Enemies: {enemies}"
             f"  Wave: {self._level}"
             f"  Kills: {self._enemies_killed}"
         )

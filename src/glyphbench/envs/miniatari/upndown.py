@@ -196,16 +196,13 @@ class MiniUpNDownEnv(MiniatariBase):
             "Y": "your car",
             "J": "your car (jumping; immune)",
         }
-        flags_info = " ".join(f"({fx},{fy})" for fx, fy in self._flags)
-        cars_info = " ".join(f"({cx},{cy})" for cx, cy in self._cars)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Flags: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Car: ({self._player_x},{self._player_y}) "
-            f"jump_immune={self._jump_immune}    "
-            f"Flags: {flags_info}    "
-            f"Cars: {cars_info}"
+            f"Score: {self._score:.3f}    "
+            f"Jump immune: {self._jump_immune}    "
+            f"Flags left: {len(self._flags)}    "
+            f"Cars: {len(self._cars)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

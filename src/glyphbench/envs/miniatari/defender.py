@@ -195,17 +195,13 @@ class MiniDefenderEnv(MiniatariBase):
             "Y": "your ship",
             "C": "your ship (carrying a human)",
         }
-        face = "right" if self._player_dir[0] >= 0 else "left"
-        humans_info = " ".join(f"x={x}" for x in self._humans)
-        landers_info = " ".join(f"({lx},{ly})" for lx, ly in self._landers)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Rescued: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Ship: ({self._player_x},{self._player_y}) facing {face}    "
+            f"Score: {self._score:.3f}    "
             f"Carrying: {self._carrying}    "
-            f"Humans: {humans_info}    "
-            f"Landers: {landers_info}"
+            f"Humans: {len(self._humans)}    "
+            f"Landers: {len(self._landers)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

@@ -148,7 +148,7 @@ class _BoxobanBase(MiniHackBase):
         symbols["@"] = "you"
 
         hud = (
-            f"Turn: {self._turn}    Pos: ({px},{py})    "
+            f"Turn: {self._turn}    "
             f"Boxes on target: "
             f"{sum(1 for b in self._box_positions if b in self._target_positions)}"
             f"/{self._num_boxes}"

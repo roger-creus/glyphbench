@@ -154,13 +154,11 @@ class MiniPhoenixEnv(MiniatariBase):
             "P": "phoenix",
             "Y": "your cannon",
         }
-        ph_info = " ".join(f"({px},{py})" for px, py in self._phoenixes)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Cannon x={self._player_x}    "
-            f"Phoenixes: {ph_info}"
+            f"Score: {self._score:.3f}    "
+            f"Phoenixes: {len(self._phoenixes)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

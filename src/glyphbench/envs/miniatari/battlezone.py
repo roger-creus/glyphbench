@@ -208,15 +208,12 @@ class MiniBattleZoneEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"your tank (facing {self._DIR_NAMES.get(self._player_dir, 'up')})"
 
-        enemies_info = " ".join(f"({ex},{ey})" for ex, ey in self._enemies)
-        shells_info = " ".join(f"({sx},{sy})" for sx, sy, _, _ in self._shells)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Tank: ({self._player_x},{self._player_y}) "
-            f"facing {self._DIR_NAMES.get(self._player_dir, 'up')}    "
-            f"Enemies: {enemies_info}    Shells: {shells_info}"
+            f"Score: {self._score:.3f}    "
+            f"Enemies: {len(self._enemies)}    "
+            f"Shells: {len(self._shells)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

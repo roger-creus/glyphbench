@@ -174,14 +174,12 @@ class MiniEnduroEnv(MiniatariBase):
             "Y": "your car",
         }
 
-        cars_info = " ".join(f"L{li}@y={y}" for li, y in self._cars)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Overtakes: {self._progress}/{self._WIN_TARGET}    "
             f"Collisions: {self._collisions}/{self._MAX_COLLISIONS}    "
-            f"Score: {self._score:.3f}\n"
-            f"Lane idx={self._lane_idx} (x={self._player_x})    "
-            f"Cars: {cars_info}"
+            f"Score: {self._score:.3f}    "
+            f"Cars: {len(self._cars)}"
         )
 
         return GridObservation(

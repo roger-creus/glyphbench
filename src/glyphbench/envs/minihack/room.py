@@ -163,11 +163,9 @@ class MiniHackRoom5x5Env(_RoomBase):
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
         # Patch HUD to match old format (includes AC and $)
-        px, py = self._player_pos
         hud = (
             f"Dlvl: 1    HP: {self._player_hp}/{self._player_max_hp}    AC: 10    "
-            f"Turn: {self._turn}    $: 0    "
-            f"Pos: ({px - 1},{py - 1})"
+            f"Turn: {self._turn}    $: 0"
         )
         return GridObservation(
             grid=obs.grid,

@@ -177,13 +177,12 @@ class MiniRiverRaidEnv(MiniatariBase):
             "Y": "your jet",
         }
 
-        obstacles_info = " ".join(f"({cx},{cy})" for cx, cy in self._obstacles)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Progress: {self._progress}/{self._PROGRESS_TARGET}    "
             f"Cleared: {self._cleared}/{self._N_OBSTACLES}    "
-            f"Score: {self._score:.3f}\n"
-            f"Jet x={self._player_x}    Obstacles: {obstacles_info}"
+            f"Score: {self._score:.3f}    "
+            f"Obstacles: {len(self._obstacles)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

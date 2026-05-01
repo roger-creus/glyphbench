@@ -370,10 +370,7 @@ class PongEnv(BaseGlyphEnv):
         hud = (
             f"Score: Agent {self._score_right} -- Opponent {self._score_left}    "
             f"Serving: {serving_str}    "
-            f"Ball: pos=({self._ball_x},{self._ball_y}) "
-            f"vel=({vx_str},{vy_str}) direction={direction}\n"
-            f"Right paddle (you): center at row {self._paddle_right_y}    "
-            f"Left paddle (opponent): center at row {self._paddle_left_y}\n"
+            f"Ball vel=({vx_str},{vy_str}) direction={direction}\n"
             f"Rally hits: {self._rally_hits}    "
             f"Ball speed level: {self._ball_speed_level} (|vx|={self._ball_speed_level})    "
             f"Game to: {self._WIN_SCORE}"

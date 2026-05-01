@@ -1162,10 +1162,8 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
             dx = px - self._agent_x
             dy = py - self._agent_y
             if abs(dx) <= half_w and abs(dy) <= half_h:
-                # Coords relative to viewport
                 grow_parts.append(
-                    f"sapling at ({px},{py})"
-                    f" - {remaining} steps left"
+                    f"sapling {remaining} steps left"
                 )
 
         hud = (
@@ -1173,7 +1171,6 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
             f"Food: {self._food}/{_MAX_FOOD}  "
             f"Water: {self._water}/{_MAX_WATER}  "
             f"Energy: {self._energy}/{_MAX_ENERGY}\n"
-            f"Facing: {facing_name}  "
             f"Time: {time_str}  "
             f"Step: {self._turn} / {self.max_turns}\n"
             f"Next drain: food in {food_drain}, "

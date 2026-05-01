@@ -1211,7 +1211,6 @@ class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
         hud = (
             f"HP: {self._hp}/{self._max_hp}  "
             f"Step: {self._turn} / {self.max_turns}\n"
-            f"Facing: {facing_name}\n"
             f"Nearby mobs: {mob_str}\n"
             f"Inventory: {inv_str}\n"
             f"Enemies remaining: {hostiles_left}"

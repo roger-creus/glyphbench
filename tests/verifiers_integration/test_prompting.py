@@ -80,10 +80,9 @@ def test_system_prompt_describes_observation_conventions(game):
     assert "OBSERVATION CONVENTIONS" in sp
     assert "[Legend]" in sp
     assert "[Grid]" in sp
-    # The model-facing observation does NOT contain a [HUD] block (HUD
-    # ban — see _render_current_block in prompting.py). Make sure the
-    # system prompt doesn't promise one either.
-    assert "[HUD]" not in sp
+    assert "[HUD]" in sp
+    assert "complementary state" in sp
+    assert "do not expect the HUD to repeat positions" in sp
 
 
 def test_system_prompt_omits_memory_block_when_not_in_memory_mode(game):
@@ -124,6 +123,7 @@ def test_user_turn_zero_no_history_section(game):
     assert "[History" not in text
     assert "[Legend]" in text
     assert "[Current Observation" in text or "[Observation" in text
+    assert "[HUD]\nstep=0" in text
     # The action spec now lives ONLY in the cached system prompt; the
     # per-turn user content just nudges the model to emit a tag now.
     assert "[Actions]" not in text
@@ -178,6 +178,41 @@ def test_user_turn_with_history_dedups_legend(game):
     text = render_user_turn(game, frames, current, turn=2, max_output_tokens=512)
     # Legend appears once globally (at top), not inside frames or current.
     assert text.count("[Legend]") == 1
+
+
+def test_current_observation_keeps_hud_between_grid_and_message(game):
+    frames: deque = deque(maxlen=4)
+    text = render_user_turn(
+        game,
+        frames,
+        current_obs=(
+            "[Legend]\nA — a\n\n"
+            "[HUD]\nStep: 2 / 9    HP: 4\n\n"
+            "[Grid]\nA.\n\n"
+            "[Message]\nhello"
+        ),
+        turn=2,
+        max_output_tokens=512,
+    )
+    assert text.index("[Grid]\nA.") < text.index("[HUD]\nStep: 2 / 9")
+    assert text.index("[HUD]\nStep: 2 / 9") < text.index("[Message]\nhello")
+
+
+def test_history_stays_grid_only_even_when_frames_have_hud(game):
+    frames = deque(
+        [("[HUD]\nStep: 1 / 9\n\n[Grid]\nA.", "LEFT", 0.0)],
+        maxlen=4,
+    )
+    text = render_user_turn(
+        game,
+        frames,
+        current_obs="[HUD]\nStep: 2 / 9\n\n[Grid]\n.A",
+        turn=2,
+        max_output_tokens=512,
+    )
+    history = text.split("[Current Observation", 1)[0]
+    assert "[HUD]" not in history
+    assert "[HUD]\nStep: 2 / 9" in text
 
 
 def test_user_turn_history_window_respected(game):

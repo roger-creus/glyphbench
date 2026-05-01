@@ -92,5 +92,5 @@ class DummyEnv(BaseGlyphEnv):
             rows.append("".join(cells))
         grid_str = "\n".join(rows)
         legend = "@ — you\nG — goal\n. — floor"
-        hud = f"Step: {self._turn} / {self.max_turns}    Pos: ({self._x},{self._y})"
+        hud = f"Step: {self._turn} / {self.max_turns}"
         return GridObservation(grid=grid_str, legend=legend, hud=hud, message="")

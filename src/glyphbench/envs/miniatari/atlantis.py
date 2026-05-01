@@ -179,14 +179,12 @@ class MiniAtlantisEnv(MiniatariBase):
             "R": "raider",
         }
 
-        raiders_info = " ".join(f"({rx},{ry})" for rx, ry in self._raiders)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Wave: {self._wave_idx + 1}/{self._N_WAVES}    "
             f"Wave kills: {self._wave_kills}/{self._RAIDERS_PER_WAVE}    "
-            f"Score: {self._score:.3f}\n"
-            f"Selected turret x={self._player_x}    "
-            f"Raiders: {raiders_info}"
+            f"Score: {self._score:.3f}    "
+            f"Raiders: {len(self._raiders)}"
         )
 
         return GridObservation(

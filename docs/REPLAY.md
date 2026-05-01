@@ -5,25 +5,25 @@
 *Replaying a saved verifiers `results.jsonl` rollout in the multi-panel TUI. Pause-mode hotkeys (`s` system / `r` reasoning / `m` memory / `←/→` step / `q` next) drop into a pager for any panel.*
 
 A rich TUI for inspecting saved rollouts. Renders the per-turn
-ASCII grid alongside the agent's reasoning, action, memory state,
-and any per-turn parse errors.
+ASCII grid alongside the complementary HUD, env message, agent
+reasoning, action, memory state, and any per-turn parse errors.
 
 ## Quick start
 
 ```bash
 # List every (model, env, seed) tuple under a runs dir
-uv run glyphbench replay path/to/runs/ --list
+uv run gb replay path/to/runs/ --list
 
 # Play every rollout that matches one env (filters AND-combine)
-uv run glyphbench replay path/to/runs/ \
+uv run gb replay path/to/runs/ \
     --env glyphbench/minigrid-empty-6x6-v0
 
 # Step through a single rollout turn-by-turn
-uv run glyphbench replay path/to/runs/ \
+uv run gb replay path/to/runs/ \
     --env glyphbench/craftax-fight-cow-v0 --pause
 
 # Pace continuous playback (default 0.15s per turn)
-uv run glyphbench replay runs/local-eval --delay 0.4
+uv run gb replay runs/local-eval --delay 0.4
 ```
 
 `runs_dir` may point at a results tree, a single per-run-hash
@@ -34,14 +34,14 @@ or any directory tree containing `results.jsonl` files.
 
 | Flag | Effect |
 |---|---|
-| `--env`, `--suite`, `--model`, `--seed` | Repeatable filters; AND-combined |
+| `--env`, `--suite`, `--model`, `--seed` | Repeatable filters; AND-combined. `--suite` accepts every non-dummy suite, including `miniatari` and `craftaxfull`. |
 | `--episode N` | 0-indexed pick from the filtered set; plays only that one |
 | `--list` | Print the matched index and exit (no playback) |
 | `--pause` | Step turn-by-turn instead of timed playback |
 | `--delay N` | Seconds between turns in continuous mode (default 0.15) |
 
 When stdout isn't a TTY (piped, redirected) the renderer auto-falls
-back to a plain grid + memory dump.
+back to a plain grid + HUD/message + memory dump.
 
 ## Pause-mode keys
 
@@ -68,7 +68,7 @@ left with echo disabled.
 ```
 +---------------------- HEADER BAR -------------------------+
 |  model · env_id            turn N/T   seed   reward   ... |
-|  [optional warning chips: PARSE FAIL, parse-fallback, ...] |
+|  [optional warning chips: [forfeit], [trunc-action], ...]  |
 +---------------------- SYSTEM PROMPT ----------------------+
 |  (clipped; press `s` in pause mode to scroll)             |
 +---------------- BODY ------------------------+------------+
@@ -92,6 +92,11 @@ Notes on the layout:
   potential consumer.
 - The `step` indicator (`Step: T / N`) is split out of the HUD into
   its own dedicated yellow panel.
+- HUD and env message extraction is anchored to the current observation
+  section, so model-written memory that happens to mention `[HUD]` or
+  `[Grid]` cannot pollute the replayed turn.
+- When trajectory metadata is present, the replay shows each turn's
+  actual step reward, not just the rollout-level return.
 - `previous memory` and `updated memory` only appear when the
   rollout was produced with `use_memory=True`.
 - The `turn errors` panel only appears when the current turn had a

@@ -180,14 +180,12 @@ class MiniCentipedeEnv(MiniatariBase):
             "C": "centipede body segment",
             "Y": "your blaster",
         }
-        hud_seg = " ".join(f"({sx},{sy})" for sx, sy in self._segments)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Segments killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Blaster x={self._player_x}    "
+            f"Score: {self._score:.3f}    "
             f"Head dx={self._head_dx:+d}    "
-            f"Segments: {hud_seg}"
+            f"Segments: {len(self._segments)}"
         )
 
         return GridObservation(

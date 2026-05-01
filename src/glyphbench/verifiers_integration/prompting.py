@@ -13,7 +13,6 @@ Two entry points:
 
             [History — last N turns]                 (omitted entirely if N=0)
               (turn T-K) <grid-only view>
-                  <one-line HUD delta>
                 chose ACTION → reward R
 
               (turn T-K+1) ...
@@ -21,16 +20,12 @@ Two entry points:
             [Current Observation — turn T]
               <full grid + HUD + optional message>
 
-            [Actions]
-              Choose one: [A, B, C, ...]
-
-            Respond with <think>...</think><action>NAME</action>.
-            Total response budget: 512 tokens.
+            Now emit your move as `<action>ACTION_NAME</action>`.
 
 Design goals:
     * One legend per user message, deduped across history + current.
     * Stable section order → KV-cache prefix overlap across turns.
-    * History frames stripped of legend + HUD-delta-only, saving tokens.
+    * History frames stripped to grid + action/reward only, saving tokens.
     * Current observation kept intact (full grid + HUD + message), minus legend.
     * Budget reminded every turn, deters runaway thinking.
 """
@@ -55,7 +50,8 @@ RESPONSE_FORMAT_BLOCK_TMPL = (
     "  <action>ACTION_NAME</action>\n"
     "\n"
     "ACTION_NAME must be one of the names in the [Actions] list. Read the "
-    "grid directly — the player glyph shows your position and orientation. "
+    "grid directly — when the player glyph is directional, it shows your "
+    "orientation. "
     "Anything outside the <action> tag is ignored.\n"
     "\n"
     "Output budget: {budget} tokens (reasoning + action combined). Be concise — "
@@ -68,12 +64,17 @@ RESPONSE_FORMAT_BLOCK_TMPL = (
 OBSERVATION_CONVENTIONS_BLOCK = (
     "OBSERVATION CONVENTIONS\n"
     "Each turn you receive a [Grid] (ASCII) and a [Legend] mapping each "
-    "glyph to its meaning for this turn. Optionally a [Message] block "
-    "with one-shot env feedback (last action result, etc.). Treat the "
+    "glyph to its meaning for this turn. You may also receive a [HUD] "
+    "block with complementary state that cannot be read from the grid "
+    "(for example turn budget, HP, inventory, score, velocity, cooldowns, "
+    "or facing only when the glyph itself is not directional), plus "
+    "optionally a [Message] block with one-shot env feedback (last action "
+    "result, etc.). Treat the "
     "[Grid] as authoritative for spatial state and the [Legend] as "
-    "authoritative for glyph meaning — every game-relevant fact must be "
-    "readable off the Unicode glyphs. The full action list is in this "
-    "system prompt and does not repeat per turn."
+    "authoritative for glyph meaning; do not expect the HUD to repeat "
+    "positions, visible enemy locations, or facing already encoded by a "
+    "directional glyph. The full action list is in this system prompt "
+    "and does not repeat per turn."
 )
 
 MEMORY_BLOCK_TMPL = (
@@ -84,8 +85,8 @@ MEMORY_BLOCK_TMPL = (
     "  [Last Action]      your previous response (reasoning + action) "
     "plus parser/truncation flags so you know exactly what was applied;\n"
     "  [Env Response]     reward and the terminated/truncated flags;\n"
-    "  [Next Observation] the grid + legend + message produced by your "
-    "action — the same view your next action turn will receive;\n"
+    "  [Next Observation] the grid + legend + HUD + message produced by "
+    "your action — the same view your next action turn will receive;\n"
     "  [Memory Update]    write instructions.\n"
     "Reply ONLY with `<memory>...your concise updated memory...</memory>` "
     "— do not emit an <action> tag in the memory turn. Memory is for "
@@ -183,7 +184,7 @@ def render_user_turn(
     if frames_list:
         parts.append(_render_history(frames_list, turn))
 
-    # 3. Current observation — strip legend, keep HUD + grid + message.
+    # 3. Current observation — strip legend, keep grid + HUD + message.
     parts.append(_render_current_block(current_obs, turn))
 
     # 4. Per-turn nudge — the full action list with descriptions is in
@@ -225,9 +226,8 @@ def _render_history(frames_list: list[tuple[str, str, float]], current_turn: int
     n = len(frames_list)
     lines = [f"[History — last {n} turn{'s' if n != 1 else ''}]"]
     # Number each historical turn from T-N .. T-1 (T is the current turn).
-    # Deliberately omit the [HUD] block — it leaks privileged state
-    # (positions, counts, intents) that the agent must instead read off the
-    # Unicode glyphs. See the user policy in DECISIONS.md (HUD ban).
+    # History stays grid-only to keep token use bounded; the current
+    # observation carries the cleaned complementary HUD.
     for i, (obs, action, reward) in enumerate(frames_list):
         past_turn = current_turn - (n - i)
         grid = _extract_grid(obs)
@@ -244,15 +244,15 @@ def _render_history(frames_list: list[tuple[str, str, float]], current_turn: int
 
 
 def _render_current_block(current_obs: str, turn: int) -> str:
-    # Drop legend (rendered globally above) and HUD (per design: every
-    # game-relevant fact must be readable off the Unicode grid). Envs
-    # may still compute a HUD for their own internal use (debugging,
-    # info-dict reporting), but it is NOT shown to the model.
+    # Drop legend (rendered globally above), but preserve the cleaned HUD.
     grid = _extract_grid(current_obs)
+    hud = _extract_hud(current_obs)
     msg = _extract_message(current_obs)
     parts = [f"[Current Observation — turn {turn}]"]
     if grid:
         parts.append(f"[Grid]\n{grid}")
+    if hud:
+        parts.append(f"[HUD]\n{hud}")
     if msg:
         parts.append(f"[Message]\n{msg}")
     return "\n".join(parts)

@@ -185,14 +185,11 @@ class MiniTimePilotEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"your ship (facing {self._DIR_NAMES.get(self._player_dir, 'up')})"
 
-        enemies_info = " ".join(f"({ex},{ey})" for ex, ey in self._enemies)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Ship: ({self._player_x},{self._player_y}) "
-            f"facing {self._DIR_NAMES.get(self._player_dir, 'up')}    "
-            f"Enemies: {enemies_info}"
+            f"Score: {self._score:.3f}    "
+            f"Enemies: {len(self._enemies)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

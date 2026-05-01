@@ -345,7 +345,7 @@ class _PipeConnectBase(BaseGlyphEnv):
         filtered_legend = {k: v for k, v in legend_map.items() if k in present_syms}
         legend = build_legend(filtered_legend)
 
-        # Show pipe directions for source and sink in HUD
+        # Source and sink glyphs hide their underlying pipe openings.
         src_dirs = self._pipes[self._source_pos[1]][self._source_pos[0]]
         sink_dirs = self._pipes[self._sink_pos[1]][self._sink_pos[0]]
         src_str = _char_for_dirs(src_dirs) if src_dirs else "none"
@@ -353,9 +353,8 @@ class _PipeConnectBase(BaseGlyphEnv):
 
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Grid: {s}x{s}    "
-            f"Source: row {self._source_pos[1]}, col {self._source_pos[0]} (pipe: {src_str})    "
-            f"Sink: row {self._sink_pos[1]}, col {self._sink_pos[0]} (pipe: {sink_str})"
+            f"Source pipe: {src_str}    "
+            f"Sink pipe: {sink_str}"
         )
 
         return GridObservation(grid=grid_to_string(grid), legend=legend, hud=hud, message="")
@@ -411,4 +410,3 @@ class PipeConnectHardEnv(_PipeConnectBase):
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
-

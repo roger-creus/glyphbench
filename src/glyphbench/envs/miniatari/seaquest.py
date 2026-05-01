@@ -159,15 +159,13 @@ class MiniSeaquestEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"your sub (facing {self._DIR_NAMES.get(self._player_dir, 'down')})"
 
-        divers_info = " ".join(f"({dx},{dy})" for dx, dy in sorted(self._divers))
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Rescued: {self._rescued}/{self._N_DIVERS}    "
             f"Phase: {self._progress}/{self._WIN_TARGET}    "
             f"O2: {self._oxygen}/{self._OXY_MAX}    "
-            f"Score: {self._score:.3f}\n"
-            f"Sub: ({self._player_x},{self._player_y})    "
-            f"Divers: {divers_info}"
+            f"Score: {self._score:.3f}    "
+            f"Divers: {len(self._divers)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

@@ -172,15 +172,11 @@ class MiniBeamRiderEnv(MiniatariBase):
             "Y": "your ship",
         }
 
-        enemies_info = " ".join(
-            f"beam{eb}@y={ey}" for eb, ey in self._enemies
-        )
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"On beam {self._beam_idx} (x={self._player_x})    "
-            f"Enemies: {enemies_info}"
+            f"Score: {self._score:.3f}    "
+            f"Enemies: {len(self._enemies)}"
         )
 
         return GridObservation(

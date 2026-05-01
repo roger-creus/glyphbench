@@ -242,7 +242,7 @@ class TestMiniGridEmpty5x5:
         grid_lines = grid_obs.grid.split("\n")
         assert grid_lines[1][1] == "↑", "Expected '↑' at (1,1) after wall bump"
 
-    # --- Spec 8.1: HUD format (info only — HUD is not shown to the model) ---
+    # --- Spec 8.1: HUD format (complementary model-facing state) ---
     def test_hud_format(self):
         env = self._make_env()
         env.reset(0)

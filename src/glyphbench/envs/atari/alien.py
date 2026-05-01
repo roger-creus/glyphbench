@@ -261,11 +261,7 @@ class AlienEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        dname = self._DIR_NAMES.get(self._facing, "none")
-        extra = (
-            f"Facing: {dname}  "
-            f"Eggs: {self._eggs_left}"
-        )
+        extra = f"Eggs: {self._eggs_left}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

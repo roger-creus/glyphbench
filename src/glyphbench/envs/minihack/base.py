@@ -465,7 +465,7 @@ class MiniHackBase(BaseGlyphEnv):
             f"Step: {self._turn} / {self.max_turns}    "
             f"Dlvl: 1    "
             f"HP: {self._player_hp}/{self._player_max_hp}    "
-            f"Pos: ({px},{py}){dark_note}    "
+            f"{dark_note.strip()}    "
             f"Wielding: {wield_str}    "
             f"Inv: {inv_str}"
         )

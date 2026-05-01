@@ -215,10 +215,7 @@ class MiniPongEnv(MiniatariBase):
             f"Step: {self._turn} / {self.max_turns}    "
             f"You {self._agent_score} - {self._opp_score} Opp    "
             f"First to {self._WIN_TARGET}\n"
-            f"Ball: pos=({self._ball_x},{self._ball_y}) "
-            f"vel=({self._ball_vx:+d},{self._ball_vy:+d})    "
-            f"Your paddle row: {self._paddle_right_y}    "
-            f"Opp paddle row: {self._paddle_left_y}"
+            f"Ball vel=({self._ball_vx:+d},{self._ball_vy:+d})"
         )
 
         return GridObservation(

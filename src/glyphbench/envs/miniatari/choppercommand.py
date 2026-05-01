@@ -204,19 +204,12 @@ class MiniChopperCommandEnv(MiniatariBase):
             "T": "truck (protect)",
             "Y": "your helicopter",
         }
-        face = "right" if self._player_dir[0] >= 0 else "left"
-        enemies_info = " ".join(
-            f"({ex},{ey},{'+' if edx == 1 else '-'})" for ex, ey, edx in self._enemies
-        )
-        trucks_info = " ".join(f"x={tx}" for tx in sorted(self._trucks))
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
             f"Trucks: {len(self._trucks)}/{self._N_TRUCKS}    "
-            f"Score: {self._score:.3f}\n"
-            f"Heli: ({self._player_x},{self._player_y}) facing {face}    "
-            f"Enemies: {enemies_info}    "
-            f"Trucks: {trucks_info}"
+            f"Score: {self._score:.3f}    "
+            f"Enemies: {len(self._enemies)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

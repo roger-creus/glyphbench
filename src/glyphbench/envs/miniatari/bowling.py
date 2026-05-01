@@ -181,9 +181,8 @@ class MiniBowlingEnv(MiniatariBase):
             f"Step: {self._turn} / {self.max_turns}    "
             f"Pins down: {self._progress}/{self._TOTAL_PINS}    "
             f"Frame: {self._frame}/{self._N_FRAMES}    "
-            f"Rolls: {self._rolls_in_frame}/{self._MAX_ROLLS_PER_FRAME}\n"
-            f"Bowler x={self._player_x}    "
-            f"Pins remaining at columns: {sorted({px for px, _ in self._pins})}"
+            f"Rolls: {self._rolls_in_frame}/{self._MAX_ROLLS_PER_FRAME}    "
+            f"Pins remaining: {len(self._pins)}"
         )
 
         return GridObservation(

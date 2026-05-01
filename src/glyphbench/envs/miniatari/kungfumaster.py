@@ -170,13 +170,12 @@ class MiniKungFuMasterEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"you (facing {self._DIR_NAMES.get(self._player_dir, 'right')})"
 
-        enemies_info = " ".join(f"x={ex}" for ex, _ in self._enemies)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"KOs: {self._kos}/{self._WIN_TARGET}    "
             f"Spawned: {self._spawned}/{self._N_ENEMIES}    "
-            f"Score: {self._score:.3f}\n"
-            f"You x={self._player_x}    Enemies: {enemies_info}"
+            f"Score: {self._score:.3f}    "
+            f"Enemies: {len(self._enemies)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

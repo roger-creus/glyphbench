@@ -179,16 +179,12 @@ class MiniFrostbiteEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"you (facing {self._DIR_NAMES.get(self._player_dir, 'none')})"
 
-        floe_info = " ".join(
-            f"row{r}:x={self._floe_x[i]}{'+' if self._floe_dx[i] == 1 else '-'}"
-            for i, r in enumerate(self._FLOE_ROWS)
-        )
+        floe_dirs = " ".join("+" if dx == 1 else "-" for dx in self._floe_dx)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Floes visited: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Player: ({self._player_x},{self._player_y})    "
-            f"Floes: {floe_info}"
+            f"Score: {self._score:.3f}    "
+            f"Floe dirs: {floe_dirs}"
         )
 
         return GridObservation(

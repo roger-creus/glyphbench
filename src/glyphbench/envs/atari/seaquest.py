@@ -377,13 +377,11 @@ class SeaquestEnv(AtariBase):
                 self._player_dir, "none"
             )
             symbols[pch] = f"you (facing {dname})"
-        facing = "right" if self._facing == 1 else "left"
         hud = (
             f"Score: {self._score}    "
             f"    Level: {self._level}"
             f"    O2: {self._oxygen}%"
-            f"    Divers: {self._carried}/4\n"
-            f"Facing: {facing}"
+            f"    Divers: {self._carried}/4"
         )
         return GridObservation(
             grid=grid_to_string(render),

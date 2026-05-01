@@ -156,15 +156,11 @@ class MiniAssaultEnv(MiniatariBase):
             "E": "enemy ship",
             "Y": "your turret",
         }
-        enemies_info = " ".join(
-            f"({ex},{ey},{'+' if edx == 1 else '-'})" for ex, ey, edx in self._enemies
-        )
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Turret x={self._player_x}    "
-            f"Enemies: {enemies_info}"
+            f"Score: {self._score:.3f}    "
+            f"Enemies: {len(self._enemies)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

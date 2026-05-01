@@ -262,15 +262,17 @@ class AsteroidsEnv(AtariBase):
 
     def _render_current_observation(self, **kw: Any):  # type: ignore[override]
         obs = super()._render_current_observation()
-        direction = self._FACING_NAMES[self._facing]
+        facing_vec = self._DIRS[self._facing]
         n_ast = len([
             a for a in self._asteroids if a.alive
         ])
-        extra = (
-            f"Ship facing: {direction}"
-            f"  Ship vel: ({self._ship_dx},{self._ship_dy})"
-            f"  Asteroids: {n_ast}"
-        )
+        parts = [
+            f"Ship vel: ({self._ship_dx},{self._ship_dy})",
+            f"Asteroids: {n_ast}",
+        ]
+        if facing_vec not in self._DIR_CHARS:
+            parts.insert(0, f"Ship facing: {self._FACING_NAMES[self._facing]}")
+        extra = "  ".join(parts)
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

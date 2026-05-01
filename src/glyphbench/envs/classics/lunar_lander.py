@@ -212,7 +212,6 @@ class LunarLanderEnv(BaseGlyphEnv):
 
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Pos: ({self._x:.1f}, {self._y:.1f})    "
             f"Vel: ({self._vx:.1f}, {self._vy:.1f})    "
             f"Fuel: {self._fuel}"
         )
@@ -248,4 +247,3 @@ class LunarLanderEnv(BaseGlyphEnv):
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
-

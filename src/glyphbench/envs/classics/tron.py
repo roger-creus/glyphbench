@@ -276,8 +276,7 @@ class TronEnv(BaseGlyphEnv):
 
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"You: ({px}, {py}) {self._player_dir}    "
-            f"Opponent: ({ox}, {oy}) {self._opp_dir}"
+            f"Opponent dir: {self._opp_dir}"
         )
 
         msg = ""
@@ -311,4 +310,3 @@ class TronEnv(BaseGlyphEnv):
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
-

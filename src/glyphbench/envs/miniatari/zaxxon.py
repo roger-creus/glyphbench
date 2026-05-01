@@ -149,12 +149,11 @@ class MiniZaxxonEnv(MiniatariBase):
             "Y": "your ship",
         }
 
-        turrets_info = " ".join(f"({tx},{ty})" for tx, ty in self._turrets)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"You y={self._player_y}    Turrets: {turrets_info}"
+            f"Score: {self._score:.3f}    "
+            f"Turrets: {len(self._turrets)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

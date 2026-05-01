@@ -180,17 +180,11 @@ class MiniAsteroidsEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"your ship (facing {self._DIR_NAMES.get(self._player_dir, 'up')})"
 
-        rocks_info = " ".join(
-            f"({ax},{ay})d=({adx:+d},{ady:+d})"
-            for ax, ay, adx, ady in self._asteroids
-        )
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Destroyed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Ship: ({self._player_x},{self._player_y}) "
-            f"facing {self._DIR_NAMES.get(self._player_dir, 'up')}    "
-            f"Rocks: {rocks_info}"
+            f"Score: {self._score:.3f}    "
+            f"Rocks: {len(self._asteroids)}"
         )
 
         return GridObservation(

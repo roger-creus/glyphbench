@@ -6,13 +6,14 @@ The harness shows the model a single text string composed of these blocks:
 
 - `[Legend]` — glyph → meaning mapping (rendered once, deduped per rollout).
 - `[Grid]` — the 2D Unicode grid (the only required channel).
+- `[HUD]` — optional complementary state that cannot be read from the grid
+  (turn budget, HP, score, inventory, velocity, cooldowns, etc.).
 - `[Message]` — optional per-turn narrative event ("You bumped a wall.").
 - `[Actions]` — the action vocabulary the model must pick from this turn.
 
-Envs may compute a `[HUD]` (HP, inventory, score, etc.) for their `info`
-dict and trajectory logs, but the harness deliberately does **not** show it
-to the model. Privileged state (mob positions, hidden inventory) must
-therefore be encoded in the visible grid for the agent to reason about.
+The grid remains authoritative for spatial state. The HUD must not repeat
+positions, visible entity locations, or facing already encoded by directional
+glyphs; it is only for state the Unicode grid cannot convey.
 
 ## Single-codepoint Unicode glyphs
 

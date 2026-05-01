@@ -179,8 +179,7 @@ class SkiEnv(BaseGlyphEnv):
             f"Step: {self._turn} / {self.max_turns}    "
             f"Score: {self._score:.0f}    "
             f"Flags: {self._flags_passed}    "
-            f"Rows left: {rows_left}    "
-            f"Col: {self._skier_col}"
+            f"Rows left: {rows_left}"
         )
 
         msg = ""
@@ -218,4 +217,3 @@ class SkiEnv(BaseGlyphEnv):
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
-

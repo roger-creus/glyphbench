@@ -288,16 +288,9 @@ class BreakoutEnv(AtariBase):
             self._BRICK_END_X - self._BRICK_START_X
         )
         remaining = len(self._bricks)
-        ball = (
-            f"Ball: pos=({self._ball_x},{self._ball_y})"
-            f" vel=({dx},{dy}) dir={dirname}"
-        )
-        paddle = (
-            f"Paddle: x={self._paddle_x}"
-            f" width={self._PADDLE_WIDTH}"
-        )
+        ball = f"Ball vel=({dx},{dy}) dir={dirname}"
         bricks = f"Bricks: {remaining}/{total}"
-        extra = f"{ball}    {paddle}    {bricks}"
+        extra = f"{ball}    {bricks}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

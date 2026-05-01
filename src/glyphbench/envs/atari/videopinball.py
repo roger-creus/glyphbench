@@ -255,10 +255,7 @@ class VideoPinballEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        ball = (
-            f"Ball: pos=({self._ball_x},{self._ball_y})"
-            f" vel=({self._ball_dx},{self._ball_dy})"
-        )
+        ball = f"Ball vel=({self._ball_dx},{self._ball_dy})"
         new_hud = obs.hud + "\n" + ball
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

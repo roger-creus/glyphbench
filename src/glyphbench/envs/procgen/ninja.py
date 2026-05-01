@@ -211,14 +211,12 @@ class NinjaEnv(ProcgenBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        facing = "right" if self._facing == 1 else "left"
         enemies = sum(
             1 for e in self._entities
             if e.alive and e.etype == "enemy"
         )
         extra = (
-            f"Facing: {facing}"
-            f"  Kills: {self._enemies_killed}"
+            f"Kills: {self._enemies_killed}"
             f"  Enemies: {enemies}"
         )
         new_hud = obs.hud + "\n" + extra

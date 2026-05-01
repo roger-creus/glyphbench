@@ -158,16 +158,10 @@ class MiniSkiingEnv(MiniatariBase):
             "g": "scored gate flag",
             "Y": "you (skier)",
         }
-        upcoming = [
-            f"L={g[0]}-R={g[1]}@y={g[2]}{'*' if g[3] else ''}"
-            for g in self._gates if g[2] > self._SKIER_Y - 1
-        ]
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Gates cleared: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Skier x={self._player_x}    "
-            f"Gates: {' '.join(upcoming)}"
+            f"Score: {self._score:.3f}"
         )
 
         return GridObservation(

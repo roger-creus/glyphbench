@@ -177,10 +177,8 @@ class MiniBreakoutEnv(MiniatariBase):
             f"Step: {self._turn} / {self.max_turns}    "
             f"Score: {self._score:.3f}    "
             f"Broken: {self._progress}/{self._WIN_TARGET}    "
-            f"Bricks left: {len(self._bricks)}\n"
-            f"Ball: pos=({self._ball_x},{self._ball_y}) "
-            f"vel=({self._ball_dx:+d},{self._ball_dy:+d})    "
-            f"Paddle: x={self._paddle_x}..{self._paddle_x + self._PADDLE_W - 1}"
+            f"Bricks left: {len(self._bricks)}    "
+            f"Ball vel=({self._ball_dx:+d},{self._ball_dy:+d})"
         )
 
         return GridObservation(

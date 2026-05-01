@@ -354,14 +354,11 @@ class WizardOfWorEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        dname = self._DIR_NAMES.get(self._facing, "none")
         enemies = sum(
             1 for e in self._entities
             if e.etype in ("ghost", "wizard") and e.alive
         )
-        extra = (
-            f"Facing: {dname}  Enemies: {enemies}"
-        )
+        extra = f"Enemies: {enemies}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

@@ -14,7 +14,7 @@
 
 </div>
 
-Every environment renders its state as a Unicode text grid with a legend and discrete named actions. The agent sees only the grid — no privileged state-channel — so every game-relevant fact must be readable off the glyphs themselves. Observations are deterministic (seeded), making results fully reproducible.
+Every environment renders its state as a Unicode text grid with a legend, a complementary HUD, and discrete named actions. The grid is authoritative for spatial state; the HUD is limited to state the grid cannot encode cleanly, such as turn budget, score, HP, inventory, velocity, cooldowns, and facing only when a glyph is not directional. Observations are deterministic (seeded), making results fully reproducible.
 
 ## At a glance
 

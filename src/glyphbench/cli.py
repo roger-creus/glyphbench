@@ -20,10 +20,12 @@ import re
 import subprocess
 import sys
 import tarfile
+from contextlib import suppress
 from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
 
+from glyphbench.envs import ALL_SUITES as ENV_SUITES
 from glyphbench.verifiers_integration.memory import extract_memory_update
 from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
 
@@ -32,7 +34,7 @@ from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
 # what the verifiers eval actually scored.
 _REPLAY_PARSER = GlyphbenchXMLParser()
 
-ALL_SUITES = ["minigrid", "minihack", "atari", "procgen", "craftax", "classics"]
+ALL_SUITES = [suite for suite in ENV_SUITES if suite != "dummy"]
 
 
 def _slug_model(model: str) -> str:
@@ -131,6 +133,7 @@ def _discover_results_files(target: Path) -> list[Path]:
 _USER_TURN_TRAILER_RE = re.compile(
     r"^Now emit your move as `<action>ACTION_NAME</action>`\.?$"
 )
+_CURRENT_OBSERVATION_RE = re.compile(r"^\[Current Observation\b")
 
 
 def _extract_block(content: str, header: str) -> str | None:
@@ -162,8 +165,79 @@ def _extract_block(content: str, header: str) -> str | None:
     return "\n".join(out) if out else None
 
 
+def _extract_block_last(content: str, header: str) -> str | None:
+    """Extract the last occurrence of a bracketed block from ``content``."""
+    lines = content.split("\n")
+    indices = [i for i, ln in enumerate(lines) if ln == header]
+    if not indices:
+        return None
+    i = indices[-1]
+    out: list[str] = []
+    for ln in lines[i + 1:]:
+        if ln.startswith("[") and ln.endswith("]"):
+            break
+        out.append(ln)
+    while out and (
+        not out[-1].strip()
+        or _USER_TURN_TRAILER_RE.match(out[-1].strip())
+    ):
+        out.pop()
+    return "\n".join(out) if out else None
+
+
+def _current_observation_region(content: str) -> str | None:
+    """Return the current-observation slice of an action prompt.
+
+    Memory-mode prompts can contain arbitrary model-written memory before the
+    real observation. If that memory contains lines such as ``[HUD]`` or
+    ``[Grid]``, first-match extraction shows stale user text instead of the
+    turn being replayed. Current prompts carry a dedicated
+    ``[Current Observation — turn T]`` marker, so prefer the last such section
+    and fall back to legacy full-prompt extraction only when the marker is
+    absent.
+    """
+    lines = content.split("\n")
+    starts = [
+        i for i, ln in enumerate(lines)
+        if _CURRENT_OBSERVATION_RE.match(ln)
+    ]
+    if not starts:
+        return None
+    out: list[str] = []
+    for ln in lines[starts[-1] + 1:]:
+        if _USER_TURN_TRAILER_RE.match(ln.strip()):
+            break
+        out.append(ln)
+    while out and not out[-1].strip():
+        out.pop()
+    return "\n".join(out) if out else ""
+
+
+def _extract_observation_block(content: str, header: str) -> str | None:
+    region = _current_observation_region(content)
+    if region is not None:
+        return _extract_block(region, header)
+    return _extract_block_last(content, header)
+
+
 def _extract_grid(content: str) -> str | None:
-    return _extract_block(content, "[Grid]")
+    return _extract_observation_block(content, "[Grid]")
+
+
+def _extract_hud(content: str) -> str | None:
+    return _extract_observation_block(content, "[HUD]")
+
+
+def _extract_message(content: str) -> str | None:
+    return _extract_observation_block(content, "[Message]")
+
+
+def _extract_legend(content: str) -> str | None:
+    region = _current_observation_region(content)
+    if region is not None:
+        prefix = content[: content.rfind("[Current Observation")]
+        return _extract_block_last(prefix, "[Legend]")
+    return _extract_block_last(content, "[Legend]")
 
 
 _THINK_OPEN_RE = re.compile(r"<\s*think\s*>", re.IGNORECASE)
@@ -219,7 +293,7 @@ def _split_assistant(content: str) -> tuple[str, str]:
     return think, action
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _spec_for_env_id(env_id: str) -> tuple[object, str] | None:
     """Look up (ActionSpec, noop_action_name) for an env id.
 
@@ -400,6 +474,15 @@ def _content_from_role(messages: list[dict], role: str) -> str:
     return (msg or {}).get("content") or ""
 
 
+def _last_message_from_role(messages: list[dict], role: str) -> dict | None:
+    return next((m for m in reversed(messages) if m.get("role") == role), None)
+
+
+def _last_content_from_role(messages: list[dict], role: str) -> str:
+    msg = _last_message_from_role(messages, role)
+    return (msg or {}).get("content") or ""
+
+
 def _is_memory_update_user(msg: dict) -> bool:
     """Detect the memory-update user message inside a rollout's completion.
 
@@ -434,7 +517,62 @@ def _attach_memory_update(turn: dict, memory_user: dict, memory_assistant: dict)
     }
 
 
-def _build_memory_turns(rollout: dict) -> list[dict] | None:
+def _memory_user_from_prompt(prompt: list[dict]) -> dict | None:
+    for msg in reversed(prompt):
+        if _is_memory_update_user(msg):
+            return msg
+    return _last_message_from_role(prompt, "user")
+
+
+def _build_role_trajectory_turns(rollout: dict) -> list[dict] | None:
+    """Build replay turns from current trajectory action/memory step roles."""
+    trajectory = rollout.get("trajectory") or []
+    turns: list[dict] = []
+    pending: dict | None = None
+    saw_role = False
+
+    for step in trajectory:
+        extras = step.get("extras") or {}
+        role = extras.get("glyphbench_step_role")
+        if role == "action":
+            saw_role = True
+            if pending is not None:
+                turns.append(pending)
+            prompt = step.get("prompt") or []
+            completion = step.get("completion") or []
+            pending = {
+                "user": _last_content_from_role(prompt, "user"),
+                "assistant": _content_from_role(completion, "assistant"),
+                "memory": None,
+            }
+        elif role == "memory":
+            saw_role = True
+            if pending is None:
+                continue
+            prompt = step.get("prompt") or []
+            completion = step.get("completion") or []
+            memory_user = _memory_user_from_prompt(prompt)
+            memory_assistant = _last_message_from_role(completion, "assistant") or {}
+            stored_memory = extras.get("stored_memory")
+            if not isinstance(stored_memory, str):
+                stored_memory = extract_memory_update(
+                    memory_assistant.get("content") or ""
+                ).memory
+            pending["memory"] = {
+                "previous_memory": _extract_prompt_memory(pending.get("user") or ""),
+                "stored_memory": stored_memory,
+                "memory_update_prompt": [memory_user] if memory_user else [],
+                "memory_update_response": [memory_assistant] if memory_assistant else [],
+            }
+            turns.append(pending)
+            pending = None
+
+    if pending is not None:
+        turns.append(pending)
+    return turns if saw_role and turns else None
+
+
+def _build_legacy_memory_turns(rollout: dict) -> list[dict] | None:
     trajectory = rollout.get("trajectory") or []
     turns: list[dict] = []
     saw_memory = False
@@ -457,9 +595,12 @@ def _build_memory_turns(rollout: dict) -> list[dict] | None:
 
 def _build_turns(rollout: dict) -> list[dict]:
     """Walk the rollout into per-environment-turn display records."""
-    memory_turns = _build_memory_turns(rollout)
-    if memory_turns is not None:
-        return memory_turns
+    role_turns = _build_role_trajectory_turns(rollout)
+    if role_turns is not None:
+        return role_turns
+    legacy_memory_turns = _build_legacy_memory_turns(rollout)
+    if legacy_memory_turns is not None:
+        return legacy_memory_turns
 
     prompt_msgs = rollout.get("prompt") or []
     completion = rollout.get("completion") or []
@@ -525,6 +666,8 @@ def _render_turn_line(
     *,
     turn: int,
     grid: str,
+    hud: str | None = None,
+    message: str | None = None,
     action_chosen: str,
     reward: float,
     is_truncated: bool,
@@ -537,6 +680,7 @@ def _render_turn_line(
 
         (turn N) [chip1] [chip2]
         <grid>
+        optional [HUD] / [Message]
         chose ACTION → reward R
 
     Chips:
@@ -563,7 +707,13 @@ def _render_turn_line(
         action_part = "chose FORFEIT (parse failed) → reward 0"
     else:
         action_part = f"chose {action_chosen} → reward {reward:+.3f}"
-    return f"(turn {turn}){suffix}\n{grid}\n{action_part}"
+    lines = [f"(turn {turn}){suffix}", grid]
+    if hud:
+        lines.extend(["[HUD]", hud])
+    if message:
+        lines.extend(["[Message]", message])
+    lines.append(action_part)
+    return "\n".join(lines)
 
 
 def _render_rollout_rich(
@@ -608,6 +758,7 @@ def _render_rollout_rich(
             _rich_a = {
                 "is_truncated": bool(_step.get("is_truncated")),
                 "action_chosen": _se.get("action_chosen", ""),
+                "reward": _step.get("reward"),
             }
         elif _role == "memory":
             _rich_per_turn_extras.append((
@@ -661,8 +812,9 @@ def _render_rollout_rich(
         # Fixed 2x1 visual scale: each glyph occupies 2 terminal columns
         # so the cell ends up roughly square in a typical 2:1 font.
         grid = _scale_grid(grid, 2, 1)
-        hud = _extract_block(u_content, "[HUD]") or ""
-        legend = _extract_block(u_content, "[Legend]") or ""
+        hud = _extract_hud(u_content) or ""
+        legend = _extract_legend(u_content) or ""
+        message = _extract_message(u_content) or ""
         reward_block = _extract_block(u_content, "[Reward]") or ""
         status = _extract_block(u_content, "[Status]") or ""
         think, _ = _split_assistant(a_content)
@@ -691,6 +843,7 @@ def _render_rollout_rich(
         trunc_action = bool(_t_action_extras.get("is_truncated"))
         trunc_memory = bool(_t_mem_extras.get("is_truncated"))
         mem_parse_fail = bool(_t_mem_extras.get("memory_parse_failed"))
+        turn_reward = _t_action_extras.get("reward")
 
         flags: list[Text] = []
         # [forfeit] replaces the legacy "PARSE FAIL" chip so users see one
@@ -903,14 +1056,24 @@ def _render_rollout_rich(
             ),
             3,
         ))
-        if reward_block or status:
+        if turn_reward is not None or reward_block or status or message:
             footer_lines: list = []
+            if turn_reward is not None:
+                try:
+                    reward_text = f"{float(turn_reward):+.3f}"
+                except (TypeError, ValueError):
+                    reward_text = str(turn_reward)
+                footer_lines.append(Text.assemble(("turn reward: ", "bold"),
+                                                  (reward_text, "yellow")))
             if reward_block:
                 footer_lines.append(Text.assemble(("reward: ", "bold"),
                                                   (reward_block.strip(), "yellow")))
             if status:
                 footer_lines.append(Text.assemble(("status: ", "bold"),
                                                   (status.strip(), "magenta")))
+            if message:
+                footer_lines.append(Text.assemble(("message: ", "bold"),
+                                                  (message.strip(), "bright_white")))
             right_entries.append((
                 Panel(Group(*footer_lines), title="env feedback",
                       title_align="left", border_style="yellow", padding=(0, 1)),
@@ -1007,9 +1170,7 @@ def _render_rollout_rich(
                     full_think, _ = _split_assistant(turns[t_idx - 1]["assistant"])
                     pager_text = full_think or "(no reasoning)"
                 elif ch == "l":
-                    full_legend = (
-                        _extract_block(turns[t_idx - 1]["user"], "[Legend]") or ""
-                    ).strip()
+                    full_legend = (_extract_legend(turns[t_idx - 1]["user"]) or "").strip()
                     pager_text = full_legend or "(no legend in this turn)"
                 elif ch == "m":
                     mem = turns[t_idx - 1].get("memory") or {}
@@ -1124,10 +1285,8 @@ def _show_in_pager(text: str) -> None:
         finally:
             _restore_terminal_sane()
     finally:
-        try:
+        with suppress(OSError):
             os.unlink(path)
-        except OSError:
-            pass
 
 
 def _read_one_key() -> str:
@@ -1261,6 +1420,7 @@ def _cmd_replay(args: argparse.Namespace) -> int:
                         _a = {
                             "action_chosen": _step_extras.get("action_chosen", ""),
                             "is_truncated": bool(_step.get("is_truncated")),
+                            "reward": _step.get("reward"),
                         }
                     elif _role == "memory":
                         per_turn_extras.append((
@@ -1280,6 +1440,8 @@ def _cmd_replay(args: argparse.Namespace) -> int:
                     grid = _extract_grid(turn["user"])
                     if grid is None:
                         continue
+                    hud = _extract_hud(turn["user"])
+                    message = _extract_message(turn["user"])
                     # Resolve per-step chip inputs from trajectory extras when
                     # available; fall back to safe defaults for legacy/partial files.
                     action_extras, mem_extras = (
@@ -1293,10 +1455,18 @@ def _cmd_replay(args: argparse.Namespace) -> int:
                         action_chosen, _ = _resolve_action(
                             turn.get("assistant") or "", info.get("env_id")
                         )
-                    reward = float(rollout.get("reward") or 0.0)
+                    reward_value = action_extras.get("reward")
+                    if reward_value is None:
+                        reward_value = rollout.get("reward")
+                    try:
+                        reward = float(reward_value or 0.0)
+                    except (TypeError, ValueError):
+                        reward = 0.0
                     line = _render_turn_line(
                         turn=t_idx + 1,
                         grid=grid,
+                        hud=hud,
+                        message=message,
                         action_chosen=action_chosen,
                         reward=reward,
                         is_truncated=bool(action_extras.get("is_truncated")),

@@ -190,16 +190,13 @@ class MiniGopherEnv(MiniatariBase):
         }
 
         carrots_left = self._surviving_carrots()
-        dirt_info = " ".join(
-            f"col{c}:{self._DIRT_BOTTOM - self._dirt[c] + 1}" for c in self._CARROT_COLS
-        )
+        dirt_remaining = sum(self._DIRT_BOTTOM - self._dirt[c] + 1 for c in self._CARROT_COLS)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Carrots: {carrots_left}/{self._WIN_TARGET}    "
             f"Defense: {self._tick_count}/{self._DEFENSE_TURNS}    "
-            f"Score: {self._score:.3f}\n"
-            f"You x={self._player_x}    Gopher x={self._gopher_x}    "
-            f"Dirt remaining: {dirt_info}"
+            f"Score: {self._score:.3f}    "
+            f"Dirt remaining: {dirt_remaining}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

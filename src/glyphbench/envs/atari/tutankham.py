@@ -333,10 +333,9 @@ class TutankhamEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        dname = self._DIR_NAMES.get(self._facing, "none")
         key = "yes" if self._has_key else "no"
         extra = (
-            f"Facing: {dname}  Key: {key}  "
+            f"Key: {key}  "
             f"Treasures: {self._treasures_left}"
         )
         new_hud = obs.hud + "\n" + extra

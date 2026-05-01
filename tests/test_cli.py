@@ -15,7 +15,16 @@ def test_list_suites(capsys):
     rc = cli.main(["list-suites"])
     assert rc == 0
     out = capsys.readouterr().out.strip().split("\n")
-    assert set(out) == {"minigrid", "minihack", "atari", "procgen", "craftax", "classics"}
+    assert set(out) == {
+        "minigrid",
+        "minihack",
+        "atari",
+        "miniatari",
+        "procgen",
+        "craftax",
+        "craftaxfull",
+        "classics",
+    }
 
 
 def test_list_envs_filter_by_suite(capsys):
@@ -24,6 +33,15 @@ def test_list_envs_filter_by_suite(capsys):
     out = capsys.readouterr().out.strip().split("\n")
     assert all("/atari-" in e for e in out)
     assert len(out) > 10
+
+
+@pytest.mark.parametrize("suite", ["miniatari", "craftaxfull"])
+def test_list_envs_filter_by_all_registered_suites(suite, capsys):
+    rc = cli.main(["list-envs", "--suite", suite])
+    assert rc == 0
+    out = capsys.readouterr().out.strip().split("\n")
+    assert out
+    assert all(f"/{suite}-" in e for e in out)
 
 
 def test_list_envs_excludes_dummy(capsys):
@@ -183,6 +201,89 @@ def test_build_turns_groups_memory_update_pairs_without_trajectory_extras():
     assert turns[1]["user"].endswith("[Grid]\n.@.")
     assert turns[1]["assistant"] == "<action>EAST</action>"
     assert turns[1]["memory"] is None
+
+
+def test_build_turns_uses_current_action_memory_trajectory_roles():
+    action_user = (
+        "[Memory]\nUse carried state.\n\n<memory>\nold plan\n</memory>\n\n"
+        "[Legend]\n@ — you\n\n"
+        "[Current Observation — turn 0]\n"
+        "[Grid]\n@..\n\n"
+        "[HUD]\nStep: 0 / 2\n\n"
+        "Now emit your move as `<action>ACTION_NAME</action>`."
+    )
+    memory_user = (
+        "[Last Action]\nReasoning: go\n\n"
+        "[Env Response]\n  Reward: +0.000\n\n"
+        "[Next Observation]\n[Legend]\n@ — you\n\n[HUD]\nStep: 1 / 2\n\n[Grid]\n.@.\n\n"
+        "[Memory Update]\nUpdate memory."
+    )
+    rollout = {
+        "trajectory": [
+            {
+                "prompt": [
+                    {"role": "system", "content": "system"},
+                    {"role": "user", "content": action_user},
+                ],
+                "completion": [
+                    {"role": "assistant", "content": "<action>MOVE_FORWARD</action>"},
+                ],
+                "extras": {
+                    "glyphbench_step_role": "action",
+                    "action_chosen": "MOVE_FORWARD",
+                },
+            },
+            {
+                "prompt": [
+                    {"role": "system", "content": "system"},
+                    {"role": "user", "content": action_user},
+                    {"role": "assistant", "content": "<action>MOVE_FORWARD</action>"},
+                    {"role": "user", "content": memory_user},
+                ],
+                "completion": [
+                    {"role": "assistant", "content": "forgot memory tags"},
+                ],
+                "extras": {
+                    "glyphbench_step_role": "memory",
+                    "memory_parse_failed": True,
+                    "stored_memory": "old plan",
+                },
+            },
+        ],
+    }
+
+    turns = cli._build_turns(rollout)
+
+    assert len(turns) == 1
+    assert turns[0]["user"] == action_user
+    assert turns[0]["assistant"] == "<action>MOVE_FORWARD</action>"
+    assert turns[0]["memory"]["previous_memory"] == "old plan"
+    assert turns[0]["memory"]["stored_memory"] == "old plan"
+    assert turns[0]["memory"]["memory_update_prompt"][0]["content"] == memory_user
+    assert turns[0]["memory"]["memory_update_response"][0]["content"] == "forgot memory tags"
+
+
+def test_observation_extractors_ignore_memory_lookalike_blocks():
+    user_turn = (
+        "[Memory]\n"
+        "Use this as carried state from previous turns.\n\n"
+        "<memory>\n"
+        "[HUD]\nwrong hud\n\n"
+        "[Grid]\nwrong grid\n\n"
+        "[Legend]\nwrong legend\n"
+        "</memory>\n\n"
+        "[Legend]\n@ — you\n★ — goal\n\n"
+        "[Current Observation — turn 7]\n"
+        "[Grid]\nreal grid\n\n"
+        "[HUD]\nStep: 7 / 9    HP: 3\n\n"
+        "[Message]\nreal message\n\n"
+        "Now emit your move as `<action>ACTION_NAME</action>`."
+    )
+
+    assert cli._extract_grid(user_turn) == "real grid"
+    assert cli._extract_hud(user_turn) == "Step: 7 / 9    HP: 3"
+    assert cli._extract_message(user_turn) == "real message"
+    assert cli._extract_legend(user_turn) == "@ — you\n★ — goal"
 
 
 def test_clip_to_lines_short_input_passes_through():
@@ -386,6 +487,24 @@ def test_replay_renders_failure_mode_chips():
     assert "reward" in line4
 
 
+def test_replay_turn_line_can_include_hud_and_message():
+    line = cli._render_turn_line(
+        turn=2,
+        grid="@.",
+        hud="Step: 2 / 9    HP: 4",
+        message="door opened",
+        action_chosen="MOVE_FORWARD",
+        reward=0.0,
+        is_truncated=False,
+        memory_parse_failed=False,
+        step_role="action",
+    )
+
+    assert "[HUD]\nStep: 2 / 9    HP: 4" in line
+    assert "[Message]\ndoor opened" in line
+    assert "chose MOVE_FORWARD" in line
+
+
 def _make_synthetic_rollout() -> dict:
     """Return a synthetic rollout dict exercising all four failure-mode chips.
 
@@ -466,3 +585,57 @@ def test_plaintext_replay_emits_all_four_chips(tmp_path: Path, capsys):
     assert "[trunc-action]" in out, f"expected [trunc-action] chip in output; got:\n{out}"
     assert "[trunc-memory]" in out, f"expected [trunc-memory] chip in output; got:\n{out}"
     assert "[mem-parse-fail]" in out, f"expected [mem-parse-fail] chip in output; got:\n{out}"
+
+
+def test_plaintext_replay_emits_current_hud_and_message(tmp_path: Path, capsys):
+    user_turn = (
+        "[Legend]\n@ — you\n\n"
+        "[Current Observation — turn 0]\n"
+        "[Grid]\n@.\n\n"
+        "[HUD]\nStep: 0 / 5    Score: 1\n\n"
+        "[Message]\nready\n\n"
+        "Now emit your move as `<action>ACTION_NAME</action>`."
+    )
+    rollout = {
+        "info": {"env_id": "glyphbench/__dummy-v0", "seed": 0},
+        "reward": 0.0,
+        "prompt": [{"role": "user", "content": user_turn}],
+        "completion": [{"role": "assistant", "content": "<action>EAST</action>"}],
+    }
+    (tmp_path / "results.jsonl").write_text(json.dumps(rollout) + "\n")
+
+    rc = cli.main(["replay", str(tmp_path), "--delay", "0"])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "[HUD]\nStep: 0 / 5    Score: 1" in out
+    assert "[Message]\nready" in out
+
+
+def test_plaintext_replay_uses_per_turn_trajectory_reward(tmp_path: Path, capsys):
+    user_turn = "[Current Observation — turn 0]\n[Grid]\n@."
+    rollout = {
+        "info": {"env_id": "glyphbench/__dummy-v0", "seed": 0},
+        "reward": 99.0,
+        "prompt": [{"role": "user", "content": user_turn}],
+        "completion": [{"role": "assistant", "content": "<action>EAST</action>"}],
+        "trajectory": [
+            {
+                "prompt": [{"role": "user", "content": user_turn}],
+                "completion": [{"role": "assistant", "content": "<action>EAST</action>"}],
+                "reward": 0.5,
+                "extras": {
+                    "glyphbench_step_role": "action",
+                    "action_chosen": "EAST",
+                },
+            }
+        ],
+    }
+    (tmp_path / "results.jsonl").write_text(json.dumps(rollout) + "\n")
+
+    rc = cli.main(["replay", str(tmp_path), "--delay", "0"])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "reward +0.500" in out
+    assert "reward +99.000" not in out

@@ -227,16 +227,10 @@ class SurroundEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        p_dir = self._DIR_MAP.get(
-            (self._player_dx, self._player_dy), "?"
-        )
         o_dir = self._DIR_MAP.get(
             (self._opp_dx, self._opp_dy), "?"
         )
-        extra = (
-            f"Your dir: {p_dir}"
-            f"  Opponent dir: {o_dir}"
-        )
+        extra = f"Opponent dir: {o_dir}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

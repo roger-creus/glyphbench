@@ -229,7 +229,7 @@ class FroggerEnv(BaseGlyphEnv):
             SYM_GOAL: "goal (reach here to win)",
         })
 
-        hud = f"Step: {self._turn} / {self.max_turns}    Position: ({self._frog_x}, {self._frog_y})"
+        hud = f"Step: {self._turn} / {self.max_turns}"
 
         msg = ""
         if self._won:
@@ -260,4 +260,3 @@ class FroggerEnv(BaseGlyphEnv):
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
-

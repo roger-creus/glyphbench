@@ -84,14 +84,11 @@ def test_build_memory_update_user_includes_all_four_sections():
     assert "Reward: +1.000" in text
     assert "Terminated: true" in text
     assert "Truncated: false" in text
-    # Next Observation: actual grid is inlined
+    # Next Observation: actual HUD + grid are inlined
+    assert "[HUD]\nStep: 1 / 50    HP: 5    Score: 12" in text
+    assert "HP: 5" in text
+    assert "Score: 12" in text
     assert "[Grid]\n.A.\n..." in text
-    # HUD ban applies — [HUD] block is stripped from [Next Observation]
-    # to keep memory turn consistent with action turn's view (every
-    # game-relevant fact must be readable off the Unicode glyphs).
-    assert "[HUD]" not in text
-    assert "HP: 5" not in text
-    assert "Score: 12" not in text
     # Memory Update instruction
     assert "<memory>" in text and "</memory>" in text
     assert "Anything outside the <memory> tag is discarded" in text

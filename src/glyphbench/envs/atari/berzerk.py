@@ -371,14 +371,11 @@ class BerzerkEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        dname = self._DIR_NAMES.get(self._facing, "none")
         robots = sum(
             1 for e in self._entities
             if e.etype == "robot" and e.alive
         )
-        extra = (
-            f"Facing: {dname}  Robots: {robots}"
-        )
+        extra = f"Robots: {robots}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

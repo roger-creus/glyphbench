@@ -203,7 +203,6 @@ class MiniSurroundEnv(MiniatariBase):
         opp_dir_name = self._DIR_NAMES.get((self._opp_dx, self._opp_dy), "?")
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
-            f"Your dir: {self._DIR_NAMES.get(self._player_dir, '?')}    "
             f"Opp dir: {opp_dir_name}\n"
             f"Your trail: {len(self._trail_player)} cells    "
             f"Opp trail: {len(self._trail_opp)} cells"

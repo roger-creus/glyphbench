@@ -334,15 +334,10 @@ class DefenderEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        facing = "right" if self._facing > 0 else "left"
         n_humans = sum(
             1 for h in self._humanoids if h.alive
         )
-        extra = (
-            f"Facing: {facing}"
-            f"  World pos: {self._world_x}"
-            f"  Humanoids: {n_humans}"
-        )
+        extra = f"Humanoids: {n_humans}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

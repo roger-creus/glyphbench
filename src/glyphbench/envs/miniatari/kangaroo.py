@@ -215,13 +215,11 @@ class MiniKangarooEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"you (facing {self._DIR_NAMES.get(self._player_dir, 'right')})"
 
-        coconuts_info = " ".join(f"({cx},{cy})" for cx, cy in self._coconuts)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Floor: {self._floor} (max {self._max_floor}/{self._N_FLOORS})    "
-            f"Score: {self._score:.3f}\n"
-            f"You: ({self._player_x},{self._player_y})    "
-            f"Coconuts: {coconuts_info}"
+            f"Score: {self._score:.3f}    "
+            f"Coconuts: {len(self._coconuts)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

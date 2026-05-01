@@ -202,14 +202,11 @@ class MiniYarsRevengeEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"you (facing {self._DIR_NAMES.get(self._player_dir, 'right')})"
 
-        beams_info = " ".join(f"({bx},{by})" for bx, by in self._beams)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Shield: {5 - self._shield_kills}/5 left    "
-            f"Score: {self._score:.3f}\n"
-            f"You: ({self._player_x},{self._player_y}) "
-            f"facing {self._DIR_NAMES.get(self._player_dir, 'right')}    "
-            f"Beams: {beams_info}"
+            f"Score: {self._score:.3f}    "
+            f"Beams: {len(self._beams)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

@@ -321,11 +321,10 @@ class GravitarEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        direction = self._FACING_NAMES[self._facing]
-        extra = (
-            f"Fuel: {self._fuel}"
-            f"  Ship facing: {direction}"
-        )
+        parts = [f"Fuel: {self._fuel}"]
+        if self._DIRS[self._facing] not in self._DIR_CHARS:
+            parts.append(f"Ship facing: {self._FACING_NAMES[self._facing]}")
+        extra = "  ".join(parts)
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,

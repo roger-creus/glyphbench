@@ -189,14 +189,12 @@ class MiniBankHeistEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"your car (facing {self._DIR_NAMES.get(self._player_dir, 'right')})"
 
-        banks_info = " ".join(f"({bx},{by})" for bx, by in sorted(self._banks))
-        cops_info = " ".join(f"({cx},{cy})" for cx, cy in self._cops)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Robbed: {self._progress}/{self._WIN_TARGET}    "
-            f"Score: {self._score:.3f}\n"
-            f"Car: ({self._player_x},{self._player_y})    "
-            f"Banks: {banks_info}    Cops: {cops_info}"
+            f"Score: {self._score:.3f}    "
+            f"Banks: {len(self._banks)}    "
+            f"Cops: {len(self._cops)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

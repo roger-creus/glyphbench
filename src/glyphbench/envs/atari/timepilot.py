@@ -312,11 +312,6 @@ class TimePilotEnv(AtariBase):
 
     def _render_current_observation(self) -> GridObservation:
         obs = super()._render_current_observation()
-        fdx = self._facing_dx
-        fdy = self._facing_dy
-        dname = self._DIR_NAMES.get(
-            (fdx, fdy), "none"
-        )
         boss_hp = "none"
         if (
             self._boss is not None
@@ -324,7 +319,6 @@ class TimePilotEnv(AtariBase):
         ):
             boss_hp = str(self._boss.data.get("hp", 0))
         extra = (
-            f"Facing: {dname}  "
             f"Kills: {self._kills}/10  Boss: {boss_hp}"
         )
         new_hud = obs.hud + "\n" + extra

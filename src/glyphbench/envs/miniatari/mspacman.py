@@ -213,13 +213,11 @@ class MiniMsPacmanEnv(MiniatariBase):
         pch = self._DIR_CHARS.get(self._player_dir, "@")
         symbols[pch] = f"you (facing {self._DIR_NAMES.get(self._player_dir, 'right')})"
 
-        ghosts_info = " ".join(f"({gx},{gy})" for gx, gy in self._ghosts)
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Eaten: {self._progress}/{self._n_dots}    "
-            f"Score: {self._score:.3f}\n"
-            f"You: ({self._player_x},{self._player_y})    "
-            f"Ghosts: {ghosts_info}"
+            f"Score: {self._score:.3f}    "
+            f"Ghosts: {len(self._ghosts)}"
         )
         return GridObservation(
             grid=grid_to_string(grid),

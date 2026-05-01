@@ -305,18 +305,13 @@ class IceHockeyEnv(AtariBase):
             )
             symbols[pch] = f"you (facing {dname})"
         p = min(self._period, 3)
-        px = int(round(self._puck_x))
-        py = int(round(self._puck_y))
         pdx = round(self._puck_dx, 1)
         pdy = round(self._puck_dy, 1)
         if self._puck_holder:
             holder = self._puck_holder
         else:
             holder = "loose"
-        puck = (
-            f"Puck: pos=({px},{py})"
-            f" vel=({pdx},{pdy}) holder={holder}"
-        )
+        puck = f"Puck vel=({pdx},{pdy}) holder={holder}"
         hud = (
             f"You {self._player_goals} - "
             f"{self._opp_goals} Opp | Period {p}/3"

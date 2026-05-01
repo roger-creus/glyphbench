@@ -297,9 +297,7 @@ class VentureEnv(AtariBase):
             if self._current_room >= 0
             else 0
         )
-        extra = (
-            f"Facing: {self._facing}  Room: {room}"
-        )
+        extra = f"Room: {room}"
         new_hud = obs.hud + "\n" + extra
         return GridObservation(
             grid=obs.grid, legend=obs.legend,
