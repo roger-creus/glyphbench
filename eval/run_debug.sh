@@ -67,7 +67,7 @@ start_vllm_in_bg() {
     local port
     port="$(echo "$BASE_URL" | sed -E 's|.*://[^:/]+:?([0-9]*)/?.*|\1|')"
     port="${port:-8000}"
-    nohup vllm serve "$MODEL" --port "$port" --max-model-len 8192 \
+    nohup vllm serve "$MODEL" --port "$port" --max-model-len 24576 \
         > "$VLLM_LOG" 2>&1 &
     VLLM_PID=$!
     echo "    vllm pid=$VLLM_PID"
@@ -103,7 +103,7 @@ Start one in another terminal:
     cd $REPO_ROOT
     source .venv/bin/activate
     set -a; source .env; set +a       # for HF_TOKEN
-    vllm serve $MODEL --port 8000 --max-model-len 8192 --enforce-eager
+    vllm serve $MODEL --port 8000 --max-model-len 24576 --enforce-eager
 
 … then re-run this script.
 

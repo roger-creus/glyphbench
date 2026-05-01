@@ -2,7 +2,10 @@
 # Full eval: all 300 envs × $EPISODES (default 10) × $MODEL.
 #
 # Prereq: a vLLM server at $VLLM_BASE_URL serving the target model. e.g.:
-#   uv run vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 16384
+#   uv run vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 24576
+#
+# 24576 = 16384 input cap + 8192 action output budget. Memory turns send
+# max_tokens=4096, comfortably below the same envelope.
 #
 # After it finishes, view results with: prime eval tui
 

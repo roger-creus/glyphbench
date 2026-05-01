@@ -18,7 +18,7 @@ Both scripts assume an OpenAI-compatible server is reachable at
 `http://localhost:8000/v1`. Easiest local server:
 
 ```bash
-vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 8192
+vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 24576
 ```
 
 ## CLI flags
@@ -161,6 +161,23 @@ benchmark-wide normalised score: per-task per-model means are published
 raw and downstream analyses choose their own aggregation. The leaderboard
 site under `docs/leaderboard/` aggregates submitted results; see the
 project root README for how to submit.
+
+## Failure modes & metrics
+
+Every rollout reports a fixed set of observability metrics. See
+[docs/llm-agent-failure-modes.md](../docs/llm-agent-failure-modes.md) for
+definitions and diagnostic guidance.
+
+Common signals:
+
+- `forfeit_rate` — agent failed to emit `<action>NAME</action>`.
+- `action_completion_truncation_rate` — reasoning hit the 8192-token cap.
+- `memory_completion_truncation_rate` — memory write hit the 4096-token cap.
+- `memory_parse_failure_rate` — memory wasn't wrapped in `<memory>` tags.
+- `episode_terminated_rate` / `episode_truncated_max_turns_rate` — natural end vs ran-out-of-clock.
+
+vLLM server requirement: `--max-model-len 24576` (= 16384 input cap + 8192
+action output budget). Memory turns send `max_tokens=4096`.
 
 ## Files
 
