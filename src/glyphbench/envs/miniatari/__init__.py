@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from glyphbench.core.registry import register_env
 
+from glyphbench.envs.miniatari.asteroids import MiniAsteroidsEnv
 from glyphbench.envs.miniatari.boxing import MiniBoxingEnv
 from glyphbench.envs.miniatari.breakout import MiniBreakoutEnv
 from glyphbench.envs.miniatari.doubledunk import MiniDoubleDunkEnv
@@ -33,6 +34,7 @@ REGISTRY: dict = {
     "glyphbench/miniatari-spaceinvaders-v0": MiniSpaceInvadersEnv,
     "glyphbench/miniatari-freeway-v0": MiniFreewayEnv,
     "glyphbench/miniatari-frostbite-v0": MiniFrostbiteEnv,
+    "glyphbench/miniatari-asteroids-v0": MiniAsteroidsEnv,
 }
 
 for env_id, cls in REGISTRY.items():
