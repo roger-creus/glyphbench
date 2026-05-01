@@ -20,7 +20,8 @@ class IceHockeyEnv(AtariBase):
     AI opponent chases puck and shoots.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, SHOOT
-    Reward: +1 per goal scored, -1 per goal conceded
+    Pattern C (adversarial first-to-W): ±1/_WIN_TARGET per goal.
+    First to _WIN_TARGET wins (full-scope = 21).
     """
 
     action_spec = ActionSpec(
@@ -48,6 +49,9 @@ class IceHockeyEnv(AtariBase):
     _GOAL_R = 12
     _PERIOD_LEN = 500
 
+    # Pattern C full-scope target: first to 21 goals.
+    _WIN_TARGET: int = 21
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._opp_x: int = 0
@@ -62,9 +66,16 @@ class IceHockeyEnv(AtariBase):
         self._opp_goals: int = 0
         self._period: int = 1
         self._period_timer: int = 0
+        self._agent_progress: int = 0
+        self._opp_progress: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-icehockey-v0"
+
+    def _reset(self, seed: int):
+        self._agent_progress = 0
+        self._opp_progress = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -146,7 +157,9 @@ class IceHockeyEnv(AtariBase):
                 if self._GOAL_L <= px <= self._GOAL_R:
                     self._player_goals += 1
                     self._on_point_scored(1)
-                    reward = 1.0
+                    if self._agent_progress < self._WIN_TARGET:
+                        reward = 1.0 / self._WIN_TARGET
+                        self._agent_progress += 1
                     self._message = "GOAL! You score!"
                     self._reset_positions()
                 else:
@@ -154,7 +167,9 @@ class IceHockeyEnv(AtariBase):
             elif py >= self._RINK_B:
                 if self._GOAL_L <= px <= self._GOAL_R:
                     self._opp_goals += 1
-                    reward = -1.0
+                    if self._opp_progress < self._WIN_TARGET:
+                        reward = -1.0 / self._WIN_TARGET
+                        self._opp_progress += 1
                     self._message = "Opponent scores!"
                     self._reset_positions()
                 else:
@@ -167,9 +182,16 @@ class IceHockeyEnv(AtariBase):
                 self._puck_dx = self._puck_dy = 0.0
         # Opponent AI
         self._move_opponent()
-        # Period check
+        # First-to-N termination
         terminated = False
-        if self._period_timer >= self._PERIOD_LEN:
+        if self._agent_progress >= self._WIN_TARGET:
+            terminated = True
+            self._message = "You win!"
+            info["won"] = True
+        elif self._opp_progress >= self._WIN_TARGET:
+            terminated = True
+            self._message = "Opponent wins!"
+        elif self._period_timer >= self._PERIOD_LEN:
             self._period += 1
             self._period_timer = 0
             if self._period > 3:
@@ -347,10 +369,12 @@ class IceHockeyEnv(AtariBase):
             "off side boards; entering a goal zone scores. Friction "
             "reduces puck velocity by 5 percent per step.\n\n"
             "SCORING\n"
-            "+1 reward per goal you score. -1 reward per goal "
-            "conceded. No per-step or puck-possession rewards.\n\n"
+            "+1/21 reward per goal you score (Pattern C). -1/21 "
+            "reward per goal conceded. Bound: cumulative reward "
+            "stays in [-1, +1].\n\n"
             "TERMINATION\n"
-            "Three periods of 500 ticks each (1500 total). No lives. "
+            "First side to 21 goals wins (terminates). Otherwise "
+            "three periods of 500 ticks each (1500 total). No lives. "
             "At end the higher score wins (message only).\n\n"
             "HUD\n"
             "Shows your goals, opponent goals, current period, and "
