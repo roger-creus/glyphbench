@@ -8,19 +8,31 @@ but must not enumerate `<glyph> = <meaning>` lines.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from glyphbench.core.registry import all_glyphbench_env_ids, make_env
 from glyphbench.envs import _import_all_suites
 
 
-# Sentinel snippets that betray a legend enumeration in a system prompt.
-# These are intentionally narrow: descriptive prose is fine, only enumerations
-# matching `<char> [=:-] <description>` patterns trigger the failure.
-_ENUMERATION_RE = (
-    # e.g.  ☺ = you, ⇣ - stairs, P : player
-    r"^\s*[^\w\s]\s*[=:\-]\s*\w",
-)
+# A legend is at least 3 consecutive lines of `<glyph><sep><description>`
+# where <glyph> is a single non-word character and <sep> is = or : or –.
+# Isolated bullets like "- -1 reward" no longer false-positive.
+_LEGEND_LINE_RE = re.compile(r"^\s+\S\s+[=:\-]\s+\S", re.MULTILINE)
+
+
+def _has_legend_block(text: str) -> bool:
+    lines = text.splitlines()
+    streak = 0
+    for line in lines:
+        if _LEGEND_LINE_RE.match(line):
+            streak += 1
+            if streak >= 3:
+                return True
+        else:
+            streak = 0
+    return False
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -32,17 +44,14 @@ def _envs_loaded():
     eid for eid in all_glyphbench_env_ids() if "__dummy" not in eid
 ))
 def test_system_prompt_does_not_enumerate_glyphs(env_id):
-    import re
     env = make_env(env_id)
     sp = env.system_prompt()
     assert "[Legend]" not in sp, (
         f"{env_id}: system_prompt contains a [Legend] block — that header is "
         f"reserved for per-turn observations only."
     )
-    # No `<symbol> = description` enumeration lines.
-    pattern = re.compile(_ENUMERATION_RE[0], re.MULTILINE)
-    matches = pattern.findall(sp)
-    assert not matches, (
-        f"{env_id}: system_prompt contains glyph-enumeration line(s): "
-        f"{matches[:3]}. Move legend material to the per-turn observation."
+    # No legend-block enumerations (3+ consecutive `<glyph> <sep> <desc>` lines).
+    assert not _has_legend_block(sp), (
+        f"{env_id}: system_prompt contains a glyph-enumeration legend block. "
+        f"Move legend material to the per-turn observation."
     )
