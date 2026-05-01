@@ -41,8 +41,7 @@ def list_task_ids(
       - ``exclude_*`` lists are blacklists: any match removes the id.
       - Excludes always win over includes.
       - ``__dummy`` envs are excluded by default and only appear if explicitly
-        named in ``include_tasks`` (or matched by a pattern that is intended
-        to include them).
+        named by exact env_id in ``include_tasks``.
       - Returns a sorted list.
     """
     suites_in = include_suites or []

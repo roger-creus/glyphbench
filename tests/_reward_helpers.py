@@ -15,7 +15,7 @@ def _random_rollout_return(env_id: str, seed: int = 0) -> tuple[float, int]:
     env = make_env(env_id)
     rng = random.Random(seed)
     env.reset(seed=seed)
-    n_actions = len(env.action_spec.names)
+    n_actions = env.action_spec.n
     total = 0.0
     length = 0
     for _ in range(env.max_turns):

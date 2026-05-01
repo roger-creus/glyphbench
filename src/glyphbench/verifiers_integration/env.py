@@ -13,7 +13,8 @@ from verifiers.types import Response, TrajectoryStep
 from verifiers.utils.response_utils import parse_response_message, parse_response_tokens
 
 from glyphbench.core.base_env import BaseGlyphEnv
-from glyphbench.core.registry import REGISTRY, all_glyphbench_env_ids, make_env
+from glyphbench.core.registry import REGISTRY, make_env
+from glyphbench.core.task_selection import list_task_ids
 from glyphbench.verifiers_integration.memory import (
     build_memory_update_user,
     extract_memory_update,
@@ -129,13 +130,21 @@ def _resolve_env_ids(
 ) -> list[str]:
     """Resolve the final list of env_ids to operate on.
 
-    If ``env_id`` is given (string or list), it takes precedence — filter
-    kwargs are ignored. Otherwise, the filter kwargs are passed through
-    list_task_ids to filter the registry.
+    If ``env_id`` is given (string or list), filter kwargs must all be
+    ``None`` — they are mutually exclusive with the explicit task id.
+    Otherwise, the filter kwargs are passed through list_task_ids to filter
+    the registry.
     """
-    from glyphbench.core.task_selection import list_task_ids
-
     if env_id is not None:
+        if any(
+            x is not None
+            for x in (include_suites, exclude_suites, include_tasks, exclude_tasks)
+        ):
+            raise TypeError(
+                "task_id is mutually exclusive with include_suites/exclude_suites/"
+                "include_tasks/exclude_tasks. Pass either an explicit task_id (or list) "
+                "OR filter kwargs, not both."
+            )
         ids = [env_id] if isinstance(env_id, str) else list(env_id)
         missing = [i for i in ids if i not in REGISTRY]
         if missing:

@@ -23,9 +23,20 @@ def test_resolve_exclude_suites():
     assert all(not i.startswith("glyphbench/atari-") for i in ids)
 
 
-def test_resolve_explicit_task_id_takes_precedence():
-    ids = _resolve_env_ids("glyphbench/minigrid-empty-5x5-v0", ["atari"], None, None, None)
+def test_resolve_explicit_task_id_alone():
+    ids = _resolve_env_ids("glyphbench/minigrid-empty-5x5-v0", None, None, None, None)
     assert ids == ["glyphbench/minigrid-empty-5x5-v0"]
+
+
+def test_resolve_task_id_with_filter_kwargs_raises():
+    with pytest.raises(TypeError, match="mutually exclusive"):
+        _resolve_env_ids(
+            "glyphbench/minigrid-empty-5x5-v0",
+            ["minigrid"],
+            None,
+            None,
+            None,
+        )
 
 
 def test_resolve_include_pattern_via_tasks():
