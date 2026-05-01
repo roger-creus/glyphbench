@@ -21,8 +21,8 @@ class BeamRiderEnv(AtariBase):
     Enemies descend on beams; shoot them or dodge.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Reward: +1 per enemy, +3 sector clear
-
+    Pattern A: +1/_WIN_TARGET per enemy killed (full-scope = 15 enemies
+    in one sector). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -42,6 +42,10 @@ class BeamRiderEnv(AtariBase):
     _MAX_BULLETS = 2
     _SECTOR_TARGET = 12
 
+    # Pattern A full-scope target: 15 enemies destroyed in one sector;
+    # multi-sector loop stops accruing reward at the cap.
+    _WIN_TARGET: int = 15
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._bullets: list[AtariEntity] = []
@@ -51,9 +55,14 @@ class BeamRiderEnv(AtariBase):
         self._step_counter: int = 0
         self._kills: int = 0
         self._spawn_cd: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-beamrider-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -142,9 +151,11 @@ class BeamRiderEnv(AtariBase):
                     e.alive = False
                     b.alive = False
                     self._on_point_scored(1)
-                    reward += 1
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
                     self._kills += 1
-                    self._message = "Enemy hit! +1"
+                    self._message = "Enemy hit!"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -176,11 +187,15 @@ class BeamRiderEnv(AtariBase):
             self._spawn_enemy()
             self._spawn_cd = max(4, 10 - self._level)
 
-        # Sector clear
-        if self._kills >= self._SECTOR_TARGET:
-            self._on_point_scored(3)
-            reward += 3
-            self._message = "Sector cleared! +3"
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "Sector target reached!"
+
+        # Sector clear (advance level for HUD; no reward bonus)
+        if self._kills >= self._SECTOR_TARGET and not self._game_over:
+            self._message = "Sector cleared!"
             self._level += 1
             self._generate_level(self._level)
 
