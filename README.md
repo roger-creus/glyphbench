@@ -22,12 +22,14 @@ Every environment renders its state as a Unicode text grid with a legend and dis
 |---|---:|---|---|
 | MiniGrid | 71 | Grid navigation, key/door puzzles, dynamic obstacles, memory | 7 |
 | MiniHack | 63 | NetHack-inspired dungeons, combat, items, skills | 22 |
-| Atari | 57 | Classic arcade (Pong, Breakout, Space Invaders, …) | 3-10 |
+| Atari | 57 | Classic arcade (Pong, Breakout, Space Invaders, …) — long-horizon archival | 3-10 |
 | Classics | 50 | Snake, Sokoban, Minesweeper, Sudoku, Nim, … | 2-256 |
-| Craftax | 43 | Open-world survival + crafting, dungeon floors, focused sub-tasks | 19 / 45 |
+| Miniatari | 43 | Short-horizon redesigns of arcade Atari (born `[-1, 1]`-compliant) | 3-10 |
+| Craftax | 41 | Open-world survival + crafting, dungeon floors, focused sub-tasks | 19 |
 | Procgen | 16 | Procedurally generated platformers, shooters, mazes | 4-6 |
+| Craftaxfull | 2 | Open-ended Crafter / Craftax (long-horizon archival) | 19 / 45 |
 
-All environments use single-codepoint Unicode glyphs (`→↓←↑` for player direction, `█` walls, `★` goals, `≈` water, …) with no symbol collisions inside a suite.
+All environments use single-codepoint Unicode glyphs (`→↓←↑` for player direction, `█` walls, `★` goals, `≈` water, …) with no symbol collisions inside a suite. Every env's cumulative episodic return is structurally bounded to **`[-1, 1]`** so per-task results are directly comparable.
 
 ## Browse the suites
 
@@ -67,6 +69,14 @@ All environments use single-codepoint Unicode glyphs (`→↓←↑` for player 
 |:---:|:---:|:---:|:---:|:---:|
 | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-coinrun-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-maze-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-bigfish-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-ninja-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-jumper-v0.gif" width="130" /> |
 
+### Miniatari
+
+Short-horizon redesigns of the arcade Atari games (smaller grids, tight terminal win conditions, `max_turns ∈ [100, 500]`). Same identity, far cheaper to eval — the practical default for LLM evaluation. Examples: `miniatari-pong-v0` (first-to-3), `miniatari-breakout-v0` (clear 6 bricks), `miniatari-spaceinvaders-v0` (clear 1 wave), `miniatari-freeway-v0` (cross 4 lanes), `miniatari-frostbite-v0` (4 ice floes). 43 envs total.
+
+### Craftaxfull
+
+The two open-ended Crafter / Craftax games extracted into their own suite for long-horizon archival eval. Excluded from default training/eval; opt in with `eval/run_archival.sh`. Envs: `craftaxfull-classic-v0`, `craftaxfull-v0`.
+
 → [Browse all 343 environments on the leaderboard gallery](https://roger-creus.github.io/glyphbench/leaderboard/)
 
 ## Install
@@ -91,6 +101,64 @@ print(obs)
 # Or: load as a verifiers environment for eval / RL
 vf_env = glyphbench.load_environment(task_id="glyphbench/minigrid-empty-5x5-v0")
 ```
+
+### One env per suite
+
+```python
+from glyphbench.core import make_env
+
+# MiniGrid — grid navigation, key/door puzzles
+make_env("glyphbench/minigrid-doorkey-6x6-v0")
+
+# MiniHack — NetHack-inspired dungeons
+make_env("glyphbench/minihack-corridor-r3-v0")
+
+# Atari — full-horizon arcade originals (archival)
+make_env("glyphbench/atari-pong-v0")
+
+# Miniatari — short-horizon arcade redesigns (recommended for eval/training)
+make_env("glyphbench/miniatari-pong-v0")
+
+# Classics — Snake, Sokoban, 2048, Tetris, Minesweeper, ...
+make_env("glyphbench/classics-snake-medium-v0")
+
+# Craftax — survival + crafting subtasks
+make_env("glyphbench/craftax-craftpickaxe-v0")
+
+# Craftaxfull — open-ended Crafter / Craftax (long-horizon archival)
+make_env("glyphbench/craftaxfull-classic-v0")
+
+# Procgen — procedurally generated platformers, shooters, mazes
+make_env("glyphbench/procgen-coinrun-v0")
+```
+
+### Filtering by suite or task pattern
+
+`load_environment` accepts include/exclude filters that select a subset of the registry — useful for training configs and eval scripts.
+
+```python
+import glyphbench
+
+# Train on miniatari + minigrid + minihack only:
+env = glyphbench.load_environment(
+    include_suites=["miniatari", "minigrid", "minihack"],
+    num_episodes=5,
+)
+
+# Eval everything except the long-horizon archival suites (this is the default in eval/run_full.sh):
+env = glyphbench.load_environment(
+    exclude_suites=["atari", "craftaxfull"],
+    num_episodes=5,
+)
+
+# Eval all atari pong-style games via fnmatch pattern:
+env = glyphbench.load_environment(
+    include_tasks=["glyphbench/*-pong-v0"],
+    num_episodes=5,
+)
+```
+
+CLI counterparts in `eval/run_full.sh` (default-filtered) and `eval/run_archival.sh` (atari + craftaxfull only).
 
 ## Trajectory replay
 
