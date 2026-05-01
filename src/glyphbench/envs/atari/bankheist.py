@@ -30,9 +30,8 @@ class BankHeistEnv(AtariBase):
     """Bank Heist: rob banks, avoid police, reach the exit.
 
     Actions: NOOP, UP, RIGHT, LEFT, DOWN, FIRE
-    Reward: +2 per bank robbed, -1 if caught by police.
-    Gas limit forces you to exit before running out.
-    FIRE drops dynamite to stun nearby police.
+    Pattern D: +1/_WIN_TARGET per bank robbed, -1 if caught by police
+    or out of gas (single-life model).
     """
 
     action_spec = ActionSpec(
@@ -47,6 +46,10 @@ class BankHeistEnv(AtariBase):
         ),
     )
 
+    # Pattern D full-scope target: 30 banks robbed across multiple levels.
+    _WIN_TARGET: int = 30
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._gas: int = _GAS_START
@@ -54,9 +57,14 @@ class BankHeistEnv(AtariBase):
         self._total_banks: int = 0
         self._dynamite_count: int = 3
         self._facing: tuple[int, int] = (1, 0)
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-bankheist-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _task_description(self) -> str:
         return (
@@ -192,16 +200,12 @@ class BankHeistEnv(AtariBase):
         reward = 0.0
         info: dict[str, Any] = {}
 
-        # Consume gas
+        # Consume gas (Pattern D death penalty)
         self._gas -= 1
         if self._gas <= 0:
             self._message = "Out of gas!"
             self._on_life_lost()
-            if not self._game_over:
-                self._gas = _GAS_START
-                self._player_x = 1
-                self._player_y = _H - 2
-            return -1.0, self._game_over, info
+            return self._DEATH_PENALTY, self._game_over, info
 
         # Parse action
         move_dir: tuple[int, int] | None = None
@@ -227,13 +231,18 @@ class BankHeistEnv(AtariBase):
             self._set_cell(self._player_x, self._player_y, " ")
             self._banks_robbed += 1
             self._on_point_scored(2)
-            reward += 2.0
+            if self._progress_count < self._WIN_TARGET:
+                reward += 1.0 / self._WIN_TARGET
+                self._progress_count += 1
             self._message = "Bank robbed!"
+            # Win check
+            if self._progress_count >= self._WIN_TARGET:
+                self._game_over = True
+                info["won"] = True
+                self._message = "All banks robbed!"
+                return reward, self._game_over, info
         elif cell == _EXIT_CHAR:
-            # Level complete
-            bonus = self._banks_robbed * 1
-            self._on_point_scored(bonus)
-            reward += float(bonus)
+            # Level complete (no bonus reward; cumulative is structural)
             self._level += 1
             self._message = "Escaped!"
             self._generate_level(self._level * 4231)
@@ -259,7 +268,7 @@ class BankHeistEnv(AtariBase):
                 continue
             self._move_police(e)
 
-        # Check police collision
+        # Check police collision (Pattern D death penalty)
         for e in self._entities:
             if (
                 e.etype == "police"
@@ -268,14 +277,10 @@ class BankHeistEnv(AtariBase):
                 and e.y == self._player_y
                 and e.data.get("stunned", 0) <= 0
             ):
-                        self._on_life_lost()
-                        reward -= 1.0
-                        self._message = "Caught by police!"
-                        if not self._game_over:
-                            self._player_x = 1
-                            self._player_y = _H - 2
-                            self._gas = _GAS_START
-                        break
+                self._on_life_lost()
+                reward = self._DEATH_PENALTY
+                self._message = "Caught by police!"
+                break
 
         info["gas"] = self._gas
         info["banks_robbed"] = self._banks_robbed
