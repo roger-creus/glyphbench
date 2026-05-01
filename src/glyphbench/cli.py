@@ -29,11 +29,7 @@ from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
 
 # Singleton parser instance used by the canonical eval pipeline; we route
 # CLI replay action extraction through it so the displayed action matches
-# what the verifiers eval actually scored. Spec is unavailable at replay
-# time (we'd have to re-load the env), so spec-aware bare-name validation
-# is best-effort: the parser returns the last candidate token, then the
-# CLI applies a malformed-content cleanup pass to recover from things
-# like ``ACTION_NAME=MOVE_FORWARD``.
+# what the verifiers eval actually scored.
 _REPLAY_PARSER = GlyphbenchXMLParser()
 
 ALL_SUITES = ["minigrid", "minihack", "atari", "procgen", "craftax", "classics"]
@@ -170,22 +166,16 @@ _BARE_NAME_RE = re.compile(r"\b([A-Z][A-Z0-9_]{1,})\b")
 def _split_assistant(content: str) -> tuple[str, str]:
     """Split an assistant turn into (reasoning, action).
 
-    Mirrors the tolerance of ``verifiers_integration.parser`` so the
-    replay panel shows the same action the eval actually scored:
+    Mirrors the strict eval parser so the replay panel shows exactly what
+    the eval scored:
 
     * Reasoning is the segment ending at the LAST ``</think>``. Qwen3.5's
       chat template prefills ``<think>\\n``, so the stored content
       commonly starts mid-thinking with no opener; treat start-of-string
       as an implicit opener when only a closer is present.
-    * Action is the LAST ``<action>…</action>`` (the model often quotes
-      the template ``<action>ACTION_NAME</action>`` inside its CoT before
-      emitting the real one — first-match would grab that placeholder).
-      Fall back to an unclosed ``<action>…`` and finally to the LAST
-      bare uppercase token.
-    * If the captured action is malformed (``<``, ``=``, whitespace),
-      pluck out the last bare-name token inside it — e.g. a model
-      writing ``<action>ACTION_NAME=MOVE_FORWARD</action>`` should
-      surface as ``MOVE_FORWARD``.
+    * Action is the LAST complete ``<action>…</action>`` tag content.
+      Malformed content (unclosed tag, JSON, bare token) is no longer
+      recovered — the eval would have forfeited those turns.
     """
     text = content or ""
 
@@ -204,18 +194,11 @@ def _split_assistant(content: str) -> tuple[str, str]:
         think = ""
         post_think = text
 
-    # ---- action: route through the canonical eval parser, then apply
-    # a CLI-side cleanup pass for malformed candidates (the parser
-    # would have routed them to noop via spec validation; we don't have
-    # a spec at replay time so we rescue the bare-name token).
-    candidate = _REPLAY_PARSER._extract_candidate(text) or ""
-    action = candidate.strip()
-    if action and any(
-        ch in action for ch in ("<", "=", "/", "?", "`", "\n", "\t", " ")
-    ):
-        bare = _BARE_NAME_RE.findall(action)
-        if bare:
-            action = bare[-1]
+    # ---- action: use the strict XML regex directly — last complete
+    # <action>NAME</action> wins; no malformed-content recovery since
+    # the eval no longer accepts those formats either.
+    xml_matches = _ACTION_RE_LOCAL.findall(text)
+    action = xml_matches[-1].strip() if xml_matches else ""
 
     # Reasoning residual fallback — only fires when there was no </think>
     # at all (genuine leak, not chat-template prefill).
@@ -260,7 +243,7 @@ def _resolve_action(text: str, env_id: str | None) -> tuple[str, bool]:
         if spec_info is not None:
             spec, noop = spec_info
             try:
-                _idx, canonical, failed = _REPLAY_PARSER.parse_action(
+                _idx, canonical, failed, _reason = _REPLAY_PARSER.parse_action(
                     raw, spec, noop=noop,
                 )
                 return canonical, failed
