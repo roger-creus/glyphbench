@@ -24,6 +24,8 @@ class PitfallEnv(AtariBase):
 
     Grid: 40 wide x 12 tall.
     Gravity: agent falls if no platform below.
+    Pattern A: +1/_WIN_TARGET per treasure collected (full-scope =
+    32 treasures). -1.0 on death (enemy / pit fall).
     """
 
     action_spec = ActionSpec(
@@ -42,6 +44,10 @@ class PitfallEnv(AtariBase):
     _HEIGHT = 12
     _TOTAL_SCREENS = 255
 
+    # Pattern A full-scope target: 32 treasures collected.
+    _WIN_TARGET: int = 32
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._lives = 1
@@ -51,9 +57,14 @@ class PitfallEnv(AtariBase):
         self._on_vine: bool = False
         self._collected_screens: set[int] = set()
         self._timer: int = 2000  # countdown timer
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-pitfall-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._lives = 1
@@ -211,15 +222,11 @@ class PitfallEnv(AtariBase):
                 below = self._player_y + 1
                 if below < self._HEIGHT and not self._is_platform(self._player_x, below):
                     self._player_y = below
-                    # Check if fell into pit
+                    # Check if fell into pit (Pattern A death)
                     if self._grid_at(self._player_x, self._player_y) == "~":
                         self._on_life_lost()
-                        self._on_point_scored(-1)
-                        reward -= 1
-                        self._player_x = 5
-                        self._player_y = self._HEIGHT - 3
-                        self._jumping = False
-                        self._message = "Fell into pit! -1"
+                        reward = self._DEATH_PENALTY
+                        self._message = "Fell into pit!"
 
         # Screen transitions
         if self._player_x >= self._WIDTH - 1:
@@ -246,16 +253,21 @@ class PitfallEnv(AtariBase):
                 if e.etype == "treasure":
                     e.alive = False
                     self._collected_screens.add(self._screen)
-                    self._on_point_scored(3)
-                    reward += 3
-                    self._message = "Treasure! +3"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Treasure!"
                 elif e.etype == "enemy":
                     self._on_life_lost()
-                    self._player_x = 5
-                    self._player_y = self._HEIGHT - 3
-                    self._jumping = False
+                    reward = self._DEATH_PENALTY
                     self._message = "Hit by hazard!"
                     break
+
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All treasures collected!"
 
         info["screen"] = self._screen
         info["timer"] = self._timer
@@ -321,14 +333,14 @@ class PitfallEnv(AtariBase):
             "'=', '#', or 'L'. Screen transitions reset the "
             "position to x=1 or x=W-2 of the new screen.\n\n"
             "SCORING\n"
-            "+3 reward per treasure '$' collected. -1 reward "
-            "when you fall into water (pit 'tilde') which also "
-            "costs a life. No per-step reward; the game is also "
-            "time-limited.\n\n"
+            "+1/32 reward per treasure '$' collected (Pattern A "
+            "full-scope = 32 treasures across 255 screens). -1.0 "
+            "on death (falling in water or touching scorpion/snake).\n\n"
             "TERMINATION\n"
-            ". Timer runs out (2000 ticks) or lives "
-            "reach 0 ends the episode. Falling in pit or touching "
-            "scorpion/snake costs a life.\n\n"
+            "Falling in pit or touching scorpion/snake ends the "
+            "episode with -1.0. Timer running out (2000 ticks) ends "
+            "without penalty. Episode ends after 32 treasures "
+            "(cumulative reward plateaus at +1.0).\n\n"
             "HUD\n"
             "Shows score, lives, current screen (0-254), timer "
             "remaining, treasures collected.\n\n"

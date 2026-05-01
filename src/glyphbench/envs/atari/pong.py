@@ -23,8 +23,12 @@ class PongEnv(BaseGlyphEnv):
     Ball starts at center on serve.
 
     Actions: NOOP, FIRE, UP, DOWN, UP_FIRE, DOWN_FIRE
-    Reward: +1 per agent point, -1 per opponent point.
+    Pattern C (adversarial first-to-W): ±1/_WIN_TARGET per point.
+    First side to _WIN_TARGET wins (full-scope = 21).
     """
+
+    # Pattern C full-scope target: first to 21 points.
+    _WIN_TARGET: int = 21
 
     action_spec = ActionSpec(
         names=("NOOP", "FIRE", "UP", "DOWN", "UP_FIRE", "DOWN_FIRE"),
@@ -59,8 +63,8 @@ class PongEnv(BaseGlyphEnv):
     # Opponent AI
     _OPPONENT_TRACK_PROB = 0.7  # probability of tracking ball
 
-    # Winning score
-    _WIN_SCORE = 21
+    # Winning score (alias for backward-compat HUD).
+    _WIN_SCORE = _WIN_TARGET
 
     def __init__(self, max_turns: int = 5000) -> None:
         super().__init__(max_turns=max_turns)
@@ -77,6 +81,8 @@ class PongEnv(BaseGlyphEnv):
         self._serving: bool = True
         self._serve_side: str = "agent"  # who serves next
         self._message: str = ""
+        self._agent_progress: int = 0
+        self._opp_progress: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-pong-v0"
@@ -98,9 +104,11 @@ class PongEnv(BaseGlyphEnv):
             "hits a paddle, vx flips sign and vy may change based on where the "
             "ball hits the paddle.\n\n"
             "SCORING\n"
-            "Ball passes the left edge -> you score +1 (reward +1). "
-            "Ball passes the right edge -> opponent scores +1 (reward -1). "
-            "After each point, the scoring side serves. First to 21 wins.\n\n"
+            "Ball passes the left edge -> you score +1 (reward +1/21). "
+            "Ball passes the right edge -> opponent scores +1 "
+            "(reward -1/21). After each point, the scoring side "
+            "serves. First to 21 wins (cumulative reward bound: "
+            "[-1, +1]).\n\n"
             "SERVE\n"
             "At game start and after each point, the ball is at center. Press FIRE "
             "(or UP_FIRE/DOWN_FIRE) to serve. Until you serve, the ball stays put. "
@@ -121,6 +129,8 @@ class PongEnv(BaseGlyphEnv):
         self._serving = True
         self._serve_side = "agent"
         self._message = ""
+        self._agent_progress = 0
+        self._opp_progress = 0
         self._reset_ball_to_center()
         return self._render_current_observation()
 
@@ -211,7 +221,9 @@ class PongEnv(BaseGlyphEnv):
                     else:
                         # Missed paddle -- opponent scores
                         self._score_left += 1
-                        reward = -1.0
+                        if self._opp_progress < self._WIN_TARGET:
+                            reward = -1.0 / self._WIN_TARGET
+                            self._opp_progress += 1
                         self._message = "Point for opponent."
                         scored = True
                         break
@@ -234,7 +246,9 @@ class PongEnv(BaseGlyphEnv):
                     else:
                         # Missed paddle -- agent scores
                         self._score_right += 1
-                        reward = 1.0
+                        if self._agent_progress < self._WIN_TARGET:
+                            reward = 1.0 / self._WIN_TARGET
+                            self._agent_progress += 1
                         self._message = "Point for you."
                         scored = True
                         break
@@ -265,7 +279,10 @@ class PongEnv(BaseGlyphEnv):
                     self._serve_side = "opponent"
 
                 # Check for game over
-                if self._score_left >= self._WIN_SCORE or self._score_right >= self._WIN_SCORE:
+                if (
+                    self._agent_progress >= self._WIN_TARGET
+                    or self._opp_progress >= self._WIN_TARGET
+                ):
                     terminated = True
 
                 # If opponent serves, auto-serve next step
