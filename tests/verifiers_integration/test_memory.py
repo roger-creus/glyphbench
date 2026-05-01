@@ -12,7 +12,7 @@ from glyphbench.verifiers_integration.memory import (
 
 _OBS = (
     "[Legend]\nA — agent\n\n"
-    "[HUD]\nStep: 1 / 50\n\n"
+    "[HUD]\nStep: 1 / 50    HP: 5    Score: 12\n\n"
     "[Grid]\n.A.\n...\n\n"
     "[Message]\nmoved east"
 )
@@ -86,6 +86,12 @@ def test_build_memory_update_user_includes_all_four_sections():
     assert "Truncated: false" in text
     # Next Observation: actual grid is inlined
     assert "[Grid]\n.A.\n..." in text
+    # HUD ban applies — [HUD] block is stripped from [Next Observation]
+    # to keep memory turn consistent with action turn's view (every
+    # game-relevant fact must be readable off the Unicode glyphs).
+    assert "[HUD]" not in text
+    assert "HP: 5" not in text
+    assert "Score: 12" not in text
     # Memory Update instruction
     assert "<memory>" in text and "</memory>" in text
     assert "Anything outside the <memory> tag is discarded" in text

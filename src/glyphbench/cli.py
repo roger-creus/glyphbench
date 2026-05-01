@@ -128,8 +128,20 @@ def _discover_results_files(target: Path) -> list[Path]:
     return []
 
 
+_USER_TURN_TRAILER_RE = re.compile(
+    r"^Now emit your move as `<action>ACTION_NAME</action>`\.?$"
+)
+
+
 def _extract_block(content: str, header: str) -> str | None:
-    """Extract a `[Header]\n…\n[Next]` block from a rendered user turn."""
+    """Extract a `[Header]\n…\n[Next]` block from a rendered user turn.
+
+    Stops when the block closes (next ``[Header]`` line) or when the
+    user-turn trailer (``Now emit your move…``) is reached. The trailer
+    sits outside any bracketed section, so without explicit handling
+    it would bleed into the LAST extracted block (typically [Grid] or
+    [Message] in turn-T action prompts).
+    """
     lines = content.split("\n")
     try:
         i = lines.index(header)
@@ -140,7 +152,12 @@ def _extract_block(content: str, header: str) -> str | None:
         if ln.startswith("[") and ln.endswith("]"):
             break
         out.append(ln)
-    while out and not out[-1].strip():
+    # Trim trailing blanks AND a trailing user-turn trailer when the
+    # block runs to end-of-content (no closing [Header] was hit).
+    while out and (
+        not out[-1].strip()
+        or _USER_TURN_TRAILER_RE.match(out[-1].strip())
+    ):
         out.pop()
     return "\n".join(out) if out else None
 
@@ -384,10 +401,18 @@ def _content_from_role(messages: list[dict], role: str) -> str:
 
 
 def _is_memory_update_user(msg: dict) -> bool:
-    return (
-        msg.get("role") == "user"
-        and (msg.get("content") or "").lstrip().startswith("[Memory Update]")
-    )
+    """Detect the memory-update user message inside a rollout's completion.
+
+    Post-rework (commit fc024a3): memory_user starts with [Last Action]
+    and the [Memory Update] block is the FOURTH section, not the first.
+    Old trajectories saved before the rework still had [Memory Update]
+    as the leading marker — keep that fallback so historical eval JSONLs
+    replay correctly.
+    """
+    if msg.get("role") != "user":
+        return False
+    content = (msg.get("content") or "").lstrip()
+    return content.startswith("[Last Action]") or content.startswith("[Memory Update]")
 
 
 def _extract_prompt_memory(content: str) -> str:

@@ -79,7 +79,11 @@ def test_system_prompt_describes_observation_conventions(game):
     sp = build_system_prompt(game, max_output_tokens=512)
     assert "OBSERVATION CONVENTIONS" in sp
     assert "[Legend]" in sp
-    assert "Step: T / N" in sp
+    assert "[Grid]" in sp
+    # The model-facing observation does NOT contain a [HUD] block (HUD
+    # ban — see _render_current_block in prompting.py). Make sure the
+    # system prompt doesn't promise one either.
+    assert "[HUD]" not in sp
 
 
 def test_system_prompt_omits_memory_block_when_not_in_memory_mode(game):

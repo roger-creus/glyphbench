@@ -20,6 +20,21 @@ _MEMORY_RE = re.compile(
     r"<\s*memory\s*>(.*?)<\s*/\s*memory\s*>", re.DOTALL | re.IGNORECASE
 )
 
+# Strip the [HUD] block from a rendered observation. Mirrors the HUD ban
+# applied in prompting._render_current_block — every game-relevant fact
+# must be readable off the Unicode glyphs, so memory turn must not see
+# privileged state in [HUD] either.
+_HUD_BLOCK_RE = re.compile(r"\[HUD\]\n.*?(?=\n\n\[|\Z)", re.DOTALL)
+
+
+def _strip_hud_block(obs: str) -> str:
+    if not obs:
+        return obs
+    cleaned = _HUD_BLOCK_RE.sub("", obs)
+    # Collapse the trailing blank lines a removed block leaves behind.
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip("\n")
+    return cleaned
+
 
 def extract_memory_update(text: str) -> MemoryExtraction:
     """Strict <memory>...</memory> extraction.
@@ -68,13 +83,17 @@ def build_memory_update_user(
 
       [Env Response]     — reward, terminated, truncated (episode-level).
 
-      [Next Observation] — the new grid + legend + HUD + message produced
-                           by the env's response to the action. Not
-                           privileged: the agent will see this same view
-                           at the next action turn anyway. Surfacing it
-                           here lets memory react to the action's actual
-                           effect, which a sparse-reward signal alone
-                           cannot convey.
+      [Next Observation] — the new grid + legend + message produced by
+                           the env's response to the action. The [HUD]
+                           block is stripped (HUD ban — every
+                           game-relevant fact must be readable off the
+                           Unicode glyphs, so memory turn doesn't get
+                           privileged state the action turn can't see).
+                           Not privileged otherwise: the agent will see
+                           this same grid at the next action turn anyway.
+                           Surfacing it here lets memory react to the
+                           action's actual effect, which a sparse-reward
+                           signal alone cannot convey.
 
       [Memory Update]    — write instruction with the synth/non-describe
                            guidance.
@@ -115,10 +134,10 @@ def build_memory_update_user(
         f"  Truncated: {str(bool(truncated)).lower()}"
     )
 
-    next_obs_clean = next_obs.rstrip() if next_obs else "(none)"
+    next_obs_clean = _strip_hud_block(next_obs).rstrip() if next_obs else "(none)"
     next_obs_block = (
         "[Next Observation]\n"
-        f"{next_obs_clean}"
+        f"{next_obs_clean if next_obs_clean else '(none)'}"
     )
 
     instruction = (
