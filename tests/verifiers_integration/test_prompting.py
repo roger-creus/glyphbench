@@ -180,6 +180,24 @@ def test_user_turn_history_window_respected(game):
     assert text.count("chose ") == 4
 
 
+def test_history_renders_forfeit_with_explicit_marker():
+    from collections import deque
+    from glyphbench.verifiers_integration.prompting import _render_history
+
+    frames = deque(
+        [
+            ("[Grid]\nA", "MOVE_FORWARD", 0.0),
+            ("[Grid]\nA", "FORFEIT", 0.0),
+            ("[Grid]\nA", "MOVE_FORWARD", 1.0),
+        ]
+    )
+    text = _render_history(list(frames), current_turn=4)
+    # Normal turns: "chose NAME → reward R"
+    assert "chose MOVE_FORWARD → reward +0.000" in text
+    # Forfeit turn gets an explicit explanation
+    assert "chose FORFEIT (parse failed) → reward 0" in text
+
+
 def test_user_turn_reminds_format(game):
     frames: deque = deque(maxlen=4)
     text = render_user_turn(

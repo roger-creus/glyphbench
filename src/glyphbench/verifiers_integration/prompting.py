@@ -222,10 +222,14 @@ def _render_history(frames_list: list[tuple[str, str, float]], current_turn: int
     for i, (obs, action, reward) in enumerate(frames_list):
         past_turn = current_turn - (n - i)
         grid = _extract_grid(obs)
+        if action == "FORFEIT":
+            action_line = "chose FORFEIT (parse failed) → reward 0"
+        else:
+            action_line = f"chose {action} → reward {reward:+.3f}"
         lines.append(
             f"(turn {past_turn})\n"
             f"{grid}\n"
-            f"chose {action} → reward {reward:+.3f}".replace("  \n", "").replace("\n\n", "\n")
+            f"{action_line}".replace("  \n", "").replace("\n\n", "\n")
         )
     return "\n".join(lines)
 
