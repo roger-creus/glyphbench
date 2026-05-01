@@ -44,6 +44,10 @@ class BigFishEnv(ProcgenBase):
 
     GRID_W = 20
     GRID_H = 12
+    # Reward shaping (Pattern D): +1.0 split across the first N fish eaten,
+    # then 0; terminal -1.0 on getting eaten. Cumulative range: [-1.0, +1.0].
+    _WIN_TARGET = 30
+    _DEATH_PENALTY = -1.0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-bigfish-v0"
@@ -148,17 +152,20 @@ class BigFishEnv(ProcgenBase):
             if e.x == self._agent_x and e.y == self._agent_y:
                 fish_size = e.data.get("size", 1)
                 if fish_size <= self._agent_size:
-                    # Eat smaller/equal fish
+                    # Eat smaller/equal fish. Each of the first _WIN_TARGET
+                    # fish is worth +1/_WIN_TARGET; subsequent fish add 0
+                    # so cumulative progress saturates at +1.0.
                     e.alive = False
-                    reward += 1.0
+                    if self._fish_eaten < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
                     self._fish_eaten += 1
                     # Grow every 3 fish eaten
                     if self._fish_eaten % 3 == 0 and self._agent_size < 6:
                         self._agent_size += 1
                         self._message = f"You grew to size {self._agent_size}!"
                 else:
-                    # Eaten by bigger fish
-                    reward = -1.0
+                    # Eaten by bigger fish (terminal failure -> -1.0).
+                    reward = self._DEATH_PENALTY
                     terminated = True
                     self._message = "Eaten by a bigger fish!"
                     break
@@ -187,8 +194,10 @@ class BigFishEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "You are a fish (@) in the ocean. Eat smaller fish (f) to grow. "
-            "Avoid bigger fish (F, W) or they eat you. +1 per fish eaten, "
-            "-1 on death. You grow every 3 fish eaten."
+            f"Avoid bigger fish (F, W) or they eat you. The first "
+            f"{self._WIN_TARGET} fish eaten each yield +1/{self._WIN_TARGET}; "
+            "extra fish add nothing. Death gives -1. You grow every 3 fish "
+            "eaten."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

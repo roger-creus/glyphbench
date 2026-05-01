@@ -31,6 +31,11 @@ class CaveFlyerEnv(ProcgenBase):
 
     GRID_W = 40
     GRID_H = 12
+    # Reward shaping (Pattern D): +0.4 across enemies, +0.6 on reaching the
+    # exit, terminal -1.0 on wall/enemy collision.
+    _ENEMY_BUDGET = 0.4
+    _EXIT_REWARD = 0.6
+    _DEATH_PENALTY = -1.0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-caveflyer-v0"
@@ -78,6 +83,7 @@ class CaveFlyerEnv(ProcgenBase):
                 break
 
         self._enemies_killed = 0
+        self._total_enemies = 0
 
         # Spawn enemies in the cave
         num_enemies = int(self.rng.integers(4, 8))
@@ -88,6 +94,7 @@ class CaveFlyerEnv(ProcgenBase):
                 if self._world_at(ex, ey) == " ":
                     dy = 1 if int(self.rng.integers(0, 2)) == 0 else -1
                     self._add_entity("enemy", "E", ex, ey, dx=0, dy=dy)
+                    self._total_enemies += 1
                     break
 
     def _advance_entities(self) -> float:
@@ -157,22 +164,23 @@ class CaveFlyerEnv(ProcgenBase):
                 if bullet.x == enemy.x and bullet.y == enemy.y:
                     bullet.alive = False
                     enemy.alive = False
-                    reward += 1.0
+                    if self._total_enemies > 0:
+                        reward += self._ENEMY_BUDGET / self._total_enemies
                     self._enemies_killed += 1
 
-        # Wall collision damage
+        # Wall collision damage (terminal failure -> -1.0).
         if self._is_solid(self._agent_x, self._agent_y):
-            reward = -1.0
+            reward = self._DEATH_PENALTY
             terminated = True
             self._message = "Crashed into a wall!"
             return reward, terminated, info
 
-        # Check agent-enemy collision
+        # Check agent-enemy collision (terminal failure -> -1.0).
         for e in self._entities:
             if not e.alive or e.etype != "enemy":
                 continue
             if e.x == self._agent_x and e.y == self._agent_y:
-                reward = -1.0
+                reward = self._DEATH_PENALTY
                 terminated = True
                 self._message = "Hit by an enemy!"
                 return reward, terminated, info
@@ -182,7 +190,7 @@ class CaveFlyerEnv(ProcgenBase):
             self._agent_x == self._exit_x
             and self._agent_y == self._exit_y
         ):
-            reward += 5.0
+            reward += self._EXIT_REWARD
             terminated = True
             self._message = "Reached the exit!"
 
@@ -210,8 +218,9 @@ class CaveFlyerEnv(ProcgenBase):
         return (
             "Fly your ship (@) through the cave. Reach the exit (>). "
             "FIRE shoots bullets (*) to the right to destroy enemies (E). "
-            "+1 per enemy, +5 for reaching the exit. "
-            "Hitting a wall or enemy kills you."
+            "Killing every enemy yields +0.4 total; reaching the exit "
+            "yields +0.6 (best case +1.0). Hitting a wall or enemy ends "
+            "the episode at -1.0."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

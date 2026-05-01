@@ -76,8 +76,4 @@ KNOWN_REWARD_VIOLATORS: set[str] = {
     "glyphbench/craftax-survive-wild-v0",
     "glyphbench/craftax-survivehorde-v0",
     "glyphbench/craftaxfull-v0",
-    "glyphbench/procgen-caveflyer-v0",
-    "glyphbench/procgen-chaser-v0",
-    "glyphbench/procgen-miner-v0",
-    "glyphbench/procgen-ninja-v0",
 }

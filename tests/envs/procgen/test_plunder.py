@@ -55,17 +55,20 @@ class TestPlunder:
         env._add_entity("pirate", "P", env._agent_x, env._agent_y - 1, dx=0, dy=0)
         fire = env.action_spec.index_of("FIRE")
         _, reward, _, _, _ = env.step(fire)
-        assert reward >= 1.0
+        assert reward > 0
 
     def test_hit_civilian_penalty(self):
         env = self._make()
         env.reset(0)
-        # Place civilian right above agent
+        # Hitting a civilian when no progress has been earned is a no-op
+        # (progress is floored at 0). Pre-pay one pirate-equivalent so the
+        # civilian hit can actually subtract progress.
         env._entities = []
+        env._progress_paid = 1.0 / env._WIN_TARGET
         env._add_entity("civilian", "c", env._agent_x, env._agent_y - 1, dx=0, dy=0)
         fire = env.action_spec.index_of("FIRE")
         _, reward, _, _, _ = env.step(fire)
-        assert reward <= -1.0
+        assert reward < 0
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)

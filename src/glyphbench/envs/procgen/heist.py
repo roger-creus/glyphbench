@@ -39,6 +39,8 @@ class HeistEnv(ProcgenBase):
 
     MAZE_W = 21
     MAZE_H = 21
+    # Reward shaping (Pattern A): single terminal goal worth +1.0.
+    _GOAL_REWARD = 1.0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-heist-v0"
@@ -236,7 +238,7 @@ class HeistEnv(ProcgenBase):
 
         # Check goal
         if self._agent_x == self._goal_x and self._agent_y == self._goal_y:
-            reward = 5.0
+            reward = self._GOAL_REWARD
             terminated = True
             self._message = "You reached the goal!"
 
@@ -265,7 +267,7 @@ class HeistEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Navigate the maze, collect colored keys (r/b/y) to open matching "
-            "doors (R/B/Y), and reach the goal (G) for +5 reward."
+            "doors (R/B/Y), and reach the goal (G) for +1 reward."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

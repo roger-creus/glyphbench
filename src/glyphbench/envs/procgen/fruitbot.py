@@ -34,6 +34,14 @@ class FruitBotEnv(ProcgenBase):
     )
     noop_action_name = "NOOP"
 
+    # Reward shaping (Pattern D): collecting all fruit yields +0.7, hitting
+    # every obstacle yields -0.7, reaching the bottom yields +0.3. Best case
+    # +1.0; worst case -0.7 (all obstacles, never reach bottom). Range fits
+    # comfortably inside [-1, +1].
+    _FRUIT_BUDGET = 0.7
+    _OBSTACLE_BUDGET = 0.7
+    _BOTTOM_REWARD = 0.3
+
     def __init__(self, max_turns: int = 512) -> None:
         super().__init__(max_turns=max_turns)
         self._has_gravity = False  # we manage falling ourselves
@@ -41,6 +49,8 @@ class FruitBotEnv(ProcgenBase):
         self._view_h = 20
         self._fruits_collected: int = 0
         self._obstacles_hit: int = 0
+        self._total_fruit: int = 0
+        self._total_obstacle: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-fruitbot-v0"
@@ -51,6 +61,8 @@ class FruitBotEnv(ProcgenBase):
         self._init_world(W, H, fill="\u00b7")
         self._fruits_collected = 0
         self._obstacles_hit = 0
+        self._total_fruit = 0
+        self._total_obstacle = 0
 
         # Walls on sides
         for y in range(H):
@@ -65,8 +77,10 @@ class FruitBotEnv(ProcgenBase):
                 if self._world_at(ix, y) == "\u00b7":
                     if self.rng.random() < 0.6:
                         self._set_cell(ix, y, "%")
+                        self._total_fruit += 1
                     else:
                         self._set_cell(ix, y, "x")
+                        self._total_obstacle += 1
 
             # Occasional internal walls to make it interesting
             if self.rng.random() < 0.15:
@@ -99,6 +113,7 @@ class FruitBotEnv(ProcgenBase):
             ny = self._agent_y + 1
             if ny >= self._world_h:
                 # Reached bottom
+                reward += self._BOTTOM_REWARD
                 self._message = "Reached the bottom!"
                 return reward, True, {}
             if self._is_solid(self._agent_x, ny):
@@ -109,17 +124,26 @@ class FruitBotEnv(ProcgenBase):
 
             # Check what we landed on
             ch = self._world_at(self._agent_x, self._agent_y)
+            fruit_per = (
+                self._FRUIT_BUDGET / self._total_fruit
+                if self._total_fruit > 0 else 0.0
+            )
+            obstacle_per = (
+                self._OBSTACLE_BUDGET / self._total_obstacle
+                if self._total_obstacle > 0 else 0.0
+            )
             if ch == "%":
                 self._set_cell(self._agent_x, self._agent_y, "\u00b7")
-                reward += 1.0
+                reward += fruit_per
                 self._fruits_collected += 1
             elif ch == "x":
                 self._set_cell(self._agent_x, self._agent_y, "\u00b7")
-                reward -= 1.0
+                reward -= obstacle_per
                 self._obstacles_hit += 1
 
         # Reached bottom
         if self._agent_y >= self._world_h - 1:
+            reward += self._BOTTOM_REWARD
             self._message = "Reached the bottom!"
             return reward, True, {}
 
@@ -143,16 +167,17 @@ class FruitBotEnv(ProcgenBase):
         m: dict[str, str] = {
             "\u00b7": "empty",
             "\u2588": "wall",
-            "%": "fruit (+1)",
-            "x": "obstacle (-1)",
+            "%": "fruit (small reward)",
+            "x": "obstacle (small penalty)",
             "@": "you",
         }
         return m.get(ch, ch)
 
     def _task_description(self) -> str:
         return (
-            "You are a FruitBot falling through a tunnel. Collect fruit "
-            "(%) for +1 each. Avoid obstacles (x) which cost -1. "
-            "You fall 1 cell per step automatically. Use LEFT/RIGHT to "
-            "dodge, DOWN to fall faster."
+            "You are a FruitBot falling through a tunnel. Collecting all "
+            "fruit (%) yields +0.7 total; hitting all obstacles (x) yields "
+            "-0.7. Reaching the bottom yields an additional +0.3 (best case "
+            "+1.0). You fall 1 cell per step automatically. Use LEFT/RIGHT "
+            "to dodge, DOWN to fall faster."
         )

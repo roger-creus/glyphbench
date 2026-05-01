@@ -31,6 +31,8 @@ class MazeEnv(ProcgenBase):
 
     MAZE_W = 21
     MAZE_H = 21
+    # Reward shaping (Pattern A): single terminal goal worth +1.0.
+    _GOAL_REWARD = 1.0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-maze-v0"
@@ -85,7 +87,7 @@ class MazeEnv(ProcgenBase):
 
         # Check if agent reached cheese
         if self._agent_x == self._cheese_x and self._agent_y == self._cheese_y:
-            reward = 5.0
+            reward = self._GOAL_REWARD
             terminated = True
             self._message = "You found the cheese!"
 
@@ -100,7 +102,7 @@ class MazeEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Navigate through the maze to reach the cheese (C). "
-            "Walls (\u2588) block movement. Reach the cheese for +5 reward."
+            "Walls (\u2588) block movement. Reach the cheese for +1 reward."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

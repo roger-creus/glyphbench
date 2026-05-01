@@ -61,7 +61,7 @@ class TestCaveFlyer:
         env._add_entity("enemy", "E", env._agent_x + 1, env._agent_y, dx=0, dy=0)
         fire = env.action_spec.index_of("FIRE")
         _, reward, _, _, _ = env.step(fire)
-        assert reward >= 1.0
+        assert reward > 0
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)

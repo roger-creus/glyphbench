@@ -31,6 +31,14 @@ class StarPilotEnv(ProcgenBase):
 
     GRID_W = 40
     GRID_H = 12
+    # Reward shaping (Pattern D): cumulative best case +1.0 (kill the first
+    # _ENEMY_TARGET enemies AND grab _POWERUP_TARGET power-ups), worst case
+    # -1.0 (terminal collision with an enemy ship).
+    _ENEMY_TARGET = 20
+    _ENEMY_BUDGET = 0.8
+    _POWERUP_TARGET = 5
+    _POWERUP_BUDGET = 0.2
+    _DEATH_PENALTY = -1.0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-starpilot-v0"
@@ -135,7 +143,8 @@ class StarPilotEnv(ProcgenBase):
                 if bullet.x == enemy.x and bullet.y == enemy.y:
                     bullet.alive = False
                     enemy.alive = False
-                    reward += 1.0
+                    if self._enemies_killed < self._ENEMY_TARGET:
+                        reward += self._ENEMY_BUDGET / self._ENEMY_TARGET
                     self._enemies_killed += 1
 
         # Check agent picks up power-up
@@ -144,16 +153,17 @@ class StarPilotEnv(ProcgenBase):
                 continue
             if e.x == self._agent_x and e.y == self._agent_y:
                 e.alive = False
-                reward += 5.0
+                if self._powerups_collected < self._POWERUP_TARGET:
+                    reward += self._POWERUP_BUDGET / self._POWERUP_TARGET
                 self._powerups_collected += 1
                 self._message = "Power-up collected!"
 
-        # Check agent-enemy collision
+        # Check agent-enemy collision (terminal failure -> -1.0).
         for e in self._entities:
             if not e.alive or e.etype != "enemy":
                 continue
             if e.x == self._agent_x and e.y == self._agent_y:
-                reward = -1.0
+                reward = self._DEATH_PENALTY
                 terminated = True
                 self._message = "Destroyed by an enemy!"
                 return reward, terminated, info
@@ -185,8 +195,11 @@ class StarPilotEnv(ProcgenBase):
         return (
             "You pilot a ship (@) in a horizontal shoot-em-up. "
             "Enemies (E, V) approach across the field. FIRE shoots bullets (-). "
-            "+1 per enemy destroyed, +5 per power-up ($) collected. "
-            "Colliding with an enemy destroys you."
+            f"Each of the first {self._ENEMY_TARGET} kills yields "
+            f"+0.8/{self._ENEMY_TARGET}; each of the first "
+            f"{self._POWERUP_TARGET} power-ups ($) yields "
+            f"+0.2/{self._POWERUP_TARGET} (best case +1.0). Colliding with "
+            "an enemy ends the episode at -1."
         )
 
     def _symbol_meaning(self, ch: str) -> str:
@@ -195,6 +208,6 @@ class StarPilotEnv(ProcgenBase):
             "E": "enemy ship",
             "V": "fast enemy",
             "-": "bullet",
-            "$": "power-up (+5)",
+            "$": "power-up (small reward)",
         }
         return meanings.get(ch, super()._symbol_meaning(ch))

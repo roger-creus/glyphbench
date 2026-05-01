@@ -58,17 +58,17 @@ class TestClimber:
         assert all(len(line) == 14 for line in lines)
 
     def test_star_collection(self) -> None:
-        """Stars give +1 reward."""
+        """Stars give partial progress reward (Pattern B)."""
         env = self._make()
         env.reset(0)
         # Place a star next to agent
         env._set_cell(env._agent_x + 1, env._agent_y, "*")
         right = env.action_spec.index_of("RIGHT")
         _, reward, _, _, _ = env.step(right)
-        assert reward >= 1.0
+        assert reward > 0
 
     def test_goal_reward(self) -> None:
-        """Reaching goal gives +10."""
+        """Reaching goal gives the milestone bonus and terminates."""
         env = self._make()
         env.reset(0)
         # Place agent next to goal
@@ -82,7 +82,7 @@ class TestClimber:
                     env._jump_step = -1
                     right = env.action_spec.index_of("RIGHT")
                     _, reward, terminated, _, _ = env.step(right)
-                    assert reward >= 5.0
+                    assert reward > 0
                     assert terminated
                     return
         pytest.skip("No goal found")

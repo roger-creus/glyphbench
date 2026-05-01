@@ -35,6 +35,12 @@ class MinerEnv(ProcgenBase):
     )
     noop_action_name = "NOOP"
 
+    # Reward shaping (Pattern D): +0.8 across diamonds, +0.2 on exit, -1.0 on
+    # terminal boulder death. Cumulative range: [-1.0, +1.0].
+    _DIAMOND_BUDGET = 0.8
+    _GOAL_REWARD = 0.2
+    _DEATH_PENALTY = -1.0
+
     def __init__(self, max_turns: int = 512) -> None:
         super().__init__(max_turns=max_turns)
         self._has_gravity = False
@@ -131,24 +137,25 @@ class MinerEnv(ProcgenBase):
         elif action_name == "DOWN":
             self._try_move(0, 1)
 
-        # Diamond reward
+        # Diamond reward (Pattern D progress: +0.8 distributed across all
+        # diamonds the level happens to spawn).
         if self._diamonds_collected > old_diamonds:
-            reward += 1.0
+            reward += self._DIAMOND_BUDGET / max(1, self._total_diamonds)
 
         # Check goal
         ch = self._world_at(self._agent_x, self._agent_y)
         if ch == "G":
             self._message = "Found the exit!"
-            return reward + 5.0, True, {}
+            return reward + self._GOAL_REWARD, True, {}
 
         # Boulder physics: boulders fall when cell below is empty
         self._process_boulders()
 
-        # Check if boulder fell on agent
+        # Check if boulder fell on agent (terminal failure -> -1.0).
         if self._world_at(self._agent_x, self._agent_y) == "R":
             self._message = "Crushed by a boulder!"
             self._alive = False
-            return 0.0, True, {"killed_by": "boulder"}
+            return self._DEATH_PENALTY, True, {"killed_by": "boulder"}
 
         return reward, False, {}
 
@@ -183,16 +190,17 @@ class MinerEnv(ProcgenBase):
             "\u00b7": "empty",
             "\u2588": "wall",
             "d": "dirt (diggable)",
-            "D": "diamond (+1)",
-            "R": "boulder (falls, deadly)",
-            "G": "exit (+5)",
+            "D": "diamond (collect for partial reward)",
+            "R": "boulder (falls, deadly: terminal -1.0)",
+            "G": "exit (finishes the level)",
             "@": "you",
         }
         return m.get(ch, ch)
 
     def _task_description(self) -> str:
         return (
-            "Dig through dirt (d) to navigate the mine. Collect diamonds "
-            "(D) for +1 each. Reach the exit (G) for +5. Beware of "
-            "boulders (R) — they fall when unsupported and crush you."
+            "Dig through dirt (d) to navigate the mine. Collect every "
+            "diamond (D) and reach the exit (G) — diamonds yield +0.8 "
+            "total and the exit yields +0.2 (best case +1.0). Boulders (R) "
+            "fall when unsupported; getting crushed ends the episode at -1.0."
         )

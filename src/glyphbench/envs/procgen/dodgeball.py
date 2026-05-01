@@ -31,6 +31,11 @@ class DodgeballEnv(ProcgenBase):
 
     GRID_W = 14
     GRID_H = 12
+    # Reward shaping (Pattern D): first _WIN_TARGET kills each yield
+    # +1/_WIN_TARGET; subsequent kills add 0 (cumulative caps at +1.0).
+    # Wave-clear bonuses removed; terminal -1.0 on getting hit.
+    _WIN_TARGET = 20
+    _DEATH_PENALTY = -1.0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-dodgeball-v0"
@@ -135,15 +140,16 @@ class DodgeballEnv(ProcgenBase):
                 if ball.x == enemy.x and ball.y == enemy.y:
                     ball.alive = False
                     enemy.alive = False
-                    reward += 1.0
+                    if self._enemies_killed < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
                     self._enemies_killed += 1
 
-        # Check agent-enemy collision (agent gets hit)
+        # Check agent-enemy collision (terminal failure -> -1.0).
         for e in self._entities:
             if not e.alive or e.etype != "enemy":
                 continue
             if e.x == self._agent_x and e.y == self._agent_y:
-                reward = -1.0
+                reward = self._DEATH_PENALTY
                 terminated = True
                 self._message = "Hit by an enemy!"
                 return reward, terminated, info
@@ -151,13 +157,12 @@ class DodgeballEnv(ProcgenBase):
         # Clean dead entities
         self._entities = [e for e in self._entities if e.alive]
 
-        # Check level clear
+        # When a wave is cleared, spawn the next one (no extra reward —
+        # progress is already paid per kill).
         enemies_alive = sum(1 for e in self._entities if e.etype == "enemy")
         if enemies_alive == 0:
-            reward += 5.0
             self._level += 1
             self._message = f"Level {self._level - 1} cleared!"
-            # Spawn more enemies for next wave
             self._spawn_enemies(count=3 + self._level)
 
         info["enemies_killed"] = self._enemies_killed
@@ -192,8 +197,9 @@ class DodgeballEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "You are in an arena (@). Throw balls (*) at enemies (E) by moving "
-            "in a direction then using THROW. +1 per enemy hit, +5 for clearing "
-            "a wave. Touching an enemy kills you (-1)."
+            "in a direction then using THROW. The first "
+            f"{self._WIN_TARGET} enemy kills each yield +1/{self._WIN_TARGET}; "
+            "extra kills add nothing. Touching an enemy ends the episode at -1."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

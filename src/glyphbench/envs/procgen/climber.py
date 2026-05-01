@@ -35,6 +35,11 @@ class ClimberEnv(ProcgenBase):
     )
     noop_action_name = "NOOP"
 
+    # Reward shaping (Pattern B): +0.8 distributed across stars, +0.2 on goal.
+    # Cumulative best-case: collect every star + reach goal = 1.0.
+    _STAR_BUDGET = 0.8
+    _GOAL_REWARD = 0.2
+
     def __init__(self, max_turns: int = 512) -> None:
         super().__init__(max_turns=max_turns)
         self._has_gravity = True
@@ -121,13 +126,13 @@ class ClimberEnv(ProcgenBase):
         ch = self._world_at(self._agent_x, self._agent_y)
         if ch == "*":
             self._set_cell(self._agent_x, self._agent_y, "\u00b7")
-            reward += 1.0
+            reward += self._STAR_BUDGET / max(1, self._total_stars)
             self._stars_collected += 1
             self._message = "Collected a star!"
 
         # Goal
         if ch == "G":
-            reward += 5.0
+            reward += self._GOAL_REWARD
             self._message = "Reached the top!"
             return reward, True, {}
 
@@ -189,15 +194,16 @@ class ClimberEnv(ProcgenBase):
             "\u00b7": "empty",
             "\u25ac": "platform/ground",
             "\u2588": "wall",
-            "*": "star (+1)",
-            "G": "goal (top, +5)",
+            "*": "star (collect for partial reward)",
+            "G": "goal (top, finishes the level)",
             "@": "you",
         }
         return m.get(ch, ch)
 
     def _task_description(self) -> str:
         return (
-            "Jump between platforms to climb. Collect stars (*) for +1 "
-            "each. Reach the goal (G) for +5. "
+            "Jump between platforms to climb. Collect every star (*) and "
+            "reach the goal (G) at the top — collecting all stars yields "
+            "+0.8 and the goal yields +0.2 (total +1.0). "
             "Avoid enemies (E) that patrol platforms."
         )

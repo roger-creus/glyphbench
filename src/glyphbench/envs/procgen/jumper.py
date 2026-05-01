@@ -35,6 +35,9 @@ class JumperEnv(ProcgenBase):
     )
     noop_action_name = "NOOP"
 
+    # Reward shaping (Pattern A): single terminal goal worth +1.0.
+    _GOAL_REWARD = 1.0
+
     def __init__(self, max_turns: int = 512) -> None:
         super().__init__(max_turns=max_turns)
         self._has_gravity = True
@@ -133,7 +136,7 @@ class JumperEnv(ProcgenBase):
         # Check goal
         if ch == "G":
             self._message = "Reached the goal!"
-            return 5.0, True, {}
+            return self._GOAL_REWARD, True, {}
 
         # Enemy collision
         for e in self._entities:
@@ -185,7 +188,7 @@ class JumperEnv(ProcgenBase):
             "\u25ac": "ground",
             "\u2588": "platform",
             "^": "spike (deadly)",
-            "G": "goal (+5)",
+            "G": "goal (+1)",
             "@": "you",
         }
         return m.get(ch, ch)
@@ -193,5 +196,5 @@ class JumperEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Run and jump across platforms to reach the goal (G) for "
-            "+5 reward. Avoid spikes (^) and enemies (E)."
+            "+1 reward. Avoid spikes (^) and enemies (E)."
         )

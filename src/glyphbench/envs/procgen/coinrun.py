@@ -34,10 +34,13 @@ class CoinRunEnv(BaseGlyphEnv):
 
     The agent sees a 20x12 partial-observation window centered on itself.
     The level scrolls as the agent moves right. Collect the coin at the
-    end of the level for +5 reward. Death (pit/saw/enemy) gives 0.
+    end of the level for +1 reward. Death (pit/saw/enemy) gives 0.
 
     Actions: NOOP, LEFT, RIGHT, JUMP, JUMP_RIGHT
     """
+
+    # Reward shaping (Pattern A): single terminal goal worth +1.0.
+    _GOAL_REWARD = 1.0
 
     action_spec = ActionSpec(
         names=("NOOP", "LEFT", "RIGHT", "JUMP", "JUMP_RIGHT"),
@@ -93,7 +96,7 @@ class CoinRunEnv(BaseGlyphEnv):
             "You are playing Procgen CoinRun.\n\n"
             "TASK\n"
             "Move through a side-scrolling level, jump over obstacles, "
-            "and collect the coin (C) for +5 reward. Falling into "
+            "and collect the coin (C) for +1 reward. Falling into "
             "a pit (P), touching a saw blade (S), or hitting an enemy (m/M) "
             "kills you (0 reward).\n\n"
             "VIEW\n"
@@ -322,7 +325,7 @@ class CoinRunEnv(BaseGlyphEnv):
 
         # --- 6. Check coin collection ---
         if self._alive and self._agent_x == self._coin_x and self._agent_y == self._coin_y:
-            reward = 5.0
+            reward = self._GOAL_REWARD
             terminated = True
             self._message = "You got the coin!"
 
@@ -420,7 +423,7 @@ class CoinRunEnv(BaseGlyphEnv):
             "S": "saw blade (deadly)",
             "m": "small enemy (deadly)",
             "M": "large enemy (deadly)",
-            "C": "coin (goal, +5 reward)",
+            "C": "coin (goal, +1 reward)",
             "\u00b7": "air (empty)",
         })
 

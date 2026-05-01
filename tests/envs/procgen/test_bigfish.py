@@ -54,7 +54,7 @@ class TestBigFish:
         env._add_entity("fish", "f", env._agent_x, env._agent_y, dx=0, data={"size": 1})
         noop = env.action_spec.index_of("NOOP")
         _, reward, terminated, _, _ = env.step(noop)
-        assert reward >= 1.0
+        assert reward > 0
         assert not terminated
 
     def test_eaten_by_bigger_fish(self):
@@ -65,7 +65,7 @@ class TestBigFish:
         env._add_entity("fish", "W", env._agent_x, env._agent_y, dx=0, data={"size": 6})
         noop = env.action_spec.index_of("NOOP")
         _, reward, terminated, _, _ = env.step(noop)
-        assert reward == -1.0
+        assert reward == -1.0  # Pattern D terminal death penalty
         assert terminated
 
     def test_random_rollout(self):

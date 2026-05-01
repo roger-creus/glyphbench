@@ -37,6 +37,8 @@ class LeaperEnv(ProcgenBase):
 
     GRID_W = 14
     GRID_H = 14
+    # Reward shaping (Pattern A): single terminal goal worth +1.0.
+    _GOAL_REWARD = 1.0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-leaper-v0"
@@ -209,7 +211,7 @@ class LeaperEnv(ProcgenBase):
 
         # Check goal (top row)
         if self._lane_types[self._agent_y] == "goal":
-            reward = 5.0
+            reward = self._GOAL_REWARD
             terminated = True
             self._message = "You reached the goal!"
             return reward, terminated, info
@@ -262,7 +264,7 @@ class LeaperEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Cross roads (avoid cars V) and rivers (ride logs \u25ac) to reach "
-            "the goal row (G) for +5 reward. Water (\u2248) is deadly "
+            "the goal row (G) for +1 reward. Water (\u2248) is deadly "
             "unless you stand on a log."
         )
 

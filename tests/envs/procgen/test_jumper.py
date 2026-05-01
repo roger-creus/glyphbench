@@ -72,7 +72,7 @@ class TestJumper:
                     right = env.action_spec.index_of("RIGHT")
                     _, reward, terminated, _, _ = env.step(right)
                     if env._agent_x == x:
-                        assert reward >= 5.0
+                        assert reward > 0
                         assert terminated
                         return
         pytest.skip("No goal found")

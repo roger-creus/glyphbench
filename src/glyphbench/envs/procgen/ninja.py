@@ -35,6 +35,12 @@ class NinjaEnv(ProcgenBase):
     )
     noop_action_name = "NOOP"
 
+    # Reward shaping (Pattern B): +0.4 split across enemy kills, +0.6 on
+    # reaching the goal. Cumulative best-case: kill all enemies + reach
+    # goal = 1.0. Death gives 0 (Pattern A: no failure penalty).
+    _ENEMY_BUDGET = 0.4
+    _GOAL_REWARD = 0.6
+
     def __init__(self, max_turns: int = 512) -> None:
         super().__init__(max_turns=max_turns)
         self._has_gravity = True
@@ -42,6 +48,7 @@ class NinjaEnv(ProcgenBase):
         self._view_h = 12
         self._facing: int = 1  # +1 right, -1 left
         self._enemies_killed: int = 0
+        self._total_enemies: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-ninja-v0"
@@ -51,6 +58,7 @@ class NinjaEnv(ProcgenBase):
         W, H = 40, 12
         self._init_world(W, H, fill="\u00b7")
         self._enemies_killed = 0
+        self._total_enemies = 0
         ground_y = H - 2
 
         # Ground
@@ -84,6 +92,7 @@ class NinjaEnv(ProcgenBase):
             ex = int(self.rng.integers(6, W - 6))
             if self._world_at(ex, ground_y - 1) == "\u00b7":
                 self._add_entity("enemy", "E", ex, ground_y - 1, dx=1)
+                self._total_enemies += 1
 
         # Goal
         self._set_cell(W - 2, ground_y - 1, "G")
@@ -125,7 +134,7 @@ class NinjaEnv(ProcgenBase):
         ch = self._world_at(self._agent_x, self._agent_y)
         if ch == "G":
             self._message = "Reached the goal!"
-            return 5.0 + reward, True, {}
+            return self._GOAL_REWARD + reward, True, {}
 
         # Enemy collision with agent
         for e in self._entities:
@@ -179,7 +188,10 @@ class NinjaEnv(ProcgenBase):
                     e.x = nx
 
         self._entities = [e for e in self._entities if e.alive]
-        return float(self._enemies_killed - kills_before)
+        kills_this_step = self._enemies_killed - kills_before
+        if kills_this_step <= 0 or self._total_enemies <= 0:
+            return 0.0
+        return kills_this_step * (self._ENEMY_BUDGET / self._total_enemies)
 
     # ------------------------------------------------------------------
     def _is_solid(self, x: int, y: int) -> bool:
@@ -192,7 +204,7 @@ class NinjaEnv(ProcgenBase):
             "\u25ac": "ground",
             "\u2588": "platform",
             "B": "breakable wall",
-            "G": "goal (+5)",
+            "G": "goal (finishes the level)",
             "@": "you",
         }
         return m.get(ch, ch)
@@ -218,6 +230,7 @@ class NinjaEnv(ProcgenBase):
     def _task_description(self) -> str:
         return (
             "Traverse the level as a ninja. Throw shurikens (THROW) to "
-            "defeat enemies (E, +1 each) and break walls (B). Reach the "
-            "goal (G) for +5. Avoid touching enemies."
+            "defeat enemies (E) and break walls (B). Killing every enemy "
+            "yields +0.4 total; reaching the goal (G) yields +0.6 (best "
+            "case +1.0). Avoid touching enemies."
         )

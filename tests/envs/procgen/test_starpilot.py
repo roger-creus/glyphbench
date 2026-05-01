@@ -64,7 +64,7 @@ class TestStarPilot:
         env._add_entity("powerup", "$", env._agent_x, env._agent_y, dx=0, dy=0)
         noop = env.action_spec.index_of("NOOP")
         _, reward, _, _, _ = env.step(noop)
-        assert reward >= 5.0
+        assert reward > 0
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)

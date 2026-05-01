@@ -34,6 +34,12 @@ class BossFightEnv(ProcgenBase):
 
     GRID_W = 20
     GRID_H = 14
+    # Reward shaping (Pattern D): +0.5 distributed across the _BOSS_MAX_HP
+    # hits + +0.5 on defeating the boss = +1.0 best case; terminal -1.0
+    # on getting hit by a boss projectile.
+    _HIT_BUDGET = 0.5
+    _DEFEAT_REWARD = 0.5
+    _DEATH_PENALTY = -1.0
 
     def env_id(self) -> str:
         return "glyphbench/procgen-bossfight-v0"
@@ -161,28 +167,28 @@ class BossFightEnv(ProcgenBase):
         # Boss attacks
         self._boss_attack()
 
-        # Check player bullet hits on boss
+        # Check player bullet hits on boss (each hit pays +0.5/_BOSS_MAX_HP).
         for bullet in [e for e in self._entities if e.etype == "bullet" and e.alive]:
             if bullet.x == self._boss_x and bullet.y == self._boss_y:
                 bullet.alive = False
                 self._boss_hp -= 1
                 self._hits_on_boss += 1
-                reward += 1.0
+                reward += self._HIT_BUDGET / _BOSS_MAX_HP
                 self._message = f"Hit! Boss HP: {self._boss_hp}/{_BOSS_MAX_HP}"
 
         # Check boss death
         if self._boss_hp <= 0:
-            reward += 5.0
+            reward += self._DEFEAT_REWARD
             terminated = True
             self._message = "Boss defeated!"
             return reward, terminated, info
 
-        # Check boss bullet hits on agent
+        # Check boss bullet hits on agent (terminal failure -> -1.0).
         for e in self._entities:
             if not e.alive or e.etype != "boss_bullet":
                 continue
             if e.x == self._agent_x and e.y == self._agent_y:
-                reward = -1.0
+                reward = self._DEATH_PENALTY
                 terminated = True
                 self._message = "Hit by boss projectile!"
                 return reward, terminated, info
@@ -225,7 +231,9 @@ class BossFightEnv(ProcgenBase):
             "You face a boss (B) in a space arena. FIRE shoots bullets (|) "
             "upward. The boss has 3 phases as HP decreases: single shots, "
             "spread shots, rapid aimed fire. Dodge boss projectiles (v, \\, /, o). "
-            f"+1 per hit on boss, +5 on defeat. Boss HP: {_BOSS_MAX_HP}."
+            f"Each hit yields +0.5/{_BOSS_MAX_HP}; defeating the boss yields "
+            f"+0.5 (best case +1.0). Getting hit ends the episode at -1.0. "
+            f"Boss HP: {_BOSS_MAX_HP}."
         )
 
     def _symbol_meaning(self, ch: str) -> str:

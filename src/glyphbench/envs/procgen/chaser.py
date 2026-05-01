@@ -35,6 +35,13 @@ class ChaserEnv(ProcgenBase):
 
     MAZE_W = 21
     MAZE_H = 21
+    # Reward shaping (Pattern A with milestone B):
+    # +0.5 distributed across pellets, +0.2 across eaten ghosts (max 3),
+    # +0.3 on full level clear. Best case +1.0; death gives 0 (no penalty).
+    _PELLET_BUDGET = 0.5
+    _GHOST_BUDGET = 0.2
+    _MAX_EDIBLE_GHOSTS = 3
+    _CLEAR_REWARD = 0.3
 
     def env_id(self) -> str:
         return "glyphbench/procgen-chaser-v0"
@@ -96,6 +103,8 @@ class ChaserEnv(ProcgenBase):
 
         self._power_timer = 0
         self._enemies_eaten = 0
+        # Snapshot the initial pellet count so per-pellet rewards stay bounded.
+        self._initial_pellet_count = max(1, self._pellet_count)
 
     def _gen_maze(self, w: int, h: int) -> None:
         """Carve a maze with wider corridors for gameplay."""
@@ -201,11 +210,13 @@ class ChaserEnv(ProcgenBase):
         cell = self._world_at(self._agent_x, self._agent_y)
         if cell == _PELLET:
             self._set_cell(self._agent_x, self._agent_y, _FLOOR)
-            reward += 0.5
+            reward += self._PELLET_BUDGET / self._initial_pellet_count
             self._pellet_count -= 1
         elif cell == _POWER:
             self._set_cell(self._agent_x, self._agent_y, _FLOOR)
-            reward += 0.5
+            # Power pellet itself is a single tile of progress, equivalent
+            # to one regular pellet.
+            reward += self._PELLET_BUDGET / self._initial_pellet_count
             self._power_timer = 15  # 15 steps of power
             for e in self._entities:
                 if e.alive and e.etype == "ghost":
@@ -221,18 +232,19 @@ class ChaserEnv(ProcgenBase):
                 if e.data.get("scared", False):
                     # Eat ghost
                     e.alive = False
-                    reward += 2.0
+                    if self._enemies_eaten < self._MAX_EDIBLE_GHOSTS:
+                        reward += self._GHOST_BUDGET / self._MAX_EDIBLE_GHOSTS
                     self._enemies_eaten += 1
                     self._message = "Ate a ghost!"
                 else:
-                    # Ghost kills agent
+                    # Ghost kills agent (Pattern A: no failure penalty here).
                     terminated = True
                     self._message = "Caught by a ghost!"
                     return reward, terminated, info
 
         # Check level clear
         if self._pellet_count <= 0:
-            reward += 5.0
+            reward += self._CLEAR_REWARD
             terminated = True
             self._message = "Level cleared!"
 
@@ -260,14 +272,15 @@ class ChaserEnv(ProcgenBase):
         return (
             "Collect all pellets (\u00b7) in the maze. Ghosts (E) chase you -- "
             "touching one kills you. Eat a power pellet (O) to make ghosts "
-            "scared (F) for 15 steps, allowing you to eat them for +2. "
-            "+0.5 per pellet. +5 for clearing the level."
+            "scared (F) for 15 steps, allowing you to eat them. Pellets "
+            "yield +0.5 total, eating all 3 ghosts yields +0.2, and "
+            "clearing every pellet yields +0.3 (best case +1.0)."
         )
 
     def _symbol_meaning(self, ch: str) -> str:
         meanings = {
             " ": "empty floor",
-            "\u00b7": "pellet (+0.5)",
+            "\u00b7": "pellet (small reward)",
             "\u2588": "wall",
             "O": "power pellet",
             "E": "ghost (deadly)",

@@ -62,7 +62,7 @@ class TestDodgeball:
         env._add_entity("enemy", "E", env._agent_x, env._agent_y - 1, dx=0, dy=0)
         throw = env.action_spec.index_of("THROW")
         _, reward, _, _, _ = env.step(throw)
-        assert reward >= 1.0
+        assert reward > 0
 
     def test_random_rollout(self):
         env = self._make(max_turns=200)

@@ -55,7 +55,7 @@ class TestLeaper:
         up = env.action_spec.index_of("UP")
         _, reward, terminated, _, _ = env.step(up)
         if env._agent_y == 0:
-            assert reward >= 5.0
+            assert reward > 0
             assert terminated
 
     def test_random_rollout(self):

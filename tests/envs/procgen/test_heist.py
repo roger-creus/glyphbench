@@ -76,7 +76,7 @@ class TestHeist:
         env._agent_y = env._goal_y
         noop = env.action_spec.index_of("NOOP")
         _, reward, terminated, _, _ = env.step(noop)
-        assert reward >= 5.0
+        assert reward > 0
         assert terminated
 
     def test_random_rollout(self):

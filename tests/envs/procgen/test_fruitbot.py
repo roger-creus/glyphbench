@@ -58,24 +58,29 @@ class TestFruitBot:
         assert all(len(line) == 14 for line in lines)
 
     def test_fruit_collection_reward(self) -> None:
-        """Collecting fruit gives +1."""
+        """Collecting fruit pays bounded positive progress."""
         env = self._make()
         env.reset(0)
-        # Place fruit below agent
+        # Place fruit below agent. Need _total_fruit > 0 so the per-fruit
+        # share is non-zero; the level generator already ensured that.
         env._set_cell(env._agent_x, env._agent_y + 1, "%")
+        if env._total_fruit == 0:
+            env._total_fruit = 1
         noop = env.action_spec.index_of("NOOP")
         _, reward, _, _, _ = env.step(noop)
-        assert reward >= 1.0
+        assert reward > 0
 
     def test_obstacle_penalty(self) -> None:
-        """Hitting obstacle gives -1."""
+        """Hitting an obstacle pays bounded negative progress."""
         env = self._make()
         env.reset(0)
         # Place obstacle below agent
         env._set_cell(env._agent_x, env._agent_y + 1, "x")
+        if env._total_obstacle == 0:
+            env._total_obstacle = 1
         noop = env.action_spec.index_of("NOOP")
         _, reward, _, _, _ = env.step(noop)
-        assert reward <= -1.0
+        assert reward < 0
 
     def test_agent_falls(self) -> None:
         """Agent falls each step."""
