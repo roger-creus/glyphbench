@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Full eval: all 300 envs × $EPISODES (default 10) × $MODEL.
+# Full eval over the active subset of GlyphBench.
+#
+# By default this excludes the archival ``atari`` (long-horizon originals)
+# and ``craftaxfull`` (open-ended Crafter) suites. To include them, run
+# ``eval/run_archival.sh`` or pass ``EXCLUDE_SUITES='[]'``.
 #
 # Prereq: a vLLM server at $VLLM_BASE_URL serving the target model. e.g.:
 #   uv run vllm serve Qwen/Qwen3.5-4B --port 8000 --max-model-len 24576
@@ -17,6 +21,7 @@ API_KEY_VAR=${API_KEY_VAR:-OPENAI_API_KEY_LOCAL}
 EPISODES=${EPISODES:-5}
 N_FRAMES=${N_FRAMES:-0}
 MAX_TOKENS=${MAX_TOKENS:-8192}
+EXCLUDE_SUITES=${EXCLUDE_SUITES:-'["atari","craftaxfull"]'}
 
 export "$API_KEY_VAR=${!API_KEY_VAR:-EMPTY}"
 
@@ -27,4 +32,4 @@ prime eval run glyphbench \
   -k "$API_KEY_VAR" \
   -n "$EPISODES" \
   --max-tokens "$MAX_TOKENS" \
-  -a "{\"num_episodes\": $EPISODES, \"n_frames\": $N_FRAMES, \"max_output_tokens\": $MAX_TOKENS}"
+  -a "{\"num_episodes\": $EPISODES, \"n_frames\": $N_FRAMES, \"max_output_tokens\": $MAX_TOKENS, \"exclude_suites\": $EXCLUDE_SUITES}"
