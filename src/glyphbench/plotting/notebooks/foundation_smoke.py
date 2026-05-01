@@ -75,19 +75,24 @@ def plot_token_usage(summary: pd.DataFrame, fig_dir: Path) -> None:
     _save_fig(fig, fig_dir, "token_usage")
 
 
-def plot_parse_failure_rate(summary: pd.DataFrame, fig_dir: Path) -> None:
-    """4. Parse failure rate (bar chart)."""
-    if len(summary) == 0:
-        _empty_plot(fig_dir, "parse_failure_rate", "Action Parse Failure Rate")
+def plot_forfeit_rate(summary: pd.DataFrame, fig_dir: Path) -> None:
+    """4. Forfeit rate (bar chart)."""
+    rate_col = None
+    for candidate in ("forfeit_rate", "action_parse_failure_rate", "parse_failure_rate"):
+        if candidate in summary.columns:
+            rate_col = candidate
+            break
+    if len(summary) == 0 or rate_col is None:
+        _empty_plot(fig_dir, "forfeit_rate", "Forfeit Rate")
         return
-    means = summary.groupby("env_id")["action_parse_failure_rate"].mean()
+    means = summary.groupby("env_id")[rate_col].mean()
     fig, ax = plt.subplots()
     means.plot(kind="bar", ax=ax)
-    ax.set_title("Action Parse Failure Rate per Environment")
+    ax.set_title("Forfeit Rate per Environment")
     ax.set_xlabel("Environment")
-    ax.set_ylabel("Failure Rate")
+    ax.set_ylabel("Forfeit Rate")
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
-    _save_fig(fig, fig_dir, "parse_failure_rate")
+    _save_fig(fig, fig_dir, "forfeit_rate")
 
 
 def plot_action_distribution(turns: pd.DataFrame, fig_dir: Path) -> None:
@@ -155,7 +160,7 @@ def main(run_dir: str) -> None:
         plot_return_distribution(summary, fig_dir)
         plot_episode_length(summary, fig_dir)
         plot_token_usage(summary, fig_dir)
-        plot_parse_failure_rate(summary, fig_dir)
+        plot_forfeit_rate(summary, fig_dir)
         plot_action_distribution(turns, fig_dir)
         plot_cost_per_episode(summary, fig_dir)
         plot_return_over_episodes(summary, fig_dir)

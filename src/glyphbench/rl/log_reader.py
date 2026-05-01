@@ -124,10 +124,13 @@ def load_rollouts(
     and return one row per rollout as a pandas DataFrame.
 
     Columns include: step, phase, env_id, task, example_id, reward,
-    episodic_return, episode_length, num_turns, parse_failure_rate,
+    episodic_return, episode_length, num_turns, forfeit_rate,
     xml_format_reward, is_completed, is_truncated, advantage. Bulky fields
     (prompt, completion, trajectory, metrics, info) are dropped — but
     env_id is pulled out of info.
+
+    Legacy rollout files (pre-P3) may use ``parse_failure_rate`` instead of
+    ``forfeit_rate``; both are coalesced into ``forfeit_rate`` automatically.
     """
     pd = _import_pandas()
     output_dir = Path(output_dir)
@@ -136,6 +139,9 @@ def load_rollouts(
     df = pd.DataFrame(rows)
     if df.empty:
         return df
+    # Coalesce legacy parse_failure_rate → forfeit_rate for old JSONL files.
+    if "forfeit_rate" not in df.columns and "parse_failure_rate" in df.columns:
+        df["forfeit_rate"] = df["parse_failure_rate"]
     sort_cols = [c for c in ("step", "phase", "example_id") if c in df.columns]
     if sort_cols:
         df = df.sort_values(sort_cols, kind="mergesort").reset_index(drop=True)
@@ -152,7 +158,7 @@ def _summary_by(df: Any, group_col: str) -> Any:
         "mean_episodic_return",
         "mean_episode_length",
         "mean_num_turns",
-        "mean_parse_failure_rate",
+        "mean_forfeit_rate",
         "mean_xml_format_reward",
         "completion_rate",
         "truncation_rate",
@@ -173,7 +179,7 @@ def _summary_by(df: Any, group_col: str) -> Any:
         ("mean_episodic_return", "episodic_return", "mean"),
         ("mean_episode_length", "episode_length", "mean"),
         ("mean_num_turns", "num_turns", "mean"),
-        ("mean_parse_failure_rate", "parse_failure_rate", "mean"),
+        ("mean_forfeit_rate", "forfeit_rate", "mean"),
         ("mean_xml_format_reward", "xml_format_reward", "mean"),
         ("completion_rate", "_is_completed_f", "mean"),
         ("truncation_rate", "_is_truncated_f", "mean"),
@@ -194,7 +200,7 @@ def summary_by_env(df: Any) -> Any:
 
     One row per env with: count, mean_reward, std_reward,
     mean_episodic_return, mean_episode_length, mean_num_turns,
-    mean_parse_failure_rate, mean_xml_format_reward, completion_rate,
+    mean_forfeit_rate, mean_xml_format_reward, completion_rate,
     truncation_rate. Sorted by count descending.
     """
     return _summary_by(df, "env_id")

@@ -20,7 +20,7 @@ def generate(runs_dir: str, output_dir: str) -> None:
         return
 
     rate_col = None
-    for candidate in ("action_parse_failure_rate", "parse_failure_rate", "parse_failures"):
+    for candidate in ("forfeit_rate", "action_parse_failure_rate", "parse_failure_rate", "parse_failures"):
         if candidate in df.columns:
             rate_col = candidate
             break

@@ -529,9 +529,19 @@ def _render_rollout_rich(
     line_width_cap = 200
 
     # rollout-level flags we'll surface in the header on every frame
-    overall_truncated = bool(rollout.get("is_truncated") or rollout.get("truncated_flag"))
-    overall_completed = bool(rollout.get("is_completed") or rollout.get("terminated_flag"))
-    overall_pf_rate = rollout.get("parse_failure_rate")
+    overall_truncated = bool(
+        rollout.get("is_truncated")
+        or rollout.get("truncated")
+        or rollout.get("episode_truncated_max_turns_rate")
+        or rollout.get("truncated_flag")  # legacy key from pre-P3 rollout files
+    )
+    overall_completed = bool(
+        rollout.get("is_completed")
+        or rollout.get("terminated")
+        or rollout.get("episode_terminated_rate")
+        or rollout.get("terminated_flag")  # legacy key from pre-P3 rollout files
+    )
+    overall_pf_rate = rollout.get("forfeit_rate") or rollout.get("parse_failure_rate")
     stop_cond = rollout.get("stop_condition")
     reward = rollout.get("reward")
     metrics = rollout.get("metrics") or {}
