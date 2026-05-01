@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from glyphbench.core.registry import register_env
 
+from glyphbench.envs.miniatari.boxing import MiniBoxingEnv
 from glyphbench.envs.miniatari.doubledunk import MiniDoubleDunkEnv
 from glyphbench.envs.miniatari.fishingderby import MiniFishingDerbyEnv
 from glyphbench.envs.miniatari.icehockey import MiniIceHockeyEnv
@@ -21,6 +22,7 @@ REGISTRY: dict = {
     "glyphbench/miniatari-icehockey-v0": MiniIceHockeyEnv,
     "glyphbench/miniatari-doubledunk-v0": MiniDoubleDunkEnv,
     "glyphbench/miniatari-fishingderby-v0": MiniFishingDerbyEnv,
+    "glyphbench/miniatari-boxing-v0": MiniBoxingEnv,
 }
 
 for env_id, cls in REGISTRY.items():
