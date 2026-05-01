@@ -7,6 +7,7 @@ ALL_SUITES: tuple[str, ...] = (
     "minigrid",
     "minihack",
     "atari",
+    "miniatari",
     "craftax",
     "craftaxfull",
     "procgen",
