@@ -268,17 +268,22 @@ async def test_memory_add_model_response_emits_two_steps(monkeypatch):
     }
     assert seen["prompt"][-1]["role"] == "user"
     memory_update_prompt = seen["prompt"][-1]["content"]
-    assert "Parsed action: EAST" in memory_update_prompt
-    assert "<think>go east</think><action>EAST</action>" in memory_update_prompt
-    assert "[Next Observation]" in memory_update_prompt
-    assert "[Grid]" in memory_update_prompt
-    assert "[HUD]" not in memory_update_prompt
-    assert "Pos:" not in memory_update_prompt
+    # Lean memory_user: env feedback + write instruction only — NO duplicates
+    assert "[Memory Update]" in memory_update_prompt
+    assert "Reward: +0.000" in memory_update_prompt
+    assert "[Previous Memory]" not in memory_update_prompt
+    assert "[Action Response]" not in memory_update_prompt
+    assert "Parsed action:" not in memory_update_prompt
+    assert "[Next Observation]" not in memory_update_prompt
+    assert "[Grid]" not in memory_update_prompt
 
     action_step, memory_step = state["trajectory"]
     assert [m["role"] for m in action_step["completion"]] == ["assistant"]
     assert action_step["reward"] == 0.0
     assert action_step["extras"]["glyphbench_step_role"] == "action"
+    assert action_step["extras"]["parse_failed"] is False
+    assert action_step["extras"]["action_chosen"] == "EAST"
+    assert action_step["extras"]["forfeit"] is False
     assert action_step["tokens"]["completion_ids"] == [3, 4]
 
     # memory_step's prompt extends the action_step's prompt+completion with
@@ -286,13 +291,13 @@ async def test_memory_add_model_response_emits_two_steps(monkeypatch):
     # assistant memory response only.
     assert memory_step["prompt"][: len(prompt_messages)] == list(prompt_messages)
     assert memory_step["prompt"][-1]["role"] == "user"
-    assert "Parsed action: EAST" in memory_step["prompt"][-1]["content"]
+    assert "[Memory Update]" in memory_step["prompt"][-1]["content"]
+    assert "[Previous Memory]" not in memory_step["prompt"][-1]["content"]
     assert [m["role"] for m in memory_step["completion"]] == ["assistant"]
     assert memory_step["reward"] == 0.0  # same per-turn reward
     assert memory_step["extras"]["glyphbench_step_role"] == "memory"
-    assert memory_step["extras"]["glyphbench_memory"]["previous_memory"] == ""
-    assert memory_step["extras"]["glyphbench_memory"]["stored_memory"] == "moved east once"
-    assert memory_step["extras"]["glyphbench_memory"]["extraction_mode"] == "tag"
+    assert memory_step["extras"]["memory_parse_failed"] is False
+    assert memory_step["extras"]["stored_memory"] == "moved east once"
     assert memory_step["tokens"]["completion_ids"] == [7, 8]
 
     next_prompt = await env.get_prompt_messages(state)
@@ -316,7 +321,7 @@ async def test_memory_add_model_response_keeps_step_without_token_data(monkeypat
     await env.setup_state(state)
 
     async def fake_get_model_response(state_arg, prompt_arg, **kwargs):
-        return _response("<think>update</think>wall north")
+        return _response("<memory>wall north</memory>")
 
     monkeypatch.setattr(env, "get_model_response", fake_get_model_response)
     await env.add_model_response(
@@ -334,7 +339,10 @@ async def test_memory_add_model_response_keeps_step_without_token_data(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_memory_update_prompt_includes_separate_action_reasoning(monkeypatch):
+async def test_memory_update_prompt_is_lean_no_action_response_injected(monkeypatch):
+    """Lean memory_user: action response text (incl. reasoning_content) is NOT
+    injected into the memory-update user prompt. The memory writer sees the
+    action via the conversation prefix (assistant_action_t), not re-stated."""
     env = load_environment(
         task_id="glyphbench/__dummy-v0", num_episodes=1, use_memory=True
     )
@@ -364,8 +372,15 @@ async def test_memory_update_prompt_includes_separate_action_reasoning(monkeypat
     )
 
     memory_update_prompt = seen["prompt"][-1]["content"]
-    assert "<think>\nThe goal is east, so move east.\n</think>" in memory_update_prompt
-    assert "<action>EAST</action>" in memory_update_prompt
+    # Lean wrapper: env feedback + write instruction only
+    assert "[Memory Update]" in memory_update_prompt
+    # Action response and reasoning are NOT re-injected into the memory_user
+    assert "<think>" not in memory_update_prompt
+    assert "EAST" not in memory_update_prompt
+    assert "The goal is east" not in memory_update_prompt
+    assert "[Action Response]" not in memory_update_prompt
+    assert "[Previous Memory]" not in memory_update_prompt
+    assert "[Next Observation]" not in memory_update_prompt
 
 
 @pytest.mark.asyncio
@@ -469,6 +484,77 @@ async def test_memory_rollout_every_step_completion_is_assistant_only(monkeypatc
     for i, step in enumerate(state["trajectory"]):
         expected = "action" if i % 2 == 0 else "memory"
         assert step["extras"]["glyphbench_step_role"] == expected
+
+
+def test_memory_mode_uses_lean_memory_user_and_records_parse_flag(monkeypatch):
+    """End-to-end memory-mode turn: action call generates a valid action,
+    memory call generates malformed memory, expectation:
+      - lean memory_user (no [Previous Memory] / [Action Response] / [Next Obs])
+      - state['memory'] retained (== '' on first turn since no prior)
+      - memory step extras has memory_parse_failed=True
+    """
+    import asyncio
+    from datasets import Dataset
+    from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
+    from glyphbench.verifiers_integration.rubric import EpisodicReturnRubric
+
+    parser = GlyphbenchXMLParser()
+    env = GlyphbenchMultiTurnEnv(
+        dataset=Dataset.from_list([{
+            "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+            "task": "glyphbench/__dummy-v0",
+            "prompt": [{"role": "system", "content": ""}, {"role": "user", "content": ""}],
+            "answer": "",
+        }]),
+        rubric=EpisodicReturnRubric(parser=parser),
+        parser=parser,
+        n_frames=0,
+        max_turns_override=None,
+        max_output_tokens=128,
+        use_memory=True,
+        memory_update_max_tokens=64,
+    )
+
+    state = {
+        "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+        "trajectory": [],
+        "trajectory_id": "tid",
+        "prompt": [],
+        "sampling_args": {"max_tokens": 128},
+    }
+    asyncio.run(env.setup_state(state))
+
+    valid_action = state["game"].action_spec.names[0]
+    action_response = _response(
+        f"<action>{valid_action}</action>",
+        prompt_ids=[1, 2, 3],
+        completion_ids=[10, 11],
+    )
+
+    # Stub get_model_response: action generates valid; memory generates malformed.
+    async def fake_response(state, prompt_messages, sampling_args=None):
+        memory_resp = _response(
+            "I forgot to wrap my memory in tags",
+            prompt_ids=[1, 2, 3, 10, 11, 20, 21],
+            completion_ids=[30, 31],
+        )
+        return memory_resp
+
+    env.get_model_response = fake_response  # type: ignore[assignment]
+    asyncio.run(env.add_model_response(state, [], action_response))
+
+    assert state["memory"] == ""  # previous memory retained (was empty initially)
+    memory_step = state["trajectory"][-1]
+    extras = memory_step["extras"]
+    assert extras["glyphbench_step_role"] == "memory"
+    assert extras["memory_parse_failed"] is True
+    # Lean memory_user content check
+    memory_prompt = memory_step["prompt"]
+    memory_user_text = memory_prompt[-1]["content"]
+    assert "[Memory Update]" in memory_user_text
+    assert "[Previous Memory]" not in memory_user_text
+    assert "[Action Response]" not in memory_user_text
+    assert "[Next Observation]" not in memory_user_text
 
 
 def test_apply_action_response_forfeits_on_parse_fail(monkeypatch):

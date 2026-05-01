@@ -245,22 +245,6 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
                 return content if isinstance(content, str) else str(content)
         return ""
 
-    def _last_assistant_transcript_text(self, messages: list[dict[str, Any]]) -> str:
-        for m in reversed(messages):
-            if m.get("role") != "assistant":
-                continue
-            content_raw = m.get("content", "") or ""
-            content = content_raw if isinstance(content_raw, str) else str(content_raw)
-            reasoning = m.get("reasoning_content")
-            if (
-                isinstance(reasoning, str)
-                and reasoning.strip()
-                and "<think" not in content.lower()
-            ):
-                return f"<think>\n{reasoning.strip()}\n</think>\n{content}".strip()
-            return content
-        return ""
-
     def _apply_action_response(
         self,
         messages: list[dict[str, Any]],
@@ -395,29 +379,21 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             advantage=None,
             is_truncated=action_is_truncated,
             trajectory_id=state["trajectory_id"],
-            extras={"glyphbench_step_role": "action"},
+            extras={
+                "glyphbench_step_role": "action",
+                "parse_failed": bool(action_result["parse_failed"]),
+                "parse_failure_reason": action_result["parse_failure_reason"],
+                "action_chosen": action_result["action_chosen"],
+                "forfeit": bool(action_result["forfeit"]),
+            },
         )
         state["trajectory"].append(action_step)
 
-        previous_memory = state.get("memory", "")
-        action_response_text = self._last_assistant_transcript_text(
-            messages_for_action
-        )
-        game: BaseGlyphEnv = state["game"]
-        next_observation = self._render_observation_user(
-            game,
-            state,
-            turn=game.turn,
-            memory=None,
-        )
+        # Lean memory-update prompt: only env feedback + write instruction.
         memory_user = build_memory_update_user(
-            previous_memory=previous_memory,
-            action_response=action_response_text,
-            parsed_action=action_result["action_name"],
             reward=turn_reward,
             terminated=bool(action_result["terminated"]),
             truncated=bool(action_result["truncated"]),
-            next_observation=next_observation,
         )
         memory_prompt_messages = messages_for_action + [memory_user]
         memory_response = await self.get_model_response(
@@ -431,7 +407,11 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         memory_tokens = await parse_response_tokens(memory_response, self.max_seq_len)
         memory_response_text = self._last_assistant_text(memory_completion)
         extraction = extract_memory_update(memory_response_text)
-        state["memory"] = extraction.memory
+
+        # Retain previous memory on parse failure; otherwise apply the new one.
+        if not extraction.parse_failed:
+            state["memory"] = extraction.memory
+        # state["memory"] otherwise stays unchanged.
 
         memory_response_is_truncated = memory_response.message.is_truncated or False
         memory_is_truncated = memory_response_is_truncated or (
@@ -449,16 +429,8 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             trajectory_id=state["trajectory_id"],
             extras={
                 "glyphbench_step_role": "memory",
-                "glyphbench_memory": {
-                    "enabled": True,
-                    "previous_memory": previous_memory,
-                    "memory_update_user": memory_user,
-                    "parsed_memory": extraction.memory,
-                    "stored_memory": state["memory"],
-                    "extraction_mode": extraction.mode,
-                    "memory_update_was_truncated": bool(memory_is_truncated),
-                    "action_was_truncated": bool(action_is_truncated),
-                },
+                "memory_parse_failed": bool(extraction.parse_failed),
+                "stored_memory": state["memory"],
             },
         )
         state["trajectory"].append(memory_step)
