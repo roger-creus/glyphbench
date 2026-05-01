@@ -233,12 +233,14 @@ class _SokobanBase(BaseGlyphEnv):
             self._player = (nx, ny)
 
         new_on_targets = len(self._boxes & self._targets)
-        reward = float(new_on_targets - old_on_targets)
+        # Pattern A: each box placed/unplaced changes reward by +/-1/N so
+        # cumulative reward telescopes to placed_final / N. Solved = 1.0.
+        # No completion bonus -- we already cap at 1.0 by construction.
+        n_targets = max(1, len(self._targets))
+        reward = float(new_on_targets - old_on_targets) / n_targets
         self._boxes_on_targets = new_on_targets
 
         terminated = new_on_targets == len(self._targets)
-        if terminated:
-            reward += 5.0
 
         info["boxes_on_targets"] = new_on_targets
         info["total_targets"] = len(self._targets)
@@ -294,8 +296,9 @@ class _SokobanBase(BaseGlyphEnv):
             f"- The grid is {self._grid_size}x{self._grid_size}.\n"
             f"- There are {self._num_boxes} boxes and {self._num_boxes} targets.\n"
             "- Moving into a box pushes it one cell in the same direction, if the cell behind it is empty.\n"
-            "- You get +1 reward when a box lands on a target, -1 when a box is pushed off a target.\n"
-            "- You get +5 bonus when all boxes are on targets (game ends).\n"
+            f"- You get +{1.0 / self._num_boxes:.4f} reward when a box lands on a target, the\n"
+            f"  same magnitude negative when a box is pushed off a target.\n"
+            "- All boxes on targets ends the episode with cumulative reward = 1.0.\n"
             "- Be careful: pushing a box into a corner may make the puzzle unsolvable.\n\n"
             + self.action_spec.render_for_prompt()
         )
