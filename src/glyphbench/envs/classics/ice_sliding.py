@@ -149,7 +149,9 @@ class _IceSlidingBase(BaseGlyphEnv):
         nx, ny = self._slide_result(px, py, dx, dy)
         self._player = (nx, ny)
 
-        reward = -0.01
+        # Pattern A with bounded shaping: -1/max_turns per step (total floor
+        # = -1.0 if agent never reaches the goal), +1.0 on goal (terminal).
+        reward = -1.0 / self.max_turns
         terminated = False
 
         if self._player == self._goal:
@@ -209,7 +211,10 @@ class _IceSlidingBase(BaseGlyphEnv):
             f"- The grid is {self._grid_size}x{self._grid_size} with walls around the border.\n"
             "- Moving on ice causes you to slide until you hit a wall or rock.\n"
             "- Rocks stop your sliding but you cannot pass through them.\n"
-            "- Reach the goal to win (+1 reward). Each move costs -0.01.\n"
+            "- Reach the goal to win (+1 reward).\n"
+            "- Each move costs a small step penalty scaled so that, if you never\n"
+            "  reach the goal, cumulative reward bottoms out at -1 over the full\n"
+            "  episode budget. Reach the goal as fast as you can.\n"
             "- Plan your path carefully: you cannot stop on ice mid-slide.\n\n"
             + self.action_spec.render_for_prompt()
         )
