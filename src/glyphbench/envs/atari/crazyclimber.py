@@ -29,7 +29,8 @@ class CrazyClimberEnv(AtariBase):
     Windows open/close. Falling objects drop from above.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT
-    Reward: +1 per row climbed, +2 per ledge reached.
+    Pattern D: +1/_WIN_TARGET per building topped (full-scope = 5
+    buildings), -1.0 if hit by falling object (single-life model).
     """
 
     action_spec = ActionSpec(
@@ -43,6 +44,10 @@ class CrazyClimberEnv(AtariBase):
         ),
     )
 
+    # Pattern D full-scope target: 5 buildings climbed.
+    _WIN_TARGET: int = 5
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 1000) -> None:
         super().__init__(max_turns=max_turns)
         self._height_reached: int = 0
@@ -50,9 +55,14 @@ class CrazyClimberEnv(AtariBase):
         self._building: list[list[str]] = []
         self._bld_height: int = 100
         self._obj_timer: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-crazyclimber-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         rng = np.random.default_rng(seed + self._level * 1009)
@@ -152,27 +162,24 @@ class CrazyClimberEnv(AtariBase):
                             self._player_y = (
                                 new_by - self._scroll_offset
                             )
-                    # Score for climbing
+                    # Track height for HUD only (no reward).
                     h = self._bld_height - new_by
                     if h > self._height_reached:
                         delta = h - self._height_reached
                         self._height_reached = h
                         self._on_point_scored(delta)
-                        reward += delta
                 elif dy > 0:
                     self._player_y += dy
                     if self._player_y >= _H - 2:
                         self._player_y = _H - 3
 
-                # Ledge bonus
+                # Ledge HUD message only (no reward).
                 if (
                     self._building[new_by][self._player_x]
                     == _LEDGE_CHAR
                     and old_by != new_by
                 ):
-                    self._on_point_scored(2)
-                    reward += 2
-                    self._message = "Ledge reached! +2"
+                    self._message = "Ledge reached!"
 
         # Spawn falling objects
         self._obj_timer += 1
@@ -191,7 +198,7 @@ class CrazyClimberEnv(AtariBase):
             if e.y >= _H - 1:
                 e.alive = False
 
-        # Collision with falling objects
+        # Collision with falling objects (Pattern D death penalty)
         for e in self._entities:
             if (
                 e.etype == "falling"
@@ -201,12 +208,8 @@ class CrazyClimberEnv(AtariBase):
             ):
                 e.alive = False
                 self._on_life_lost()
+                reward = self._DEATH_PENALTY
                 self._message = "Hit by falling object!"
-                if not self._game_over:
-                    # Drop player down a bit
-                    self._player_y = min(
-                        self._player_y + 3, _H - 3
-                    )
                 break
 
         # Window hazard: open windows push player
@@ -219,11 +222,23 @@ class CrazyClimberEnv(AtariBase):
                     self._player_y + 2, _H - 3
                 )
 
-        # Check win condition
-        if self._scroll_offset <= 0 and self._player_y <= 2:
+        # Check win condition (one building topped)
+        if (
+            self._scroll_offset <= 0
+            and self._player_y <= 2
+            and not self._game_over
+        ):
+            if self._progress_count < self._WIN_TARGET:
+                reward += 1.0 / self._WIN_TARGET
+                self._progress_count += 1
             self._level += 1
-            self._message = "Building topped! Next level!"
-            self._generate_level(self._level * 3001)
+            self._message = "Building topped!"
+            if self._progress_count >= self._WIN_TARGET:
+                self._game_over = True
+                info["won"] = True
+                self._message = "All buildings climbed!"
+            else:
+                self._generate_level(self._level * 3001)
 
         self._entities = [
             e for e in self._entities if e.alive
@@ -291,13 +306,13 @@ class CrazyClimberEnv(AtariBase):
             "per step. Standing on a window cell has a 10 percent "
             "chance per step of pushing you 2 rows down.\n\n"
             "SCORING\n"
-            "+1 reward per new row you climb above your previous "
-            "maximum height. +2 reward per ledge reached. No per-step "
-            "penalty. Reaching row 0 advances to the next level with "
-            "a taller building.\n\n"
+            "+0.2 reward per building topped (5 buildings = +1.0 "
+            "cumulative). -1.0 penalty if hit by a falling object "
+            "(single-life: ends the episode). No per-step penalty.\n\n"
             "TERMINATION\n"
-            ". Hit by a falling object: lose 1 life and "
-            "drop 3 rows. Episode ends at 0 lives or after max_turns.\n\n"
+            "Single-life model. Hit by a falling object ends the "
+            "episode with -1.0 reward. Episode also ends after "
+            "max_turns or after all 5 buildings are climbed.\n\n"
             "HUD\n"
             "Shows score, lives, level, height reached, and number of "
             "active falling objects.\n\n"
