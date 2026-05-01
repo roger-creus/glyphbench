@@ -875,6 +875,10 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
     """Start with iron sword + spells. 3 skeletons (ranged) at range.
     Ranged combat. Max 40 steps. (Full version -- upstream ranged skeleton.)"""
 
+    # Pattern D: 3 mobs to kill. +1/N per kill. -1.0 on death.
+    _KILL_TARGET = 3
+    _DEATH_PENALTY = -1.0
+
     tutorial_sections = (
         "overview",
         "legend:player", "legend:terrain",
@@ -903,7 +907,7 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
             "5 HP and deals 3 damage (melee or ranged). You have an iron "
             "sword (+3 dmg) and learned spells — CAST_FIREBALL hits mobs "
             "within 2 tiles (3 mana, 4 dmg). Close distance and use DO to "
-            "melee. Reward: +3 per skeleton killed, +5 bonus for clearing all 3."
+            "melee. Reward: +1/3 per skeleton killed, -1 on death."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -929,6 +933,15 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
         self._mana = _MAX_MANA
         return self._render_current_observation()
 
+    # Suppress parent achievement and boss-kill rewards.
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
@@ -936,15 +949,20 @@ class CraftaxFightArchersEnv(CraftaxFullEnv):
             1 for m in self._mobs if m["type"] == "skeleton"
         )
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Drop the literal +10 boss-kill bonus emitted by CraftaxFullEnv
+        # (none here, but defensive: any large parent reward is unwanted).
         archer_count_after = sum(
             1 for m in self._mobs if m["type"] == "skeleton"
         )
         kills = archer_count_before - archer_count_after
-        reward += kills * 3.0
+        # Replace parent reward with structural per-step shaping.
+        reward = kills * (1.0 / self._KILL_TARGET)
         if archer_count_after == 0 and archer_count_before > 0:
-            reward += 5.0
             terminated = True
             info["subtask_success"] = True
+        elif self._hp <= 0:
+            reward = self._DEATH_PENALTY
+            terminated = True
         return obs, reward, terminated, truncated, info
 
 
@@ -954,6 +972,10 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
     Env ID preserved for backward compatibility; mob type updated to upstream
     'kobold' (ranged, throws daggers) per T_FOLLOWUP_A / T04β rename.
     """
+
+    # Pattern D: 3 kobolds. +1/N per kill. -1.0 on death.
+    _KILL_TARGET = 3
+    _DEATH_PENALTY = -1.0
 
     tutorial_sections = (
         "overview",
@@ -981,8 +1003,7 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
         return (
             "3 kobolds (q) lurk nearby and throw daggers. Defeat all 3. Each "
             "has 4 HP and deals 2 damage. You have an iron sword (+3 damage) — "
-            "use DO when adjacent. Reward: +3 per kobold killed, +5 bonus "
-            "for clearing all 3."
+            "use DO when adjacent. Reward: +1/3 per kobold killed, -1 on death."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1003,6 +1024,15 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
         self._mana = _MAX_MANA
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
@@ -1014,16 +1044,22 @@ class CraftaxFightSpidersEnv(CraftaxFullEnv):
             1 for m in self._mobs if m["type"] == "kobold"
         )
         kills = kobold_count_before - kobold_count_after
-        reward += kills * 3.0
+        reward = kills * (1.0 / self._KILL_TARGET)
         if kobold_count_after == 0 and kobold_count_before > 0:
-            reward += 5.0
             terminated = True
             info["subtask_success"] = True
+        elif self._hp <= 0:
+            reward = self._DEATH_PENALTY
+            terminated = True
         return obs, reward, terminated, truncated, info
 
 
 class CraftaxFightBatsEnv(CraftaxFullEnv):
     """Start with stone sword. 5 bats (fast, low HP). Max 30 steps."""
+
+    # Pattern D: 5 bats. +1/N per kill. -1.0 on death.
+    _KILL_TARGET = 5
+    _DEATH_PENALTY = -1.0
 
     tutorial_sections = (
         "overview",
@@ -1051,8 +1087,8 @@ class CraftaxFightBatsEnv(CraftaxFullEnv):
         return (
             "5 bats (b) are swarming you. Defeat all 5. Each bat has only 2 "
             "HP but moves erratically. You have a stone sword (+2 damage). "
-            "Face a bat and use DO to attack. Reward: +2 per bat killed, "
-            "+5 bonus for clearing all 5."
+            "Face a bat and use DO to attack. Reward: +1/5 per bat killed, "
+            "-1 on death."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1073,6 +1109,15 @@ class CraftaxFightBatsEnv(CraftaxFullEnv):
         self._mana = _MAX_MANA
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
@@ -1084,11 +1129,13 @@ class CraftaxFightBatsEnv(CraftaxFullEnv):
             1 for m in self._mobs if m["type"] == "bat"
         )
         kills = bat_count_before - bat_count_after
-        reward += kills * 2.0
+        reward = kills * (1.0 / self._KILL_TARGET)
         if bat_count_after == 0 and bat_count_before > 0:
-            reward += 5.0
             terminated = True
             info["subtask_success"] = True
+        elif self._hp <= 0:
+            reward = self._DEATH_PENALTY
+            terminated = True
         return obs, reward, terminated, truncated, info
 
 
