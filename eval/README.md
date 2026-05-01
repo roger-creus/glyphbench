@@ -115,6 +115,30 @@ a concise memory update. `memory_update_max_tokens` caps only the second
 generation's output. See `docs/OBSERVATION_FORMAT.md` for full memory-mode
 behaviour.
 
+## Filtering envs (suites and tasks)
+
+Both `prime eval run glyphbench` and `random_baseline.py` accept include/exclude
+filters. `glyphbench.load_environment` exposes them as kwargs; eval scripts pass
+them through the `-a '{...}'` JSON or as CLI args.
+
+| kwarg | type | behavior |
+|---|---|---|
+| `include_suites` | `list[str]` | Whitelist by first-hyphen-segment of env_id (e.g. `["atari", "minigrid"]`). |
+| `exclude_suites` | `list[str]` | Blacklist by suite. Always wins over includes. |
+| `include_tasks` | `list[str]` | Exact env IDs or fnmatch patterns (e.g. `["glyphbench/atari-*-v0"]`). |
+| `exclude_tasks` | `list[str]` | Same shape; always wins over includes. |
+
+`__dummy` envs are excluded by default. To include them, name them explicitly
+in `include_tasks`.
+
+**Default eval exclusions.** `eval/run_full.sh` defaults to
+`exclude_suites=["atari", "craftaxfull"]` because those two suites are the
+long-horizon archival/open-ended games. To eval them, use `eval/run_archival.sh`
+or pass `EXCLUDE_SUITES='[]'`.
+
+**Default training exclusions.** Training configs (prime-rl TOML) should set
+`exclude_suites=["atari", "craftaxfull"]` for the same reason.
+
 ## Random-agent baseline
 
 A reproducible zero-skill reference is shipped at `eval/random_baseline.json`.
@@ -144,9 +168,13 @@ Regenerate with:
 ```bash
 uv run python eval/random_baseline.py
 # options:
-#   --episodes 25          episodes per env (default 25)
-#   --suites minigrid atari  filter to specific suites
-#   --max-turns N          override env-native budget (default: None = use env's own)
+#   --episodes 25            episodes per env (default 25)
+#   --include-suite NAME     restrict to a suite (repeatable)
+#   --exclude-suite NAME     skip a suite (repeatable; default: atari, craftaxfull)
+#   --include-task ID|GLOB   restrict by exact id or fnmatch (repeatable)
+#   --exclude-task ID|GLOB   skip by exact id or fnmatch (repeatable)
+#   --include-all            disable default suite exclusions
+#   --max-turns N            override env-native budget (default: None = use env's own)
 #   --output eval/random_baseline.json
 ```
 
@@ -184,8 +212,9 @@ action output budget). Memory turns send `max_tokens=4096`.
 | File | Description |
 |---|---|
 | `run_debug.sh` | Smoke eval: 1 env, 2 episodes, optional auto-start vLLM. |
-| `run_full.sh` | Full sweep: all 300 envs, configurable episodes and model. |
+| `run_full.sh` | Full sweep over the active subset (excludes `atari`, `craftaxfull` by default). |
+| `run_archival.sh` | Archival sweep: includes only the long-horizon `atari` + `craftaxfull` suites. |
 | `random_baseline.json` | Pre-computed zero-skill reference: mean/std/min/max return per env under uniform-random action selection. |
-| `random_baseline.py` | Script to regenerate `random_baseline.json`. Accepts `--episodes`, `--suites`, `--max-turns`, `--output`. |
+| `random_baseline.py` | Script to regenerate `random_baseline.json`. See "Filtering envs" for filter flags. |
 | `plot_results.ipynb` | Notebook for per-suite result visualisation. |
 | `eval/figures/` | Auto-regenerated per-suite plots (gitignored). |
