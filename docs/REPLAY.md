@@ -102,6 +102,19 @@ Notes on the layout:
   pre-clipped to fit the panel; press the matching pager hotkey in
   pause mode to view the full text scrollably.
 
+### Per-turn chips
+
+Each replayed turn line carries small chips that flag any failure mode that
+fired on that step:
+
+- `[forfeit]` — action couldn't be parsed; env was not stepped, turn counter advanced, reward 0.
+- `[trunc-action]` — action completion ran out of `max_tokens`.
+- `[trunc-memory]` — memory completion ran out of `max_tokens` (memory mode only).
+- `[mem-parse-fail]` — memory turn emitted no `<memory>` tag; previous memory retained.
+
+See [LLM agent failure modes glossary](llm-agent-failure-modes.md) for full
+definitions, formulas, and diagnostic guidance.
+
 ## How the parser stays aligned with eval
 
 Action extraction goes through `GlyphbenchXMLParser._extract_candidate`
