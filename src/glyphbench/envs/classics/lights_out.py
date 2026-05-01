@@ -116,11 +116,13 @@ class _LightsOutBase(BaseGlyphEnv):
         self._toggle(row, col)
         self._presses += 1
 
-        reward = -0.01  # Small penalty per press
+        # Pattern A with bounded shaping: per-press penalty scaled so worst
+        # case (no solve in entire budget) sums to -1.0; +1.0 on solve.
+        reward = -1.0 / self.max_turns
 
         solved = not np.any(self._board)
         if solved:
-            reward += 1.0
+            reward = 1.0
 
         info["lights_on"] = int(np.sum(self._board))
         info["presses"] = self._presses
@@ -176,7 +178,8 @@ class _LightsOutBase(BaseGlyphEnv):
             "(row * width + col).\n"
             "- Toggling flips the pressed cell and its orthogonal neighbors.\n"
             "- The puzzle starts with a guaranteed-solvable configuration.\n"
-            "- Reward: -0.01 per press, +1.0 when all lights are off.\n"
+            "- Reward: small per-press penalty (scaled so worst case sums to -1.0\n"
+            "  if you exhaust the budget) and +1.0 when all lights are off.\n"
             "- The game ends when all lights are off or max steps is reached.\n\n"
             + self.action_spec.render_for_prompt()
         )
