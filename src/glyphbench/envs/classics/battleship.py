@@ -32,6 +32,9 @@ _SHIPS = [
     ("destroyer", 2),
 ]
 
+# Total cells across all ships -- used for [-1, 1] reward normalization.
+_TOTAL_SHIP_CELLS = sum(length for _, length in _SHIPS)
+
 # ---------------------------------------------------------------------------
 # Action spec: FIRE_0 .. FIRE_99
 # ---------------------------------------------------------------------------
@@ -136,17 +139,18 @@ class BattleshipEnv(BaseGlyphEnv):
         ship_idx = self._ship_grid[r, c]
 
         if ship_idx == -1:
-            # Miss
+            # Miss -- no reward, keeps cumulative bound clean.
             self._visible[r, c] = 1
             self._total_misses += 1
-            reward = -0.1
+            reward = 0.0
             self._last_msg = f"Miss at ({r},{c})."
         else:
-            # Hit
+            # Hit: each ship cell hit yields +1/_TOTAL_SHIP_CELLS so cumulative
+            # reward = 1.0 on full sink of the fleet.
             self._visible[r, c] = 2
             self._total_hits += 1
             self._ship_health[ship_idx] -= 1
-            reward = 1.0
+            reward = 1.0 / _TOTAL_SHIP_CELLS
             ship_name = _SHIPS[ship_idx][0]
 
             if self._ship_health[ship_idx] == 0:
@@ -154,7 +158,6 @@ class BattleshipEnv(BaseGlyphEnv):
                 self._ships_sunk += 1
                 for sr, sc in self._ship_cells[ship_idx]:
                     self._visible[sr, sc] = 3
-                reward += 5.0
                 self._last_msg = f"Hit and sunk the {ship_name}!"
 
                 # Check all sunk
@@ -233,9 +236,8 @@ class BattleshipEnv(BaseGlyphEnv):
             "Each turn, fire at one cell. You will learn if it is a hit or miss.\n"
             "When all cells of a ship are hit, it sinks and is marked.\n\n"
             "SCORING\n"
-            "  +1 per hit\n"
-            "  +5 per ship sunk\n"
-            "  -0.1 per miss\n"
+            f"  +{1.0 / _TOTAL_SHIP_CELLS:.4f} per hit ship cell (cumulative reward = 1.0 on full fleet sunk)\n"
+            "  0 per miss\n"
             "  Game ends when all ships are sunk or max steps reached.\n"
             "  Firing at an already-fired cell has no effect.\n\n"
             "STRATEGY\n"
