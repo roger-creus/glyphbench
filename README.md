@@ -10,8 +10,6 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
-![vLLM compatible](https://img.shields.io/badge/inference-vLLM-orange)
-![Verifiers](https://img.shields.io/badge/eval-verifiers-purple)
 [![Leaderboard](https://img.shields.io/badge/leaderboard-live-green)](https://roger-creus.github.io/glyphbench/leaderboard/)
 
 </div>
