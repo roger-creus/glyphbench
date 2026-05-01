@@ -742,3 +742,122 @@ async def test_memory_render_completion_stitches_split_steps(monkeypatch):
             raise AssertionError(
                 f"render_completion produced consecutive duplicate messages: {a}"
             )
+
+
+@pytest.mark.asyncio
+async def test_action_completion_truncation_increments(monkeypatch):
+    """add_model_response increments action_completion_truncations when the
+    action Response has is_truncated=True (non-memory mode)."""
+    env = load_environment(
+        task_id="glyphbench/__dummy-v0",
+        num_episodes=1,
+        use_memory=False,
+    )
+    row = env.dataset[0]
+    state: dict = {
+        "info": row["info"],
+        "prompt": [],
+        "trajectory": [],
+        "trajectory_id": "t0",
+        "sampling_args": {"max_tokens": 16},
+    }
+    await env.setup_state(state)
+    assert state["action_completion_truncations"] == 0
+
+    # Truncated action response: finish_reason=length, is_truncated=True
+    truncated_response = _response(
+        "<action>EAST</action>",
+        prompt_ids=[1, 2],
+        completion_ids=[3, 4],
+        is_truncated=True,
+    )
+    await env.add_model_response(state, state["prompt"], truncated_response)
+    assert state["action_completion_truncations"] == 1
+    assert state["num_action_turns"] == 1
+
+
+@pytest.mark.asyncio
+async def test_memory_completion_truncation_increments(monkeypatch):
+    """add_model_response increments memory_completion_truncations when the
+    memory Response has is_truncated=True (memory mode)."""
+    env = load_environment(
+        task_id="glyphbench/__dummy-v0",
+        num_episodes=1,
+        use_memory=True,
+        memory_update_max_tokens=8,
+    )
+    row = env.dataset[0]
+    state: dict = {
+        "info": row["info"],
+        "prompt": [],
+        "trajectory": [],
+        "trajectory_id": "t0",
+        "sampling_args": {"max_tokens": 16},
+    }
+    await env.setup_state(state)
+    assert state["memory_completion_truncations"] == 0
+
+    truncated_memory_response = _response(
+        "<memory>truncated memory output",
+        prompt_ids=[1, 2, 3, 4, 5, 6],
+        completion_ids=[7, 8],
+        is_truncated=True,
+    )
+
+    async def fake_get_model_response(state_arg, prompt_arg, **kwargs):
+        return truncated_memory_response
+
+    monkeypatch.setattr(env, "get_model_response", fake_get_model_response)
+
+    action_response = _response(
+        "<action>EAST</action>",
+        prompt_ids=[1, 2],
+        completion_ids=[3, 4],
+    )
+    await env.add_model_response(state, state["prompt"], action_response)
+
+    assert state["memory_completion_truncations"] == 1
+    assert state["num_memory_turns"] == 1
+
+
+@pytest.mark.asyncio
+async def test_memory_parse_failure_increments(monkeypatch):
+    """add_model_response increments memory_parse_failures when the
+    memory Response contains no <memory>...</memory> tag (memory mode)."""
+    env = load_environment(
+        task_id="glyphbench/__dummy-v0",
+        num_episodes=1,
+        use_memory=True,
+        memory_update_max_tokens=8,
+    )
+    row = env.dataset[0]
+    state: dict = {
+        "info": row["info"],
+        "prompt": [],
+        "trajectory": [],
+        "trajectory_id": "t0",
+        "sampling_args": {"max_tokens": 16},
+    }
+    await env.setup_state(state)
+    assert state["memory_parse_failures"] == 0
+
+    malformed_memory_response = _response(
+        "I forgot to use memory tags",
+        prompt_ids=[1, 2, 3, 4, 5, 6],
+        completion_ids=[7, 8],
+    )
+
+    async def fake_get_model_response(state_arg, prompt_arg, **kwargs):
+        return malformed_memory_response
+
+    monkeypatch.setattr(env, "get_model_response", fake_get_model_response)
+
+    action_response = _response(
+        "<action>EAST</action>",
+        prompt_ids=[1, 2],
+        completion_ids=[3, 4],
+    )
+    await env.add_model_response(state, state["prompt"], action_response)
+
+    assert state["memory_parse_failures"] == 1
+    assert state["num_memory_turns"] == 1
