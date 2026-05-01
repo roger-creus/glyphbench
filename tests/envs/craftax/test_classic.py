@@ -1,10 +1,10 @@
 from glyphbench.core import make_env
-import glyphbench.envs.craftax  # register envs
+import glyphbench.envs.craftaxfull  # register envs
 """Unit tests for Craftax Classic (22-achievement) env."""
 
 import pytest
 
-from glyphbench.envs.craftax.classic import (
+from glyphbench.envs.craftaxfull.classic import (
     CraftaxClassicEnv,
     _MAX_ENERGY,
     _MAX_FOOD,
@@ -50,7 +50,7 @@ class TestCraftaxClassic:
 
     def test_env_id(self):
         env = self._make_env()
-        assert env.env_id() == "glyphbench/craftax-classic-v0"
+        assert env.env_id() == "glyphbench/craftaxfull-classic-v0"
 
     # --- Determinism ---
     def test_reset_determinism(self):

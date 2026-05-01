@@ -11,7 +11,7 @@ has the full flag list; this index just shows the canonical invocation.
   visually scanning an entire suite.
   ```bash
   uv run python scripts/demo_all_envs.py --suite minigrid --delay 0.1
-  uv run python scripts/demo_all_envs.py --env glyphbench/craftax-classic-v0 --pause
+  uv run python scripts/demo_all_envs.py --env glyphbench/craftaxfull-classic-v0 --pause
   uv run python scripts/demo_all_envs.py --list
   ```
   Pause-mode hotkeys: `→` advance, `←` rewind, `s` system prompt, `l` legend,
@@ -70,7 +70,7 @@ has the full flag list; this index just shows the canonical invocation.
 - **`play_random.py`** — Play any single env with random actions, printing
   each step to stdout. The simplest possible sanity check for a new env.
   ```bash
-  uv run python scripts/play_random.py glyphbench/craftax-classic-v0
+  uv run python scripts/play_random.py glyphbench/craftaxfull-classic-v0
   uv run python scripts/play_random.py glyphbench/minigrid-doorkey-5x5-v0 --seed 42 --steps 50
   uv run python scripts/play_random.py glyphbench/minihack-eat-v0 --delay 0.3
   ```
@@ -79,7 +79,7 @@ has the full flag list; this index just shows the canonical invocation.
   with colors, a side panel for HUD/legend, and a bottom bar for messages
   and reward tracking.
   ```bash
-  uv run python scripts/play_curses.py glyphbench/craftax-classic-v0
+  uv run python scripts/play_curses.py glyphbench/craftaxfull-classic-v0
   uv run python scripts/play_curses.py glyphbench/atari-pong-v0 --delay 0.05
   ```
 
@@ -87,7 +87,7 @@ has the full flag list; this index just shows the canonical invocation.
   actions; press the corresponding number key to act. Good for manually
   exploring episode dynamics.
   ```bash
-  uv run python scripts/play_interactive.py glyphbench/craftax-classic-v0
+  uv run python scripts/play_interactive.py glyphbench/craftaxfull-classic-v0
   uv run python scripts/play_interactive.py glyphbench/minigrid-doorkey-5x5-v0 --seed 42
   ```
 

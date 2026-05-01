@@ -55,7 +55,7 @@ def test_knight_half_phys():
 
 def _make_env():
     """Return a freshly reset CraftaxFullEnv."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     env = CraftaxFullEnv()
     env.reset(seed=0)
     return env
@@ -63,7 +63,7 @@ def _make_env():
 
 def _make_crafting_env():
     """Return an env with the player adjacent to a table AND furnace."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv, TILE_TABLE, TILE_FURNACE
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv, TILE_TABLE, TILE_FURNACE
     env = CraftaxFullEnv()
     env.reset(seed=0)
     # Place crafting structures adjacent to the player.
@@ -216,7 +216,7 @@ def test_take_damage_legacy_scalar_no_armor():
 
 def _make_env_on_boss_floor() -> "CraftaxFullEnv":  # type: ignore[name-defined]
     """Return an env positioned on floor 5 with a live boss mob (triggers _is_in_boss_fight)."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     env = CraftaxFullEnv()
     env.reset(seed=0)
     env._current_floor = 5
@@ -431,7 +431,7 @@ def test_recompute_max_stats_raises_max_hp_on_str():
 
 def test_sword_attack_scales_with_str():
     """STR=5 melee attack does ~2× the damage of STR=1 attack."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 
     # STR=1 (baseline)
     env1 = CraftaxFullEnv()
@@ -496,7 +496,7 @@ def test_arrow_damage_scales_with_dex():
 
 def _make_env_with_enchant_table(table_tile: str) -> "CraftaxFullEnv":  # type: ignore
     """Return an env with the player adjacent to the given enchant table tile."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     env = CraftaxFullEnv()
     env.reset(seed=0)
     ax, ay = env._agent_x, env._agent_y
@@ -663,7 +663,7 @@ def test_action_count_post_t12_is_45():
 
 def _make_full_env(seed: int = 0) -> "CraftaxFullEnv":  # type: ignore[name-defined]
     """Return a freshly reset CraftaxFullEnv (generates all floors)."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     env = CraftaxFullEnv()
     env.reset(seed=seed)
     return env
@@ -671,7 +671,7 @@ def _make_full_env(seed: int = 0) -> "CraftaxFullEnv":  # type: ignore[name-defi
 
 def test_num_dungeon_floors_is_8():
     """_NUM_DUNGEON_FLOORS must be 8 after T16γ adds floor 8 (Graveyard)."""
-    from glyphbench.envs.craftax.full import _NUM_DUNGEON_FLOORS
+    from glyphbench.envs.craftaxfull.full import _NUM_DUNGEON_FLOORS
     assert _NUM_DUNGEON_FLOORS == 8
 
 
@@ -876,7 +876,7 @@ def test_floor7_spawns_frost_troll_or_ice_elemental():
 
 def test_num_dungeon_floors_is_8_constant():
     """_NUM_DUNGEON_FLOORS must be 8 (floors 0-8 = 9 total)."""
-    from glyphbench.envs.craftax.full import _NUM_DUNGEON_FLOORS
+    from glyphbench.envs.craftaxfull.full import _NUM_DUNGEON_FLOORS
     assert _NUM_DUNGEON_FLOORS == 8
 
 
@@ -957,7 +957,7 @@ def test_floor_8_has_grave_tiles():
 
 def _make_env_on_floor8() -> "CraftaxFullEnv":  # type: ignore[name-defined]
     """Return an env with the player teleported to floor 8."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     from glyphbench.envs.craftax.base import TILE_STAIRS_UP
     env = CraftaxFullEnv()
     env.reset(seed=0)
@@ -1379,7 +1379,7 @@ def test_bitmap_not_set_for_unknown_key():
 def _make_env_on_floor(target_floor: int):
     """Return env sitting on floor (target_floor-1) with stairs-down placed,
     ready for _handle_descend to transition to target_floor."""
-    from glyphbench.envs.craftax.full import TILE_STAIRS_DOWN, TILE_DUNGEON_FLOOR
+    from glyphbench.envs.craftaxfull.full import TILE_STAIRS_DOWN, TILE_DUNGEON_FLOOR
     env = _make_env()
     # Generate all floors up to target_floor.
     for f in range(1, target_floor + 1):
@@ -1466,7 +1466,7 @@ def test_level_up_dex_fires_achievement():
 
 def test_enchant_sword_fires_achievement():
     """T22γ verify: enchant_sword achievement fires via _handle_enchant_weapon."""
-    from glyphbench.envs.craftax.full import TILE_ENCHANT_FIRE
+    from glyphbench.envs.craftaxfull.full import TILE_ENCHANT_FIRE
     env = _make_env()
     # Stay on floor 0; handler only needs an adjacent TILE_ENCHANT_FIRE tile.
     ax, ay = env._agent_x, env._agent_y

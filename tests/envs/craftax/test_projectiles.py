@@ -1,5 +1,5 @@
 """Phase-α projectile entity + container tests."""
-from glyphbench.envs.craftax.full import CraftaxFullEnv
+from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 from glyphbench.envs.craftax.mechanics.projectiles import (
     ProjectileEntity,
     ProjectileType,

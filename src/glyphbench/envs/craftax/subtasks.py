@@ -31,7 +31,7 @@ from glyphbench.envs.craftax.base import (
     VIEW_WIDTH,
     _CraftaxTutorialMixin,
 )
-from glyphbench.envs.craftax.classic import (
+from glyphbench.envs.craftaxfull.classic import (
     WALKABLE_TILES,
     CraftaxClassicEnv,
     Mob,
@@ -829,7 +829,7 @@ class CraftaxDungeonExploreEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     # Custom rendering for dungeon tiles
     def _render_current_observation(self) -> GridObservation:
-        from glyphbench.envs.craftax.classic import _DIR_CHARS, _DIR_NAMES
+        from glyphbench.envs.craftaxfull.classic import _DIR_CHARS, _DIR_NAMES
 
         half_w = VIEW_WIDTH // 2
         half_h = VIEW_HEIGHT // 2
@@ -1046,7 +1046,7 @@ class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     # Custom rendering for dungeon tiles
     def _render_current_observation(self) -> GridObservation:
-        from glyphbench.envs.craftax.classic import _DIR_CHARS, _DIR_NAMES, _MOB_TILES
+        from glyphbench.envs.craftaxfull.classic import _DIR_CHARS, _DIR_NAMES, _MOB_TILES
 
         half_w = VIEW_WIDTH // 2
         half_h = VIEW_HEIGHT // 2

@@ -1,8 +1,6 @@
 """Craftax suite - importing registers all envs."""
 
 from glyphbench.core.registry import register_env
-from glyphbench.envs.craftax.classic import CraftaxClassicEnv
-from glyphbench.envs.craftax.full import CraftaxFullEnv
 from glyphbench.envs.craftax.subtasks import (
     CraftaxChopTreesEnv,
     CraftaxCraftChainEnv,
@@ -50,8 +48,6 @@ from glyphbench.envs.craftax.subtasks_extended import (
 )
 
 _REGISTRATIONS = {
-    "glyphbench/craftax-classic-v0": CraftaxClassicEnv,
-    "glyphbench/craftax-v0": CraftaxFullEnv,
     "glyphbench/craftax-choptrees-v0": CraftaxChopTreesEnv,
     "glyphbench/craftax-minestone-v0": CraftaxMineStoneEnv,
     "glyphbench/craftax-gatherresources-v0": CraftaxGatherResourcesEnv,

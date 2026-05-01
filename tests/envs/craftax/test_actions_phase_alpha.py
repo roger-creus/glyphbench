@@ -1,6 +1,6 @@
 """Phase-α action-spec adjustments."""
 from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC, TILE_TABLE
-from glyphbench.envs.craftax.full import CraftaxFullEnv
+from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 
 
 def test_cast_heal_removed_from_full_action_spec() -> None:

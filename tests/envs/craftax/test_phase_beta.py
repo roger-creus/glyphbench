@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
-from glyphbench.envs.craftax.full import CraftaxFullEnv, UPSTREAM_ACHIEVEMENT_NAMES
+from glyphbench.envs.craftaxfull.full import CraftaxFullEnv, UPSTREAM_ACHIEVEMENT_NAMES
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +142,7 @@ def test_sleep_regens_hp_plus2_per_tick(env):
     """While sleeping, HP increases by 2 each tick."""
     env._is_sleeping = True
     env._hp = 3
-    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    from glyphbench.envs.craftaxfull.full import _MAX_ENERGY
     # Drain energy so sleep doesn't exit on first tick.
     env._energy = 1
     env.step(_NOOP_ACTION_IDX)
@@ -152,7 +152,7 @@ def test_sleep_regens_hp_plus2_per_tick(env):
 def test_sleep_increases_energy_per_tick(env):
     """While sleeping, energy increases each tick."""
     env._is_sleeping = True
-    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    from glyphbench.envs.craftaxfull.full import _MAX_ENERGY
     env._energy = 0
     env.step(_NOOP_ACTION_IDX)
     assert env._energy > 0
@@ -161,7 +161,7 @@ def test_sleep_increases_energy_per_tick(env):
 def test_sleep_exits_on_energy_full_and_fires_wake_up(env):
     """Sleep exits when energy reaches max and fires the wake_up achievement."""
     env._is_sleeping = True
-    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    from glyphbench.envs.craftaxfull.full import _MAX_ENERGY
     # Set energy just below max so one tick tips it over.
     env._energy = _MAX_ENERGY - 1
     env.step(_NOOP_ACTION_IDX)
@@ -184,7 +184,7 @@ def test_sleep_exits_on_damage_no_wake_up(env):
 
 def test_legacy_skeleton_archer_absent_from_mob_stats():
     """'skeleton_archer' must not appear in _MOB_STATS after T_FOLLOWUP_A."""
-    from glyphbench.envs.craftax.full import _MOB_STATS
+    from glyphbench.envs.craftaxfull.full import _MOB_STATS
     assert "skeleton_archer" not in _MOB_STATS, (
         "'skeleton_archer' is a legacy name that should have been renamed to 'skeleton'"
     )
@@ -192,7 +192,7 @@ def test_legacy_skeleton_archer_absent_from_mob_stats():
 
 def test_legacy_spider_absent_from_mob_stats():
     """'spider' must not appear in _MOB_STATS after T_FOLLOWUP_A."""
-    from glyphbench.envs.craftax.full import _MOB_STATS
+    from glyphbench.envs.craftaxfull.full import _MOB_STATS
     assert "spider" not in _MOB_STATS, (
         "'spider' is a legacy name that should have been renamed to 'kobold'"
     )
@@ -200,7 +200,7 @@ def test_legacy_spider_absent_from_mob_stats():
 
 def test_upstream_skeleton_present_in_mob_stats():
     """'skeleton' (upstream ranged) must be in _MOB_STATS with ranged-level stats."""
-    from glyphbench.envs.craftax.full import _MOB_STATS
+    from glyphbench.envs.craftaxfull.full import _MOB_STATS
     assert "skeleton" in _MOB_STATS
     # Upstream ranged skeleton: hp=5, damage=3
     assert _MOB_STATS["skeleton"]["hp"] == 5
@@ -209,7 +209,7 @@ def test_upstream_skeleton_present_in_mob_stats():
 
 def test_kobold_present_in_mob_stats():
     """'kobold' (replaces legacy spider) must be in _MOB_STATS."""
-    from glyphbench.envs.craftax.full import _MOB_STATS
+    from glyphbench.envs.craftaxfull.full import _MOB_STATS
     assert "kobold" in _MOB_STATS
 
 
@@ -251,7 +251,7 @@ def test_fight_spiders_env_spawns_kobolds():
 
 def test_defeat_skeleton_achievement_fires_on_upstream_skeleton_kill(env):
     """Killing a 'skeleton' (upstream ranged) fires 'defeat_skeleton' achievement."""
-    from glyphbench.envs.craftax.full import _MOB_STATS
+    from glyphbench.envs.craftaxfull.full import _MOB_STATS
     # Place a skeleton adjacent to the player
     env._mobs = []
     fx = env._agent_x + env._facing[0]
@@ -272,7 +272,7 @@ def test_defeat_skeleton_achievement_fires_on_upstream_skeleton_kill(env):
 
 def test_defeat_kobold_achievement_fires_on_kobold_kill(env):
     """Killing a 'kobold' fires 'defeat_kobold' achievement."""
-    from glyphbench.envs.craftax.full import _MOB_STATS
+    from glyphbench.envs.craftaxfull.full import _MOB_STATS
     env._mobs = []
     fx = env._agent_x + env._facing[0]
     fy = env._agent_y + env._facing[1]
@@ -434,7 +434,7 @@ def test_other_floors_have_no_sapphire_ruby():
 
 def _setup_gem_test(tile):
     """Create env with agent at dungeon floor 2, facing a given ore tile."""
-    from glyphbench.envs.craftax.full import _DUNGEON_SIZE
+    from glyphbench.envs.craftaxfull.full import _DUNGEON_SIZE
     e = CraftaxFullEnv(max_turns=500)
     e.reset(seed=0)
     # Move agent to a safe position inside dungeon bounds (10, 10)
@@ -738,7 +738,7 @@ def test_potion_effect_poison_3():
     Phase γ T04γ: new formula — with all slots at tier 0, phys defense = 0.0,
     so damage = round(3.0 * (1 - 0.0)) = 3.
     """
-    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    from glyphbench.envs.craftaxfull.full import _MAX_ENERGY
     e = _make_env_with_red_mapped_to("poison_3")
     e._inventory["potions"]["red"] = 1
     # Ensure all armour slots are bare for predictability.
@@ -756,7 +756,7 @@ def test_potion_effect_poison_3():
 
 def test_potion_effect_mana_8():
     """mana_8 effect: +8 mana capped at max mana."""
-    from glyphbench.envs.craftax.full import _MAX_MANA
+    from glyphbench.envs.craftaxfull.full import _MAX_MANA
     e = _make_env_with_red_mapped_to("mana_8")
     e._inventory["potions"]["red"] = 1
     e._mana = 0
@@ -791,7 +791,7 @@ def test_potion_effect_mana_drain_3_clamps_to_zero():
 
 def test_potion_effect_energy_8():
     """energy_8 effect: +8 energy capped at max energy."""
-    from glyphbench.envs.craftax.full import _MAX_ENERGY
+    from glyphbench.envs.craftaxfull.full import _MAX_ENERGY
     e = _make_env_with_red_mapped_to("energy_8")
     e._inventory["potions"]["red"] = 1
     e._energy = 0
@@ -1383,7 +1383,7 @@ def test_tiles_past_torch_radius_remain_dark():
 def _make_dark_env(light_level: float) -> CraftaxFullEnv:
     """Return a night-time env with the floor-0 lightmap overridden to *light_level*."""
     import numpy as np
-    from glyphbench.envs.craftax.full import _SURFACE_SIZE
+    from glyphbench.envs.craftaxfull.full import _SURFACE_SIZE
     e = CraftaxFullEnv(max_turns=500)
     e.reset(seed=42)
     # Force night so _spawn_night_mobs is logically active.
@@ -1435,7 +1435,7 @@ def test_spawn_half_light_quadratic_dampening():
     To avoid RNG-synchronisation artifacts we vary the seed per trial.
     """
     import numpy as np
-    from glyphbench.envs.craftax.full import _SURFACE_SIZE
+    from glyphbench.envs.craftaxfull.full import _SURFACE_SIZE
 
     n_trials = 500
 
@@ -1709,7 +1709,7 @@ _DO_ACTION = 5  # index of DO in CRAFTAX_FULL_ACTION_SPEC
 
 def test_fountain_do_refills_water():
     """DO on a fountain tile restores water to _MAX_WATER."""
-    from glyphbench.envs.craftax.full import _MAX_WATER
+    from glyphbench.envs.craftaxfull.full import _MAX_WATER
 
     e = _make_env_with_fountain_in_front()
     assert e._water < _MAX_WATER
@@ -1758,7 +1758,7 @@ def test_fountain_do_on_full_water_is_noop():
     fountain-specific effects (water value and collect_drink not triggered
     from this step).
     """
-    from glyphbench.envs.craftax.full import _MAX_WATER
+    from glyphbench.envs.craftaxfull.full import _MAX_WATER
 
     e = _make_env_with_fountain_in_front()
     e._water = _MAX_WATER  # already full
@@ -1994,7 +1994,7 @@ def test_phase_beta_achievement_smoke() -> None:
         )
 
     # ---- wake_up — sleep until energy full ----
-    from glyphbench.envs.craftax.full import _MAX_ENERGY  # type: ignore[attr-defined]
+    from glyphbench.envs.craftaxfull.full import _MAX_ENERGY  # type: ignore[attr-defined]
     env._is_sleeping = False
     env._energy = 0
     env.step(_SLEEP_ACT)           # sets _is_sleeping = True

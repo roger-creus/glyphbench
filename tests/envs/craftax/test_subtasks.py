@@ -12,7 +12,7 @@ from __future__ import annotations
 import pytest
 
 from glyphbench.core.registry import make_env
-from glyphbench.envs.craftax.classic import CraftaxClassicEnv
+from glyphbench.envs.craftaxfull.classic import CraftaxClassicEnv
 
 
 def _run(env: CraftaxClassicEnv, action: int, n: int) -> tuple[float, bool, bool]:

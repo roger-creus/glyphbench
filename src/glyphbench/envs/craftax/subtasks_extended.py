@@ -38,9 +38,9 @@ from glyphbench.envs.craftax.base import (
     TILE_WATER,
     TILE_ZOMBIE,
 )
-from glyphbench.envs.craftax.classic import CraftaxClassicEnv
-from glyphbench.envs.craftax.classic import Mob as ClassicMob
-from glyphbench.envs.craftax.classic import (
+from glyphbench.envs.craftaxfull.classic import CraftaxClassicEnv
+from glyphbench.envs.craftaxfull.classic import Mob as ClassicMob
+from glyphbench.envs.craftaxfull.classic import (
     WALKABLE_TILES as CLASSIC_WALKABLE,
     _MOB_STATS as CLASSIC_MOB_STATS,
     _MAX_FOOD,
@@ -49,9 +49,9 @@ from glyphbench.envs.craftax.classic import (
     _DAY_LENGTH,
     _CYCLE_LENGTH,
 )
-from glyphbench.envs.craftax.full import CraftaxFullEnv
-from glyphbench.envs.craftax.full import Mob as FullMob
-from glyphbench.envs.craftax.full import (
+from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
+from glyphbench.envs.craftaxfull.full import Mob as FullMob
+from glyphbench.envs.craftaxfull.full import (
     _MOB_STATS as FULL_MOB_STATS,
     _BOSS_DEFS,
     _NUM_DUNGEON_FLOORS,

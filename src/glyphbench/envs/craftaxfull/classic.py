@@ -3,7 +3,7 @@
 A 64x64 grid world with multiple biomes, resource gathering, crafting,
 combat, day/night cycles, and survival mechanics (food/water/energy).
 
-Gym ID: glyphbench/craftax-classic-v0
+Gym ID: glyphbench/craftaxfull-classic-v0
 """
 
 from __future__ import annotations
@@ -195,7 +195,7 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
         self._plants: dict[tuple[int, int], int] = {}
 
     def env_id(self) -> str:
-        return "glyphbench/craftax-classic-v0"
+        return "glyphbench/craftaxfull-classic-v0"
 
     # system_prompt() inherited from _CraftaxTutorialMixin.
 

@@ -132,7 +132,7 @@ Total environments: 301
 | `glyphbench/craftax-bossfight-v0` | 45 |
 | `glyphbench/craftax-build-shelter-v0` | 19 |
 | `glyphbench/craftax-choptrees-v0` | 19 |
-| `glyphbench/craftax-classic-v0` | 19 |
+| `glyphbench/craftaxfull-classic-v0` | 19 |
 | `glyphbench/craftax-craft-ironset-v0` | 19 |
 | `glyphbench/craftax-craftchain-v0` | 19 |
 | `glyphbench/craftax-craftpickaxe-v0` | 19 |
@@ -170,7 +170,7 @@ Total environments: 301
 | `glyphbench/craftax-survive-thirst-v0` | 19 |
 | `glyphbench/craftax-survive-wild-v0` | 19 |
 | `glyphbench/craftax-survivehorde-v0` | 19 |
-| `glyphbench/craftax-v0` | 45 |
+| `glyphbench/craftaxfull-v0` | 45 |
 | `glyphbench/craftax-wave-defense-v0` | 19 |
 
 ## Minigrid (71 environments)

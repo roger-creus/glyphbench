@@ -5,7 +5,7 @@ Play any environment with keyboard controls. The action menu shows
 numbered actions; press the corresponding number key to act.
 
 Usage:
-    uv run python scripts/play_interactive.py glyphbench/craftax-classic-v0
+    uv run python scripts/play_interactive.py glyphbench/craftaxfull-classic-v0
     uv run python scripts/play_interactive.py glyphbench/minigrid-doorkey-5x5-v0 --seed 42
 """
 

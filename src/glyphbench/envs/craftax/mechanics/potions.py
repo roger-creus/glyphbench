@@ -54,7 +54,7 @@ def apply_potion_effect(env: object, effect: str) -> None:  # type: ignore[type-
     ``poison_3`` uses ``env._take_damage(3)`` so the standard armor + sleep
     multiplier path applies (consistent with mob damage).
     """
-    from glyphbench.envs.craftax.full import _MAX_MANA, _MAX_ENERGY  # local import avoids circular
+    from glyphbench.envs.craftaxfull.full import _MAX_MANA, _MAX_ENERGY  # local import avoids circular
 
     max_hp = getattr(env, "_max_hp", 9)
     max_mana = getattr(env, "_max_mana", _MAX_MANA)

@@ -1,6 +1,6 @@
 """Phase-α spell semantics tests."""
 from glyphbench.envs.craftax.base import CRAFTAX_FULL_ACTION_SPEC
-from glyphbench.envs.craftax.full import CraftaxFullEnv, Mob
+from glyphbench.envs.craftaxfull.full import CraftaxFullEnv, Mob
 
 
 def test_mob_typeddict_no_frozen_turns_field() -> None:

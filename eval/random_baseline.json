@@ -1929,8 +1929,8 @@
       2.0
     ]
   },
-  "glyphbench/craftax-classic-v0": {
-    "env_id": "glyphbench/craftax-classic-v0",
+  "glyphbench/craftaxfull-classic-v0": {
+    "env_id": "glyphbench/craftaxfull-classic-v0",
     "n_episodes": 25,
     "mean_return": 1.24,
     "std_return": 0.5851495535331118,
@@ -3039,8 +3039,8 @@
       -10.0
     ]
   },
-  "glyphbench/craftax-v0": {
-    "env_id": "glyphbench/craftax-v0",
+  "glyphbench/craftaxfull-v0": {
+    "env_id": "glyphbench/craftaxfull-v0",
     "n_episodes": 25,
     "mean_return": 3.44,
     "std_return": 0.6974238309665077,

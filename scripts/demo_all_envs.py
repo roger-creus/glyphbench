@@ -444,7 +444,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--env", type=str,
-        help="Run a single env (full id, e.g. glyphbench/craftax-v0).",
+        help="Run a single env (full id, e.g. glyphbench/craftaxfull-v0).",
     )
     parser.add_argument(
         "--seed", type=int, default=42,

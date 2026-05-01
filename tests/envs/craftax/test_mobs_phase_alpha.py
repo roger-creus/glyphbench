@@ -84,7 +84,7 @@ def test_ranged_mob_to_projectile_covers_all_ranged_names() -> None:
 def test_mob_typeddict_has_attack_cooldown_field() -> None:
     """T20: per-mob attack cooldown for T21/T24 AI."""
     import typing
-    from glyphbench.envs.craftax.full import Mob
+    from glyphbench.envs.craftaxfull.full import Mob
     assert "attack_cooldown" in Mob.__annotations__
     # full.py uses `from __future__ import annotations` so raw annotations are
     # ForwardRef strings; resolve via get_type_hints() to compare actual types.
@@ -94,7 +94,7 @@ def test_mob_typeddict_has_attack_cooldown_field() -> None:
 
 def test_freshly_spawned_boss_has_zero_attack_cooldown() -> None:
     """All construction sites must initialise attack_cooldown=0."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 
     env = CraftaxFullEnv()
     env.reset(seed=0)
@@ -171,7 +171,7 @@ def test_step_melee_mob_does_not_attack_during_cooldown() -> None:
 
 def test_full_env_zombie_uses_cooldown_via_mob_ai() -> None:
     """T21 integration: a zombie at adjacent tile attacks once, then waits."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 
     env = CraftaxFullEnv()
     env.reset(seed=0)
@@ -214,7 +214,7 @@ def test_sleeping_player_takes_3_5x_melee_damage() -> None:
     HP is set within _max_hp range so the per-tick +2 regen cap doesn't mask
     the result.
     """
-    from glyphbench.envs.craftax.full import CraftaxFullEnv, _MAX_ENERGY
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv, _MAX_ENERGY
 
     env = CraftaxFullEnv()
     env.reset(seed=0)
@@ -249,7 +249,7 @@ def test_sleeping_player_takes_3_5x_melee_damage() -> None:
 
 def test_awake_player_takes_baseline_damage() -> None:
     """Sanity-check baseline (without sleep): zombie deals 1 damage."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 
     env = CraftaxFullEnv()
     env.reset(seed=0)
@@ -269,7 +269,7 @@ def test_awake_player_takes_baseline_damage() -> None:
 
 
 def test_full_env_has_is_sleeping_flag_after_reset() -> None:
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 
     env = CraftaxFullEnv()
     env.reset(seed=0)
@@ -309,7 +309,7 @@ def test_should_despawn_exempt_during_boss_fight() -> None:
 
 def test_full_env_sweeps_far_mobs_after_step() -> None:
     """Integration: a mob 20 tiles from the player is removed after one step."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 
     env = CraftaxFullEnv()
     env.reset(seed=0)
@@ -413,7 +413,7 @@ def test_step_ranged_mob_shoots_in_window_with_cooldown_4() -> None:
 
 def test_step_mob_projectiles_advances_and_damages_player() -> None:
     """Mob projectile heading at the player damages on hit + dies."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     from glyphbench.envs.craftax.mechanics.projectiles import (
         ProjectileEntity, ProjectileType,
     )
@@ -436,7 +436,7 @@ def test_step_mob_projectiles_advances_and_damages_player() -> None:
 
 def test_step_mob_projectiles_cancels_sleep() -> None:
     """Mob projectile hit cancels _is_sleeping."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     from glyphbench.envs.craftax.mechanics.projectiles import (
         ProjectileEntity, ProjectileType,
     )
@@ -456,7 +456,7 @@ def test_step_mob_projectiles_cancels_sleep() -> None:
 
 def test_step_mob_projectiles_destroys_furnace_on_impact() -> None:
     """A mob projectile hitting a furnace tile destroys it (sets to floor)."""
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     from glyphbench.envs.craftax.base import TILE_FURNACE
     from glyphbench.envs.craftax.mechanics.projectiles import (
         ProjectileEntity, ProjectileType,
@@ -490,7 +490,7 @@ def test_melee_mob_always_chases_during_boss_fight() -> None:
     With is_fighting_boss=True the chase branch fires unconditionally
     and the zombie must advance toward the agent.
     """
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
     from glyphbench.envs.craftax.base import TILE_DUNGEON_FLOOR
 
     env = CraftaxFullEnv()
@@ -529,7 +529,7 @@ def test_boss_fight_melee_mob_does_not_despawn() -> None:
     beyond MOB_DESPAWN_DISTANCE=14. Without boss-fight the zombie would
     despawn; with a live boss on the same floor it must survive.
     """
-    from glyphbench.envs.craftax.full import CraftaxFullEnv
+    from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 
     env = CraftaxFullEnv()
     env.reset(seed=0)

@@ -3,7 +3,7 @@
 Extends Craftax Classic with multi-floor dungeons, magic, bosses,
 armor, enchantments, potions, and new mob types.
 
-Gym ID: glyphbench/craftax-v0
+Gym ID: glyphbench/craftaxfull-v0
 """
 
 from __future__ import annotations
@@ -492,7 +492,7 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
     # ---------------------------------------------------------------
 
     def env_id(self) -> str:
-        return "glyphbench/craftax-v0"
+        return "glyphbench/craftaxfull-v0"
 
     # system_prompt() inherited from _CraftaxTutorialMixin (uses
     # tutorial_sections + _task_description above).

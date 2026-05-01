@@ -5,7 +5,7 @@ Renders the grid with colors, a side panel for HUD/legend, and a bottom bar
 for messages and reward tracking.
 
 Usage:
-    uv run python scripts/play_curses.py glyphbench/craftax-classic-v0
+    uv run python scripts/play_curses.py glyphbench/craftaxfull-classic-v0
     uv run python scripts/play_curses.py glyphbench/minigrid-doorkey-5x5-v0 --seed 42
     uv run python scripts/play_curses.py glyphbench/atari-pong-v0 --delay 0.05
 """

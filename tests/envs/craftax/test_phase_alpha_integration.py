@@ -5,7 +5,7 @@ asserts an end-state invariant. These tests catch breakage that unit tests
 miss (e.g., a mismatch between spawn-position semantics and the per-step
 driver, or between cooldown timing and despawn timing).
 """
-from glyphbench.envs.craftax.full import CraftaxFullEnv
+from glyphbench.envs.craftaxfull.full import CraftaxFullEnv
 from glyphbench.envs.craftax.mechanics.projectiles import (
     ProjectileEntity, ProjectileType,
 )
