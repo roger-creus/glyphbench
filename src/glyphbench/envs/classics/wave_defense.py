@@ -354,7 +354,7 @@ class WaveDefenseEnv(BaseGlyphEnv):
             "- +1 per enemy killed\n"
             "- +5 per wave cleared\n"
             "- +1 for clearing all waves (victory)\n"
-            "- -1 if an enemy reaches the center (defeat)\n\n"
+            "- penalty 1 if an enemy reaches the center (defeat)\n\n"
             + self.action_spec.render_for_prompt()
         )
 

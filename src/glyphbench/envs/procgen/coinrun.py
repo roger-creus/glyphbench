@@ -107,9 +107,10 @@ class CoinRunEnv(BaseGlyphEnv):
             "JUMP_RIGHT combines jumping with rightward movement. You cannot "
             "double-jump. Gravity pulls you down 1 cell per step when in the "
             "air and not jumping.\n\n"
-            "SYMBOLS\n"
-            "@ = you, \u25ac = ground, \u2588 = platform, P = pit, S = saw blade, "
-            "m = small enemy, M = large enemy, C = coin (goal), \u00b7 = air\n\n"
+            "GRID\n"
+            "The level is rendered as a Unicode glyph grid. Each cell is one "
+            "glyph; per-turn observations include a legend block listing "
+            "every glyph visible right now.\n\n"
             + self.action_spec.render_for_prompt()
         )
 
