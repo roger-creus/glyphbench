@@ -403,7 +403,7 @@ class CraftaxCraftPickaxeEnv(_SubtaskMixin, CraftaxClassicEnv):
         return (
             "Craft a wood pickaxe. You start with 1 wood and a crafting table "
             "(t) adjacent to you. Stand next to the table and use "
-            "MAKE_WOOD_PICKAXE. Reward: +10 on craft, episode ends. Time limit: "
+            "MAKE_WOOD_PICKAXE. Reward: +1 on craft, episode ends. Time limit: "
             "30 steps."
         )
 
@@ -416,12 +416,22 @@ class CraftaxCraftPickaxeEnv(_SubtaskMixin, CraftaxClassicEnv):
         self._world[cy][cx + 1] = TILE_TABLE
         self._inventory["wood"] = 1
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _subtask_check(
         self, base_reward: float, info: dict[str, Any]
     ) -> tuple[float, bool]:
+        # Pattern A: +1.0 on the terminal craft event.
         if self._inventory.get("wood_pickaxe", 0) >= 1:
             self._message = "Goal complete! Crafted wood pickaxe."
-            return 10.0, True
+            return 1.0, True
         return 0.0, False
 
 
@@ -452,7 +462,7 @@ class CraftaxCraftSwordEnv(_SubtaskMixin, CraftaxClassicEnv):
         return (
             "Craft a stone sword. You start with 2 wood and 1 stone, a crafting "
             "table (t) on your right, and a furnace (f) on your left. Stand "
-            "adjacent to the table and use MAKE_STONE_SWORD. Reward: +10 on "
+            "adjacent to the table and use MAKE_STONE_SWORD. Reward: +1 on "
             "craft, episode ends. Time limit: 30 steps."
         )
 
@@ -467,12 +477,22 @@ class CraftaxCraftSwordEnv(_SubtaskMixin, CraftaxClassicEnv):
         self._inventory["wood"] = 2
         self._inventory["stone"] = 1
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _subtask_check(
         self, base_reward: float, info: dict[str, Any]
     ) -> tuple[float, bool]:
+        # Pattern A: +1.0 on the terminal craft event.
         if self._inventory.get("stone_sword", 0) >= 1:
             self._message = "Goal complete! Crafted stone sword."
-            return 10.0, True
+            return 1.0, True
         return 0.0, False
 
 

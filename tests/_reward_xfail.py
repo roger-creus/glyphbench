@@ -53,11 +53,5 @@ KNOWN_REWARD_VIOLATORS: set[str] = {
     "glyphbench/classics-rushhour-hard-v0",
     "glyphbench/classics-sokoban-easy-v0",
     "glyphbench/classics-towerdefense-v0",
-    "glyphbench/craftax-build-shelter-v0",
-    "glyphbench/craftax-craftpickaxe-v0",
-    "glyphbench/craftax-craftsword-v0",
-    "glyphbench/craftax-plant-farm-v0",
-    "glyphbench/craftax-survive-night-v0",
-    "glyphbench/craftax-survive-wild-v0",
     "glyphbench/craftaxfull-v0",
 }

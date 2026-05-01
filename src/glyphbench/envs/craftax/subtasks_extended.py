@@ -657,7 +657,7 @@ class CraftaxSurviveNightEnv(CraftaxClassicEnv):
             "Night is falling — monsters will spawn. Survive until dawn. You "
             "have a stone sword and some stone to build shelter. Hostile mobs "
             "(zombies, skeletons) appear at night. Place stone blocks around "
-            "yourself for protection, or fight monsters with DO. Reward: +10 "
+            "yourself for protection, or fight monsters with DO. Reward: +1 "
             "if alive when the sun rises."
         )
 
@@ -677,14 +677,24 @@ class CraftaxSurviveNightEnv(CraftaxClassicEnv):
         self._survived_night = False
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_phase = self._day_night
         obs, reward, terminated, truncated, info = super()._step(action)
-        # Track if we survived through night to dawn
+        # Pattern A: +1.0 on terminal "survived through dawn" event.
+        reward = 0.0
         if old_phase == "night" and self._day_night == "day" and self._hp > 0:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -709,13 +719,17 @@ class CraftaxSurviveWildEnv(CraftaxClassicEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-survive-wild-v0"
 
+    # Pattern A: +1/N per step survived. N = max_turns (200) so the cumulative
+    # caps at +1.0 if the agent survives the full episode.
+    _SURVIVE_TARGET = 200
+
     def _task_description(self) -> str:
         return (
             "You start with nothing. Survive 200 steps managing hunger, "
             "thirst, energy, and nighttime monsters. Chop trees (DO) for "
             "wood, craft tools at a table, find water (≈) to DRINK_WATER, "
             "kill cows or eat plants for food, and build shelter before night. "
-            "Reward: +0.05 per step survived, +10 bonus for full 200 steps."
+            "Reward: +1/200 per step survived (sum to +1.0 on full survival)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -735,16 +749,25 @@ class CraftaxSurviveWildEnv(CraftaxClassicEnv):
         self._day_counter = 170
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super()._step(action)
-        # Per-step survival reward
+        # Pattern A: +1/N per step survived. Replace the parent's reward
+        # entirely so the cumulative is bounded by +1.0 over the full episode.
+        reward = 0.0
         if not terminated:
-            reward += 0.05
-        # Survival bonus
+            reward = 1.0 / self._SURVIVE_TARGET
         if truncated and self._hp > 0:
-            reward += 10.0
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
 
@@ -1374,7 +1397,7 @@ class CraftaxBuildShelterEnv(CraftaxClassicEnv):
             "Build a shelter before night falls. Surround yourself with "
             "placed stone on all 4 sides (left, right, up, down). Face an "
             "empty grass tile and use PLACE_STONE. You start with 10 stone "
-            "blocks. Reward: +10 for completing the shelter."
+            "blocks. Reward: +1 for completing the shelter."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1390,13 +1413,25 @@ class CraftaxBuildShelterEnv(CraftaxClassicEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on completing the shelter (terminal).
+        reward = 0.0
         # Check if shelter is complete (placed stone on all 4 sides)
         if self._has_shelter():
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -1423,12 +1458,16 @@ class CraftaxPlantFarmEnv(CraftaxClassicEnv):
     def env_id(self) -> str:
         return "glyphbench/craftax-plant-farm-v0"
 
+    # Pattern A: 3 plants to harvest, +1/N per harvest (sum to +1.0).
+    _HARVEST_TARGET = 3
+
     def _task_description(self) -> str:
         return (
             "You have 5 saplings. Harvest (eat) 3 ripe plants. Face grass and "
             "PLACE_PLANT to plant a sapling (;); wait ~20 steps for it to "
             "ripen into a ripe plant (*); face the ripe plant and EAT_PLANT "
-            "to harvest. Reward: +3 per plant eaten, +5 bonus for 3 total."
+            "to harvest. Reward: +1/3 per plant eaten (sum to +1.0 on full "
+            "harvest)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1444,17 +1483,28 @@ class CraftaxPlantFarmEnv(CraftaxClassicEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_food = self._food
+        old_harvested = self._plants_harvested
         obs, reward, terminated, truncated, info = super()._step(action)
         # Detect plant eating (food increases by 3 per plant)
         if self._food > old_food and self.action_spec.names[action] == "EAT_PLANT":
             self._plants_harvested += 1
-            reward += 3.0
-        if self._plants_harvested >= 3:
-            reward += 5.0
+        # Replace parent reward with structural +1/N per harvest.
+        new_harvests = self._plants_harvested - old_harvested
+        reward = new_harvests * (1.0 / self._HARVEST_TARGET)
+        if self._plants_harvested >= self._HARVEST_TARGET:
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
