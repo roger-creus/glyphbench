@@ -11,7 +11,7 @@ import numpy as np
 
 import glyphbench.envs.classics  # noqa: F401 — register envs
 from glyphbench.core import make_env
-from glyphbench.envs.classics.flappy import FlappyEnv
+from glyphbench.envs.classics.flappy import FlappyEnv, _TARGET_PIPES
 from glyphbench.envs.classics.match3 import Match3Env, _SIZE, _TARGET_GEMS_MATCHED
 
 
@@ -29,7 +29,7 @@ def _noop_idx(env: FlappyEnv) -> int:
 
 
 def test_flappy_reward_on_pipe_pass() -> None:
-    """Crossing a pipe (pipe column decrements to 1 from 2) yields +1 reward."""
+    """Crossing a pipe yields +1/_TARGET_PIPES reward (normalized for [-1, 1])."""
     env = FlappyEnv()
     env.reset(0)
 
@@ -44,7 +44,10 @@ def test_flappy_reward_on_pipe_pass() -> None:
 
     _, reward, terminated, truncated, _ = env.step(_noop_idx(env))
 
-    assert reward == 1.0, f"expected +1.0 for pipe pass, got {reward}"
+    expected = 1.0 / _TARGET_PIPES
+    assert abs(reward - expected) < 1e-9, (
+        f"expected +{expected:.6f} for pipe pass, got {reward}"
+    )
     assert not terminated
     assert not truncated
 

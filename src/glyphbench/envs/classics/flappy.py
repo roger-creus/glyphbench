@@ -17,6 +17,12 @@ WIDTH = 20
 HEIGHT = 10
 GAP_SIZE = 3
 
+# Target pipes successfully passed for cumulative reward = 1.0. With pipes
+# spawning every 6 steps over a 500-step budget, the theoretical maximum
+# is ~83 pipes; we cap at 50 so that a competent player still reaches the
+# top of the [-1, 1] band before exhausting the episode.
+_TARGET_PIPES = 50
+
 FLAPPY_ACTION_SPEC = ActionSpec(
     names=("FLAP", "NOOP"),
     descriptions=(
@@ -76,14 +82,17 @@ class FlappyEnv(BaseGlyphEnv):
         for p in self._pipes:
             p["x"] -= 1
 
-        # Reward: +1 per pipe successfully passed (pipe column moves past bird at x=2).
-        # 0 on idle, 0 on death (keeps invariant: invalid-action == NOOP == 0 reward).
+        # Reward: +1/_TARGET_PIPES per pipe successfully passed. 0 on idle,
+        # 0 on death. Cumulative capped at 1.0 once _TARGET_PIPES are passed.
         reward = 0.0
         for p in self._pipes:
             if p["x"] == 1 and not p.get("scored"):
-                self._score += 1
                 p["scored"] = True
-                reward += 1.0
+                already_scored = self._score
+                self._score += 1
+                # Cap so cumulative cannot exceed 1.0.
+                room = max(0.0, 1.0 - already_scored / _TARGET_PIPES)
+                reward += min(1.0 / _TARGET_PIPES, room)
 
         self._pipes = [p for p in self._pipes if p["x"] >= 0]
 

@@ -72,6 +72,7 @@ class BombermanEnv(BaseGlyphEnv):
         self._dead: bool = False
         self._won: bool = False
         self._crates_destroyed: int = 0
+        self._total_crates: int = 1
         self._exit_r: int = 0
         self._exit_c: int = 0
 
@@ -117,6 +118,9 @@ class BombermanEnv(BaseGlyphEnv):
         for r, c in crate_cells:
             self._grid[r][c] = CRATE
 
+        # Total crates -- used for [-1, 1] reward normalization.
+        self._total_crates = max(1, len(crate_cells))
+
         # Place exit behind one of the crates
         exit_idx = int(self.rng.integers(len(crate_cells)))
         self._exit_r, self._exit_c = crate_cells[exit_idx]
@@ -158,7 +162,9 @@ class BombermanEnv(BaseGlyphEnv):
                 if self._grid[nr][nc] == CRATE:
                     self._grid[nr][nc] = FLOOR
                     self._crates_destroyed += 1
-                    reward += 1.0
+                    # Pattern D: half the [0, 1] cap is shared across crate
+                    # destruction; the exit reward is the remaining +0.5.
+                    reward += 0.5 / self._total_crates
                     # If this crate was hiding the exit, reveal it
                     if nr == self._exit_r and nc == self._exit_c:
                         self._grid[nr][nc] = EXIT
@@ -220,11 +226,12 @@ class BombermanEnv(BaseGlyphEnv):
             info["dead"] = True
             return self._render_current_observation(), -1.0, True, False, info
 
-        # Check if player is on exit
+        # Check if player is on exit. Pattern D: terminal +0.5 (combined
+        # with the crate cap of +0.5 keeps cumulative <= 1.0).
         if self._grid[self._player_r][self._player_c] == EXIT:
             self._won = True
             info["win"] = True
-            return self._render_current_observation(), 5.0, True, False, info
+            return self._render_current_observation(), reward + 0.5, True, False, info
 
         return self._render_current_observation(), reward, False, False, info
 
@@ -300,9 +307,9 @@ class BombermanEnv(BaseGlyphEnv):
             "you if you are in the blast zone.\n\n"
             "GOAL\n"
             "Destroy crates to find and reach the exit.\n"
-            "  +1 reward per crate destroyed\n"
-            "  +5 reward for reaching the exit\n"
-            "  -1 reward if caught in an explosion\n\n"
+            "  Cumulative reward is split: 0.5 for destroying all crates and\n"
+            "  0.5 terminal for reaching the exit. Total max = 1.0.\n"
+            "  -1 reward if caught in an explosion (terminal).\n\n"
             + self.action_spec.render_for_prompt()
         )
 

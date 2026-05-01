@@ -21,6 +21,12 @@ from glyphbench.core.observation import GridObservation
 
 GRID_SIZE = 8
 
+# Target gold for cumulative reward = 1.0. A skilled player following the
+# optimal cycle (plant -> water 3x -> water 3x -> harvest -> sell) reaches
+# ~25 gold per 200 steps; the cap of 30 leaves a small headroom for
+# parallel plots without ever exceeding 1.0.
+_TARGET_GOLD = 30
+
 FARM_ACTION_SPEC = ActionSpec(
     names=("UP", "DOWN", "LEFT", "RIGHT", "PLANT", "WATER", "HARVEST", "WAIT"),
     descriptions=(
@@ -128,11 +134,15 @@ class FarmSimEnv(BaseGlyphEnv):
             nx, ny = self._farmer_pos[0] + dx, self._farmer_pos[1] + dy
             if (nx, ny) not in self._fence:
                 self._farmer_pos = (nx, ny)
-            # Auto-sell at market
+            # Auto-sell at market. Pattern A: each gold earned = 1/_TARGET_GOLD,
+            # cumulative reward capped at 1.0.
             if self._farmer_pos == self._market_pos and self._crops_held > 0:
                 earned = self._crops_held
+                # Cap so cumulative reward never exceeds 1.0.
+                already = (self._gold / _TARGET_GOLD)
+                room = max(0.0, 1.0 - already)
+                reward = min(float(earned) / _TARGET_GOLD, room)
                 self._gold += earned
-                reward = float(earned)
                 msg = f"Sold {self._crops_held} crop(s) for {earned} gold!"
                 self._crops_held = 0
 
@@ -238,7 +248,9 @@ class FarmSimEnv(BaseGlyphEnv):
             "- Growth stages: dirt \u2192 seeded (\u2660) \u2192 growing (\u2663) \u2192 ready (\u273f).\n"
             "- HARVEST picks up a ready crop. You can carry multiple crops.\n"
             "- Walk to the market tile (\u25a3) to auto-sell all held crops for 1 gold each.\n"
-            "- The episode lasts 200 steps. Reward = gold earned from selling.\n\n"
+            "- The episode lasts 200 steps. Reward is normalized so that cumulative\n"
+            f"  reward = 1.0 once you have earned {_TARGET_GOLD} gold (any further gold\n"
+            "  yields no additional reward).\n\n"
             + self.action_spec.render_for_prompt()
         )
 
