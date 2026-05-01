@@ -244,9 +244,12 @@ class _RushHourBase(BaseGlyphEnv):
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         info: dict[str, Any] = {}
         name = self.action_spec.names[action]
+        # Pattern A with bounded shaping: per-step penalty = -1/max_turns so
+        # cumulative reward bottoms at -1.0 if the puzzle is never solved.
+        step_penalty = -1.0 / self.max_turns
 
         if name == "NOOP":
-            return self._render_current_observation(), -0.01, False, False, info
+            return self._render_current_observation(), step_penalty, False, False, info
 
         # Parse action: MOVE_{LABEL}_{DIR}
         parts = name.split("_")
@@ -262,7 +265,7 @@ class _RushHourBase(BaseGlyphEnv):
 
         if vid >= len(self._vehicles):
             # Invalid vehicle reference
-            return self._render_current_observation(), -0.01, False, False, info
+            return self._render_current_observation(), step_penalty, False, False, info
 
         veh = self._vehicles[vid]
         delta = 1 if direction == "FWD" else -1
@@ -297,7 +300,7 @@ class _RushHourBase(BaseGlyphEnv):
                 self._solved = True
                 return self._render_current_observation(), 1.0, True, False, info
 
-        return self._render_current_observation(), -0.01, False, False, info
+        return self._render_current_observation(), step_penalty, False, False, info
 
     def _render_current_observation(self) -> GridObservation:
         # Grid: BOARD_SIZE + 2 for borders, plus exit indicator
@@ -363,7 +366,8 @@ class _RushHourBase(BaseGlyphEnv):
             "- Vehicles cannot pass through each other.\n"
             "- FWD = right for horizontal vehicles, down for vertical vehicles.\n"
             "- BACK = left for horizontal vehicles, up for vertical vehicles.\n"
-            "- Each move costs -0.01 reward. Exiting gives +1 reward.\n\n"
+            "- Each move costs a small penalty scaled so cumulative reward\n"
+            "  bottoms at -1 if you never exit. Exiting gives +1 reward.\n\n"
             + self.action_spec.render_for_prompt()
         )
 
