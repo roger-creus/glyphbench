@@ -24,6 +24,8 @@ class MontezumaRevengeEnv(AtariBase):
 
     Grid: 30 wide x 20 tall per room (with border).
     Gravity: agent falls if no platform below.
+    Pattern A: +1/_WIN_TARGET per room cleared (full-scope = 24).
+    -1.0 on death (enemy contact).
     """
 
     action_spec = ActionSpec(
@@ -46,6 +48,10 @@ class MontezumaRevengeEnv(AtariBase):
     _ROOMS_Y = 4
     _TOTAL_ROOMS = 24
 
+    # Pattern A full-scope target: 24 rooms cleared.
+    _WIN_TARGET: int = 24
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._lives = 1
@@ -59,9 +65,14 @@ class MontezumaRevengeEnv(AtariBase):
         self._on_ladder: bool = False
         self._jump_vy: int = 0
         self._jumping: bool = False
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-montezumarevenge-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _room_id(self) -> int:
         return self._room_y * self._ROOMS_X + self._room_x
@@ -272,8 +283,7 @@ class MontezumaRevengeEnv(AtariBase):
             if e.x == self._player_x and e.y == self._player_y:
                 if e.etype == "enemy":
                     self._on_life_lost()
-                    self._player_x = 2
-                    self._player_y = self._HEIGHT - 3
+                    reward = self._DEATH_PENALTY
                     self._message = "Hit by enemy!"
                     break
                 elif e.etype == "key":
@@ -285,9 +295,7 @@ class MontezumaRevengeEnv(AtariBase):
                 elif e.etype == "treasure":
                     e.alive = False
                     self._collected_treasures.add(rid)
-                    self._on_point_scored(2)
-                    reward += 2
-                    self._message = "Treasure! +2"
+                    self._message = "Treasure!"
                 elif e.etype == "door":
                     needed = e.data.get("color", "red")
                     needed_char = needed[0].upper()
@@ -308,14 +316,21 @@ class MontezumaRevengeEnv(AtariBase):
                 if next_x <= 1 or next_x >= self._WIDTH - 2:
                     e.dx = -e.dx
 
-        # Check room cleared
+        # Check room cleared (Pattern A progress)
         treasures_left = any(e.alive and e.etype == "treasure" for e in self._entities)
         enemies_left = any(e.alive and e.etype == "enemy" for e in self._entities)
         if not treasures_left and not enemies_left and rid not in self._rooms_cleared:
             self._rooms_cleared.add(rid)
-            self._on_point_scored(5)
-            reward += 5
-            self._message = "Room cleared! +5"
+            if self._progress_count < self._WIN_TARGET:
+                reward += 1.0 / self._WIN_TARGET
+                self._progress_count += 1
+            self._message = "Room cleared!"
+
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All rooms cleared!"
 
         info["room"] = (self._room_x, self._room_y)
         info["keys"] = list(self._keys)
@@ -391,14 +406,14 @@ class MontezumaRevengeEnv(AtariBase):
             "at room edges teleport you to the neighboring room in "
             "the 6x4 grid.\n\n"
             "SCORING\n"
-            "+2 reward per treasure '$' collected. +5 reward "
-            "the first time a room is cleared (no treasures + no "
-            "enemies remain). Keys and doors give no direct reward. "
-            "No per-step penalty.\n\n"
+            "+1/24 reward the first time a room is cleared (no "
+            "treasures + no enemies remain) (Pattern A full-scope = "
+            "24 rooms). Treasures, keys and doors give no direct "
+            "reward. -1.0 on death (enemy contact).\n\n"
             "TERMINATION\n"
-            ". Enemy contact costs a life and respawns "
-            "you at the start position inside the current room. "
-            "Episode ends at 0 lives or after max_turns.\n\n"
+            "Enemy contact ends the episode with -1.0. Episode "
+            "ends after 24 rooms cleared (cumulative reward "
+            "plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, current room (x,y), keys "
             "in inventory, and jump state.\n\n"
