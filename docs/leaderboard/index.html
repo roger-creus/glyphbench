@@ -330,7 +330,7 @@ function renderLeaderboard(data) {
       <td class="model">${esc(r.model)}</td>
       <td class="harness">${esc(r.harness || '—')}</td>
       <td class="num">${r.score.toFixed(3)}<span class="score-bar" style="width: ${Math.max(0, Math.min(70, (r.score / Math.max(maxScore, 0.01)) * 70))}px;"></span></td>
-      <td class="num">${r.parse_failure_rate != null ? (r.parse_failure_rate * 100).toFixed(1) + '%' : '—'}</td>
+      <td class="num">${(r.forfeit_rate ?? r.parse_failure_rate) != null ? ((r.forfeit_rate ?? r.parse_failure_rate) * 100).toFixed(1) + '%' : '—'}</td>
       <td class="num">${r.total_cost ? '$' + r.total_cost.toFixed(2) : '—'}</td>
     </tr>`).join('');
   document.getElementById('table-container').innerHTML = `
@@ -340,7 +340,7 @@ function renderLeaderboard(data) {
         <th data-key="model">Model</th>
         <th data-key="harness">Harness</th>
         <th data-key="score" class="sorted">Score</th>
-        <th data-key="parse_failure_rate">Parse fails</th>
+        <th data-key="forfeit_rate">Forfeits</th>
         <th data-key="total_cost">Cost</th>
       </tr></thead>
       <tbody>${rows}</tbody>
