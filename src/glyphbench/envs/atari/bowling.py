@@ -21,7 +21,8 @@ class BowlingEnv(AtariBase):
     10 frames, 2 rolls each (unless strike).
 
     Actions: NOOP, AIM_LEFT, AIM_RIGHT, THROW
-    Reward: pins knocked down per roll
+    Pattern A: +1/_WIN_TARGET per pin knocked down (full-scope = 10
+    frames x 10 pins = 100). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -41,6 +42,9 @@ class BowlingEnv(AtariBase):
     _PLAYER_ROW = 10
     _PIN_ROW = 1
 
+    # Pattern A full-scope target: 100 pins (10 frames x 10 pins).
+    _WIN_TARGET: int = 100
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._aim_x: int = 0
@@ -52,9 +56,14 @@ class BowlingEnv(AtariBase):
         self._ball_x: int = 0
         self._ball_y: int = 0
         self._total_frames: int = 10
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-bowling-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -106,7 +115,13 @@ class BowlingEnv(AtariBase):
             self._ball_y -= 1
             if self._ball_y <= self._PIN_ROW + 3:
                 knocked = self._resolve_roll()
-                reward = float(knocked)
+                # Pattern A: cap progress at _WIN_TARGET.
+                granted = min(
+                    knocked, self._WIN_TARGET - self._progress_count
+                )
+                if granted > 0:
+                    reward = granted / self._WIN_TARGET
+                    self._progress_count += granted
                 self._ball_active = False
                 self._advance_frame(knocked)
             self._redraw()
