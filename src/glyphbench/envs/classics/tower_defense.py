@@ -191,7 +191,8 @@ class TowerDefenseEnv(BaseGlyphEnv):
             for e in self._enemies:
                 e["path_idx"] += 1
 
-            # Check if any enemy reached the base
+            # Check if any enemy reached the base. Pattern D: failure
+            # penalty = -1.0, replacing any progress this step.
             for e in self._enemies:
                 if e["path_idx"] >= len(_PATH_COORDS):
                     self._base_reached = True
@@ -203,15 +204,16 @@ class TowerDefenseEnv(BaseGlyphEnv):
             # Remove enemies that passed the end (shouldn't happen if base_reached triggers)
             self._enemies = [e for e in self._enemies if e["path_idx"] < len(_PATH_COORDS)]
 
-            # Check if wave cleared
+            # Check if wave cleared. Pattern A progress: each wave cleared
+            # yields +1/TOTAL_WAVES so cumulative reward = 1.0 on full
+            # survival.
             if not terminated and not self._enemies:
                 self._wave_active = False
                 self._waves_cleared += 1
-                reward = 0.5
+                reward = 1.0 / TOTAL_WAVES
                 if self._waves_cleared >= TOTAL_WAVES:
                     self._all_waves_survived = True
                     terminated = True
-                    reward = 1.0
                     self._message = "All waves survived! You win!"
                 else:
                     self._message = f"Wave {self._wave} cleared! Gold: {self._gold}"
@@ -311,7 +313,8 @@ class TowerDefenseEnv(BaseGlyphEnv):
             f"- There are {TOTAL_WAVES} waves total.\n"
             "- Place towers during the build phase, then use NEXT_WAVE to start each wave.\n"
             "- If any enemy reaches the base: -1 reward, game over.\n"
-            "- Each wave cleared: +0.5 reward. All waves survived: +1 reward.\n"
+            f"- Each wave cleared: +{1.0 / TOTAL_WAVES:.4f} reward.\n"
+            "  Cumulative reward = 1.0 if you survive all waves.\n"
             "- Use PLACE_N to place a tower on a specific cell (see action list for coordinates).\n\n"
             + self.action_spec.render_for_prompt()
         )
