@@ -17,10 +17,11 @@ class BoxingEnv(AtariBase):
     """Boxing: two boxers in a ring.
 
     20x20 grid. Land punches on the opponent.
-    First to 100 or most punches when time runs out.
+    First to 10 punches wins; first to be hit 10 times loses.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, PUNCH
-    Reward: +1 per punch landed
+    Pattern D: +1/_WIN_TARGET per punch landed, -1.0 if you are KO'd
+    by the opponent landing _WIN_TARGET punches first.
     """
 
     action_spec = ActionSpec(
@@ -43,7 +44,10 @@ class BoxingEnv(AtariBase):
     _RING_R = 17
     _RING_T = 2
     _RING_B = 17
-    _WIN_SCORE = 100
+
+    # Pattern D full-scope target: 10 hits to KO opponent.
+    _WIN_TARGET: int = 10
+    _DEATH_PENALTY: float = -1.0
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
@@ -52,9 +56,14 @@ class BoxingEnv(AtariBase):
         self._opp_score: int = 0
         self._punch_cooldown: int = 0
         self._opp_cooldown: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-boxing-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -113,8 +122,10 @@ class BoxingEnv(AtariBase):
             )
             if dist <= 2:
                 self._on_point_scored(1)
-                reward = 1.0
-                self._message = "Punch landed! +1"
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Punch landed!"
 
         # Opponent AI
         self._move_opponent()
@@ -130,17 +141,19 @@ class BoxingEnv(AtariBase):
                 self._opp_score += 1
                 self._message = "Opponent punched you!"
 
-        # Check win
+        # Check win/loss
         terminated = False
-        if self._score >= self._WIN_SCORE:
+        if self._progress_count >= self._WIN_TARGET:
             self._message = "You win by KO!"
             self._game_over = True
             terminated = True
-        elif self._opp_score >= self._WIN_SCORE:
+            info["won"] = True
+        elif self._opp_score >= self._WIN_TARGET:
+            # Pattern D: KO'd by opponent overrides any same-step gain.
+            self._on_life_lost()
             self._message = "Opponent wins by KO!"
-            self._game_over = True
             terminated = True
-            reward = -1.0
+            reward = self._DEATH_PENALTY
 
         info["opp_score"] = self._opp_score
         self._redraw()
@@ -229,7 +242,7 @@ class BoxingEnv(AtariBase):
         hud = (
             f"Your punches: {self._score}  "
             f"Opp punches: {self._opp_score}  "
-            f"First to {self._WIN_SCORE}"
+            f"First to {self._WIN_TARGET}"
         )
         return GridObservation(
             grid=grid_to_string(render),
@@ -251,7 +264,7 @@ class BoxingEnv(AtariBase):
         return (
             "Box your opponent in the ring. "
             "Move close then PUNCH to land a hit. "
-            f"First to {self._WIN_SCORE} punches wins."
+            f"First to {self._WIN_TARGET} punches wins."
         )
 
     def system_prompt(self) -> str:
@@ -259,7 +272,7 @@ class BoxingEnv(AtariBase):
             "You are playing Atari Boxing.\n\n"
             "TASK\n"
             "Face off against an AI boxer in a square ring. Whoever "
-            "lands 100 punches first wins the match.\n\n"
+            "lands 10 punches first wins the match.\n\n"
             "BOARD\n"
             "20x20 grid. Ring ropes: horizontal '=' at rows 2 and 17, "
             "vertical '|' at columns 2 and 17, corner posts '+'. You "
@@ -274,16 +287,17 @@ class BoxingEnv(AtariBase):
             "chase, 50 percent random) and punches when adjacent with "
             "40 percent chance, also on a 3-step cooldown.\n\n"
             "SCORING\n"
-            "+1 reward per punch you land. No reward shaping for moving. "
-            "Opponent punches increment their score but give reward 0 "
-            "per-hit (only the KO gives -1 reward at game end). Winning "
-            "by reaching 100 first terminates with no extra reward; "
-            "losing terminates with -1 reward.\n\n"
+            "+0.1 reward per punch you land (Pattern D bounded). No "
+            "reward shaping for moving. Opponent punches increment "
+            "their score but give reward 0 per-hit; the KO gives -1 "
+            "reward at game end. Winning by reaching 10 first "
+            "terminates with cumulative +1.0; losing terminates with "
+            "-1.0 reward overriding any same-step gain.\n\n"
             "TERMINATION\n"
-            "First boxer to 100 punches wins (match ends). No life "
+            "First boxer to 10 punches wins (match ends). No life "
             "counter. Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows your punch count, opponent punch count, and target "
-            "score (100).\n\n"
+            "score (10).\n\n"
             + self.action_spec.render_for_prompt()
         )
