@@ -9,12 +9,14 @@ from __future__ import annotations
 
 from glyphbench.core.registry import register_env
 
+from glyphbench.envs.miniatari.icehockey import MiniIceHockeyEnv
 from glyphbench.envs.miniatari.pong import MiniPongEnv
 from glyphbench.envs.miniatari.tennis import MiniTennisEnv
 
 REGISTRY: dict = {
     "glyphbench/miniatari-pong-v0": MiniPongEnv,
     "glyphbench/miniatari-tennis-v0": MiniTennisEnv,
+    "glyphbench/miniatari-icehockey-v0": MiniIceHockeyEnv,
 }
 
 for env_id, cls in REGISTRY.items():
