@@ -81,7 +81,8 @@ def test_survivehorde_mobs_spawn() -> None:
 
 def test_fight_cow_reward_fires_on_kill() -> None:
     """Scripted: pin the cow adjacent and DO it down to 0 HP.
-    Verifies +5 reward + episode termination fires on cow death."""
+    Verifies +1 reward + episode termination fires on cow death.
+    (Pattern C terminal reward, post-2026-05-01 reward normalization.)"""
     env = _reset("glyphbench/craftax-fight-cow-v0", seed=0)
     cow = next(m for m in env._mobs if m["type"] == "cow")
     env._agent_x = cow["x"] - 1
@@ -104,7 +105,9 @@ def test_fight_cow_reward_fires_on_kill() -> None:
         if terminated:
             break
     assert terminated, "episode should terminate when cow dies"
-    assert total_r >= 5.0, f"expected +5 kill reward, got {total_r}"
+    assert total_r == pytest.approx(1.0, abs=1e-6), (
+        f"expected +1 terminal kill reward, got {total_r}"
+    )
 
 
 def test_survive_night_transitions_to_night_quickly() -> None:

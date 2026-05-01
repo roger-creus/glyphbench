@@ -1,5 +1,7 @@
 """Property-based fuzz tests for Atari Pong."""
 
+import math
+
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -19,12 +21,19 @@ def test_random_action_sequence_no_crash(actions: list[int], seed: int) -> None:
     obs, info = env.reset(seed)
     assert isinstance(obs, str)
     assert len(obs) > 0
+    # Pattern C reward design (post-2026-05-01): ±1/_WIN_TARGET per point,
+    # 0 otherwise. Permit a small float tolerance.
+    per_point = 1.0 / env._WIN_TARGET
     for a in actions:
         obs, reward, terminated, truncated, info = env.step(a)
         assert isinstance(obs, str)
         assert len(obs) > 0
         assert isinstance(reward, float)
-        assert reward in (-1.0, 0.0, 1.0)
+        assert (
+            math.isclose(reward, 0.0, abs_tol=1e-9)
+            or math.isclose(reward, per_point, abs_tol=1e-9)
+            or math.isclose(reward, -per_point, abs_tol=1e-9)
+        ), f"unexpected reward magnitude {reward}"
         grid_obs = env.get_observation()
         grid_lines = grid_obs.grid.split("\n")
         lengths = [len(line) for line in grid_lines]
