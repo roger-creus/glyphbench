@@ -9,12 +9,11 @@ from __future__ import annotations
 
 from glyphbench.core.registry import register_env
 
-# Per-env imports get added here as each env is implemented.
-# Format:
-#     from glyphbench.envs.miniatari.pong import MiniPongEnv
-#     REGISTRY["glyphbench/miniatari-pong-v0"] = MiniPongEnv
+from glyphbench.envs.miniatari.pong import MiniPongEnv
 
-REGISTRY: dict = {}
+REGISTRY: dict = {
+    "glyphbench/miniatari-pong-v0": MiniPongEnv,
+}
 
 for env_id, cls in REGISTRY.items():
     register_env(env_id, cls)
