@@ -71,11 +71,25 @@ All environments use single-codepoint Unicode glyphs (`→↓←↑` for player 
 
 ### Miniatari
 
-Short-horizon redesigns of the arcade Atari games (smaller grids, tight terminal win conditions, `max_turns ∈ [100, 500]`). Same identity, far cheaper to eval — the practical default for LLM evaluation. Examples: `miniatari-pong-v0` (first-to-3), `miniatari-breakout-v0` (clear 6 bricks), `miniatari-spaceinvaders-v0` (clear 1 wave), `miniatari-freeway-v0` (cross 4 lanes), `miniatari-frostbite-v0` (4 ice floes). 43 envs total.
+Atari originals run at `max_turns=10000` and were designed for thousands of frames per game — prohibitive for LLM evaluation, where each step is an API call. **Miniatari is a curated suite of 43 short-horizon redesigns** that keeps each game's identity (mechanics, theme, core decision) while compressing the horizon to `max_turns ∈ [100, 500]`. It's the practical default for LLM eval and training; the original `atari` suite is kept as a long-horizon archival reference and excluded from default eval.
+
+The miniaturization recipe:
+
+- **Smaller play field** — typically 12×8 to 16×16 (vs ~20×20 in the originals).
+- **Tight terminal win condition** — clear 6 bricks (vs full 60-brick wall), first-to-3 (vs first-to-21), destroy 5 asteroids (vs play-forever-and-score).
+- **No frame-skip** — 1 LLM action = 1 tick. Compression comes from smaller grids and tighter wins, not time dilation.
+- **Structurally bounded reward `[-1, 1]`** — every per-step reward is `+1/N` per progress unit (Pattern A), `±1/W` per agent/opponent point (Pattern C, adversarial), or progress with terminal `−1` on death (Pattern D). The cumulative episodic return is `[-1, 1]` by construction.
+- **Calibrated against random rollouts** — each env's random success rate / mean length / mean return is recorded in its docstring; no env is trivially solvable.
+
+14 atari games are dropped from miniatari because their identity is *exploration over an unbounded map* (`montezumarevenge`, `pitfall`, `privateeye`, `solaris`, `gravitar`, `venture`, `hero`), *endurance over a long horizon* (`crazyclimber`, `videopinball`, `roadrunner`), *multi-screen multi-stage* (`krull`, `jamesbond`), or *no clear terminal win* (`tutankham`, `namethisgame`). Those stay in `atari/` for archival eval.
+
+Sample envs: `miniatari-pong-v0` (first-to-3), `miniatari-breakout-v0` (clear 6 bricks), `miniatari-spaceinvaders-v0` (clear 1 wave of 8), `miniatari-freeway-v0` (cross 4 lanes), `miniatari-frostbite-v0` (4 ice floes), `miniatari-mspacman-v0` (~16 dots, 3 ghosts), `miniatari-asteroids-v0` (destroy 5).
 
 ### Craftaxfull
 
-The two open-ended Crafter / Craftax games extracted into their own suite for long-horizon archival eval. Excluded from default training/eval; opt in with `eval/run_archival.sh`. Envs: `craftaxfull-classic-v0`, `craftaxfull-v0`.
+The two upstream-faithful Crafter / Craftax games — `craftaxfull-classic-v0` (22 achievements) and `craftaxfull-v0` (93 achievements) — extracted from the `craftax` suite into their own home. They use `max_turns=10000` and the full open-ended reward shape (per-achievement milestone summing to 1.0, terminal `−1` on death). Too long for default LLM eval, but kept as the open-ended capability ceiling.
+
+For day-to-day evaluation and training, the **41 `craftax/` subtask envs** (firstday, iron-bootstrap, fight-zombie, build-shelter, craftpickaxe, …) cover the same mechanics in a 100-300 turn budget per task. Default `eval/run_full.sh` excludes `craftaxfull`; opt in with `eval/run_archival.sh`.
 
 → [Browse all 343 environments on the leaderboard gallery](https://roger-creus.github.io/glyphbench/leaderboard/)
 
