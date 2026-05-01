@@ -33,7 +33,7 @@ class AlienEnv(AtariBase):
     Pulsar (P) spawns periodically and is invincible.
 
     Grid: 20x20.
-    Reward: +1 per egg, +2 per alien killed.
+    Pattern D: +1/_WIN_TARGET per kill or egg, -1 on death (single life).
     """
 
     action_spec = ActionSpec(
@@ -48,13 +48,22 @@ class AlienEnv(AtariBase):
         ),
     )
 
+    # Pattern D full-scope target: 8 aliens * 3 levels = 24 progress units.
+    _WIN_TARGET: int = 24
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._facing: tuple[int, int] = (1, 0)
         self._eggs_left: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-alien-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         rng = np.random.default_rng(seed + self._level * 997)
@@ -186,8 +195,10 @@ class AlienEnv(AtariBase):
                     b.alive = False
                     a.alive = False
                     self._on_point_scored(2)
-                    reward += 2
-                    self._message = "Alien killed! +2"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Alien killed!"
 
         # Player-egg collection
         for e in self._entities:
@@ -199,11 +210,13 @@ class AlienEnv(AtariBase):
             ):
                 e.alive = False
                 self._on_point_scored(1)
-                reward += 1
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
                 self._eggs_left -= 1
-                self._message = "Egg collected! +1"
+                self._message = "Egg collected!"
 
-        # Player-alien collision
+        # Player-alien collision (Pattern D death penalty)
         for e in self._entities:
             if (
                 e.etype == "alien"
@@ -212,20 +225,24 @@ class AlienEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 self._on_life_lost()
-                reward -= 1
+                # Death overrides any same-step progress reward.
+                reward = self._DEATH_PENALTY
                 self._message = "Caught by alien!"
-                if not self._game_over:
-                    self._player_x = 2
-                    self._player_y = 2
                 break
 
         self._entities = [e for e in self._entities if e.alive]
 
         # Level clear
-        if self._eggs_left <= 0:
-            self._level += 1
-            self._message = "Level cleared!"
-            self._generate_level(self._level * 7919)
+        if self._eggs_left <= 0 and not self._game_over:
+            if self._progress_count >= self._WIN_TARGET:
+                # Full-scope win: terminate.
+                self._game_over = True
+                info["won"] = True
+                self._message = "All levels cleared!"
+            else:
+                self._level += 1
+                self._message = "Level cleared!"
+                self._generate_level(self._level * 7919)
 
         info["eggs_left"] = self._eggs_left
         return reward, self._game_over, info
