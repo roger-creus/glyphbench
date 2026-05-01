@@ -251,16 +251,20 @@ def test_split_assistant_takes_last_action_match():
     assert "ACTION_NAME" in think
 
 
-def test_split_assistant_cleans_malformed_action_with_keyvalue():
+def test_split_assistant_malformed_action_returned_as_is():
+    # Malformed content cleanup removed — replay now shows exactly what the
+    # eval scored; ACTION_NAME=MOVE_FORWARD would have been forfeited.
     text = "<think>plan</think>\n<action>ACTION_NAME=MOVE_FORWARD</action>"
     _, action = cli._split_assistant(text)
-    assert action == "MOVE_FORWARD"
+    assert action == "ACTION_NAME=MOVE_FORWARD"
 
 
-def test_split_assistant_cleans_action_with_embedded_backtick():
+def test_split_assistant_embedded_backtick_returned_as_is():
+    # Malformed content cleanup removed — replay now shows exactly what the
+    # eval scored; `MOVE_FORWARD` would have been forfeited.
     text = "<think>plan</think>\n<action>`MOVE_FORWARD`</action>"
     _, action = cli._split_assistant(text)
-    assert action == "MOVE_FORWARD"
+    assert action == "`MOVE_FORWARD`"
 
 
 def test_split_assistant_residual_only_when_no_think_close():
