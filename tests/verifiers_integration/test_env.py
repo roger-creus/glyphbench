@@ -471,6 +471,100 @@ async def test_memory_rollout_every_step_completion_is_assistant_only(monkeypatc
         assert step["extras"]["glyphbench_step_role"] == expected
 
 
+def test_apply_action_response_forfeits_on_parse_fail(monkeypatch):
+    """When parser reports parse_failed=True, env is NOT stepped; turn counter
+    advances via forfeit_turn; action_chosen=='FORFEIT'; action_idx==-1; reward=0.
+    """
+    from datasets import Dataset
+    from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
+    from glyphbench.verifiers_integration.rubric import EpisodicReturnRubric
+
+    parser = GlyphbenchXMLParser()
+    env = GlyphbenchMultiTurnEnv(
+        dataset=Dataset.from_list([{
+            "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+            "task": "glyphbench/__dummy-v0",
+            "prompt": [{"role": "system", "content": ""}, {"role": "user", "content": ""}],
+            "answer": "",
+        }]),
+        rubric=EpisodicReturnRubric(parser=parser),
+        parser=parser,
+        n_frames=0,
+        max_turns_override=None,
+        max_output_tokens=128,
+        use_memory=False,
+    )
+
+    import asyncio
+    state = {
+        "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+        "trajectory": [],
+        "trajectory_id": "tid",
+        "prompt": [],
+    }
+    asyncio.run(env.setup_state(state))
+
+    pre_turn = state["game"].turn
+    pre_obs = state["current_obs"]
+    messages = [
+        {"role": "user", "content": pre_obs},
+        {"role": "assistant", "content": "<think>I forgot to emit an action tag</think>"},
+    ]
+    result = env._apply_action_response(messages, state)
+
+    assert result["parse_failed"] is True
+    assert result["parse_failure_reason"] == "no_action_tag"
+    assert result["action_chosen"] == "FORFEIT"
+    assert result["action_idx"] == -1
+    assert result["reward"] == 0.0
+    assert result["forfeit"] is True
+    assert state["game"].turn == pre_turn + 1
+    assert state["forfeit_count"] == 1
+
+
+def test_apply_action_response_steps_normally_on_valid_parse(monkeypatch):
+    from datasets import Dataset
+    from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
+    from glyphbench.verifiers_integration.rubric import EpisodicReturnRubric
+
+    parser = GlyphbenchXMLParser()
+    env = GlyphbenchMultiTurnEnv(
+        dataset=Dataset.from_list([{
+            "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+            "task": "glyphbench/__dummy-v0",
+            "prompt": [{"role": "system", "content": ""}, {"role": "user", "content": ""}],
+            "answer": "",
+        }]),
+        rubric=EpisodicReturnRubric(parser=parser),
+        parser=parser,
+        n_frames=0,
+        max_turns_override=None,
+        max_output_tokens=128,
+        use_memory=False,
+    )
+    import asyncio
+    state = {
+        "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+        "trajectory": [],
+        "trajectory_id": "tid",
+        "prompt": [],
+    }
+    asyncio.run(env.setup_state(state))
+
+    spec_names = state["game"].action_spec.names
+    valid_action = spec_names[0]
+    messages = [
+        {"role": "user", "content": state["current_obs"]},
+        {"role": "assistant", "content": f"<action>{valid_action}</action>"},
+    ]
+    result = env._apply_action_response(messages, state)
+    assert result["parse_failed"] is False
+    assert result["parse_failure_reason"] is None
+    assert result["action_chosen"] == valid_action
+    assert result["action_idx"] == 0
+    assert result["forfeit"] is False
+
+
 @pytest.mark.asyncio
 async def test_memory_render_completion_stitches_split_steps(monkeypatch):
     """state['completion'] (the human-readable transcript) must look the

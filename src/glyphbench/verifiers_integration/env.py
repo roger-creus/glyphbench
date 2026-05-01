@@ -194,6 +194,7 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         state["terminated"] = False
         state["truncated"] = False
         state["parse_failures"] = 0
+        state["forfeit_count"] = 0
         state["episode_return"] = 0.0
         state["num_turns"] = 0
         state["memory_enabled"] = self._use_memory
@@ -268,16 +269,27 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         game: BaseGlyphEnv = state["game"]
         last_assistant = self._last_assistant_text(messages)
 
-        action_idx, action_name, parse_failed = self.parser.parse_action(
-            last_assistant, game.action_spec, noop=game.noop_action_name
+        action_idx, action_name, parse_failed, parse_failure_reason = (
+            self.parser.parse_action(
+                last_assistant, game.action_spec, noop=game.noop_action_name
+            )
         )
-        if parse_failed:
-            state["parse_failures"] += 1
 
         pre_obs = state["current_obs"]
-        obs_text, reward, term, trunc, _info = game.step(action_idx)
+        if parse_failed:
+            state["parse_failures"] += 1
+            state["forfeit_count"] = state.get("forfeit_count", 0) + 1
+            obs_text, reward, term, trunc, _info = game.forfeit_turn()
+            applied_action_name = "FORFEIT"
+            applied_action_idx = -1
+            forfeit = True
+        else:
+            obs_text, reward, term, trunc, _info = game.step(action_idx)
+            applied_action_name = action_name
+            applied_action_idx = action_idx
+            forfeit = False
 
-        state["frames"].append((pre_obs, action_name, float(reward)))
+        state["frames"].append((pre_obs, applied_action_name, float(reward)))
         state["current_obs"] = obs_text
         state["episode_return"] += float(reward)
         state["terminated"] = bool(term)
@@ -285,9 +297,12 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         state["done"] = bool(term or trunc)
 
         return {
-            "action_idx": action_idx,
-            "action_name": action_name,
+            "action_idx": applied_action_idx,
+            "action_name": applied_action_name,
+            "action_chosen": applied_action_name,
             "parse_failed": parse_failed,
+            "parse_failure_reason": parse_failure_reason,
+            "forfeit": forfeit,
             "pre_obs": pre_obs,
             "next_obs": obs_text,
             "reward": float(reward),
