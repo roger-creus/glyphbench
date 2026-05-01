@@ -33,7 +33,8 @@ class KrullEnv(AtariBase):
     Stage 3: Storm the Black Fortress, rescue princess (P).
 
     Grid: 20x16.
-    Reward: +1 per enemy, +3 per stage clear, +10 rescue.
+    Pattern A: +1/_WIN_TARGET per stage cleared (full-scope = 3
+    stages: field, swamp, fortress). -1.0 on death.
     """
 
     action_spec = ActionSpec(
@@ -50,14 +51,24 @@ class KrullEnv(AtariBase):
         ),
     )
 
+    # Pattern A full-scope target: 3 stages cleared (the env has
+    # 3 distinct stages: field, swamp, fortress).
+    _WIN_TARGET: int = 3
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 1000) -> None:
         super().__init__(max_turns=max_turns)
         self._stage: int = 1
         self._glaive_cooldown: int = 0
         self._enemies_to_clear: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-krull-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         rng = np.random.default_rng(
@@ -199,13 +210,11 @@ class KrullEnv(AtariBase):
             if not self._is_solid(nx, ny):
                 cell = self._grid_at(nx, ny)
                 if cell == "~":
-                    # Swamp slows and may hurt
+                    # Swamp slows and may hurt (Pattern A death)
                     if self.rng.random() < 0.15:
                         self._on_life_lost()
+                        reward = self._DEATH_PENALTY
                         self._message = "Sank in swamp!"
-                        if not self._game_over:
-                            self._player_x = 2
-                            self._player_y = _H // 2
                         return (
                             reward, self._game_over, info
                         )
@@ -297,7 +306,7 @@ class KrullEnv(AtariBase):
             if not self._is_solid(nx2, ny2):
                 e.x, e.y = nx2, ny2
 
-        # Glaive-enemy collisions
+        # Glaive-enemy collisions (no direct reward)
         for g in self._entities:
             if g.etype != "glaive" or not g.alive:
                 continue
@@ -309,14 +318,12 @@ class KrullEnv(AtariBase):
                 if g.x == en.x and g.y == en.y:
                     g.alive = False
                     en.alive = False
-                    self._on_point_scored(1)
-                    reward += 1
                     self._enemies_to_clear -= 1
                     self._message = (
-                        f"{en.etype} destroyed! +1"
+                        f"{en.etype} destroyed!"
                     )
 
-        # Player-enemy collision
+        # Player-enemy collision (Pattern A death penalty)
         for e in self._entities:
             if e.etype not in etypes or not e.alive:
                 continue
@@ -325,13 +332,11 @@ class KrullEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 self._on_life_lost()
+                reward = self._DEATH_PENALTY
                 self._message = f"Hit by {e.etype}!"
-                if not self._game_over:
-                    self._player_x = 2
-                    self._player_y = _H // 2
                 return reward, self._game_over, info
 
-        # Princess rescue
+        # Princess rescue (stage 3 / final stage progress)
         for e in self._entities:
             if (
                 e.etype == "princess"
@@ -340,13 +345,19 @@ class KrullEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 e.alive = False
-                self._on_point_scored(10)
-                reward += 10
-                self._message = "Princess rescued! +10"
-                self._level += 1
-                self._stage = 1
-                self._generate_level(self._level * 6007)
-                return reward, False, info
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Princess rescued!"
+                if self._progress_count >= self._WIN_TARGET:
+                    self._game_over = True
+                    info["won"] = True
+                    self._message = "All stages complete!"
+                else:
+                    self._level += 1
+                    self._stage = 1
+                    self._generate_level(self._level * 6007)
+                return reward, self._game_over, info
 
         # Exit (stage 2)
         for e in self._entities:
@@ -362,15 +373,21 @@ class KrullEnv(AtariBase):
                 )
                 if enemies_alive == 0:
                     e.alive = False
-                    self._on_point_scored(3)
-                    reward += 3
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
                     self._stage += 1
-                    self._message = "Stage complete! +3"
-                    self._generate_level(
-                        self._level * 6007
-                        + self._stage
-                    )
-                    return reward, False, info
+                    self._message = "Stage complete!"
+                    if self._progress_count >= self._WIN_TARGET:
+                        self._game_over = True
+                        info["won"] = True
+                        self._message = "All stages complete!"
+                    else:
+                        self._generate_level(
+                            self._level * 6007
+                            + self._stage
+                        )
+                    return reward, self._game_over, info
                 else:
                     self._message = (
                         "Clear all enemies first!"
@@ -383,14 +400,20 @@ class KrullEnv(AtariBase):
                 if e.etype in etypes and e.alive
             )
             if enemies_alive == 0:
-                self._on_point_scored(3)
-                reward += 3
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
                 self._stage = 2
-                self._message = "Field cleared! +3"
-                self._generate_level(
-                    self._level * 6007 + self._stage
-                )
-                return reward, False, info
+                self._message = "Field cleared!"
+                if self._progress_count >= self._WIN_TARGET:
+                    self._game_over = True
+                    info["won"] = True
+                    self._message = "All stages complete!"
+                else:
+                    self._generate_level(
+                        self._level * 6007 + self._stage
+                    )
+                return reward, self._game_over, info
 
         self._entities = [
             e for e in self._entities if e.alive
@@ -465,15 +488,16 @@ class KrullEnv(AtariBase):
             "Enemies move on a 2-5 step timer toward you along one "
             "axis.\n\n"
             "SCORING\n"
-            "+1 reward per enemy (Slayer/creature/guard) killed by "
-            "your glaive. +3 reward for completing stages 1 or 2 "
-            "(clearing all enemies; stage 2 also requires reaching "
-            "D). +10 reward for rescuing the princess. No per-step "
-            "penalty.\n\n"
+            "+1/3 reward per stage cleared (Pattern A full-scope = "
+            "3 stages: field, swamp, fortress). Killing enemies "
+            "yields no direct reward (only progress toward stage "
+            "completion). -1.0 on death (enemy contact or sinking "
+            "in swamp).\n\n"
             "TERMINATION\n"
-            ". Enemy contact or sinking in swamp costs a "
-            "life and respawns at start. Episode ends at 0 lives or "
-            "after max_turns.\n\n"
+            "Enemy contact or sinking in swamp ends the episode "
+            "with -1.0. Episode ends after 3 stages cleared "
+            "(cumulative reward plateaus at +1.0) or after "
+            "max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, current stage (1-3), and "
             "enemies remaining.\n\n"

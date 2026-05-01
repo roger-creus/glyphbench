@@ -29,7 +29,8 @@ class KungFuMasterEnv(AtariBase):
     at the right end of each floor.
 
     Grid: 30x16.
-    Reward: +1 per enemy, +5 per boss defeated.
+    Pattern A: +1/_WIN_TARGET per enemy or boss defeated
+    (full-scope = 5 floors x 8 enemies = 40). -1.0 on KO.
     """
 
     action_spec = ActionSpec(
@@ -48,6 +49,10 @@ class KungFuMasterEnv(AtariBase):
         ),
     )
 
+    # Pattern A full-scope target: 40 (5 floors x 8 enemies).
+    _WIN_TARGET: int = 40
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._floor: int = 1
@@ -56,9 +61,14 @@ class KungFuMasterEnv(AtariBase):
         self._jump_timer: int = 0
         self._spawn_timer: int = 0
         self._boss_spawned: bool = False
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-kungfumaster-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         rng = np.random.default_rng(
@@ -167,17 +177,19 @@ class KungFuMasterEnv(AtariBase):
                             )
                             if e.data["hp"] <= 0:
                                 e.alive = False
-                                self._on_point_scored(5)
-                                reward += 5
+                                if self._progress_count < self._WIN_TARGET:
+                                    reward += 1.0 / self._WIN_TARGET
+                                    self._progress_count += 1
                                 self._message = (
-                                    "Boss defeated! +5"
+                                    "Boss defeated!"
                                 )
                         else:
                             e.alive = False
-                            self._on_point_scored(1)
-                            reward += 1
+                            if self._progress_count < self._WIN_TARGET:
+                                reward += 1.0 / self._WIN_TARGET
+                                self._progress_count += 1
                             self._message = (
-                                f"{e.etype} defeated! +1"
+                                f"{e.etype} defeated!"
                             )
 
         # Enemy AI
@@ -239,7 +251,7 @@ class KungFuMasterEnv(AtariBase):
                 if e.x <= 0 or e.x >= _W - 1:
                     e.alive = False
 
-        # Collision: projectiles hit player
+        # Collision: projectiles hit player (Pattern A death)
         for e in self._entities:
             if e.etype != "projectile" or not e.alive:
                 continue
@@ -252,13 +264,11 @@ class KungFuMasterEnv(AtariBase):
                 else:
                     e.alive = False
                     self._on_life_lost()
+                    reward = self._DEATH_PENALTY
                     self._message = "Hit by projectile!"
-                    if not self._game_over:
-                        self._player_x = _PLAYER_START_X
-                        self._player_y = _FLOOR_Y - 1
                     return reward, self._game_over, info
 
-        # Collision: enemies touch player
+        # Collision: enemies touch player (Pattern A death)
         for e in self._entities:
             if e.etype not in ("gripper", "boss"):
                 continue
@@ -272,10 +282,8 @@ class KungFuMasterEnv(AtariBase):
                     pass  # jumped over
                 else:
                     self._on_life_lost()
+                    reward = self._DEATH_PENALTY
                     self._message = f"Grabbed by {e.etype}!"
-                    if not self._game_over:
-                        self._player_x = _PLAYER_START_X
-                        self._player_y = _FLOOR_Y - 1
                     return reward, self._game_over, info
 
         self._entities = [
@@ -327,7 +335,18 @@ class KungFuMasterEnv(AtariBase):
                 self._floor = 1
                 self._level += 1
             self._message = f"Floor cleared! Floor {self._floor}"
-            self._generate_level(self._level * 4001 + self._floor)
+            if self._progress_count >= self._WIN_TARGET:
+                self._game_over = True
+                info["won"] = True
+                self._message = "All floors cleared!"
+            else:
+                self._generate_level(self._level * 4001 + self._floor)
+
+        # Win check (in case target hit between floor clears)
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All floors cleared!"
 
         info["floor"] = self._floor
         return reward, self._game_over, info
@@ -393,14 +412,15 @@ class KungFuMasterEnv(AtariBase):
             "throwers throw a 'tilde' projectile toward you every "
             "3-7 steps that travels 1 cell per step horizontally.\n\n"
             "SCORING\n"
-            "+1 reward per Gripper or Knife thrower killed (punch "
-            "or kick landing on them). +5 reward per boss killed "
-            "(boss has HP = 3 + floor; each hit -1 HP). No per-step "
-            "penalty.\n\n"
+            "+1/40 reward per Gripper, Knife thrower, or Boss "
+            "defeated (Pattern A full-scope = 5 floors x 8 enemies "
+            "= 40). -1.0 on KO (enemy or knife contact while not "
+            "ducking/jumping).\n\n"
             "TERMINATION\n"
-            ". Contact with an enemy or a knife costs a "
-            "life and respawns you at (2, floor-1). Episode ends at "
-            "0 lives or after max_turns.\n\n"
+            "Contact with an enemy or a knife ends the episode "
+            "with -1.0. Episode ends after 40 enemies defeated "
+            "(cumulative reward plateaus at +1.0) or after "
+            "max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, current floor (1-5), and "
             "boss HP (or 'none').\n\n"
