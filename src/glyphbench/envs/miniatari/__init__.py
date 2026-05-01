@@ -12,6 +12,7 @@ from glyphbench.core.registry import register_env
 from glyphbench.envs.miniatari.alien import MiniAlienEnv
 from glyphbench.envs.miniatari.amidar import MiniAmidarEnv
 from glyphbench.envs.miniatari.assault import MiniAssaultEnv
+from glyphbench.envs.miniatari.asterix import MiniAsterixEnv
 from glyphbench.envs.miniatari.asteroids import MiniAsteroidsEnv
 from glyphbench.envs.miniatari.atlantis import MiniAtlantisEnv
 from glyphbench.envs.miniatari.battlezone import MiniBattleZoneEnv
@@ -75,6 +76,7 @@ REGISTRY: dict = {
     "glyphbench/miniatari-berzerk-v0": MiniBerzerkEnv,
     "glyphbench/miniatari-alien-v0": MiniAlienEnv,
     "glyphbench/miniatari-amidar-v0": MiniAmidarEnv,
+    "glyphbench/miniatari-asterix-v0": MiniAsterixEnv,
 }
 
 for env_id, cls in REGISTRY.items():
