@@ -19,7 +19,8 @@ class FishingDerbyEnv(AtariBase):
     20x16 grid. Move hook to catch fish, reel them in.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, REEL
-    Reward: +1 per fish caught
+    Pattern C: ±1/_WIN_TARGET per fish. First to _WIN_TARGET catches
+    wins (full-scope = 30 fish).
     """
 
     action_spec = ActionSpec(
@@ -38,6 +39,9 @@ class FishingDerbyEnv(AtariBase):
     _MAX_FISH = 6
     _GAME_TIME = 500
 
+    # Pattern C full-scope target: first to 30 fish caught.
+    _WIN_TARGET: int = 30
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._hook_x = self._hook_y = 0
@@ -46,9 +50,16 @@ class FishingDerbyEnv(AtariBase):
         self._hooked_fish: AtariEntity | None = None
         self._opp_hooked: AtariEntity | None = None
         self._opp_score = self._timer = 0
+        self._agent_progress: int = 0
+        self._opp_progress: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-fishingderby-v0"
+
+    def _reset(self, seed: int):
+        self._agent_progress = 0
+        self._opp_progress = 0
+        return super()._reset(seed)
 
     def _spawn_fish(self) -> None:
         rng = self.rng
@@ -116,8 +127,10 @@ class FishingDerbyEnv(AtariBase):
                     self._fish.remove(self._hooked_fish)
                 self._hooked_fish = None
                 self._on_point_scored(1)
-                reward = 1.0
-                self._message = "Caught a fish! +1"
+                if self._agent_progress < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._agent_progress += 1
+                self._message = "Caught a fish!"
                 self._hook_y = self._WATER_TOP + 2
                 if len(self._fish) < self._MAX_FISH:
                     self._spawn_fish()
@@ -132,10 +145,20 @@ class FishingDerbyEnv(AtariBase):
                 if fish.x <= 1 or fish.x >= self._WIDTH - 2:
                     fish.dx = -fish.dx
                     fish.x += fish.dx
-        self._opponent_ai()
-        # Time check
+        opp_caught = self._opponent_ai()
+        if opp_caught and self._opp_progress < self._WIN_TARGET:
+            reward -= 1.0 / self._WIN_TARGET
+            self._opp_progress += 1
+        # First-to-N termination
         terminated = self._timer >= self._GAME_TIME
-        if terminated:
+        if self._agent_progress >= self._WIN_TARGET:
+            terminated = True
+            self._message = "You win!"
+            info["won"] = True
+        elif self._opp_progress >= self._WIN_TARGET:
+            terminated = True
+            self._message = "Opponent wins!"
+        elif terminated:
             if self._score > self._opp_score:
                 self._message = "You win!"
             elif self._opp_score > self._score:
@@ -147,7 +170,8 @@ class FishingDerbyEnv(AtariBase):
         self._redraw()
         return reward, terminated, info
 
-    def _opponent_ai(self) -> None:
+    def _opponent_ai(self) -> bool:
+        """Run opponent step. Return True if opponent landed a fish this step."""
         rng = self.rng
         if self._opp_hooked is None:
             best, best_dist = None, 999
@@ -185,6 +209,8 @@ class FishingDerbyEnv(AtariBase):
                 self._opp_hook_y = self._WATER_TOP + 2
                 if len(self._fish) < self._MAX_FISH:
                     self._spawn_fish()
+                return True
+        return False
 
     def _redraw(self) -> None:
         for y in range(self._HEIGHT):
@@ -275,12 +301,13 @@ class FishingDerbyEnv(AtariBase):
             "horizontally every 3 steps and bounce off walls. Up to "
             "6 fish on the lake; a new one spawns after a catch.\n\n"
             "SCORING\n"
-            "+1 reward per fish you reel out. Opponent catches "
-            "increment their score (no reward to you). No per-step "
-            "penalty.\n\n"
+            "+1/30 reward per fish you reel out (Pattern C). "
+            "-1/30 reward per fish the opponent reels out. "
+            "Bound: cumulative reward stays in [-1, +1].\n\n"
             "TERMINATION\n"
-            "Episode ends after 500 ticks. Final message reports "
-            "win / loss / tie.\n\n"
+            "Episode ends when either side reaches 30 catches "
+            "(first-to-30) or after 500 ticks. Final message "
+            "reports win / loss / tie.\n\n"
             "HUD\n"
             "Shows your score, opponent score, and time remaining.\n\n"
             + self.action_spec.render_for_prompt()
