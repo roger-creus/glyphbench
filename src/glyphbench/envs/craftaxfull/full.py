@@ -366,7 +366,11 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
 
     Surface: 64x64, Dungeons: 32x32 per floor, 9 floors total.
     Visible window: 11x9 centered on agent.
-    Reward: +1 per first-time achievement unlock; +10 on Necromancer kill.
+    Reward: each first-time achievement unlock yields +1/N (where N is the
+    total achievement count). Cumulative reward sums to 1.0 if every
+    achievement is unlocked (defeat_necromancer included). Death overrides
+    any in-step progress with a terminal -1.0, so cumulative reward is
+    bounded in [-1, 1].
     """
 
     action_spec = CRAFTAX_FULL_ACTION_SPEC
@@ -383,8 +387,9 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
         ach = ", ".join(self._ALL_ACHIEVEMENTS)
         return (
             f"Gather resources, craft tools, fight mobs, explore dungeons, "
-            f"learn magic, and survive. Each new achievement gives +1 reward; "
-            f"defeating the Necromancer gives +10. "
+            f"learn magic, and survive. Each new achievement gives "
+            f"+1/{len(self._ALL_ACHIEVEMENTS)} reward (cumulative sums to 1.0 if all are unlocked).\n"
+            f"Death yields a terminal -1.0 reward. "
             f"Achievements ({len(self._ALL_ACHIEVEMENTS)}): {ach}."
         )
 
@@ -1505,7 +1510,9 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
             upstream_key = _BITMAP_ALIAS.get(upstream_key, upstream_key)
             if upstream_key in self._achievements_phase_beta:
                 self._achievements_phase_beta[upstream_key] = True
-            return 1.0
+            # Pattern B: each achievement = 1/N_ACHIEVEMENTS so cumulative
+            # progress reward sums to 1.0 if all achievements are unlocked.
+            return 1.0 / len(self._ALL_ACHIEVEMENTS)
         return 0.0
 
     # ---------------------------------------------------------------
@@ -2375,6 +2382,9 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
         terminated = self._hp <= 0 or necromancer_won
         if self._hp <= 0:
             self._message = "You died."
+            # Pattern B: terminal -1.0 on death overrides any progress
+            # earned this step so cumulative reward floors at -1.0.
+            reward = -1.0
         elif necromancer_won:
             self._message = "The necromancer is defeated! You win!"
 
@@ -2474,10 +2484,11 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
                 # Flip necromancer tile back to invulnerable glyph immediately.
                 grid[fy][fx] = TILE_NECROMANCER
                 if boss_progress_win(self):
-                    # Necromancer defeated!
+                    # Necromancer defeated! The unlock alone yields the
+                    # normalized achievement reward; no extra bonus is
+                    # added so cumulative reward stays bounded by [-1, 1].
                     self._message = "The necromancer is defeated! You win!"
                     reward += self._try_unlock("defeat_necromancer")
-                    reward += 10.0
             else:
                 self._message = "The necromancer is invulnerable!"
             return reward

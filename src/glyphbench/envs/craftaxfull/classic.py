@@ -134,7 +134,10 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
     Features day/night cycles, hostile mobs, passive cows, hunger/thirst/energy.
 
     World: 64x64 grid. Visible window: 9x7 centered on agent.
-    Reward: +1 per first-time achievement unlock.
+    Reward: each first-time achievement unlock yields +1/N (where N is the
+    number of achievements). Cumulative reward sums to 1.0 if all 22 are
+    unlocked. Death overrides any in-step progress with a terminal -1.0,
+    so cumulative reward is bounded in [-1, 1].
     """
 
     action_spec = CRAFTAX_ACTION_SPEC
@@ -166,8 +169,10 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
     def _task_description(self) -> str:
         ach = ", ".join(self._ALL_ACHIEVEMENTS)
         return (
-            f"Survive in the 64x64 overworld. Each new achievement gives +1 "
-            f"reward. Available achievements ({len(self._ALL_ACHIEVEMENTS)}): "
+            f"Survive in the 64x64 overworld. Each new achievement gives "
+            f"+1/{len(self._ALL_ACHIEVEMENTS)} reward (cumulative reward sums to 1.0 if all are\n"
+            f"unlocked). Death yields a terminal -1.0 reward. "
+            f"Available achievements ({len(self._ALL_ACHIEVEMENTS)}): "
             f"{ach}."
         )
 
@@ -378,11 +383,13 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
     # -------------------------------------------------------------------
 
     def _try_unlock_achievement(self, name: str) -> float:
-        """Try to unlock an achievement. Returns 1.0 if newly unlocked, else 0.0."""
+        """Try to unlock an achievement. Pattern B: each achievement yields
+        1/_N_ACHIEVEMENTS so cumulative reward = 1.0 if all are unlocked.
+        """
         if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
             self._achievements_unlocked.add(name)
             self._message = f"ACHIEVEMENT: {name.replace('_', ' ').title()}!"
-            return 1.0
+            return 1.0 / len(self._ALL_ACHIEVEMENTS)
         return 0.0
 
     # -------------------------------------------------------------------
@@ -691,10 +698,12 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
         self._tick_plants()
         self._mob_ai()
 
-        # Check death
+        # Check death. Pattern B: terminal -1.0 overrides any progress
+        # earned this step so cumulative reward floors at -1.0 on death.
         terminated = self._hp <= 0
         if terminated:
             self._message = "You died."
+            reward = -1.0
 
         # Count mobs in sight
         mobs_in_sight = self._count_mobs_in_sight()
