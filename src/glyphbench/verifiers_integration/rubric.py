@@ -62,7 +62,7 @@ class EpisodicReturnRubric(vf.Rubric):
         return 1.0 if state.get("truncated") else 0.0
 
     async def forfeit_rate(self, state: dict[str, Any]) -> float:
-        n = state.get("num_turns") or len(state.get("trajectory", []))
+        n = state.get("num_action_turns", 0)
         if not n:
             return 0.0
         return float(state.get("forfeit_count", 0)) / float(n)

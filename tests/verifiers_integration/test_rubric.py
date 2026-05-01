@@ -34,7 +34,7 @@ async def test_episodic_return_sums_per_step_rewards(rubric):
 async def test_forfeit_rate_via_trajectory(rubric):
     state = {
         "episode_return": 0.0,
-        "trajectory": [{}, {}, {}, {}],
+        "num_action_turns": 4,
         "forfeit_count": 1,
         "terminated": False,
         "truncated": True,
@@ -45,7 +45,7 @@ async def test_forfeit_rate_via_trajectory(rubric):
 
 @pytest.mark.asyncio
 async def test_forfeit_rate_empty_trajectory_returns_zero_via_fixture(rubric):
-    state = {"episode_return": 0.0, "trajectory": [], "forfeit_count": 0}
+    state = {"episode_return": 0.0, "num_action_turns": 0, "forfeit_count": 0}
     r = await rubric.forfeit_rate(state=state)
     assert r == 0.0
 
@@ -106,7 +106,7 @@ def test_memory_parse_failure_rate_metric_present():
 def test_forfeit_rate_value():
     import asyncio
     rubric = EpisodicReturnRubric(parser=GlyphbenchXMLParser())
-    state = {"num_turns": 4, "forfeit_count": 1}
+    state = {"num_action_turns": 4, "forfeit_count": 1}
     rate = asyncio.run(rubric.forfeit_rate(state=state))
     assert rate == pytest.approx(0.25)
 
@@ -114,7 +114,7 @@ def test_forfeit_rate_value():
 def test_forfeit_rate_zero_turns_returns_zero():
     import asyncio
     rubric = EpisodicReturnRubric(parser=GlyphbenchXMLParser())
-    state = {"num_turns": 0, "forfeit_count": 0}
+    state = {"num_action_turns": 0, "forfeit_count": 0}
     rate = asyncio.run(rubric.forfeit_rate(state=state))
     assert rate == 0.0
 
