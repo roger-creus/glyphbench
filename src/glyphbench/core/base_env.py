@@ -64,6 +64,29 @@ class BaseGlyphEnv(ABC):
         info["env_id"] = self.env_id()
         return obs.render(), float(reward), terminated, truncated, info
 
+    def forfeit_turn(self) -> tuple[str, float, bool, bool, dict[str, Any]]:
+        """Advance the turn counter without stepping the env.
+
+        Used when the LLM's action could not be parsed: the env state is
+        unchanged, observation is re-rendered with the bumped Step counter
+        in the HUD, reward is 0, and truncation fires only if the bump hit
+        ``max_turns``.
+
+        Returns the same 5-tuple shape as ``step``.
+        """
+        self._turn += 1
+        truncated = False
+        info: dict[str, Any] = {
+            "turn": self._turn,
+            "env_id": self.env_id(),
+            "forfeit": True,
+        }
+        if self._turn >= self.max_turns:
+            truncated = True
+            info["truncation_reason"] = "max_turns"
+        obs = self._render_current_observation()
+        return obs.render(), 0.0, False, truncated, info
+
     @abstractmethod
     def _reset(self, seed: int) -> GridObservation: ...
 
