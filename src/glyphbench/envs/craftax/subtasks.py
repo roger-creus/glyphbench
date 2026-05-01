@@ -186,6 +186,8 @@ class CraftaxChopTreesEnv(_SubtaskMixin, CraftaxClassicEnv):
     """Start in a meadow with trees.  Goal: collect 5 wood."""
 
     _subtask_max_turns = 70
+    # Pattern A: +1/N per wood collected (sums to +1.0 at 5 wood).
+    _WOOD_TARGET = 5
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -203,8 +205,8 @@ class CraftaxChopTreesEnv(_SubtaskMixin, CraftaxClassicEnv):
     def _task_description(self) -> str:
         return (
             "Collect 5 wood by chopping trees. Face a tree and use DO. "
-            "Reward: +1 per wood collected. Episode ends when you have 5 wood "
-            "or after 70 steps."
+            "Reward: +1/5 per wood collected (sums to +1.0). Episode ends "
+            "when you have 5 wood or after 70 steps."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -226,26 +228,34 @@ class CraftaxChopTreesEnv(_SubtaskMixin, CraftaxClassicEnv):
         self._agent_x = cx
         self._agent_y = cy
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _subtask_check(
         self, base_reward: float, info: dict[str, Any]
     ) -> tuple[float, bool]:
         wood = self._inventory.get("wood", 0)
-        # Reward is handled by the parent achievement system (+1 for first
-        # wood via collect_wood), but we add shaped reward for every piece.
-        # The parent already gave achievement reward; we give +1 per wood
-        # collected this step beyond that.
-        extra = 0.0
-        if wood >= 5:
+        if wood >= self._WOOD_TARGET:
             self._message = "Goal complete! Collected 5 wood."
-            return extra, True
-        return extra, False
+            return 0.0, True
+        return 0.0, False
 
-    # Override _handle_do to give +1 per wood (shaped reward)
+    # Pattern A: +1/N per wood collected (clipped at the target).
     def _handle_do(self) -> float:
         old_wood = self._inventory.get("wood", 0)
         reward = super()._handle_do()
         new_wood = self._inventory.get("wood", 0)
-        reward += (new_wood - old_wood)  # +1 per wood collected
+        # Only count progress up to the target, so excess wood doesn't push
+        # cumulative reward above 1.0 if a single DO collects more than one.
+        gained = max(
+            0,
+            min(new_wood, self._WOOD_TARGET) - min(old_wood, self._WOOD_TARGET),
+        )
+        if gained > 0:
+            reward += gained / self._WOOD_TARGET
         return reward
 
 
@@ -257,6 +267,8 @@ class CraftaxMineStoneEnv(_SubtaskMixin, CraftaxClassicEnv):
     """Start with a wood pickaxe near stone deposits.  Goal: mine 5 stone."""
 
     _subtask_max_turns = 70
+    # Pattern A: +1/N per stone mined (sums to +1.0 at 5 stone).
+    _STONE_TARGET = 5
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -273,9 +285,9 @@ class CraftaxMineStoneEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "Mine 5 stone. You start with a wood pickaxe. Face stone (S) and use "
-            "DO to mine. Reward: +1 per stone mined. Episode ends when you have "
-            "5 stone or after 70 steps."
+            "Mine 5 stone. You start with a wood pickaxe. Face stone (S) and "
+            "use DO to mine. Reward: +1/5 per stone mined (sums to +1.0). "
+            "Episode ends when you have 5 stone or after 70 steps."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -294,11 +306,17 @@ class CraftaxMineStoneEnv(_SubtaskMixin, CraftaxClassicEnv):
         self._agent_y = cy
         self._inventory["wood_pickaxe"] = 1
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _subtask_check(
         self, base_reward: float, info: dict[str, Any]
     ) -> tuple[float, bool]:
         stone = self._inventory.get("stone", 0)
-        if stone >= 5:
+        if stone >= self._STONE_TARGET:
             self._message = "Goal complete! Mined 5 stone."
             return 0.0, True
         return 0.0, False
@@ -307,7 +325,13 @@ class CraftaxMineStoneEnv(_SubtaskMixin, CraftaxClassicEnv):
         old_stone = self._inventory.get("stone", 0)
         reward = super()._handle_do()
         new_stone = self._inventory.get("stone", 0)
-        reward += (new_stone - old_stone)
+        gained = max(
+            0,
+            min(new_stone, self._STONE_TARGET)
+            - min(old_stone, self._STONE_TARGET),
+        )
+        if gained > 0:
+            reward += gained / self._STONE_TARGET
         return reward
 
 
@@ -320,6 +344,9 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
     Goal: have 3 wood + 3 stone in inventory.  Multi-step planning."""
 
     _subtask_max_turns = 110
+    # Pattern A: 6 total progress units (3 wood + 3 stone) → +1/6 each.
+    _WOOD_TARGET = 3
+    _STONE_TARGET = 3
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -336,8 +363,8 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "Gather wood (5+), stone (5+), and one each of coal, iron, and "
-            "diamond. Reward: +1 per first-time resource collected."
+            "Gather 3 wood and 3 stone. Reward: +1/6 per resource collected "
+            "(sums to +1.0 when both targets are met)."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -361,14 +388,20 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
         self._agent_x = cx
         self._agent_y = cy
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _subtask_check(
         self, base_reward: float, info: dict[str, Any]
     ) -> tuple[float, bool]:
         wood = self._inventory.get("wood", 0)
         stone = self._inventory.get("stone", 0)
-        if wood >= 3 and stone >= 3:
+        if wood >= self._WOOD_TARGET and stone >= self._STONE_TARGET:
             self._message = "Goal complete! Gathered 3 wood and 3 stone."
-            return 5.0, True
+            return 0.0, True
         return 0.0, False
 
     def _handle_do(self) -> float:
@@ -377,7 +410,18 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
         reward = super()._handle_do()
         new_wood = self._inventory.get("wood", 0)
         new_stone = self._inventory.get("stone", 0)
-        reward += (new_wood - old_wood) + (new_stone - old_stone)
+        target_total = self._WOOD_TARGET + self._STONE_TARGET
+        wood_gained = max(
+            0,
+            min(new_wood, self._WOOD_TARGET) - min(old_wood, self._WOOD_TARGET),
+        )
+        stone_gained = max(
+            0,
+            min(new_stone, self._STONE_TARGET) - min(old_stone, self._STONE_TARGET),
+        )
+        gained = wood_gained + stone_gained
+        if gained > 0:
+            reward += gained / target_total
         return reward
 
 
@@ -511,6 +555,8 @@ class CraftaxCraftChainEnv(_SubtaskMixin, CraftaxClassicEnv):
     Multi-step chain of 3 crafts."""
 
     _subtask_max_turns = 120
+    # Pattern A: 3 milestones → +1/3 each (sums to +1.0 on completion).
+    _MILESTONE_COUNT = 3
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -527,9 +573,10 @@ class CraftaxCraftChainEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "Craft the full tech chain: wood pickaxe, stone pickaxe, iron "
-            "pickaxe, wood sword, stone sword, iron sword. Reward: +1 per "
-            "first-time craft."
+            "Multi-step craft chain: (1) craft a wood pickaxe, (2) mine "
+            "stone, (3) craft a stone sword. Reward: +1/3 per first-time "
+            "milestone (sums to +1.0 on completing the chain). Episode ends "
+            "after step 3."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -558,28 +605,35 @@ class CraftaxCraftChainEnv(_SubtaskMixin, CraftaxClassicEnv):
         # Track milestone rewards
         self._chain_milestones: set[str] = set()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _subtask_check(
         self, base_reward: float, info: dict[str, Any]
     ) -> tuple[float, bool]:
+        per_milestone = 1.0 / self._MILESTONE_COUNT
         extra = 0.0
         if (
             "pickaxe_crafted" not in self._chain_milestones
             and self._inventory.get("wood_pickaxe", 0) >= 1
         ):
             self._chain_milestones.add("pickaxe_crafted")
-            extra += 3.0
+            extra += per_milestone
         if (
             "stone_mined" not in self._chain_milestones
             and self._inventory.get("stone", 0) >= 1
         ):
             self._chain_milestones.add("stone_mined")
-            extra += 3.0
+            extra += per_milestone
         if self._inventory.get("stone_sword", 0) >= 1:
             if "sword_crafted" not in self._chain_milestones:
                 self._chain_milestones.add("sword_crafted")
-                extra += 3.0
+                extra += per_milestone
             self._message = "Goal complete! Crafted stone sword via chain."
-            return extra + 5.0, True
+            return extra, True
         return extra, False
 
 
@@ -934,6 +988,8 @@ class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     _subtask_max_turns = 120
     _WORLD_SIZE = 24
+    # Pattern D: kills sum to +1.0; death → -1.0.
+    _DEATH_PENALTY = -1.0
 
     tutorial_sections = (
         "legend:player", "legend:terrain",
@@ -952,9 +1008,9 @@ class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "Clear all hostile mobs on dungeon floor 1. Reward: +1 per mob "
-            "killed; -10 on death. Episode ends when all mobs are dead or you "
-            "die."
+            "Clear all hostile mobs on dungeon floor 1. Reward: +1/N per mob "
+            "killed (sums to +1.0 when the floor is cleared); -1 on death. "
+            "Episode ends when all mobs are dead or you die."
         )
 
     def _setup_world(self, seed: int) -> None:
@@ -1067,13 +1123,19 @@ class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
             self._agent_y = ny
         return 0.0
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _handle_do(self) -> float:
         old_count = len(self._mobs)
         reward = super()._handle_do()
         new_count = len(self._mobs)
         killed = old_count - new_count
-        if killed > 0:
-            reward += killed * 5.0
+        if killed > 0 and self._initial_mob_count > 0:
+            reward += killed * (1.0 / self._initial_mob_count)
         return reward
 
     def _subtask_check(
@@ -1082,9 +1144,9 @@ class CraftaxDungeonClearEnv(_SubtaskMixin, CraftaxClassicEnv):
         hostiles = [m for m in self._mobs if m["type"] != "cow"]
         if not hostiles:
             self._message = "Goal complete! Dungeon floor cleared."
-            return 10.0, True
+            return 0.0, True
         if self._hp <= 0:
-            return -10.0, True
+            return self._DEATH_PENALTY, True
         return 0.0, False
 
     # Custom rendering for dungeon tiles

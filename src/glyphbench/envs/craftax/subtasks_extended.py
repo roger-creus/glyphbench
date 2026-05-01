@@ -505,7 +505,7 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
 
 class CraftaxSurviveHungerEnv(CraftaxClassicEnv):
     """Start with food=2, no food nearby. Must find food.
-    Reward: +1 per food eaten. +10 if survive 100 steps."""
+    Pattern C: terminal +1 if survived 100 steps with food eaten."""
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -527,11 +527,10 @@ class CraftaxSurviveHungerEnv(CraftaxClassicEnv):
     def _task_description(self) -> str:
         return (
             "You start starving (food=1/9). Find food before you starve and "
-            "survive 100 steps. Kill a cow (c) with DO for +5 food, or eat a "
-            "ripe plant (*) with EAT_PLANT for +3 food. Food drains 1 every "
-            "50 steps; at 0 food you take -1 HP/step. You have a wood sword. "
-            "Reward: +1 per food source eaten, +10 bonus for surviving 100 "
-            "steps (only if at least one food source was eaten)."
+            "survive 100 steps. Kill a cow with DO for food, or eat a ripe "
+            "plant with EAT_PLANT. Food drains 1 every 50 steps; at 0 food "
+            "you take -1 HP/step. You have a wood sword. Reward: +1 if you "
+            "survive to step 100 AND ate at least one food source."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -555,27 +554,32 @@ class CraftaxSurviveHungerEnv(CraftaxClassicEnv):
         self._inventory = {"wood_sword": 1}
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_food = self._food
         obs, reward, terminated, truncated, info = super()._step(action)
-        # Detect food gain
+        # Suppress parent reward — Pattern C is purely terminal.
+        reward = 0.0
         if self._food > old_food:
-            gained = self._food - old_food
-            food_reward = gained / 3.0  # normalize: +1 per ~3 food gained
-            reward += food_reward
             self._food_eaten += 1
-        # Survival bonus at end — only if the agent actually ate at
-        # least one food source. NOOP-spam can't game it.
+        # Survival bonus — only if the agent actually ate at least one
+        # food source (NOOP-spam can't game it).
         if truncated and self._hp > 0 and self._food_eaten >= 1:
-            reward += 10.0
+            reward += 1.0
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
 
 
 class CraftaxSurviveThirstEnv(CraftaxClassicEnv):
-    """Start with water=2. Must find water source. Max 100 steps."""
+    """Start with water=2. Must find water source. Max 100 steps.
+    Pattern C: terminal +1 if survived with at least one drink."""
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -589,22 +593,24 @@ class CraftaxSurviveThirstEnv(CraftaxClassicEnv):
 
     def __init__(self, max_turns: int = 100) -> None:
         super().__init__(max_turns=max_turns)
+        self._drinks: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/craftax-survive-thirst-v0"
 
     def _task_description(self) -> str:
         return (
-            "You start dehydrated (water=2/9). Find a water tile (≈) and "
-            "use DRINK_WATER facing it. Survive 100 steps without dying of "
+            "You start dehydrated (water=2/9). Find a water tile and use "
+            "DRINK_WATER facing it. Survive 100 steps without dying of "
             "thirst. Water drains 1 every 40 steps; at 0 water you take "
-            "-1 HP/step. Reward: +5 per drink, +10 bonus for surviving 100 "
-            "steps."
+            "-1 HP/step. Reward: +1 if you survive to step 100 AND drank at "
+            "least once (NOOP-spam can't game it)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
         obs = super()._reset(seed)
         self._water = 2
+        self._drinks = 0
         # Remove water tiles in immediate vicinity to force exploration
         cx, cy = self._agent_x, self._agent_y
         for dx in range(-6, 7):
@@ -619,15 +625,23 @@ class CraftaxSurviveThirstEnv(CraftaxClassicEnv):
         self._inventory = {}
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_water = self._water
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Suppress parent reward — Pattern C is purely terminal.
+        reward = 0.0
         if self._water > old_water:
-            reward += 5.0
-        if truncated and self._hp > 0:
-            reward += 10.0
+            self._drinks += 1
+        if truncated and self._hp > 0 and self._drinks >= 1:
+            reward += 1.0
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
 
@@ -797,9 +811,9 @@ class CraftaxFightCowEnv(CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "A cow (c) is nearby. Defeat it for food by facing it and using "
-            "DO to attack. You have a wood sword (+1 damage). Reward: +5 for "
-            "defeating the cow."
+            "A cow is nearby. Defeat it for food by facing it and using DO "
+            "to attack. You have a wood sword (+1 damage). Reward: +1 for "
+            "defeating the cow (Pattern C, terminal)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -812,14 +826,22 @@ class CraftaxFightCowEnv(CraftaxClassicEnv):
         self._hp = 9
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         cow_count_before = sum(1 for m in self._mobs if m["type"] == "cow")
         obs, reward, terminated, truncated, info = super()._step(action)
         cow_count_after = sum(1 for m in self._mobs if m["type"] == "cow")
+        # Pattern C: ignore parent reward, terminal +1 on cow defeated.
+        reward = 0.0
         if cow_count_after < cow_count_before:
-            reward += 5.0
+            reward += 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -827,6 +849,9 @@ class CraftaxFightCowEnv(CraftaxClassicEnv):
 
 class CraftaxFightZombiesEnv(CraftaxClassicEnv):
     """Start with stone sword. 3 zombies in arena. Kill all. Max 40 steps."""
+
+    # Pattern A: +1/N per zombie killed (sums to +1.0 on full clear).
+    _KILL_TARGET = 3
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -849,7 +874,7 @@ class CraftaxFightZombiesEnv(CraftaxClassicEnv):
             "3 zombies (z) are closing in. Defeat all of them. Face a zombie "
             "and use DO to attack. You have a stone sword (+2 damage per hit). "
             "Each zombie has 3 HP and deals 1 damage when adjacent. Reward: "
-            "+3 per zombie killed, +5 bonus for clearing all 3."
+            "+1/3 per zombie killed (sums to +1.0 when all are dead)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -867,6 +892,12 @@ class CraftaxFightZombiesEnv(CraftaxClassicEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
@@ -878,9 +909,9 @@ class CraftaxFightZombiesEnv(CraftaxClassicEnv):
             1 for m in self._mobs if m["type"] == "zombie"
         )
         kills = zombie_count_before - zombie_count_after
-        reward += kills * 3.0
+        if kills > 0:
+            reward += kills / self._KILL_TARGET
         if zombie_count_after == 0 and zombie_count_before > 0:
-            reward += 5.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -888,6 +919,9 @@ class CraftaxFightZombiesEnv(CraftaxClassicEnv):
 
 class CraftaxFightSkeletonsEnv(CraftaxClassicEnv):
     """Start with iron sword. 3 skeletons. Must close distance. Max 40 steps."""
+
+    # Pattern A: +1/N per skeleton killed (sums to +1.0 on full clear).
+    _KILL_TARGET = 3
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -909,8 +943,8 @@ class CraftaxFightSkeletonsEnv(CraftaxClassicEnv):
         return (
             "3 skeletons (k) are prowling nearby. Defeat all 3. Each skeleton "
             "has 4 HP and deals 2 damage. You have an iron sword (+3 damage). "
-            "Close distance and use DO to attack. Reward: +3 per skeleton "
-            "killed, +5 bonus for clearing all 3."
+            "Close distance and use DO to attack. Reward: +1/3 per skeleton "
+            "killed (sums to +1.0 when all are dead)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -927,6 +961,12 @@ class CraftaxFightSkeletonsEnv(CraftaxClassicEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
@@ -938,9 +978,9 @@ class CraftaxFightSkeletonsEnv(CraftaxClassicEnv):
             1 for m in self._mobs if m["type"] == "skeleton"
         )
         kills = skel_count_before - skel_count_after
-        reward += kills * 3.0
+        if kills > 0:
+            reward += kills / self._KILL_TARGET
         if skel_count_after == 0 and skel_count_before > 0:
-            reward += 5.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -1311,6 +1351,9 @@ class CraftaxMineIronEnv(CraftaxClassicEnv):
     crafting recipes. The env id was changed to reflect what the env
     actually checks.)"""
 
+    # Pattern A: +1/N per iron mined (sums to +1.0 at N iron).
+    _IRON_TARGET = 3
+
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
         "survival:hp_food_drink", "survival:energy_sleep",
@@ -1331,8 +1374,7 @@ class CraftaxMineIronEnv(CraftaxClassicEnv):
         return (
             "Iron deposits (I) are nearby. You have a stone pickaxe. Mine 3 "
             "iron ore. Face iron tiles and use DO to mine (requires stone "
-            "pickaxe or better). Reward: +3 per iron mined, +5 bonus for "
-            "3 total."
+            "pickaxe or better). Reward: +1/3 per iron mined (sums to +1.0)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1357,16 +1399,26 @@ class CraftaxMineIronEnv(CraftaxClassicEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_iron = self._inventory.get("iron", 0)
         obs, reward, terminated, truncated, info = super()._step(action)
         new_iron = self._inventory.get("iron", 0)
-        if new_iron > old_iron:
-            reward += 3.0
-        if new_iron >= 3:
-            reward += 5.0
+        # Pattern A: +1/N per fresh iron, capped at the target.
+        gained = max(
+            0,
+            min(new_iron, self._IRON_TARGET) - min(old_iron, self._IRON_TARGET),
+        )
+        if gained > 0:
+            reward += gained / self._IRON_TARGET
+        if new_iron >= self._IRON_TARGET:
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -1536,9 +1588,9 @@ class CraftaxFindWaterEnv(CraftaxClassicEnv):
     def _task_description(self) -> str:
         return (
             "You are in a dry sandy area where water is scarce. Find a water "
-            "tile (≈) and use DRINK_WATER facing it. Explore in all "
-            "directions — water is somewhere in the world but not near your "
-            "start. Reward: +10 for drinking water."
+            "tile and use DRINK_WATER facing it. Explore in all directions — "
+            "water is somewhere in the world but not near your start. "
+            "Reward: +1 for drinking water (Pattern C, terminal)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1568,21 +1620,30 @@ class CraftaxFindWaterEnv(CraftaxClassicEnv):
         self._found_water = False
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_water = self._water
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern C: terminal +1 on the structural goal.
+        reward = 0.0
         if self._water > old_water and not self._found_water:
             self._found_water = True
-            reward += 10.0
+            reward += 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
 
 
 class CraftaxFindDiamondEnv(CraftaxClassicEnv):
-    """Start with iron pickaxe. Find and mine a diamond. Max 150 steps."""
+    """Start with iron pickaxe. Find and mine a diamond. Max 150 steps.
+    Pattern C: terminal +1 on diamond mined."""
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -1602,10 +1663,10 @@ class CraftaxFindDiamondEnv(CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "Diamonds (D) are rare and scattered across the world. You have "
-            "an iron pickaxe (required to mine diamond). Find a diamond tile "
+            "Diamonds are rare and scattered across the world. You have an "
+            "iron pickaxe (required to mine diamond). Find a diamond tile "
             "and mine it with DO. Explore widely — diamonds may be far from "
-            "your start. Reward: +10 for mining a diamond."
+            "your start. Reward: +1 for mining a diamond (Pattern C, terminal)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1618,14 +1679,22 @@ class CraftaxFindDiamondEnv(CraftaxClassicEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_diamond = self._inventory.get("diamond", 0)
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern C: ignore parent reward, terminal +1 on diamond mined.
+        reward = 0.0
         new_diamond = self._inventory.get("diamond", 0)
         if new_diamond > old_diamond:
-            reward += 10.0
+            reward += 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -1882,6 +1951,10 @@ class CraftaxIronBootstrapEnv(CraftaxClassicEnv):
     not just inherit it).
     """
 
+    # Pattern A: 7 milestones (wood, table, wood_pickaxe, stone, furnace,
+    # stone_pickaxe, iron_first) → +1/7 each (sums to +1.0 on success).
+    _MILESTONE_COUNT = 7
+
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
         "survival:hp_food_drink", "survival:energy_sleep",
@@ -1902,14 +1975,12 @@ class CraftaxIronBootstrapEnv(CraftaxClassicEnv):
 
     def _task_description(self) -> str:
         return (
-            "You start with NOTHING. The arena contains trees (♣), stone (S), "
-            "coal (C), and iron ore (I). Goal: mine 1 iron ore AND place 1 "
-            "furnace. Required chain (no shortcuts): chop wood with DO → "
-            "PLACE_TABLE (2 wood) → MAKE_WOOD_PICKAXE → mine stone → "
-            "PLACE_FURNACE (4 stone) → MAKE_STONE_PICKAXE → mine iron with "
-            "stone pickaxe. Reward shaping: +1 each first milestone "
-            "(wood/table/wood-pick/stone/furnace/stone-pick), +5 first iron, "
-            "+5 success bonus."
+            "You start with NOTHING. The arena contains trees, stone, coal, "
+            "and iron ore. Goal: mine 1 iron ore AND place 1 furnace. "
+            "Required chain (no shortcuts): chop wood with DO → PLACE_TABLE "
+            "(2 wood) → MAKE_WOOD_PICKAXE → mine stone → PLACE_FURNACE "
+            "(4 stone) → MAKE_STONE_PICKAXE → mine iron with stone pickaxe. "
+            "Reward: +1/7 per first-time milestone (sums to +1.0 on success)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1942,6 +2013,12 @@ class CraftaxIronBootstrapEnv(CraftaxClassicEnv):
         self._milestones: set[str] = set()
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _count_furnaces(self) -> int:
         n = 0
         for row in self._world:
@@ -1961,26 +2038,27 @@ class CraftaxIronBootstrapEnv(CraftaxClassicEnv):
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super()._step(action)
         inv = self._inventory
+        per = 1.0 / self._MILESTONE_COUNT
         if inv.get("wood", 0) >= 1:
-            reward += self._milestone("wood", 1.0)
+            reward += self._milestone("wood", per)
         if inv.get("stone", 0) >= 1:
-            reward += self._milestone("stone", 1.0)
+            reward += self._milestone("stone", per)
         if inv.get("wood_pickaxe", 0) >= 1:
-            reward += self._milestone("wood_pickaxe", 1.0)
+            reward += self._milestone("wood_pickaxe", per)
         if inv.get("stone_pickaxe", 0) >= 1:
-            reward += self._milestone("stone_pickaxe", 1.0)
+            reward += self._milestone("stone_pickaxe", per)
         # Detect placement events by counting tiles (cheap on a small
         # curated arena).
         if "table" not in self._milestones:
             for row in self._world:
                 if TILE_TABLE in row:
-                    reward += self._milestone("table", 1.0)
+                    reward += self._milestone("table", per)
                     break
         if "furnace" not in self._milestones:
             if self._count_furnaces() >= 1:
-                reward += self._milestone("furnace", 1.0)
+                reward += self._milestone("furnace", per)
         if inv.get("iron", 0) >= 1:
-            reward += self._milestone("iron_first", 5.0)
+            reward += self._milestone("iron_first", per)
             self._reached_iron = True
 
         if (
@@ -1988,7 +2066,6 @@ class CraftaxIronBootstrapEnv(CraftaxClassicEnv):
             and self._count_furnaces() >= 1
             and not terminated
         ):
-            reward += 5.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -2002,6 +2079,11 @@ class CraftaxDiamondBootstrapEnv(CraftaxIronBootstrapEnv):
     iron-pickaxe craft and the first diamond. Termination fires on
     ``inventory["diamond"] >= 1``.
     """
+
+    # Pattern A: 9 milestones total — 7 inherited (wood/table/wood-pickaxe/
+    # stone/furnace/stone-pickaxe/iron_first) + iron_pickaxe + diamond_first.
+    # Each contributes +1/9 (sums to +1.0 on diamond collection).
+    _MILESTONE_COUNT = 9
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -2024,11 +2106,12 @@ class CraftaxDiamondBootstrapEnv(CraftaxIronBootstrapEnv):
         return (
             "Like iron-bootstrap, but go one rung further: forge an iron "
             "pickaxe and mine a diamond. The arena contains trees, stone, "
-            "coal, iron ore, AND a small diamond (D) cluster. Required chain: "
+            "coal, iron ore, AND a small diamond cluster. Required chain: "
             "wood → table → wood pickaxe → stone → furnace → stone pickaxe → "
             "iron ore → iron pickaxe (1 wood + 1 iron, table+furnace) → DO "
-            "on diamond. Reward shaping: same as iron-bootstrap, plus +3 "
-            "first iron pickaxe, +10 first diamond, +10 success bonus."
+            "on diamond. Reward: +1/9 per first-time milestone (9 total: "
+            "wood, table, wood-pickaxe, stone, furnace, stone-pickaxe, iron, "
+            "iron-pickaxe, diamond) — sums to +1.0 on diamond collection."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -2062,12 +2145,12 @@ class CraftaxDiamondBootstrapEnv(CraftaxIronBootstrapEnv):
         ):
             terminated = False
             info.pop("subtask_success", None)
+        per = 1.0 / self._MILESTONE_COUNT
         if self._inventory.get("iron_pickaxe", 0) >= 1:
-            reward += self._milestone("iron_pickaxe", 3.0)
+            reward += self._milestone("iron_pickaxe", per)
         if self._inventory.get("diamond", 0) >= 1:
-            reward += self._milestone("diamond_first", 10.0)
+            reward += self._milestone("diamond_first", per)
             if not self._reached_diamond and not terminated:
-                reward += 10.0
                 terminated = True
                 info["subtask_success"] = True
             self._reached_diamond = True
@@ -2085,10 +2168,15 @@ class CraftaxWaveDefenseEnv(CraftaxClassicEnv):
     starts with a stone sword and 6 stone for placing walls. Waves
     spawn at steps 0, 50, 100; each wave drops a small ring of zombies
     in the agent's vicinity. Success: alive at the end of step 150.
+
+    Pattern A: 12 zombies total (3+4+5) → +1/12 per kill (sums to +1.0
+    if every zombie is defeated). No step-survival bonus; no terminal
+    bonus.
     """
 
     _WAVE_STEPS = (1, 50, 100)
     _WAVE_SIZES = (3, 4, 5)
+    _KILL_TARGET = 12
 
     tutorial_sections = (
         "legend:player", "legend:terrain", "legend:mobs:overworld",
@@ -2113,8 +2201,8 @@ class CraftaxWaveDefenseEnv(CraftaxClassicEnv):
             "Three zombie waves spawn near you at steps 1, 50, 100 (sizes 3, "
             "4, 5). You have a stone sword (DO to attack adjacent zombies) "
             "and 6 stone (PLACE_STONE to wall off approaches). 9 HP, no "
-            "armor. Goal: be alive at step 150. Reward: +1 per kill, +0.05 "
-            "per step alive after wave 1, +15 success bonus on full survival."
+            "armor. Goal: kill all 12 zombies and survive to step 150. "
+            "Reward: +1/12 per kill (sums to +1.0 on a full clear)."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -2171,6 +2259,12 @@ class CraftaxWaveDefenseEnv(CraftaxClassicEnv):
             self._mobs.append(mob)
             placed += 1
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
@@ -2181,22 +2275,22 @@ class CraftaxWaveDefenseEnv(CraftaxClassicEnv):
             if idx >= self._waves_spawned and self._turn >= step:
                 self._spawn_wave(self._WAVE_SIZES[idx])
                 self._waves_spawned = idx + 1
-        prev_total_kills = sum(
-            CLASSIC_MOB_STATS[m["type"]]["hp"] - m["hp"]
-            for m in self._mobs
-            if m["type"] in CLASSIC_MOB_STATS
-        )
         prev_alive = len([m for m in self._mobs if m["type"] != "cow"])
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: ignore parent reward; +1/N per kill, no step bonus,
+        # no terminal bonus.
+        reward = 0.0
         cur_alive = len([m for m in self._mobs if m["type"] != "cow"])
         if cur_alive < prev_alive:
             kills = prev_alive - cur_alive
             self._wave_kills += kills
-            reward += float(kills)
-        if not terminated and self._waves_spawned >= 1:
-            reward += 0.05
-        if truncated and self._hp > 0 and self._waves_spawned == len(self._WAVE_STEPS):
-            reward += 15.0
+            reward += kills / self._KILL_TARGET
+        if (
+            truncated
+            and self._hp > 0
+            and self._waves_spawned == len(self._WAVE_STEPS)
+            and self._wave_kills >= self._KILL_TARGET
+        ):
             info["subtask_success"] = True
         info["wave_kills"] = self._wave_kills
         info["waves_spawned"] = self._waves_spawned
