@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from glyphbench.core.action import ActionSpec
+from glyphbench.core.observation import GridObservation
 
 from .base import AtariBase, AtariEntity
 
@@ -20,8 +21,7 @@ class AsterixEnv(AtariBase):
     Move up/down between lanes to grab food and dodge enemies.
 
     Actions: NOOP, UP, DOWN
-    Reward: +1 per food collected
-    Lives: 3 (lost on enemy collision)
+    Pattern D: +1/_WIN_TARGET per food collected, -1 on enemy contact.
     """
 
     action_spec = ActionSpec(
@@ -39,15 +39,24 @@ class AsterixEnv(AtariBase):
     _LANE_START = 4
     _PLAYER_X = 2
 
+    # Pattern D full-scope target: 50 helmets (food).
+    _WIN_TARGET: int = 50
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._food: list[AtariEntity] = []
         self._enemies: list[AtariEntity] = []
         self._step_counter: int = 0
         self._spawn_rate: int = 8
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-asterix-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -145,10 +154,12 @@ class AsterixEnv(AtariBase):
             ):
                 f.alive = False
                 self._on_point_scored(1)
-                reward += 1
-                self._message = "Yum! +1"
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Yum!"
 
-        # Check enemy collision
+        # Check enemy collision (Pattern D death penalty)
         for e in self._enemies:
             if (
                 e.alive
@@ -157,10 +168,8 @@ class AsterixEnv(AtariBase):
             ):
                 e.alive = False
                 self._on_life_lost()
+                reward = self._DEATH_PENALTY
                 self._message = "Hit by enemy!"
-                self._player_y = (
-                    self._LANE_START + self._NUM_LANES // 2
-                )
 
         # Level up every 10 points
         if (
@@ -174,6 +183,12 @@ class AsterixEnv(AtariBase):
         # Cleanup
         self._food = [f for f in self._food if f.alive]
         self._enemies = [e for e in self._enemies if e.alive]
+
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All helmets collected!"
 
         self._redraw()
         return reward, self._game_over, info
