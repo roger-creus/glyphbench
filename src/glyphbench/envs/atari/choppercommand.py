@@ -21,8 +21,8 @@ class ChopperCommandEnv(AtariBase):
     Shoot enemies before they destroy your trucks.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +1 per enemy heli, +3 wave bonus
-
+    Pattern A: +1/_WIN_TARGET per enemy heli destroyed (full-scope =
+    5 waves x 12 enemies = 60). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -42,6 +42,9 @@ class ChopperCommandEnv(AtariBase):
     _GROUND_Y = 14
     _MAX_BULLETS = 3
 
+    # Pattern A full-scope target: 60 enemy helis destroyed.
+    _WIN_TARGET: int = 60
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._bullets: list[AtariEntity] = []
@@ -49,9 +52,14 @@ class ChopperCommandEnv(AtariBase):
         self._enemies: list[AtariEntity] = []
         self._trucks: list[AtariEntity] = []
         self._step_counter: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-choppercommand-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -143,8 +151,10 @@ class ChopperCommandEnv(AtariBase):
                     e.alive = False
                     b.alive = False
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Enemy down! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Enemy down!"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -212,12 +222,16 @@ class ChopperCommandEnv(AtariBase):
                 self._player_y = self._GROUND_Y - 4
                 break
 
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All waves cleared!"
+
         # Level clear
         alive_enemies = [e for e in self._enemies if e.alive]
-        if len(alive_enemies) == 0:
-            self._on_point_scored(3)
-            reward += 3
-            self._message = "Wave cleared! +3"
+        if len(alive_enemies) == 0 and not self._game_over:
+            self._message = "Wave cleared!"
             self._level += 1
             self._generate_level(self._level)
 
