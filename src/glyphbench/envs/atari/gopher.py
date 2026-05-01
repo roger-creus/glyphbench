@@ -21,8 +21,8 @@ class GopherEnv(AtariBase):
     from below to eat them. Fill holes to block gophers.
 
     Actions: NOOP, LEFT, RIGHT, FILL
-    Reward: +1 per gopher bonked, -1 per carrot lost
-    Lives: lost when all carrots eaten
+    Pattern D: +1/_WIN_TARGET per gopher bonked/trapped, -1 if
+    all carrots eaten (full-scope = 8 gophers neutralized).
     """
 
     action_spec = ActionSpec(
@@ -40,6 +40,10 @@ class GopherEnv(AtariBase):
     _SURFACE_Y = 10
     _PLAYER_Y = 9
 
+    # Pattern D full-scope target: 8 gophers neutralized.
+    _WIN_TARGET: int = 8
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._gophers: list[AtariEntity] = []
@@ -47,9 +51,14 @@ class GopherEnv(AtariBase):
         self._holes: set[tuple[int, int]] = set()
         self._step_counter: int = 0
         self._spawn_interval: int = 15
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-gopher-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -114,8 +123,10 @@ class GopherEnv(AtariBase):
                 ):
                     g.alive = False
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Gopher bonked! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Gopher bonked!"
 
         # Spawn gophers
         if self._step_counter % self._spawn_interval == 0:
@@ -161,8 +172,7 @@ class GopherEnv(AtariBase):
                         carrot_pos = (g.x, self._SURFACE_Y - 1)
                         if carrot_pos in self._carrots:
                             self._carrots.remove(carrot_pos)
-                            reward -= 1
-                            self._message = "Carrot eaten! -1"
+                            self._message = "Carrot eaten!"
                         g.data["state"] = "retreating"
                 elif state == "retreating":
                     g.y += 1
@@ -177,17 +187,24 @@ class GopherEnv(AtariBase):
                 ):
                     g.alive = False
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Gopher trapped! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Gopher trapped!"
 
         self._gophers = [g for g in self._gophers if g.alive]
 
-        # Game over if all carrots gone
-        if not self._carrots:
+        # Game over if all carrots gone (Pattern D death penalty)
+        if not self._carrots and not self._game_over:
             self._on_life_lost()
-            if not self._game_over:
-                self._message = "Garden lost! Replanting..."
-                self._generate_level(self._level)
+            reward = self._DEATH_PENALTY
+            self._message = "Garden lost!"
+
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "Garden saved!"
 
         # Level up every 10 points
         if self._score > 0 and self._score >= self._level * 10:
@@ -273,13 +290,13 @@ class GopherEnv(AtariBase):
             "gopher's hole is filled while it is on the surface it "
             "dies.\n\n"
             "SCORING\n"
-            "+1 reward per gopher bonked or trapped. -1 reward "
-            "each time a gopher eats a carrot. Level up each 10 "
-            "score points (faster spawning).\n\n"
+            "+1/8 reward per gopher bonked or trapped (Pattern D "
+            "full-scope = 8 gophers). -1.0 if all carrots are "
+            "eaten (terminates).\n\n"
             "TERMINATION\n"
-            "When all carrots are eaten you lose a life and the "
-            "garden replants. Episode ends at 0 lives or after "
-            "max_turns.\n\n"
+            "Episode ends when all carrots are eaten (failure, -1) "
+            "or after 8 gophers neutralized (cumulative reward "
+            "plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, carrots remaining, and "
             "number of holes.\n\n"
