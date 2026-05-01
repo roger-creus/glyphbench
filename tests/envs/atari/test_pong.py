@@ -107,7 +107,7 @@ class TestPong:
 
     # --- Spec 8.5: scoring ---
     def test_scoring_agent_scores(self):
-        """Ball passing left edge -> agent scores +1."""
+        """Ball passing left edge -> agent scores +1/_WIN_TARGET."""
         env = self._make_env()
         env.reset(0)
         # Force ball near left edge heading left, paddle out of the way
@@ -118,18 +118,19 @@ class TestPong:
         env._paddle_left_y = 14  # move opponent paddle far away
         env._serving = False
         noop = env.action_spec.index_of("NOOP")
+        expected_reward = 1.0 / env._WIN_TARGET
         # Step until ball passes left edge
         for _ in range(5):
             _, reward, _, _, info = env.step(noop)
             if reward > 0:
-                assert reward == 1.0
+                assert reward == expected_reward
                 assert env._score_right > 0 or info.get("score_right", 0) > 0
                 return
         # Ball should have scored by now
         assert env._score_right >= 1, "Agent should have scored"
 
     def test_scoring_opponent_scores(self):
-        """Ball passing right edge -> opponent scores, reward = -1."""
+        """Ball passing right edge -> opponent scores, reward = -1/_WIN_TARGET."""
         env = self._make_env()
         env.reset(0)
         # Force ball near right edge heading right, paddle out of the way
@@ -140,20 +141,23 @@ class TestPong:
         env._paddle_right_y = 14  # move agent paddle far away
         env._serving = False
         noop = env.action_spec.index_of("NOOP")
+        expected_reward = -1.0 / env._WIN_TARGET
         for _ in range(5):
             _, reward, _, _, info = env.step(noop)
             if reward < 0:
-                assert reward == -1.0
+                assert reward == expected_reward
                 return
         assert env._score_left >= 1, "Opponent should have scored"
 
-    # --- Spec 8.5: terminal condition (first to 21) ---
+    # --- Spec 8.5: terminal condition (first to _WIN_TARGET) ---
     def test_game_ends_at_21(self):
-        """First side to 21 -> terminated."""
+        """First side to _WIN_TARGET -> terminated."""
         env = self._make_env()
         env.reset(0)
-        # Force score to near-end
-        env._score_right = 20
+        # Force progress to near-end
+        env._agent_progress = env._WIN_TARGET - 1
+        env._opp_progress = 0
+        env._score_right = env._WIN_TARGET - 1
         env._score_left = 0
         # Force ball to score for agent, paddle out of the way
         env._ball_x = 2
@@ -168,7 +172,7 @@ class TestPong:
             if terminated:
                 assert info.get("game_over", False)
                 return
-        pytest.fail("Game should have ended at 21 points")
+        pytest.fail("Game should have ended at _WIN_TARGET points")
 
     # --- Spec 8.5: opponent AI determinism ---
     def test_opponent_ai_determinism(self):
@@ -256,8 +260,10 @@ class TestPong:
         fire = env.action_spec.index_of("FIRE")
         noop = env.action_spec.index_of("NOOP")
         env.step(fire)
+        unit = 1.0 / env._WIN_TARGET
+        allowed = (-unit, 0.0, unit)
         for _ in range(50):
             _, reward, t, tr, _ = env.step(noop)
-            assert reward in (-1.0, 0.0, 1.0), f"Unexpected reward: {reward}"
+            assert reward in allowed, f"Unexpected reward: {reward}"
             if t or tr:
                 break
