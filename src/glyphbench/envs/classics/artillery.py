@@ -228,21 +228,21 @@ class ArtilleryEnv(BaseGlyphEnv):
             if result == "target_hit" and hit_pos is not None:
                 # Remove the hit target
                 self._targets = [t for t in self._targets if t != hit_pos]
-                reward = 1.0
+                # Pattern A: each target hit yields 1/N_TARGETS so total = 1.0
+                reward = 1.0 / NUM_TARGETS
                 self._message = f"Target hit! {len(self._targets)} remaining."
                 self._create_crater(hit_pos[0], hit_pos[1])
 
                 if len(self._targets) == 0:
-                    reward += 5.0
                     terminated = True
                     self._message = "All targets destroyed! Victory!"
                     info["outcome"] = "victory"
             elif result == "terrain_hit" and hit_pos is not None:
-                reward = -0.1
+                reward = 0.0
                 self._create_crater(hit_pos[0], hit_pos[1])
                 self._message = "Hit terrain. Try adjusting angle or power."
             else:
-                reward = -0.1
+                reward = 0.0
                 self._message = "Shot went off the map. Try adjusting."
 
             # Check max shots
@@ -326,10 +326,10 @@ class ArtilleryEnv(BaseGlyphEnv):
             f"(in {ANGLE_STEP}\u00b0 increments). Higher angle = more arc.\n"
             f"- Power range: {POWER_MIN} to {POWER_MAX}. Higher power = farther shot.\n"
             "- FIRE launches a projectile that follows a parabolic arc.\n"
-            "- Hitting a target destroys it (+1 reward).\n"
+            f"- Hitting a target destroys it (+{1.0 / NUM_TARGETS:.4f} reward).\n"
             "- Hitting terrain creates a crater (destroys 1-cell radius).\n"
-            "- Missing (off-screen) or hitting terrain costs -0.1 reward.\n"
-            f"- All {NUM_TARGETS} targets destroyed = victory (+5 bonus).\n"
+            "- Missing or hitting terrain yields 0 reward.\n"
+            f"- All {NUM_TARGETS} targets destroyed = victory (cumulative reward = 1.0).\n"
             f"- Maximum {MAX_SHOTS} shots before game over.\n"
             "- AIM_UP/AIM_DOWN and POWER_UP/POWER_DOWN do not consume a shot.\n\n"
             "STRATEGY\n"
