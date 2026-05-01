@@ -21,8 +21,8 @@ class SpaceInvadersEnv(AtariBase):
     Aliens march side-to-side and step down when hitting a wall.
 
     Actions: NOOP, FIRE, LEFT, RIGHT, LEFT_FIRE, RIGHT_FIRE
-    Reward: +1/+2/+3 per alien (by row), +5 mystery ship.
-
+    Pattern D: +1/_WIN_TARGET per alien shot,
+    -1 if any alien reaches the player row.
     """
 
     action_spec = ActionSpec(
@@ -44,7 +44,13 @@ class SpaceInvadersEnv(AtariBase):
     _ALIEN_COLS = 11
     _ALIEN_START_Y = 3
     _MYSTERY_INTERVAL = 50
-    _ROW_SCORES = (3, 2, 2, 1, 1)  # top to bottom — small reasonable scale
+
+    # Pattern D full-scope: 55 aliens in the formation (5 rows × 11
+    # cols). Each alien shot down yields +1/55. Mystery ships also
+    # count as one progress unit. Aliens reaching the player row
+    # ends the episode with -1, as does any other death event.
+    _WIN_TARGET: int = 55
+    _DEATH_PENALTY: float = -1.0
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
@@ -56,9 +62,14 @@ class SpaceInvadersEnv(AtariBase):
         self._alien_move_timer: int = 0
         self._alien_move_interval: int = 4
         self._shields: set[tuple[int, int]] = set()
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-spaceinvaders-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -150,10 +161,11 @@ class SpaceInvadersEnv(AtariBase):
                         alien.alive = False
                         self._aliens[row_idx][col_idx] = None
                         b.alive = False
-                        pts = self._ROW_SCORES[row_idx] if row_idx < len(self._ROW_SCORES) else 1
-                        self._on_point_scored(pts)
-                        reward += pts
-                        self._message = f"Alien hit! +{pts}"
+                        self._on_point_scored(1)
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
+                        self._message = "Alien hit!"
                         hit = True
                         break
                 if hit:
@@ -171,9 +183,11 @@ class SpaceInvadersEnv(AtariBase):
                 if e.alive and e.etype == "mystery" and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(5)
-                    reward += 5
-                    self._message = "Mystery ship hit! +5"
+                    self._on_point_scored(1)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Mystery ship hit!"
 
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -195,12 +209,13 @@ class SpaceInvadersEnv(AtariBase):
             if eb.y >= self._HEIGHT - 1:
                 eb.alive = False
                 continue
-            # Hit player
+            # Hit player -- terminal failure
             if eb.x == self._player_x and eb.y == self._player_y:
                 eb.alive = False
                 self._on_life_lost()
-                self._message = "Hit! Lost a life."
-                self._player_x = self._WIDTH // 2
+                self._message = "Hit! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, True, info
             # Hit shield
             if eb.alive and (eb.x, eb.y) in self._shields:
                 self._shields.discard((eb.x, eb.y))
@@ -220,21 +235,34 @@ class SpaceInvadersEnv(AtariBase):
                 if e.x >= self._WIDTH - 1 or e.x <= 0:
                     e.alive = False
 
-        # Check level clear
+        # Check level clear (preserve progress count across waves)
         alive_count = sum(
             1 for row in self._aliens for a in row if a is not None and a.alive
         )
         if alive_count == 0:
             self._message = "Wave cleared!"
             self._level += 1
+            saved_progress = self._progress_count
             self._generate_level(self._level)
+            self._progress_count = saved_progress
 
-        # Check if aliens reached player
+        # Win check (cleared enough aliens)
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Invaders defeated!"
+            return reward, True, info
+
+        # Check if aliens reached player -- terminal failure
         for alien_row in self._aliens:
             for alien in alien_row:
                 if alien is not None and alien.alive and alien.y >= self._PLAYER_Y:
                     self._game_over = True
-                    self._message = "Aliens reached you! Game Over!"
+                    self._message = "Aliens reached you! Game Over."
+                    reward = self._DEATH_PENALTY
                     return reward, True, info
 
         self._redraw_field()
@@ -395,14 +423,14 @@ class SpaceInvadersEnv(AtariBase):
             "3 enemy bullets). Shields are destroyed cell-by-cell "
             "by any bullet hit.\n\n"
             "SCORING\n"
-            "Rewards for shooting aliens: top row +3, row 2 "
-            "+2, row 3 +2, row 4 +1, row 5 +1. +5 reward "
-            "for a mystery ship. No per-step penalty.\n\n"
+            "Pattern D: +1/55 reward per alien (or mystery ship) "
+            "shot down. -1 reward when an enemy bullet hits you "
+            "or an alien reaches your row. Cumulative reward "
+            "bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Being hit by an enemy bullet costs a "
-            "life and respawns you at center. Aliens reaching row "
-            "18 instantly ends the game (game over). Episode also "
-            "ends at 0 lives or after max_turns.\n\n"
+            "Single-life: any death event ends the episode with "
+            "-1. Shooting 55 aliens ends with cumulative +1. "
+            "Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, wave/level, aliens remaining, and "
             "formation direction.\n\n"

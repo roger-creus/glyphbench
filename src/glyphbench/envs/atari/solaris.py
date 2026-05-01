@@ -24,8 +24,8 @@ class SolarisEnv(AtariBase):
     protect allied bases. WARP moves to adjacent sectors.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE, WARP
-    Reward: +2 per enemy, +5 per sector cleared
-
+    Pattern D: +1/_WIN_TARGET per enemy destroyed,
+    -1 on contact with enemy fire.
     """
 
     action_spec = ActionSpec(
@@ -44,6 +44,12 @@ class SolarisEnv(AtariBase):
     _HEIGHT = 20
     _NUM_SECTORS = 4
 
+    # Pattern D full-scope: 16 enemy kills (~4 per sector × 4
+    # sectors). Each kill yields +1/16 reward; being hit by
+    # enemy fire ends the episode with -1.
+    _WIN_TARGET: int = 16
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._enemies: list[AtariEntity] = []
@@ -55,9 +61,14 @@ class SolarisEnv(AtariBase):
         self._fire_dx = 0
         self._fire_dy = -1
         self._bases: list[AtariEntity] = []
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-solaris-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -166,9 +177,11 @@ class SolarisEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    self._on_point_scored(2)
-                    reward += 2
-                    self._message = "Enemy destroyed! +2"
+                    self._on_point_scored(1)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Enemy destroyed!"
                     break
         # Enemy AI
         for e in self._enemies:
@@ -220,9 +233,9 @@ class SolarisEnv(AtariBase):
                   and eb.y == self._player_y):
                 eb.alive = False
                 self._on_life_lost()
-                self._message = "Hit by enemy fire!"
-                self._player_x = self._WIDTH // 2
-                self._player_y = self._HEIGHT - 4
+                self._message = "Hit by enemy fire! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
         # Base damage
         for base in self._bases:
             if not base.alive:
@@ -234,18 +247,25 @@ class SolarisEnv(AtariBase):
                     if base.data["hp"] <= 0:
                         base.alive = False
                         self._message = "Base destroyed!"
-        # Sector cleared
+        # Sector cleared (no extra reward — kills already counted)
         alive_enemies = [e for e in self._enemies if e.alive]
         if (not alive_enemies
                 and self._sector not in self._sectors_cleared):
             self._sectors_cleared.add(self._sector)
-            self._on_point_scored(5)
-            reward += 5
-            self._message = f"Sector {self._sector} cleared! +5"
+            self._message = f"Sector {self._sector} cleared!"
             if len(self._sectors_cleared) >= self._NUM_SECTORS:
                 self._level += 1
                 self._sectors_cleared = set()
                 self._message = "All sectors clear! Level up!"
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Star system secured!"
         # Cleanup
         self._bullets = [b for b in self._bullets if b.alive]
         self._enemy_bullets = [
@@ -333,14 +353,14 @@ class SolarisEnv(AtariBase):
             "(or toward the base 30 percent of the time) along the "
             "dominant axis; they fire every 10 steps.\n\n"
             "SCORING\n"
-            "+2 reward per enemy destroyed. +5 reward for "
-            "first-time clearing a sector (all enemies dead). When "
-            "all 4 sectors are cleared: level up (resets the "
-            "cleared set). No per-step penalty.\n\n"
+            "Pattern D: +1/16 reward per enemy destroyed (full "
+            "scope ~ 4 enemies × 4 sectors). Sector clears emit "
+            "no extra reward. -1 reward when hit by enemy fire. "
+            "Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Being hit by an enemy bullet costs a "
-            "life and respawns you near the bottom. Episode ends "
-            "at 0 lives or after max_turns.\n\n"
+            "Single-life: hit by an enemy bullet ends the episode "
+            "with -1. Destroying 16 enemies ends with cumulative "
+            "+1. Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, facing, current sector, "
             "enemies remaining.\n\n"

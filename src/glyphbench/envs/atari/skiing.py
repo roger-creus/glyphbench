@@ -17,10 +17,11 @@ class SkiingEnv(AtariBase):
     """Skiing: downhill slalom racing.
 
     20x24 viewport scrolling vertically. Navigate between
-    gate flags. Missing a gate adds a time penalty.
+    gate flags.
 
     Actions: NOOP, LEFT, RIGHT
-    Reward: -1 per missed gate (penalty), +1 per gate passed
+    Pattern A: +1/_WIN_TARGET per gate passed; no penalty
+    for missed gates. Cumulative reward bound: [0, +1].
     """
 
     action_spec = ActionSpec(
@@ -38,6 +39,12 @@ class SkiingEnv(AtariBase):
     _GATE_SPACING = 6
     _PENALTY_PER_MISS = 5
 
+    # Pattern A full-scope: 10 gates on the course
+    # (_COURSE_LEN / _GATE_SPACING). Each passed gate yields
+    # +1/10. Missed gates do not penalise reward (only the time
+    # display).
+    _WIN_TARGET: int = 10
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._gates: list[tuple[int, int]] = []
@@ -47,9 +54,14 @@ class SkiingEnv(AtariBase):
         self._gates_missed: int = 0
         self._total_gates: int = 0
         self._finished: bool = False
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-skiing-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -112,16 +124,15 @@ class SkiingEnv(AtariBase):
                 if gate_l <= self._player_x <= gate_r:
                     self._gates_passed += 1
                     self._on_point_scored(1)
-                    reward = 1.0
-                    self._message = "Gate passed! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Gate passed!"
                 else:
+                    # Missed gates only penalise the displayed time;
+                    # reward stays bounded.
                     self._gates_missed += 1
-                    penalty = -self._PENALTY_PER_MISS
-                    self._on_point_scored(penalty)
-                    reward = -1.0
-                    self._message = (
-                        f"Gate missed! {penalty} penalty"
-                    )
+                    self._message = "Gate missed!"
 
         # Check if course complete
         total_distance = (
@@ -255,9 +266,10 @@ class SkiingEnv(AtariBase):
             "column is within the gate [gate.cx-2, gate.cx+2] it is "
             "'passed', else 'missed' (5-second penalty).\n\n"
             "SCORING\n"
-            "+1 reward per gate passed. -1 reward per gate missed "
-            "(score is also decreased by 5 penalty per miss). No "
-            "per-step penalty.\n\n"
+            "Pattern A: +1/10 reward per gate passed (10 gates on "
+            "the course). Missing a gate adds a 5-second time "
+            "penalty but does not affect reward. Cumulative "
+            "reward bound: [0, +1].\n\n"
             "TERMINATION\n"
             "Episode ends when you reach the bottom of the course "
             "(total_gates * 6 + 10 rows scrolled). Final message "

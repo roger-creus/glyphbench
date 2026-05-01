@@ -23,8 +23,9 @@ class SeaquestEnv(AtariBase):
     oxygen. Running out of oxygen kills you.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE, SURFACE
-    Reward: +1 per enemy, +2 per diver rescued
-
+    Pattern D: +1/_WIN_TARGET per progress event (diver
+    rescued or surfacing with divers). -1 on collision /
+    out-of-oxygen.
     """
 
     action_spec = ActionSpec(
@@ -48,6 +49,11 @@ class SeaquestEnv(AtariBase):
     _SURFACE_Y = 2
     _SEABED_Y = 18
 
+    # Pattern D full-scope: 7 progress events (each shot enemy or
+    # rescued diver; surfacing with divers also counts cycle-by-cycle).
+    _WIN_TARGET: int = 7
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._enemies: list[AtariEntity] = []
@@ -59,9 +65,14 @@ class SeaquestEnv(AtariBase):
         self._facing: int = 1
         self._rescued: int = 0
         self._carried: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-seaquest-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -130,12 +141,11 @@ class SeaquestEnv(AtariBase):
         if self._step_counter % 3 == 0:
             self._oxygen -= 1
         if self._oxygen <= 0:
+            # Single-life: out of oxygen ends the episode.
             self._on_life_lost()
-            self._message = "Out of oxygen!"
-            if not self._game_over:
-                self._oxygen = 100
-                self._player_x = self._WIDTH // 2
-                self._player_y = self._SURFACE_Y + 3
+            self._message = "Out of oxygen! Game Over."
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
 
         # Player movement
         if action_name == "UP" and self._player_y > self._SURFACE_Y:
@@ -170,14 +180,17 @@ class SeaquestEnv(AtariBase):
         elif action_name == "SURFACE":
             if self._player_y <= self._SURFACE_Y + 1:
                 self._oxygen = 100
-                pts = self._carried * 2
                 if self._carried > 0:
-                    self._on_point_scored(pts)
-                    reward += pts
-                    self._rescued += self._carried
+                    # Each rescued diver counts as one progress unit.
+                    rescued = self._carried
+                    self._on_point_scored(rescued)
+                    for _ in range(rescued):
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
+                    self._rescued += rescued
                     self._message = (
-                        f"Surfaced! {self._carried} "
-                        f"divers rescued! +{pts}"
+                        f"Surfaced! {rescued} divers rescued."
                     )
                     self._carried = 0
                 else:
@@ -204,8 +217,10 @@ class SeaquestEnv(AtariBase):
                     e.alive = False
                     t.alive = False
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Enemy hit! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Enemy hit!"
                     break
         self._torpedoes = [
             t for t in self._torpedoes if t.alive
@@ -249,9 +264,9 @@ class SeaquestEnv(AtariBase):
             ):
                 et.alive = False
                 self._on_life_lost()
-                self._message = "Torpedo hit!"
-                self._player_x = self._WIDTH // 2
-                self._player_y = self._SURFACE_Y + 3
+                self._message = "Torpedo hit! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
         self._enemy_torpedoes = [
             et for et in self._enemy_torpedoes if et.alive
         ]
@@ -280,7 +295,7 @@ class SeaquestEnv(AtariBase):
                     f"Diver picked up! ({self._carried}/4)"
                 )
 
-        # Enemy collision with player
+        # Enemy collision with player -- terminal failure
         for e in self._enemies:
             if (
                 e.alive
@@ -289,9 +304,9 @@ class SeaquestEnv(AtariBase):
             ):
                 e.alive = False
                 self._on_life_lost()
-                self._message = "Enemy collision!"
-                self._player_x = self._WIDTH // 2
-                self._player_y = self._SURFACE_Y + 3
+                self._message = "Enemy collision! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
 
         self._enemies = [e for e in self._enemies if e.alive]
         self._divers = [d for d in self._divers if d.alive]
@@ -319,6 +334,15 @@ class SeaquestEnv(AtariBase):
                 )
                 e.data["shoots"] = i % 3 == 0
                 self._enemies.append(e)
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Mission complete!"
 
         self._redraw()
         info["oxygen"] = self._oxygen
@@ -432,15 +456,16 @@ class SeaquestEnv(AtariBase):
             "every 3 steps. You can carry up to 4 divers; pick up "
             "divers by being within 1 column and on the same row.\n\n"
             "SCORING\n"
-            "+1 reward per enemy destroyed with a torpedo. +2 "
-            "reward per diver cashed in on SURFACE (total = "
-            "carried * 2). No per-step penalty.\n\n"
+            "Pattern D: +1/7 reward per progress unit. Each "
+            "enemy destroyed with a torpedo and each diver "
+            "cashed in on SURFACE counts as one unit. -1 reward "
+            "on collision with enemy, enemy torpedo, or "
+            "running out of oxygen. Cumulative reward bound: "
+            "[-1, +1].\n\n"
             "TERMINATION\n"
-            ". Collisions with enemies, being hit by "
-            "enemy torpedoes, or running out of oxygen cost a "
-            "life. Wave clears when all enemies are gone (advances "
-            "level, respawns enemies). Episode ends at 0 lives or "
-            "after max_turns.\n\n"
+            "Single-life: any death ends the episode with -1. "
+            "Reaching 7 progress units ends with cumulative +1. "
+            "Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, oxygen percent, divers "
             "carried (out of 4), and facing.\n\n"

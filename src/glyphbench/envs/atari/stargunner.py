@@ -21,8 +21,8 @@ class StarGunnerEnv(AtariBase):
     Shoot them before they pass or hit you.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +1/+2/+3 per enemy by type, +3 wave clear
-
+    Pattern D: +1/_WIN_TARGET per enemy destroyed,
+    -1 on collision with enemy or enemy bullet.
     """
 
     action_spec = ActionSpec(
@@ -41,6 +41,10 @@ class StarGunnerEnv(AtariBase):
     _HEIGHT = 16
     _MAX_BULLETS = 4
 
+    # Pattern D full-scope: 30 enemies destroyed across waves.
+    _WIN_TARGET: int = 30
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._bullets: list[AtariEntity] = []
@@ -50,9 +54,14 @@ class StarGunnerEnv(AtariBase):
         self._spawn_cd: int = 0
         self._enemies_killed: int = 0
         self._wave_target: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-stargunner-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -140,11 +149,12 @@ class StarGunnerEnv(AtariBase):
                 if e.alive and e.x == b.x and e.y == b.y:
                     e.alive = False
                     b.alive = False
-                    pts = e.data.get("pts", 1)
-                    self._on_point_scored(pts)
-                    reward += pts
+                    self._on_point_scored(1)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
                     self._enemies_killed += 1
-                    self._message = f"Enemy destroyed! +{pts}"
+                    self._message = "Enemy destroyed!"
                     break
         self._bullets = [b for b in self._bullets if b.alive]
 
@@ -178,14 +188,14 @@ class StarGunnerEnv(AtariBase):
             if eb.x == self._player_x and eb.y == self._player_y:
                 eb.alive = False
                 self._on_life_lost()
-                self._message = "Hit! Lost a life."
-                self._player_x = 3
-                self._player_y = self._HEIGHT // 2
+                self._message = "Hit! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
         self._enemy_bullets = [
             eb for eb in self._enemy_bullets if eb.alive
         ]
 
-        # Player collision with enemy
+        # Player collision with enemy -- terminal failure
         for e in self._enemies:
             if (
                 e.alive
@@ -194,10 +204,9 @@ class StarGunnerEnv(AtariBase):
             ):
                 e.alive = False
                 self._on_life_lost()
-                self._message = "Collision!"
-                self._player_x = 3
-                self._player_y = self._HEIGHT // 2
-                break
+                self._message = "Collision! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
 
         # Spawn enemies
         self._spawn_cd -= 1
@@ -211,13 +220,22 @@ class StarGunnerEnv(AtariBase):
             self._spawn_enemy()
             self._spawn_cd = max(5, 12 - self._level)
 
-        # Level clear
+        # Level clear (no extra reward — kills already counted)
         if self._enemies_killed >= self._wave_target:
-            self._on_point_scored(3)
-            reward += 3
-            self._message = "Wave cleared! +3"
+            self._message = "Wave cleared!"
             self._level += 1
+            saved_progress = self._progress_count
             self._generate_level(self._level)
+            self._progress_count = saved_progress
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Star sector cleared!"
 
         self._enemies = [e for e in self._enemies if e.alive]
         self._redraw()
@@ -301,14 +319,15 @@ class StarGunnerEnv(AtariBase):
             "move dx=-2. Each enemy fires a bullet leftward every "
             "fire_cd steps (8-20, random).\n\n"
             "SCORING\n"
-            "+1 per fighter, +2 per bomber, +3 per ace. +3 "
-            "reward when you reach the wave target (8 + 2*level "
-            "kills). No per-step penalty.\n\n"
+            "Pattern D: +1/30 reward per enemy destroyed "
+            "(regardless of type). Wave clears continue without "
+            "extra reward. -1 reward when hit by an enemy bullet "
+            "or you collide with an enemy. Cumulative reward "
+            "bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Being hit by an enemy bullet or "
-            "colliding with an enemy costs a life and respawns "
-            "you at (3, mid). Episode ends at 0 lives or after "
-            "max_turns.\n\n"
+            "Single-life: any death event ends with -1. "
+            "Destroying 30 enemies ends with cumulative +1. "
+            "Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, wave, kills toward wave target.\n\n"
             + self.action_spec.render_for_prompt()
