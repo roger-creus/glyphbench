@@ -195,6 +195,11 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         state["truncated"] = False
         state["parse_failures"] = 0
         state["forfeit_count"] = 0
+        state["action_completion_truncations"] = 0
+        state["memory_completion_truncations"] = 0
+        state["memory_parse_failures"] = 0
+        state["num_action_turns"] = 0
+        state["num_memory_turns"] = 0
         state["episode_return"] = 0.0
         state["num_turns"] = 0
         state["memory_enabled"] = self._use_memory
@@ -344,6 +349,12 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
         if not self._use_memory:
             await super().add_model_response(state, prompt_messages, response)
             state["num_turns"] = state.get("num_turns", 0) + 1
+            state["num_action_turns"] = state.get("num_action_turns", 0) + 1
+            traj = state.get("trajectory", [])
+            if traj and traj[-1].get("is_truncated"):
+                state["action_completion_truncations"] = (
+                    state.get("action_completion_truncations", 0) + 1
+                )
             return
 
         # Memory mode: each environment turn produces TWO trajectory steps so
@@ -388,6 +399,11 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             },
         )
         state["trajectory"].append(action_step)
+        state["num_action_turns"] = state.get("num_action_turns", 0) + 1
+        if action_is_truncated:
+            state["action_completion_truncations"] = (
+                state.get("action_completion_truncations", 0) + 1
+            )
 
         # Lean memory-update prompt: only env feedback + write instruction.
         memory_user = build_memory_update_user(
@@ -434,6 +450,15 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
             },
         )
         state["trajectory"].append(memory_step)
+        state["num_memory_turns"] = state.get("num_memory_turns", 0) + 1
+        if memory_is_truncated:
+            state["memory_completion_truncations"] = (
+                state.get("memory_completion_truncations", 0) + 1
+            )
+        if extraction.parse_failed:
+            state["memory_parse_failures"] = (
+                state.get("memory_parse_failures", 0) + 1
+            )
 
         if state["done"]:
             game: BaseGlyphEnv = state["game"]

@@ -651,6 +651,54 @@ def test_apply_action_response_steps_normally_on_valid_parse(monkeypatch):
     assert result["forfeit"] is False
 
 
+def test_state_accumulates_per_episode_counts():
+    """Across an episode with mixed forfeits / truncations / memory parse fails,
+    state[...] should expose count fields the rubric can divide.
+    """
+    import asyncio
+    from datasets import Dataset
+    from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
+    from glyphbench.verifiers_integration.rubric import EpisodicReturnRubric
+
+    parser = GlyphbenchXMLParser()
+    env = GlyphbenchMultiTurnEnv(
+        dataset=Dataset.from_list([{
+            "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+            "task": "glyphbench/__dummy-v0",
+            "prompt": [{"role": "system", "content": ""}, {"role": "user", "content": ""}],
+            "answer": "",
+        }]),
+        rubric=EpisodicReturnRubric(parser=parser),
+        parser=parser,
+        n_frames=0,
+        max_turns_override=None,
+        max_output_tokens=128,
+        use_memory=False,
+    )
+    state = {
+        "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+        "trajectory": [],
+        "trajectory_id": "tid",
+        "prompt": [],
+    }
+    asyncio.run(env.setup_state(state))
+
+    assert state["forfeit_count"] == 0
+    assert state["action_completion_truncations"] == 0
+    assert state["memory_completion_truncations"] == 0
+    assert state["memory_parse_failures"] == 0
+
+    # Drive a forfeit through _apply_action_response; truncation/memory
+    # counts are incremented by add_model_response when the response carries
+    # is_truncated=True.
+    messages = [
+        {"role": "user", "content": state["current_obs"]},
+        {"role": "assistant", "content": "no action tag here"},
+    ]
+    env._apply_action_response(messages, state)
+    assert state["forfeit_count"] == 1
+
+
 @pytest.mark.asyncio
 async def test_memory_render_completion_stitches_split_steps(monkeypatch):
     """state['completion'] (the human-readable transcript) must look the
