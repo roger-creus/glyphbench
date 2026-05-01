@@ -309,11 +309,22 @@ class GlyphbenchMultiTurnEnv(vf.MultiTurnEnv):
 
         result = self._apply_action_response(messages, state)
 
-        # Set the per-turn reward on the trajectory step verifiers appended
-        # before calling env_response.
+        # Set the per-turn reward and action-step extras on the trajectory step
+        # verifiers appended before calling env_response.
         traj = state.get("trajectory", [])
         if traj:
-            traj[-1]["reward"] = float(result["reward"])
+            last_step = traj[-1]
+            last_step["reward"] = float(result["reward"])
+            if not self._use_memory:
+                existing_extras = last_step.get("extras") or {}
+                existing_extras.update({
+                    "glyphbench_step_role": "action",
+                    "parse_failed": bool(result["parse_failed"]),
+                    "parse_failure_reason": result["parse_failure_reason"],
+                    "action_chosen": result["action_chosen"],
+                    "forfeit": bool(result["forfeit"]),
+                })
+                last_step["extras"] = existing_extras
 
         next_user = self._render_action_user(game, state, turn=game.turn)
         response_msg = [vf.UserMessage(content=next_user)]

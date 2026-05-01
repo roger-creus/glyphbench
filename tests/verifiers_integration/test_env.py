@@ -861,3 +861,89 @@ async def test_memory_parse_failure_increments(monkeypatch):
 
     assert state["memory_parse_failures"] == 1
     assert state["num_memory_turns"] == 1
+
+
+@pytest.mark.asyncio
+async def test_non_memory_action_step_extras_populated(monkeypatch):
+    """Non-memory rollout: action-step extras are populated via env_response.
+
+    Turn 0 — valid action (EAST): parse_failed=False, forfeit=False.
+    Turn 1 — parse failure (no <action> tag): parse_failed=True, forfeit=True.
+
+    We construct the env with no harness-level max_turns cap and set the
+    game's own max_turns=2 so the episode terminates via truncation after
+    turn 1 inside env_response — which is what populates extras on the last
+    step.  Using the harness max_turns cap would cause max_turns_reached to
+    fire before get_prompt_messages on iteration 3, skipping the env_response
+    call that writes the extras.
+    """
+    from datasets import Dataset
+    from glyphbench.verifiers_integration.parser import GlyphbenchXMLParser
+    from glyphbench.verifiers_integration.rubric import EpisodicReturnRubric
+
+    parser = GlyphbenchXMLParser()
+    # max_turns_override=None → harness has no cap (max_turns=-1 in verifiers).
+    # We set game.max_turns=2 post-setup so the episode truncates naturally
+    # when env_response is called for iteration 3 (after step1 is appended),
+    # ensuring env_response (and therefore extras population) runs for step1.
+    env = GlyphbenchMultiTurnEnv(
+        dataset=Dataset.from_list([{
+            "info": '{"env_id": "glyphbench/__dummy-v0", "seed": 0}',
+            "task": "glyphbench/__dummy-v0",
+            "prompt": [{"role": "system", "content": ""}, {"role": "user", "content": ""}],
+            "answer": "",
+        }]),
+        rubric=EpisodicReturnRubric(parser=parser),
+        parser=parser,
+        n_frames=0,
+        max_turns_override=None,   # no harness-level cap
+        max_output_tokens=128,
+        use_memory=False,
+    )
+
+    call_idx = {"n": 0}
+    game_holder: dict = {}
+    responses = [
+        # Turn 0: valid action
+        _response("<think>go east</think><action>EAST</action>"),
+        # Turn 1: parse failure — no <action> tag
+        _response("<think>oops</think>I forgot the tag"),
+    ]
+
+    async def fake_get_model_response(state_arg, prompt_arg, **kwargs):
+        # Capture the game on first call so we can set max_turns=2 before
+        # the second LLM call begins.  After step0 is appended and before
+        # get_prompt_messages for iteration 2 calls env_response, we need
+        # the game to truncate at turn 2 (i.e. after the forfeit on turn 1).
+        if call_idx["n"] == 0:
+            game_holder["game"] = state_arg["game"]
+            game_holder["game"].max_turns = 2
+        resp = responses[call_idx["n"]]
+        call_idx["n"] += 1
+        return resp
+
+    monkeypatch.setattr(env, "get_model_response", fake_get_model_response)
+
+    row = env.dataset[0]
+    state = await env.rollout(
+        input=row,
+        client=_NoopClient(object()),
+        model="test-model",
+        sampling_args={"max_tokens": 16},
+    )
+
+    traj = state["trajectory"]
+    # Exactly 2 trajectory steps (2 LLM calls in non-memory mode).
+    assert len(traj) == 2, f"expected 2 steps, got {len(traj)}"
+
+    step0_extras = traj[0].get("extras") or {}
+    assert step0_extras.get("glyphbench_step_role") == "action", step0_extras
+    assert step0_extras.get("parse_failed") is False, step0_extras
+    assert step0_extras.get("forfeit") is False, step0_extras
+    assert step0_extras.get("action_chosen") == "EAST", step0_extras
+
+    step1_extras = traj[1].get("extras") or {}
+    assert step1_extras.get("glyphbench_step_role") == "action", step1_extras
+    assert step1_extras.get("parse_failed") is True, step1_extras
+    assert step1_extras.get("forfeit") is True, step1_extras
+    assert step1_extras.get("action_chosen") == "FORFEIT", step1_extras
