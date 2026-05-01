@@ -1,0 +1,209 @@
+"""miniatari Bowling.
+
+Identity: Side-view bowling lane; aim and roll a ball at 10 pins.
+Win condition: knock down 20 pins across 2 frames (10 pins each).
+Reward: Pattern A, +1/20 per pin knocked down.
+Loss: time runs out (no -1).
+
+Gym ID: glyphbench/miniatari-bowling-v0
+
+Random baseline (seed=0..29): success_rate=0%, mean_length=32, mean_return=+0.263
+"""
+from __future__ import annotations
+
+from typing import Any
+
+from glyphbench.core.action import ActionSpec
+from glyphbench.core.glyph_primitives import build_legend, grid_to_string
+from glyphbench.core.observation import GridObservation
+from glyphbench.envs.miniatari.base import MiniatariBase
+
+
+class MiniBowlingEnv(MiniatariBase):
+    """Mini Bowling: 12-wide x 10-tall side-view lane, 2 frames.
+
+    The bowler sits at row 8. The lane runs from row 1 (pins) to row 8
+    (bowler). Pins occupy 4 columns, in a zigzag triangle shape, at
+    rows 1-3. UP/DOWN moves the bowler vertically (changing aim row);
+    actually we keep the bowler at the foul line and use UP/DOWN as
+    targeting the y-spin of the ball; see implementation.
+
+    Simpler design: the bowler can move LEFT/RIGHT along the foul line
+    (row 8). FIRE rolls a ball straight up the bowler's column. Pin
+    interactions: the ball hits any pin in its column and "domino" the
+    pin against horizontally adjacent pins (one cell each side).
+    Knocked pins are removed; reward = +1/_TOTAL_PINS each. After all
+    10 pins of a frame fall (or 4 rolls in the frame), reset to a fresh
+    pinset for frame 2.
+    """
+
+    action_spec = ActionSpec(
+        names=("NOOP", "LEFT", "RIGHT", "FIRE"),
+        descriptions=(
+            "do nothing",
+            "shift bowler one cell left",
+            "shift bowler one cell right",
+            "roll the ball straight up your current column",
+        ),
+    )
+
+    default_max_turns = 200
+
+    _WIDTH = 12
+    _HEIGHT = 10
+    _BOWLER_Y = 8
+    _N_FRAMES = 2
+    _PINS_PER_FRAME = 10
+    _TOTAL_PINS = 20
+    _MAX_ROLLS_PER_FRAME = 4
+
+    # Pin layout: classic triangle shape in cols 4..8 within rows 1..4
+    # Using a compact layout in 12-wide grid.
+    _PIN_LAYOUT: tuple[tuple[int, int], ...] = (
+        (5, 1),                         # apex
+        (4, 2), (6, 2),                 # second row
+        (3, 3), (5, 3), (7, 3),         # third row
+        (2, 4), (4, 4), (6, 4), (8, 4)  # fourth row
+    )
+
+    def __init__(self, max_turns: int | None = None) -> None:
+        super().__init__(max_turns=max_turns)
+        self._pins: set[tuple[int, int]] = set()
+        self._frame: int = 1
+        self._rolls_in_frame: int = 0
+        self._progress: int = 0  # total pins knocked across all frames
+
+    def env_id(self) -> str:
+        return "glyphbench/miniatari-bowling-v0"
+
+    def _generate_level(self, seed: int) -> None:
+        self._init_grid(self._WIDTH, self._HEIGHT)
+        self._progress = 0
+        self._frame = 1
+        self._rolls_in_frame = 0
+        self._pins = set(self._PIN_LAYOUT)
+        self._player_x = self._WIDTH // 2
+        self._player_y = self._BOWLER_Y
+
+    def _start_new_frame(self) -> None:
+        self._frame += 1
+        self._rolls_in_frame = 0
+        if self._frame <= self._N_FRAMES:
+            self._pins = set(self._PIN_LAYOUT)
+
+    def _knock_pins_in_column(self, col: int) -> int:
+        """Knock down pins in `col`, plus one horizontally adjacent pin per
+        knocked pin (cascade effect, single hop only). Returns count."""
+        knocked: set[tuple[int, int]] = set()
+        # Direct hits
+        for px, py in list(self._pins):
+            if px == col:
+                knocked.add((px, py))
+        # Cascade: each knocked pin can spread to its horizontal neighbors
+        spread: set[tuple[int, int]] = set()
+        for kx, ky in knocked:
+            for dx in (-1, 1):
+                neighbor = (kx + dx, ky)
+                if neighbor in self._pins:
+                    spread.add(neighbor)
+        knocked.update(spread)
+        for k in knocked:
+            self._pins.discard(k)
+        return len(knocked)
+
+    def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
+        reward = 0.0
+        info: dict[str, Any] = {}
+
+        # 1. Bowler movement
+        if action_name == "LEFT" and self._player_x > 0:
+            self._player_x -= 1
+            self._player_dir = (-1, 0)
+        elif action_name == "RIGHT" and self._player_x < self._WIDTH - 1:
+            self._player_x += 1
+            self._player_dir = (1, 0)
+
+        # 2. Roll
+        if action_name == "FIRE":
+            if self._frame > self._N_FRAMES:
+                # No more frames; ignore
+                return reward, self._game_over, info
+            self._rolls_in_frame += 1
+            count = self._knock_pins_in_column(self._player_x)
+            for _ in range(count):
+                reward += self._progress_reward(self._TOTAL_PINS)
+                self._progress += 1
+            self._message = f"Roll: {count} pin{'s' if count != 1 else ''} knocked!"
+            if self._progress >= self._TOTAL_PINS:
+                self._on_won()
+                return reward, self._game_over, info
+            # End frame conditions: no pins left or max rolls reached
+            if not self._pins or self._rolls_in_frame >= self._MAX_ROLLS_PER_FRAME:
+                self._start_new_frame()
+                if self._frame > self._N_FRAMES:
+                    # Out of frames — end the run
+                    self._game_over = True
+                    self._won = self._progress >= self._TOTAL_PINS
+                    return reward, True, info
+
+        info["progress"] = self._progress
+        info["frame"] = self._frame
+        info["rolls_in_frame"] = self._rolls_in_frame
+        info["pins_left"] = len(self._pins)
+        return reward, self._game_over, info
+
+    def _render_current_observation(self) -> GridObservation:
+        grid: list[list[str]] = [
+            [" " for _ in range(self._WIDTH)] for _ in range(self._HEIGHT)
+        ]
+        # Lane gutters (columns 0 and _WIDTH-1)
+        for y in range(self._HEIGHT):
+            grid[y][0] = "│"
+            grid[y][self._WIDTH - 1] = "│"
+        # Foul line at row 7
+        for x in range(1, self._WIDTH - 1):
+            grid[7][x] = "─"
+        # Pins
+        for px, py in self._pins:
+            if 0 <= px < self._WIDTH and 0 <= py < self._HEIGHT:
+                grid[py][px] = "P"
+        # Bowler
+        if 0 <= self._player_x < self._WIDTH and 0 <= self._player_y < self._HEIGHT:
+            grid[self._player_y][self._player_x] = "Y"
+
+        symbols = {
+            " ": "lane",
+            "│": "gutter wall",
+            "─": "foul line",
+            "P": "pin",
+            "Y": "bowler",
+        }
+
+        hud = (
+            f"Step: {self._turn} / {self.max_turns}    "
+            f"Pins down: {self._progress}/{self._TOTAL_PINS}    "
+            f"Frame: {self._frame}/{self._N_FRAMES}    "
+            f"Rolls: {self._rolls_in_frame}/{self._MAX_ROLLS_PER_FRAME}\n"
+            f"Bowler x={self._player_x}    "
+            f"Pins remaining at columns: {sorted({px for px, _ in self._pins})}"
+        )
+
+        return GridObservation(
+            grid=grid_to_string(grid),
+            legend=build_legend(symbols),
+            hud=hud,
+            message=self._message,
+        )
+
+    def _task_description(self) -> str:
+        return (
+            "Mini Bowling: 12x10 lane, 2 frames of 10 pins each. Pins (P) "
+            "are arranged in a 4-row triangle in rows 1-4, columns 2..8. "
+            "Your bowler (Y) stands at row 8 (foul line). LEFT/RIGHT slides "
+            "you along the foul line. FIRE rolls a ball straight up your "
+            "current column: any pin in that column is knocked, plus one "
+            "horizontally-adjacent pin per knocked pin (single-hop "
+            "cascade). A frame ends after all pins fall or after 4 rolls; "
+            "frame 2 spawns a fresh set. Knock down all 20 pins across "
+            "the 2 frames to win. Reward: +1/20 per pin knocked."
+        )
