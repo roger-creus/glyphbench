@@ -3,10 +3,34 @@ not in the system prompt."""
 
 from __future__ import annotations
 
+import re
+
+import pytest
+
 from glyphbench.core.registry import make_env, all_glyphbench_env_ids
 from glyphbench.envs import _import_all_suites
 
-_import_all_suites()
+
+# Shared legend-block detector (mirrors test_legend_dedup._has_legend_block).
+_LEGEND_LINE_RE = re.compile(r"^\s+\S\s+[=:\-]\s+\S", re.MULTILINE)
+
+
+def _has_legend_block(text: str) -> bool:
+    lines = text.splitlines()
+    streak = 0
+    for line in lines:
+        if _LEGEND_LINE_RE.match(line):
+            streak += 1
+            if streak >= 3:
+                return True
+        else:
+            streak = 0
+    return False
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _envs_loaded():
+    _import_all_suites()
 
 
 def _minigrid_env_ids():
@@ -17,8 +41,10 @@ def test_system_prompt_does_not_embed_legend_for_minigrid():
     for env_id in _minigrid_env_ids():
         env = make_env(env_id)
         sp = env.system_prompt()
-        # No glyph→meaning enumerations.
-        assert " = " not in sp or not any(line.strip().startswith(("•", "-", "*")) for line in sp.splitlines() if " = " in line)
+        assert not _has_legend_block(sp), (
+            f"{env_id}: system_prompt contains a glyph-enumeration legend block. "
+            f"Move legend material to the per-turn observation."
+        )
 
 
 def test_per_turn_obs_has_legend_for_minigrid():
