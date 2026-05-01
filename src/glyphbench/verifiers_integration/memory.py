@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import verifiers as vf
-from verifiers.types import SamplingArgs, TrajectoryStepTokens
+from verifiers.types import SamplingArgs
 
 @dataclass(frozen=True)
 class MemoryExtraction:
@@ -98,60 +98,3 @@ def memory_sampling_args(
     extra_body["chat_template_kwargs"] = chat_kwargs
     args["extra_body"] = extra_body
     return args
-
-
-def merge_memory_step_tokens(
-    *,
-    action_tokens: TrajectoryStepTokens | None,
-    memory_tokens: TrajectoryStepTokens | None,
-) -> TrajectoryStepTokens | None:
-    """Merge action and memory-update token records into one trainable step.
-
-    The memory-update prompt must start with the exact action prompt and action
-    completion token prefix. Tokens after that prefix are the memory-update
-    user prompt bridge: visible conditioning context with loss mask 0.
-    """
-    if action_tokens is None or memory_tokens is None:
-        return None
-
-    prefix = action_tokens["prompt_ids"] + action_tokens["completion_ids"]
-    memory_prompt_ids = memory_tokens["prompt_ids"]
-    if memory_prompt_ids[: len(prefix)] != prefix:
-        return None
-
-    bridge_ids = memory_prompt_ids[len(prefix) :]
-    bridge_len = len(bridge_ids)
-    routed_experts = action_tokens.get("routed_experts")
-    memory_routed = memory_tokens.get("routed_experts")
-    if routed_experts is not None or memory_routed is not None:
-        routed_experts = (routed_experts or []) + ([[]] * bridge_len) + (
-            memory_routed or []
-        )
-
-    return TrajectoryStepTokens(
-        prompt_ids=action_tokens["prompt_ids"],
-        prompt_mask=action_tokens["prompt_mask"],
-        completion_ids=(
-            action_tokens["completion_ids"]
-            + bridge_ids
-            + memory_tokens["completion_ids"]
-        ),
-        completion_mask=(
-            action_tokens["completion_mask"]
-            + [0] * bridge_len
-            + memory_tokens["completion_mask"]
-        ),
-        completion_logprobs=(
-            action_tokens["completion_logprobs"]
-            + [0.0] * bridge_len
-            + memory_tokens["completion_logprobs"]
-        ),
-        overlong_prompt=bool(
-            action_tokens.get("overlong_prompt")
-            or memory_tokens.get("overlong_prompt")
-        ),
-        is_truncated=bool(
-            action_tokens.get("is_truncated") or memory_tokens.get("is_truncated")
-        ),
-        routed_experts=routed_experts,
-    )

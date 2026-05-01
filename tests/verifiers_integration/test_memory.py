@@ -6,7 +6,6 @@ from glyphbench.verifiers_integration.memory import (
     build_memory_update_user,
     extract_memory_update,
     memory_sampling_args,
-    merge_memory_step_tokens,
 )
 
 
@@ -118,60 +117,3 @@ def test_memory_sampling_args_disables_thinking_when_action_args_have_it():
     assert extra["top_k"] == 20
     assert extra["min_p"] == 0.0
     assert extra["chat_template_kwargs"]["enable_thinking"] is False
-
-
-def test_merge_tokens_masks_memory_update_user_bridge():
-    merged = merge_memory_step_tokens(
-        action_tokens={
-            "prompt_ids": [1, 2],
-            "prompt_mask": [0, 0],
-            "completion_ids": [3, 4],
-            "completion_mask": [1, 1],
-            "completion_logprobs": [-0.3, -0.4],
-            "overlong_prompt": False,
-            "is_truncated": False,
-            "routed_experts": None,
-        },
-        memory_tokens={
-            "prompt_ids": [1, 2, 3, 4, 5, 6],
-            "prompt_mask": [0, 0, 0, 0, 0, 0],
-            "completion_ids": [7, 8],
-            "completion_mask": [1, 1],
-            "completion_logprobs": [-0.7, -0.8],
-            "overlong_prompt": False,
-            "is_truncated": False,
-            "routed_experts": None,
-        },
-    )
-
-    assert merged is not None
-    assert merged["prompt_ids"] == [1, 2]
-    assert merged["completion_ids"] == [3, 4, 5, 6, 7, 8]
-    assert merged["completion_mask"] == [1, 1, 0, 0, 1, 1]
-    assert merged["completion_logprobs"] == [-0.3, -0.4, 0.0, 0.0, -0.7, -0.8]
-
-
-def test_merge_tokens_returns_none_on_prefix_mismatch():
-    merged = merge_memory_step_tokens(
-        action_tokens={
-            "prompt_ids": [1],
-            "prompt_mask": [0],
-            "completion_ids": [2],
-            "completion_mask": [1],
-            "completion_logprobs": [-0.2],
-            "overlong_prompt": False,
-            "is_truncated": False,
-            "routed_experts": None,
-        },
-        memory_tokens={
-            "prompt_ids": [1, 99, 3],
-            "prompt_mask": [0, 0, 0],
-            "completion_ids": [4],
-            "completion_mask": [1],
-            "completion_logprobs": [-0.4],
-            "overlong_prompt": False,
-            "is_truncated": False,
-            "routed_experts": None,
-        },
-    )
-    assert merged is None
