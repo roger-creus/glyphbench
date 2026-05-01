@@ -21,7 +21,8 @@ class FreewayEnv(AtariBase):
     Reach the top to score, then restart at the bottom.
 
     Actions: NOOP, UP, DOWN
-    Reward: +1 per successful crossing
+    Pattern A: +1/_WIN_TARGET per successful crossing (full-scope =
+    10 crossings). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -39,12 +40,20 @@ class FreewayEnv(AtariBase):
     _GOAL_Y = 1
     _NUM_LANES = 12
 
+    # Pattern A full-scope target: 10 crossings.
+    _WIN_TARGET: int = 10
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._lanes: list[list[AtariEntity]] = []
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-freeway-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -138,13 +147,22 @@ class FreewayEnv(AtariBase):
         # Check goal
         if self._player_y <= self._GOAL_Y:
             self._on_point_scored(1)
-            reward += 1
-            self._message = "Crossed! +1"
+            if self._progress_count < self._WIN_TARGET:
+                reward += 1.0 / self._WIN_TARGET
+                self._progress_count += 1
+            self._message = "Crossed!"
             self._player_y = self._PLAYER_START_Y
+
+        terminated = False
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            terminated = True
+            info["won"] = True
+            self._message = "All crossings complete!"
 
         self._redraw_lanes()
         info["crossings"] = self._score
-        return reward, False, info  # Freeway never terminates (time-limited)
+        return reward, terminated, info
 
     def _redraw_lanes(self) -> None:
         """Redraw the lane area."""
@@ -216,12 +234,12 @@ class FreewayEnv(AtariBase):
             "the start safe zone; no life lost. Reaching row 1 "
             "awards a crossing and resets you at row 14.\n\n"
             "SCORING\n"
-            "+1 reward for each successful crossing (reach row <= 1). "
-            "No penalty for being hit by a car (only the setback). "
-            "No per-step penalty.\n\n"
+            "+1/10 reward per successful crossing (Pattern A full-"
+            "scope = 10 crossings). No penalty for being hit by a "
+            "car (only the setback to the start row).\n\n"
             "TERMINATION\n"
-            "Episode never terminates from game logic; it ends only "
-            "when max_turns steps are reached (time limit).\n\n"
+            "Episode terminates after 10 crossings (cumulative reward "
+            "plateaus at +1.0) or when max_turns is reached.\n\n"
             "HUD\n"
             "Shows score, lives (unused here), and per-lane car "
             "direction arrows.\n\n"

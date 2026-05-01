@@ -39,10 +39,13 @@ class FrostbiteEnv(AtariBase):
     _WIDTH = 20
     _HEIGHT = 16
     _NUM_FLOE_ROWS = 4
-    _IGLOO_SECTIONS = 10
+    _IGLOO_SECTIONS = 4  # floe landings per igloo
     _SHORE_Y = 2  # top shore row (igloo area)
     _WATER_START = 4  # first water/floe row
     _BOTTOM_SHORE = 14  # bottom shore
+
+    # Pattern A full-scope target: 4 igloos x 4 floes = 16 landings.
+    _WIN_TARGET: int = 16
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
@@ -53,9 +56,14 @@ class FrostbiteEnv(AtariBase):
         self._current_floe: AtariEntity | None = None
         self._visited_floes: set[int] = set()
         self._temperature: int = 45  # decreasing timer
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-frostbite-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._igloo_built = 0
@@ -121,13 +129,12 @@ class FrostbiteEnv(AtariBase):
 
         self._temperature -= 1
         if self._temperature <= 0:
-            self._on_life_lost()
             self._temperature = 45
             self._player_x = self._WIDTH // 2
             self._player_y = self._BOTTOM_SHORE
             self._on_floe = False
             self._current_floe = None
-            self._message = "Froze! Lost a life."
+            self._message = "Froze! Restart shore."
 
         dx, dy = 0, 0
 
@@ -194,10 +201,12 @@ class FrostbiteEnv(AtariBase):
                                     if floe_id not in self._visited_floes:
                                         self._visited_floes.add(floe_id)
                                         self._on_point_scored(1)
-                                        reward += 1
+                                        if self._progress_count < self._WIN_TARGET:
+                                            reward += 1.0 / self._WIN_TARGET
+                                            self._progress_count += 1
                                         self._igloo_built += 1
                                         self._message = (
-                                            f"Floe! +1 (igloo "
+                                            f"Floe! (igloo "
                                             f"{self._igloo_built}/{self._IGLOO_SECTIONS})"
                                         )
                                 break
@@ -209,14 +218,13 @@ class FrostbiteEnv(AtariBase):
             if not landed:
                 self._on_floe = False
                 self._current_floe = None
-                # In water - lose a life
+                # In water - reset to shore (no fail)
                 if self._is_water(self._player_x, self._player_y):
-                    self._on_life_lost()
                     self._player_x = self._WIDTH // 2
                     self._player_y = self._BOTTOM_SHORE
                     self._on_floe = False
                     self._current_floe = None
-                    self._message = "Fell in water!"
+                    self._message = "Fell in water! Back to shore."
 
         # Check if on top shore and igloo complete
         if (
@@ -224,9 +232,8 @@ class FrostbiteEnv(AtariBase):
             and self._on_shore()
             and self._igloo_built >= self._IGLOO_SECTIONS
         ):
-                self._on_point_scored(5)
-                reward += 5
-                self._message = "Igloo complete! +5"
+                self._on_point_scored(0)
+                self._message = "Igloo complete!"
                 self._level += 1
                 self._igloo_built = 0
                 self._visited_floes = set()
@@ -237,6 +244,12 @@ class FrostbiteEnv(AtariBase):
                 self._current_floe = None
                 # Rebuild for new level
                 self._generate_level(self._level)
+
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All igloos complete!"
 
         # Redraw floes on the grid
         self._redraw_water()
@@ -355,14 +368,15 @@ class FrostbiteEnv(AtariBase):
             "timer ticks down from 45; reaching 0 costs a life and "
             "resets you to the bottom shore with full timer.\n\n"
             "SCORING\n"
-            "+1 reward the first time you land on each distinct "
-            "floe (this also adds one igloo section). +5 reward "
-            "when you reach the top shore after collecting all 10 "
-            "sections (level up).\n\n"
+            "+1/16 reward the first time you land on each distinct "
+            "floe (Pattern A full-scope = 4 igloos x 4 floes = 16 "
+            "landings). Reaching the top shore with 4 sections "
+            "completes that igloo and starts a new level.\n\n"
             "TERMINATION\n"
-            ". Falling into water (non-floe water cell) "
-            "or freezing (timer = 0) costs a life and respawns you. "
-            "Episode ends at 0 lives or after max_turns.\n\n"
+            "Falling into water or freezing (timer = 0) only "
+            "respawns you on the bottom shore (no penalty). "
+            "Episode ends after 16 floe landings (cumulative reward "
+            "plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, temperature, igloo progress, "
             "and current floe drift direction.\n\n"
