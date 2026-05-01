@@ -206,3 +206,18 @@ def test_user_turn_reminds_format(game):
     # Per-turn reminder asks for the action tag. The full budget statement
     # lives in the (cached) system prompt; we don't echo it every turn.
     assert "<action>" in text
+
+
+def test_response_format_block_includes_output_budget_nudge():
+    from glyphbench.verifiers_integration.prompting import build_system_prompt
+    from glyphbench.core.registry import make_env
+    from glyphbench.envs import _import_all_suites
+    _import_all_suites()
+    env = make_env("glyphbench/__dummy-v0")
+    sp = build_system_prompt(env, max_output_tokens=8192, use_memory=False)
+    assert "Be concise" in sp
+    assert "8192" in sp
+    assert (
+        "the action will be discarded and the turn forfeited" in sp
+        or "the turn is forfeited" in sp
+    )

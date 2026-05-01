@@ -54,12 +54,15 @@ RESPONSE_FORMAT_BLOCK_TMPL = (
     "Pick the next move and emit exactly one tag:\n"
     "  <action>ACTION_NAME</action>\n"
     "\n"
-    "ACTION_NAME must be one of the names in the per-turn [Actions] list. "
-    "Read the grid directly — the player glyph shows your position and "
-    "orientation. Total response budget: {budget} tokens (reasoning + "
-    "action combined). Anything outside the <action> tag is ignored. If "
-    "the <action> tag is missing or contains an unknown name, the {noop} "
-    "action is applied automatically."
+    "ACTION_NAME must be one of the names in the [Actions] list. Read the "
+    "grid directly — the player glyph shows your position and orientation. "
+    "Anything outside the <action> tag is ignored.\n"
+    "\n"
+    "Output budget: {budget} tokens (reasoning + action combined). Be concise — "
+    "if your full response exceeds {budget} tokens before the closing "
+    "</action> tag, the action will be discarded and the turn forfeited "
+    "(env state unchanged, turn counter still advances). If the <action> tag "
+    "is missing or contains an unknown name, the turn is also forfeited."
 )
 
 OBSERVATION_CONVENTIONS_BLOCK = (
