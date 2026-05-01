@@ -78,7 +78,9 @@ class TestBerzerk:
             total_reward += r
             if total_reward > 0:
                 break
-        assert total_reward >= 1.0 or env._robots_killed > 0
+        # Pattern D: +1/_WIN_TARGET per robot kill (or robot was killed
+        # without reward emitted yet at observation time).
+        assert total_reward >= 1.0 / env._WIN_TARGET or env._robots_killed > 0
 
     def test_robot_collision_loses_life(self):
         env = self._make_env()

@@ -78,7 +78,8 @@ class TestAmidar:
         env._set_cell(env._player_x + 1, env._player_y, "\u00b7")
         right = env.action_spec.index_of("RIGHT")
         _, reward, _, _, _ = env.step(right)
-        assert reward >= 1.0
+        # Pattern D: +1/_WIN_TARGET per painted segment.
+        assert reward >= 1.0 / env._WIN_TARGET
         assert env._score >= 1
 
     def test_enemy_collision_loses_life(self):

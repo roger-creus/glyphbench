@@ -67,7 +67,8 @@ class TestBankHeist:
         env._total_banks += 1
         right = env.action_spec.index_of("RIGHT")
         _, reward, _, _, _ = env.step(right)
-        assert reward >= 2.0
+        # Pattern D: +1/_WIN_TARGET per bank robbed.
+        assert reward >= 1.0 / env._WIN_TARGET
         assert env._banks_robbed >= 1
 
     def test_gas_decreases(self):
