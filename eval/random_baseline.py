@@ -8,7 +8,8 @@ normalisation.
 
 Usage:
     uv run python eval/random_baseline.py
-    uv run python eval/random_baseline.py --episodes 50 --suites minigrid atari
+    uv run python eval/random_baseline.py --episodes 50 --include-suite minigrid
+    uv run python eval/random_baseline.py --include-all  # eval every suite
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from typing import Any
 import numpy as np
 
 import glyphbench  # noqa: F401 — register envs
-from glyphbench.core import all_glyphbench_env_ids, make_env
+from glyphbench.core import list_task_ids, make_env
 
 
 def run_random_episodes(
@@ -68,16 +69,63 @@ def run_random_episodes(
 def main() -> None:
     parser = argparse.ArgumentParser(description="GlyphBench random baseline")
     parser.add_argument("--episodes", type=int, default=25, help="Episodes per env")
-    parser.add_argument("--max-turns", type=int, default=None,
-                        help="Override env's natural max_turns (default: None = use env's own budget)")
-    parser.add_argument("--suites", nargs="*", help="Filter by suite")
-    parser.add_argument("--output", type=Path, default=Path("eval/random_baseline.json"))
+    parser.add_argument(
+        "--max-turns",
+        type=int,
+        default=None,
+        help="Override env's natural max_turns (default: None = use env's own budget)",
+    )
+    parser.add_argument(
+        "--include-suite",
+        action="append",
+        default=[],
+        help="Restrict to these suite names. Repeat for multiple. Default: no restriction.",
+    )
+    parser.add_argument(
+        "--exclude-suite",
+        action="append",
+        default=None,
+        help="Skip these suite names. Repeat for multiple. "
+        "Default: ['atari', 'craftaxfull']. Pass --include-all to disable.",
+    )
+    parser.add_argument(
+        "--include-task",
+        action="append",
+        default=[],
+        help="Exact env id or fnmatch pattern. Repeat for multiple.",
+    )
+    parser.add_argument(
+        "--exclude-task",
+        action="append",
+        default=[],
+        help="Exact env id or fnmatch pattern. Repeat for multiple.",
+    )
+    parser.add_argument(
+        "--include-all",
+        action="store_true",
+        help="Disable default suite exclusions; eval everything.",
+    )
+    parser.add_argument(
+        "--output", type=Path, default=Path("eval/random_baseline.json"),
+    )
     args = parser.parse_args()
 
-    env_ids = all_glyphbench_env_ids()
-    env_ids = [e for e in env_ids if "dummy" not in e]
-    if args.suites:
-        env_ids = [e for e in env_ids if any(s in e for s in args.suites)]
+    include_suites = args.include_suite or None
+    if args.include_all:
+        exclude_suites: list[str] = []
+    elif args.exclude_suite is None:
+        exclude_suites = ["atari", "craftaxfull"]
+    else:
+        exclude_suites = args.exclude_suite
+    include_tasks = args.include_task or None
+    exclude_tasks = args.exclude_task or None
+
+    env_ids = list_task_ids(
+        include_suites=include_suites,
+        exclude_suites=exclude_suites,
+        include_tasks=include_tasks,
+        exclude_tasks=exclude_tasks,
+    )
 
     rng = np.random.default_rng(42)
     seeds = rng.integers(0, 2**31, size=args.episodes).tolist()
