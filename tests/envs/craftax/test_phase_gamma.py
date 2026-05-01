@@ -1133,8 +1133,9 @@ def test_defeat_necromancer_achievement_fires_on_8th_hit():
 
     assert env._boss_progress == 8
     assert "defeat_necromancer" in env._achievements_unlocked
-    # Reward must include the +10 boss-kill bonus.
-    assert reward >= 10.0
+    # Pattern B: defeat_necromancer is an achievement worth 1/N like every
+    # other; the +10 bonus was removed during reward normalization.
+    assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
 
 def test_necromancer_tile_constants_are_single_codepoint_and_disjoint():
@@ -1417,7 +1418,8 @@ def test_enter_fire_realm_achievement_fires():
     assert "enter_fire_realm" in env._achievements_unlocked, (
         "enter_fire_realm should be unlocked on descend to floor 6"
     )
-    assert reward >= 1.0
+    # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+    assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
 
 def test_enter_ice_realm_achievement_fires():
@@ -1430,7 +1432,8 @@ def test_enter_ice_realm_achievement_fires():
     assert "enter_ice_realm" in env._achievements_unlocked, (
         "enter_ice_realm should be unlocked on descend to floor 7"
     )
-    assert reward >= 1.0
+    # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+    assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
 
 def test_enter_graveyard_achievement_fires():
@@ -1443,7 +1446,8 @@ def test_enter_graveyard_achievement_fires():
     assert "enter_graveyard" in env._achievements_unlocked, (
         "enter_graveyard should be unlocked on descend to floor 8"
     )
-    assert reward >= 1.0
+    # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+    assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
 
 def test_all_full_achievements_count_is_93():
@@ -1461,7 +1465,8 @@ def test_level_up_dex_fires_achievement():
     env._dex = 1
     reward = env._handle_level_up_dexterity()
     assert "level_up_dexterity" in env._achievements_unlocked
-    assert reward >= 1.0
+    # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+    assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
 
 def test_enchant_sword_fires_achievement():
@@ -1480,7 +1485,8 @@ def test_enchant_sword_fires_achievement():
     env._mana = 9
     reward = env._handle_enchant_weapon()
     assert "enchant_sword" in env._achievements_unlocked
-    assert reward >= 1.0
+    # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+    assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
 
 def test_defeat_necromancer_fires_achievement():

@@ -377,6 +377,10 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
     noop_action_name = "NOOP"
 
     _ALL_ACHIEVEMENTS = ALL_FULL_ACHIEVEMENTS
+    # Pattern B: when True, _step emits a terminal -1.0 on death. Inherited
+    # subclasses (e.g. craftax subtasks) can set False to manage their own
+    # death penalty.
+    _emit_death_penalty: bool = True
 
     # Full game uses every anchor in the canonical tutorial.
     from glyphbench.envs.craftax.docs import ALL_SECTIONS as _FULL_SECTIONS
@@ -2383,8 +2387,10 @@ class CraftaxFullEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
         if self._hp <= 0:
             self._message = "You died."
             # Pattern B: terminal -1.0 on death overrides any progress
-            # earned this step so cumulative reward floors at -1.0.
-            reward = -1.0
+            # earned this step. Subtask envs disable this and manage their
+            # own death penalty via _subtask_check.
+            if self._emit_death_penalty:
+                reward = -1.0
         elif necromancer_won:
             self._message = "The necromancer is defeated! You win!"
 

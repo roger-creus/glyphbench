@@ -94,6 +94,11 @@ class _SubtaskMixin:
     # Disable day/night mob spawns
     _disable_day_night: bool = True
 
+    # Sub-tasks manage their own death penalty in ``_subtask_check``; do
+    # NOT let the parent emit its own -1.0 on death (that would double the
+    # penalty out to -2.0, breaking the cumulative bound).
+    _emit_death_penalty: bool = False
+
     # Subclasses set these
     _subtask_max_turns: int = 50
 

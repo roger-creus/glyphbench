@@ -353,7 +353,8 @@ class TestCraftaxClassic:
         do_action = env.action_spec.index_of("DO")
         _, reward, _, _, _ = env.step(do_action)
         assert "defeat_zombie" in env._achievements_unlocked
-        assert reward >= 1.0
+        # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+        assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
     def test_defeat_skeleton_achievement(self):
         """Killing a skeleton unlocks defeat_skeleton."""
@@ -370,7 +371,8 @@ class TestCraftaxClassic:
         do_action = env.action_spec.index_of("DO")
         _, reward, _, _, _ = env.step(do_action)
         assert "defeat_skeleton" in env._achievements_unlocked
-        assert reward >= 1.0
+        # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+        assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
     def test_eat_cow_achievement(self):
         """Killing a cow unlocks eat_cow and restores food."""
@@ -427,7 +429,8 @@ class TestCraftaxClassic:
         sleep_action = env.action_spec.index_of("SLEEP")
         _, reward, _, _, _ = env.step(sleep_action)
         assert "wake_up" in env._achievements_unlocked
-        assert reward >= 1.0
+        # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+        assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
     # --- Plants ---
     def test_place_plant(self):
@@ -511,7 +514,8 @@ class TestCraftaxClassic:
         place_stone = env.action_spec.index_of("PLACE_STONE")
         _, reward, _, _, _ = env.step(place_stone)
         assert "place_stone" in env._achievements_unlocked
-        assert reward >= 1.0
+        # Pattern B: each achievement = 1/N_ACHIEVEMENTS.
+        assert reward >= 1.0 / len(env._ALL_ACHIEVEMENTS)
 
     # --- Iron pickaxe crafting ---
     def test_make_iron_pickaxe(self):

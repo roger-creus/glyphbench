@@ -145,6 +145,10 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
 
     _WORLD_SIZE = 64
     _ALL_ACHIEVEMENTS = ALL_CLASSIC_ACHIEVEMENTS
+    # Pattern B: when True, _step emits a terminal -1.0 on death (overriding
+    # any in-step progress). Subtask envs (craftax/subtasks.py) set this to
+    # False because they manage their own death penalty in _subtask_check.
+    _emit_death_penalty: bool = True
 
     tutorial_sections: tuple[str, ...] = (
         "overview",
@@ -698,12 +702,16 @@ class CraftaxClassicEnv(_CraftaxTutorialMixin, BaseGlyphEnv):
         self._tick_plants()
         self._mob_ai()
 
-        # Check death. Pattern B: terminal -1.0 overrides any progress
-        # earned this step so cumulative reward floors at -1.0 on death.
+        # Check death. Pattern B: when _emit_death_penalty is True (the
+        # default for craftaxfull-classic-v0), terminal -1.0 overrides any
+        # progress earned this step so cumulative reward floors at -1.0.
+        # Subtask envs disable this because they manage their own death
+        # penalty in _subtask_check.
         terminated = self._hp <= 0
         if terminated:
             self._message = "You died."
-            reward = -1.0
+            if self._emit_death_penalty:
+                reward = -1.0
 
         # Count mobs in sight
         mobs_in_sight = self._count_mobs_in_sight()
