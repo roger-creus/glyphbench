@@ -1,8 +1,8 @@
 """miniatari Breakout.
 
 Identity: Paddle-and-ball brick-breaker on a tight 16x10 grid.
-Win condition: clear the single 6-brick row.
-Reward: Pattern A, +1/6 per brick broken.
+Win condition: clear all bricks in the single brick row.
+Reward: Pattern A, +1/N per brick broken (N = full brick-row width).
 Loss: ball falls off bottom (single life).
 
 Gym ID: glyphbench/miniatari-breakout-v0
@@ -20,12 +20,20 @@ from glyphbench.envs.miniatari.base import MiniatariBase
 
 
 class MiniBreakoutEnv(MiniatariBase):
-    """Mini Breakout: 16x10 court, single 6-brick row.
+    """Mini Breakout: 16x10 court, single full-width brick row.
 
-    Paddle at row 8. Bricks at row 2 (6 bricks centered at x=5..10).
-    Ball auto-serves on the first NOOP/LEFT/RIGHT after reset.
-    Single life: missing the ball ends the episode (no -1 penalty per
-    Pattern A). Win when all 6 bricks cleared.
+    Paddle at row 8. Bricks fill row 2 across the entire court interior
+    (cols 1..14, 14 bricks placed). Ball auto-serves on reset. Single
+    life: missing the ball ends the episode (no -1 penalty per Pattern A).
+    Win after breaking 11 bricks (the parity-stable subset).
+
+    Geometry note: with the original 6-brick block at cols 5..10 and a
+    parity-1 ball trajectory from serve (8, 7) the ball never visited any
+    brick column. Widening the row to the full court interior makes
+    bricks reachable from the natural serve trajectory; the win threshold
+    is 11/14 because the residual {3} or {7, 8} parity cells are mutually
+    exclusive across serve directions and never reachable in the same
+    episode under paddle-tracking.
     """
 
     action_spec = ActionSpec(
@@ -44,9 +52,13 @@ class MiniBreakoutEnv(MiniatariBase):
     _PADDLE_Y = 8
     _PADDLE_W = 3
     _BRICK_Y = 2
-    _BRICK_X_LO = 5
-    _BRICK_X_HI = 10  # inclusive
-    _WIN_TARGET = 6
+    _BRICK_X_LO = 1
+    _BRICK_X_HI = 14  # inclusive — full court interior (14 bricks placed)
+    # Win after the agent breaks 11 bricks. Placing 14 keeps the wave
+    # visually full while the lower target absorbs the parity dead-cell
+    # cluster (cols 3 / 7-8 are mutually exclusive across serve directions
+    # and never reachable in the same episode).
+    _WIN_TARGET = 11
 
     def __init__(self, max_turns: int | None = None) -> None:
         super().__init__(max_turns=max_turns)
@@ -164,7 +176,8 @@ class MiniBreakoutEnv(MiniatariBase):
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Score: {self._score:.3f}    "
-            f"Bricks: {len(self._bricks)}/{self._WIN_TARGET}\n"
+            f"Broken: {self._progress}/{self._WIN_TARGET}    "
+            f"Bricks left: {len(self._bricks)}\n"
             f"Ball: pos=({self._ball_x},{self._ball_y}) "
             f"vel=({self._ball_dx:+d},{self._ball_dy:+d})    "
             f"Paddle: x={self._paddle_x}..{self._paddle_x + self._PADDLE_W - 1}"
@@ -179,15 +192,17 @@ class MiniBreakoutEnv(MiniatariBase):
 
     def _task_description(self) -> str:
         return (
-            "Mini Breakout on a 16x10 field. A row of 6 bricks (█) sits at "
-            "row 2; your 3-cell paddle (=) is at row 8. The ball (*) is "
-            "auto-served and travels 1 cell per tick. Move LEFT/RIGHT to "
-            "intercept and bounce it off the paddle into the bricks. The "
-            "ball reflects off the top, left, and right walls; off bricks "
-            "(removing the brick); and off your paddle (with hit-position "
-            "spin: hitting with the leftmost cell sends the ball left, "
-            "rightmost cell sends it right, middle preserves dx). Clear "
-            "all 6 bricks to win. If the ball drops below the paddle row, "
-            "the episode ends with no further reward. Reward: +1/6 per "
-            "brick destroyed."
+            "Mini Breakout on a 16x10 field. A full-width row of 14 bricks "
+            "(█) fills row 2 (cols 1..14); your 3-cell paddle (=) is at "
+            "row 8. The ball (*) is auto-served and travels 1 cell per "
+            "tick. Move LEFT/RIGHT to intercept and bounce it off the "
+            "paddle into the bricks. The ball reflects off the top, left, "
+            "and right walls; off bricks (removing the brick); and off "
+            "your paddle (with hit-position spin: hitting with the "
+            "leftmost cell sends the ball left, rightmost cell sends it "
+            "right, middle preserves dx). Break 11 of the 14 bricks to "
+            "win (a couple of cells are unreachable from a single serve "
+            "due to ball-trajectory parity). If the ball drops below the "
+            "paddle row, the episode ends with no further reward. "
+            "Reward: +1/11 per brick destroyed."
         )

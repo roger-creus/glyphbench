@@ -186,14 +186,14 @@ class MiniPongEnv(MiniatariBase):
                     row.append(" ")
             grid.append(row)
 
-        # Left paddle
-        for dy in range(-self._PADDLE_SIZE // 2, self._PADDLE_SIZE // 2 + 1):
+        # Left paddle (3 cells: paddle_y - 1 .. paddle_y + 1)
+        for dy in range(-(self._PADDLE_SIZE // 2), self._PADDLE_SIZE // 2 + 1):
             py = self._paddle_left_y + dy
             if self._COURT_T <= py <= self._COURT_B:
                 grid[py][self._LEFT_PADDLE_X] = "P"
 
-        # Right paddle
-        for dy in range(-self._PADDLE_SIZE // 2, self._PADDLE_SIZE // 2 + 1):
+        # Right paddle (3 cells: paddle_y - 1 .. paddle_y + 1)
+        for dy in range(-(self._PADDLE_SIZE // 2), self._PADDLE_SIZE // 2 + 1):
             py = self._paddle_right_y + dy
             if self._COURT_T <= py <= self._COURT_B:
                 grid[py][self._RIGHT_PADDLE_X] = "Y"

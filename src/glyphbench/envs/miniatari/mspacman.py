@@ -1,8 +1,9 @@
 """miniatari Ms. Pac-Man.
 
-Identity: Eat all dots in a small maze while avoiding ghosts.
-Win condition: collect 16 dots.
-Reward: Pattern D, +1/16 per dot eaten; -1 if a ghost catches you.
+Identity: Eat every dot in a small maze while avoiding ghosts.
+Win condition: collect every dot lining the corridors (~64 cells).
+Reward: Pattern D, +1/N per dot eaten (N = total dots); -1 if a ghost
+catches you.
 
 Gym ID: glyphbench/miniatari-mspacman-v0
 
@@ -38,13 +39,14 @@ _MAZE = [
 
 
 class MiniMsPacmanEnv(MiniatariBase):
-    """Mini Ms. Pac-Man: 14x10 walled maze, 16 dots, 2 ghosts.
+    """Mini Ms. Pac-Man: 14x10 walled maze, dots line every corridor cell, 2 ghosts.
 
-    The maze is a fixed 14x10 layout with corridors, dots (·) on every
-    open cell except a ghost pen (rows 4-5, cols 6-7), and a player
-    start at the bottom row. 2 ghosts (g) start in the pen and step 1
-    cell every 2 ticks toward the player on the dominant axis (skipped
-    if blocked). Pattern D: +1/16 per dot eaten, -1 on ghost catch.
+    The maze is a fixed 14x10 layout with corridors. Dots (·) are placed
+    on every open corridor cell except the ghost pen (rows 4-5, cols
+    6-7) and the player start. 2 ghosts (g) spawn in the pen; for the
+    first ~10 ticks they march UP out of the pen, then chase the
+    player on the dominant axis (skipped if blocked). Pattern D:
+    +1/N per dot eaten (N = total dots, ~64), -1 on ghost catch.
     """
 
     action_spec = ActionSpec(
@@ -64,6 +66,9 @@ class MiniMsPacmanEnv(MiniatariBase):
     _HEIGHT = 10
     _GHOST_MOVE_EVERY = 2
     _N_GHOSTS = 2
+    # Ghosts spend their first ~10 ticks marching up out of the pen so
+    # they don't get stuck. After this they switch to the chase AI.
+    _PEN_EXIT_TICKS = 10
 
     def __init__(self, max_turns: int | None = None) -> None:
         super().__init__(max_turns=max_turns)
@@ -85,7 +90,7 @@ class MiniMsPacmanEnv(MiniatariBase):
         self._tick_count = 0
         self._progress = 0
         self._walls = set()
-        # Reduce 16-dot target by parsing layout
+        # Parse static maze layout: '#' is wall, all others are open path.
         candidate_dot_cells: list[tuple[int, int]] = []
         for y in range(self._HEIGHT):
             for x in range(self._WIDTH):
@@ -98,9 +103,9 @@ class MiniMsPacmanEnv(MiniatariBase):
         self._player_x = 1
         self._player_y = 8
         self._player_dir = (1, 0)
-        # Pick 16 dots: deterministic positions to ensure exactly 16.
-        # Walk candidate cells in a deterministic order, skip ghost pen
-        # cells (rows 4-5 cols 6-7), skip player start, take first 16.
+        # Place a dot on EVERY open corridor cell except the ghost pen
+        # and the player's start cell. This was previously capped at 16
+        # which left rows 3-8 unsugared.
         ghost_pen = {(6, 4), (7, 4), (6, 5), (7, 5)}
         self._dots = set()
         for cell in candidate_dot_cells:
@@ -109,10 +114,8 @@ class MiniMsPacmanEnv(MiniatariBase):
             if cell in ghost_pen:
                 continue
             self._dots.add(cell)
-            if len(self._dots) >= 16:
-                break
         self._n_dots = len(self._dots)
-        # Ghost spawn
+        # Ghost spawn (inside the pen).
         self._ghosts = [[6, 4], [7, 5]]
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
@@ -151,18 +154,26 @@ class MiniMsPacmanEnv(MiniatariBase):
         # 3. Ghosts move every K ticks
         if self._tick_count % self._GHOST_MOVE_EVERY == 0:
             for g in self._ghosts:
+                if self._tick_count <= self._PEN_EXIT_TICKS:
+                    # Pen-exit phase: step UP each ghost-move tick if
+                    # possible. From the pen at row 4-5, this carries
+                    # ghosts to row 3 (an open corridor row), after
+                    # which the chase AI takes over.
+                    if not self._is_wall(g[0], g[1] - 1):
+                        g[1] -= 1
+                    continue
                 dx = _sign(self._player_x, g[0])
                 dy = _sign(self._player_y, g[1])
                 ngx, ngy = g[0], g[1]
                 if abs(self._player_x - g[0]) >= abs(self._player_y - g[1]):
-                    if not self._is_wall(g[0] + dx, g[1]):
+                    if dx != 0 and not self._is_wall(g[0] + dx, g[1]):
                         ngx = g[0] + dx
-                    elif not self._is_wall(g[0], g[1] + dy):
+                    elif dy != 0 and not self._is_wall(g[0], g[1] + dy):
                         ngy = g[1] + dy
                 else:
-                    if not self._is_wall(g[0], g[1] + dy):
+                    if dy != 0 and not self._is_wall(g[0], g[1] + dy):
                         ngy = g[1] + dy
-                    elif not self._is_wall(g[0] + dx, g[1]):
+                    elif dx != 0 and not self._is_wall(g[0] + dx, g[1]):
                         ngx = g[0] + dx
                 g[0], g[1] = ngx, ngy
 
@@ -220,10 +231,14 @@ class MiniMsPacmanEnv(MiniatariBase):
     def _task_description(self) -> str:
         return (
             "Mini Ms. Pac-Man on a 14x10 walled maze with corridors. "
-            "16 dots (·) line the corridors. You (Y, arrow shows facing) "
+            "Dots (·) line every open corridor cell except the central "
+            "ghost pen and your start cell (~64 dots total — see the "
+            "HUD for the exact N this run). You (Y, arrow shows facing) "
             "start at column 1, row 8. 2 ghosts (g) start in the central "
-            "pen and step 1 cell every 2 ticks toward you on the dominant "
-            "axis (blocked by walls). LEFT/RIGHT/UP/DOWN moves you 1 "
-            "cell. Stepping onto a dot eats it for +1/16. Reward: +1/16 "
-            "per dot. Being caught by a ghost is -1 terminal."
+            "pen and march UP to escape the pen for the first ~10 ticks; "
+            "after that they step 1 cell every 2 ticks toward you on the "
+            "dominant axis (blocked by walls). LEFT/RIGHT/UP/DOWN moves "
+            "you 1 cell. Stepping onto a dot eats it for +1/N. Reward: "
+            "+1/N per dot (N is the total dot count this episode). "
+            "Being caught by a ghost is -1 terminal."
         )

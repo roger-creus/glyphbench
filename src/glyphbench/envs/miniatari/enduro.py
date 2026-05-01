@@ -3,7 +3,7 @@
 Identity: Driver overtakes cars on a narrow scrolling highway.
 Win condition: overtake 5 cars.
 Reward: Pattern A, +1/5 per overtake.
-Loss: 5 collisions force episode end (no -1 per Pattern A).
+Loss: 2 collisions force episode end (no -1 per Pattern A).
 
 Gym ID: glyphbench/miniatari-enduro-v0
 
@@ -26,7 +26,7 @@ class MiniEnduroEnv(MiniatariBase):
     spawn at row 0 and drift down the road; passing one (it leaves the
     bottom of the screen without colliding) counts as an overtake.
     Hitting an opponent makes the player lose progress (no penalty, but
-    a near-collision shock). 5 collisions ends the run as a hard cap.
+    a near-collision shock). 2 collisions ends the run as a hard cap.
     """
 
     action_spec = ActionSpec(
@@ -199,6 +199,6 @@ class MiniEnduroEnv(MiniatariBase):
             "all opponent cars descend 2 cells this tick (instead of 1). "
             "When an opponent reaches/passes your row in a different lane, "
             "you score an overtake (+1/5). If an opponent reaches your "
-            "row in your lane, that is a collision; 5 collisions end the "
+            "row in your lane, that is a collision; 2 collisions end the "
             "run. Overtake 5 cars to win. Reward: +1/5 per overtake."
         )

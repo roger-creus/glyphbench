@@ -24,7 +24,7 @@ class MiniDefenderEnv(MiniatariBase):
 
     Player ship (Y) starts at the top center. Humans (h) sit on the ground
     row 8. Landers (L) descend from row 1 toward the humans, dropping 1
-    cell every 2 ticks. To rescue a human you must (1) be on the ground
+    cell every 3 ticks. To rescue a human you must (1) be on the ground
     row in the human's column to pick them up (h becomes a tracked
     'carried' status on you), then (2) reach row 0 with a carried human,
     counting as one rescue. Picking up a human consumes that human (it

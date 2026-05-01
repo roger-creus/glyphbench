@@ -24,10 +24,10 @@ class MiniGopherEnv(MiniatariBase):
     Carrots (▼) sit at row 2 in columns 3, 7, 11. Below each carrot
     is a 3-cell column of dirt (▓). The gopher (G) tunnels at row 6
     and pops up to dig the dirt above whichever column it's under
-    every 6 ticks. The player (Y, with shovel ↓) walks along row 1
+    every 4 ticks. The player (Y, with shovel ↓) walks along row 1
     (just above the carrots) and FILL packs dirt into the column
     directly below them, restoring 1 dirt cell. If the gopher reaches
-    row 2 (steals a carrot), that carrot is lost. After 80 ticks, +1/3
+    row 2 (steals a carrot), that carrot is lost. After 60 ticks, +1/3
     per surviving carrot. Lose all 3 -> -1 terminal.
     """
 
@@ -53,7 +53,7 @@ class MiniGopherEnv(MiniatariBase):
     _DIRT_BOTTOM = 5  # rows 3, 4, 5 are dirt by default
     _GOPHER_Y = 6
     _PLAYER_Y = 1
-    _GOPHER_DIG_EVERY = 6  # gopher digs every K ticks
+    _GOPHER_DIG_EVERY = 4  # gopher digs every K ticks
     _GOPHER_MOVE_EVERY = 2  # gopher repositions every K ticks
     _DEFENSE_TURNS = 60
 
@@ -142,11 +142,14 @@ class MiniGopherEnv(MiniatariBase):
         # 5. End-of-defense check at DEFENSE_TURNS
         if self._tick_count >= self._DEFENSE_TURNS:
             survivors = self._surviving_carrots()
-            reward = survivors * self._progress_reward(self._WIN_TARGET)
             self._message = f"Time's up — {survivors}/{self._WIN_TARGET} carrots safe."
             if survivors > 0:
+                # Partial credit (Pattern A): +1/3 per surviving carrot.
+                reward = survivors * self._progress_reward(self._WIN_TARGET)
                 self._on_won()
             else:
+                # No carrots left -> Pattern D terminal -1.
+                reward = self._death_reward()
                 self._on_life_lost()
             return reward, True, info
 
@@ -210,7 +213,7 @@ class MiniGopherEnv(MiniatariBase):
             "Mini Gopher on a 14x8 field. Carrots (▼) sit at row 2 in "
             "columns 3, 7, 11; below each is a 3-cell dirt column (▓). "
             "The gopher (G) tunnels at row 6 and shifts toward the nearest "
-            "alive carrot 1 cell every 2 ticks. Every 6 ticks the gopher "
+            "alive carrot 1 cell every 2 ticks. Every 4 ticks the gopher "
             "removes 1 dirt row above its current column; once dirt is "
             "gone in that column, the carrot is stolen. You (Y) walk row "
             "1; LEFT/RIGHT moves you. FILL adds 1 dirt row back into the "

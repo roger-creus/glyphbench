@@ -121,16 +121,26 @@ class MiniIceHockeyEnv(MiniatariBase):
             self._puck_dx = 0
             self._puck_dy = 0
 
-        # Shoot
+        # Shoot. The puck is launched with dy=-2 toward the opponent's goal.
+        # We stash a "just-shot" flag so this tick skips opponent and agent
+        # pickup checks: the puck physically leaves the agent's vicinity on
+        # the NEXT tick, otherwise the agent or the opponent (spawning at
+        # row 2) would immediately re-grab the shot.
+        just_shot = False
         if action_name == "SHOOT" and self._puck_holder == "agent":
             self._puck_holder = "free"
             self._puck_dx = 0
             self._puck_dy = -2
+            # Place the puck two rows ahead of player to give it room.
+            self._puck_x = self._player_x
+            self._puck_y = max(self._RINK_T + 1, self._player_y - 3)
             self._message = "Shot!"
+            just_shot = True
 
-        # Move free puck
+        # Move free puck (skipped on the tick of the shot, since the SHOOT
+        # block above already placed the puck ahead of the agent).
         scored: str | None = None
-        if self._puck_holder == "free" and (self._puck_dx or self._puck_dy):
+        if not just_shot and self._puck_holder == "free" and (self._puck_dx or self._puck_dy):
             new_x = self._puck_x + self._puck_dx
             new_y = self._puck_y + self._puck_dy
 
@@ -175,8 +185,9 @@ class MiniIceHockeyEnv(MiniatariBase):
                 nx_o, ny_o = self._opp_x + dx, self._opp_y + dy
                 if self._in_rink(nx_o, ny_o) and not (nx_o == self._player_x and ny_o == self._player_y):
                     self._opp_x, self._opp_y = nx_o, ny_o
-            # pick up puck if adjacent
-            if abs(self._opp_x - self._puck_x) <= 1 and abs(self._opp_y - self._puck_y) <= 1:
+            # pick up puck if adjacent (skipped on the shot tick so the puck
+            # actually leaves the agent before the opponent can steal it)
+            if not just_shot and abs(self._opp_x - self._puck_x) <= 1 and abs(self._opp_y - self._puck_y) <= 1:
                 self._puck_holder = "opp"
         elif self._puck_holder == "opp":
             # Move toward bottom and shoot when in range

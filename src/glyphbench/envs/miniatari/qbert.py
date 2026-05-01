@@ -25,12 +25,13 @@ class MiniQbertEnv(MiniatariBase):
     Pyramid is laid out at logical coordinates (row, col) with row=0..3
     and col=0..row. Each cube maps to a grid cell using a fixed
     isometric-ish mapping: gx = 5 - row + 2*col, gy = 1 + 2*row.
-    Cube starts unpainted ('.'); after the agent hops onto it the first
-    time it becomes painted ('#') and grants +1/10. The agent (Q) starts
-    on the apex (row=0, col=0). Each tick the agent picks one of 4
-    diagonal directions: UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT.
-    Falling off the pyramid (no destination cube) ends the run. Painting
-    all 10 cubes wins.
+    Cube starts unpainted ('.'); whenever the agent stands on an
+    unpainted cube it becomes painted ('#') and grants +1/10. This
+    includes the apex on the first step (the agent starts on the apex
+    at row=0, col=0). Each tick the agent picks one of 4 diagonal
+    directions: UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT, or NOOP.
+    Falling off the pyramid (no destination cube) ends the run.
+    Painting all 10 cubes wins (cumulative +1.0).
     """
 
     action_spec = ActionSpec(
@@ -67,10 +68,12 @@ class MiniQbertEnv(MiniatariBase):
         self._progress = 0
         self._row = 0
         self._col = 0
+        # All 10 cubes start unpainted including the apex; the agent
+        # paints the apex on its first NOOP-or-action tick (see
+        # _game_step). Previously the apex was auto-painted at reset
+        # which incremented _progress to 1 without emitting any reward,
+        # capping the achievable cumulative at 0.9 instead of 1.0.
         self._painted = [[False] * (r + 1) for r in range(self._NUM_ROWS)]
-        # Paint apex on entry
-        self._painted[0][0] = True
-        self._progress += 1
         self._sync_player_pos()
 
     def _grid_pos(self, row: int, col: int) -> tuple[int, int]:
@@ -89,6 +92,20 @@ class MiniQbertEnv(MiniatariBase):
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0
         info: dict[str, Any] = {}
+
+        # Paint the cube the agent currently stands on (if not already
+        # painted). This handles the apex on the first step after reset
+        # and also the destination cube of any hop. Previously the apex
+        # was auto-painted at reset which silently consumed +1/10.
+        if not self._painted[self._row][self._col]:
+            self._painted[self._row][self._col] = True
+            self._progress += 1
+            reward += self._progress_reward(self._WIN_TARGET)
+            self._message = f"Cube painted! ({self._progress}/{self._WIN_TARGET})"
+            if self._progress >= self._WIN_TARGET:
+                self._on_won()
+                return reward, self._game_over, info
+
         new_row, new_col = self._row, self._col
         if action_name == "UP_LEFT":
             new_row, new_col = self._row - 1, self._col - 1
@@ -161,10 +178,12 @@ class MiniQbertEnv(MiniatariBase):
         return (
             "Mini Q*bert on a 12x12 grid. A 4-row pyramid has 10 cubes "
             "(. unpainted, # painted) at logical (row, col) positions with "
-            "row=0..3 and col=0..row. You (Q) start on the apex which is "
-            "auto-painted. Each tick choose one diagonal hop: UP_LEFT, "
-            "UP_RIGHT, DOWN_LEFT, DOWN_RIGHT. Hopping onto an unpainted "
-            "cube paints it and grants +1/10. Hopping off the pyramid "
-            "(invalid destination) ends the run. Paint all 10 cubes to win. "
-            "Reward: +1/10 per fresh cube painted."
+            "row=0..3 and col=0..row. You (Q) start on the apex (row=0, "
+            "col=0); the apex is unpainted and becomes painted on your "
+            "first step. Each tick choose one diagonal hop: UP_LEFT, "
+            "UP_RIGHT, DOWN_LEFT, DOWN_RIGHT, or NOOP. Standing on (or "
+            "hopping onto) an unpainted cube paints it and grants +1/10. "
+            "Hopping off the pyramid (invalid destination) ends the run. "
+            "Paint all 10 cubes to win. Reward: +1/10 per fresh cube "
+            "painted (full clear sums to +1.0)."
         )

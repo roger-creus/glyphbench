@@ -1,9 +1,13 @@
 """miniatari Chopper Command.
 
-Identity: Helicopter shooter; destroy enemy helis flying above the desert.
-Win condition: destroy 5 enemy helicopters.
-Reward: Pattern A, +1/5 per enemy destroyed.
-Loss: collision with an enemy helicopter ends the run (no -1; just terminates).
+Identity: Helicopter shooter; destroy enemy helis while protecting the
+truck convoy on the ground.
+Win condition: destroy all 5 enemy helicopters with at least one truck
+still alive.
+Reward: Pattern A, +1/5 per enemy destroyed; Pattern D, terminal -1 if
+every truck is destroyed (convoy lost).
+Loss: collision with an enemy helicopter ends the run (no -1, just
+terminates); all trucks destroyed -> -1 terminal.
 
 Gym ID: glyphbench/miniatari-choppercommand-v0
 
@@ -20,15 +24,19 @@ from glyphbench.envs.miniatari.base import MiniatariBase
 
 
 class MiniChopperCommandEnv(MiniatariBase):
-    """Mini Chopper Command: 16x10 grid, 5 enemy helis above a desert floor.
+    """Mini Chopper Command: 16x10 grid, 5 enemy helis above a 3-truck convoy.
 
     Player heli (Y) starts mid-left. Enemy helis (E) drift horizontally on
-    rows 2..6, bouncing off side walls. Each tick the player can move
-    LEFT/RIGHT/UP/DOWN by 1 cell or FIRE a bullet in their last horizontal
-    facing direction. The bullet travels up to 6 cells in its direction
-    that same tick, destroying the first enemy in line. Enemies drift one
-    cell every 2 ticks. Colliding with an enemy ends the run. Destroying 5
-    enemies wins.
+    rows 2..6, bouncing off side walls. 3 trucks (T) sit stationary on the
+    ground row (y=8). Each tick the player can move LEFT/RIGHT/UP/DOWN by
+    1 cell or FIRE a bullet in their last horizontal facing direction. The
+    bullet travels up to 6 cells in its direction that same tick,
+    destroying the first enemy in line. Enemies drift one cell every 2
+    ticks; an enemy that is directly above a truck has a small chance to
+    dive once per tick and obliterate that truck. Colliding with an enemy
+    ends the run with no further reward. Lose if every truck is destroyed
+    (-1 terminal). Win by destroying all 5 enemies while at least one
+    truck is still alive (+1/5 per kill, Pattern A).
     """
 
     action_spec = ActionSpec(
@@ -49,13 +57,18 @@ class MiniChopperCommandEnv(MiniatariBase):
     _HEIGHT = 10
     _WIN_TARGET = 5
     _GROUND_Y = 9
+    _TRUCK_Y = 8
     _BULLET_RANGE = 6
     _ENEMY_MOVE_EVERY = 2
+    _N_TRUCKS = 3
+    _DIVE_PROB = 0.02  # per-tick prob an enemy directly above a truck dives
 
     def __init__(self, max_turns: int | None = None) -> None:
         super().__init__(max_turns=max_turns)
         # enemies as [x, y, dx]
         self._enemies: list[list[int]] = []
+        # truck columns still alive (a set for O(1) hits)
+        self._trucks: set[int] = set()
         self._tick_count: int = 0
         self._progress: int = 0
 
@@ -83,6 +96,8 @@ class MiniChopperCommandEnv(MiniatariBase):
                 dx = 1 if rng.random() < 0.5 else -1
                 self._enemies.append([x, r, dx])
                 break
+        # Place 3 trucks at fixed columns evenly spaced across the convoy.
+        self._trucks = {3, 7, 12}
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0
@@ -123,7 +138,7 @@ class MiniChopperCommandEnv(MiniatariBase):
                 reward += self._progress_reward(self._WIN_TARGET)
                 self._progress += 1
                 self._message = f"Enemy down! ({self._progress}/{self._WIN_TARGET})"
-                if self._progress >= self._WIN_TARGET:
+                if self._progress >= self._WIN_TARGET and self._trucks:
                     self._on_won()
                     return reward, self._game_over, info
 
@@ -135,7 +150,21 @@ class MiniChopperCommandEnv(MiniatariBase):
                     e[2] *= -1
                     e[0] = max(0, min(self._WIDTH - 1, e[0]))
 
-        # 4. Collision check
+        # 4. Truck attacks: any enemy directly over a surviving truck has
+        #    a small chance to dive and obliterate it.
+        rng = self.rng
+        for e in self._enemies:
+            ex = e[0]
+            if ex in self._trucks and rng.random() < self._DIVE_PROB:
+                self._trucks.discard(ex)
+                self._message = f"Truck at x={ex} destroyed!"
+                if not self._trucks:
+                    self._message = "All trucks lost — convoy destroyed!"
+                    reward += self._death_reward()
+                    self._on_life_lost()
+                    return reward, True, info
+
+        # 5. Collision check (player vs enemy)
         for ex, ey, _edx in self._enemies:
             if ex == self._player_x and ey == self._player_y:
                 self._message = "Collision with enemy helicopter!"
@@ -145,6 +174,7 @@ class MiniChopperCommandEnv(MiniatariBase):
 
         info["progress"] = self._progress
         info["enemies_left"] = len(self._enemies)
+        info["trucks_alive"] = len(self._trucks)
         return reward, self._game_over, info
 
     def _render_current_observation(self) -> GridObservation:
@@ -154,6 +184,10 @@ class MiniChopperCommandEnv(MiniatariBase):
         # Ground
         for x in range(self._WIDTH):
             grid[self._GROUND_Y][x] = "="
+        # Trucks (one row above the ground)
+        for tx in self._trucks:
+            if 0 <= tx < self._WIDTH:
+                grid[self._TRUCK_Y][tx] = "T"
         # Enemies
         for ex, ey, _edx in self._enemies:
             if 0 <= ex < self._WIDTH and 0 <= ey < self._HEIGHT:
@@ -167,18 +201,22 @@ class MiniChopperCommandEnv(MiniatariBase):
             " ": "sky",
             "=": "ground",
             "E": "enemy helicopter",
+            "T": "truck (protect)",
             "Y": "your helicopter",
         }
         face = "right" if self._player_dir[0] >= 0 else "left"
         enemies_info = " ".join(
             f"({ex},{ey},{'+' if edx == 1 else '-'})" for ex, ey, edx in self._enemies
         )
+        trucks_info = " ".join(f"x={tx}" for tx in sorted(self._trucks))
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
+            f"Trucks: {len(self._trucks)}/{self._N_TRUCKS}    "
             f"Score: {self._score:.3f}\n"
             f"Heli: ({self._player_x},{self._player_y}) facing {face}    "
-            f"Enemies: {enemies_info}"
+            f"Enemies: {enemies_info}    "
+            f"Trucks: {trucks_info}"
         )
         return GridObservation(
             grid=grid_to_string(grid),
@@ -191,9 +229,14 @@ class MiniChopperCommandEnv(MiniatariBase):
         return (
             "Mini Chopper Command on a 16x10 grid. Your helicopter (Y) flies "
             "above a desert floor (=). 5 enemy helis (E) drift on rows 2..6, "
-            "bouncing off side walls every 2 ticks. LEFT/RIGHT moves you and "
-            "sets your facing; UP/DOWN changes altitude. FIRE shoots a bullet "
-            "up to 6 cells in your facing direction; the first enemy in your "
-            "row is destroyed instantly. Destroy all 5 enemies to win. "
-            "Colliding with an enemy ends the run. Reward: +1/5 per enemy."
+            "bouncing off side walls every 2 ticks. 3 friendly trucks (T) "
+            "sit on the convoy row at y=8 in fixed columns. LEFT/RIGHT "
+            "moves you and sets your facing; UP/DOWN changes altitude. "
+            "FIRE shoots a bullet up to 6 cells in your facing direction; "
+            "the first enemy in your row is destroyed instantly. Each tick "
+            "an enemy directly above a surviving truck has a small chance "
+            "to dive and destroy that truck. Destroy all 5 enemies while "
+            "at least one truck is still alive to win (+1/5 per kill). "
+            "Lose with -1 if every truck is destroyed. Colliding with an "
+            "enemy ends the run with no further reward."
         )

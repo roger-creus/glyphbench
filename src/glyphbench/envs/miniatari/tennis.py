@@ -116,7 +116,7 @@ class MiniTennisEnv(MiniatariBase):
         elif action_name == "RIGHT":
             nx += 1
             self._player_dir = (1, 0)
-        if self._COURT_L < nx < self._COURT_R and self._NET_Y < ny < self._COURT_B:
+        if self._COURT_L < nx < self._COURT_R and self._NET_Y < ny <= self._COURT_B:
             self._player_x, self._player_y = nx, ny
 
         # Move ball

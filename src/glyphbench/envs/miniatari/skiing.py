@@ -1,9 +1,11 @@
 """miniatari Skiing.
 
 Identity: Slalom skier descending a course; pass through 10 gates to win.
-Win condition: clear all 10 gates (the course finish line).
+Win condition: clear all 10 gates before the course ends.
 Reward: Pattern A, +1/10 per gate cleared by passing between its flags.
-Loss: time expires (no -1 per Pattern A; missed gates simply do not score).
+Loss: course ends (last gate scrolls past the skier row) without all 10
+gates cleared — episode terminates with whatever partial credit was
+earned. No -1 penalty (Pattern A), so cumulative is always in [0, 1].
 
 Gym ID: glyphbench/miniatari-skiing-v0
 
@@ -45,7 +47,12 @@ class MiniSkiingEnv(MiniatariBase):
     _SKIER_Y = 4
     _WIN_TARGET = 10
     _GATE_WIDTH = 4  # gap between flags (number of cells between them, exclusive)
-    _GATE_SPACING = 3
+    # Spacing in rows between successive gates. Skier moves at most 1
+    # column/tick, so spacing must be wide enough that the skier can
+    # cross the field between gates. 5 rows allows up to 5 column moves
+    # between gates (more than the field width), making every random
+    # gate sequence theoretically clearable.
+    _GATE_SPACING = 5
 
     def __init__(self, max_turns: int | None = None) -> None:
         super().__init__(max_turns=max_turns)
@@ -109,6 +116,18 @@ class MiniSkiingEnv(MiniatariBase):
         # Remove gates that scrolled off screen
         self._gates = [g for i, g in enumerate(self._gates) if i not in passed]
 
+        # 4. Course-end terminal: when the last gate has scrolled past the
+        # skier row, the run is over. Without this the agent would spin
+        # idle until max_turns truncation. Pattern A: no -1 penalty.
+        if not self._gates and self._progress < self._WIN_TARGET:
+            self._message = (
+                f"Course ended — only {self._progress}/{self._WIN_TARGET} "
+                "gates cleared."
+            )
+            self._game_over = True
+            self._won = False
+            return reward, True, info
+
         info["progress"] = self._progress
         info["gates_remaining"] = len(self._gates)
         return reward, self._game_over, info
@@ -161,11 +180,15 @@ class MiniSkiingEnv(MiniatariBase):
     def _task_description(self) -> str:
         return (
             "Mini Skiing: a 14x16 slalom course. The skier (Y) sits at row "
-            "4, fixed; the slope scrolls upward (gate flag rows decrement "
-            "by 1 each tick). 10 gates lie down the course, each two flags "
-            f"({self._GATE_WIDTH} cells apart). LEFT/RIGHT edges your "
+            f"{self._SKIER_Y}, fixed; the slope scrolls upward (gate flag "
+            "rows decrement by 1 each tick). 10 gates lie down the course, "
+            f"each two flags ({self._GATE_WIDTH} cells apart) spaced "
+            f"{self._GATE_SPACING} rows apart. LEFT/RIGHT edges your "
             "skier one cell. When a gate's flag row reaches your row, you "
             "score +1/10 if your column is strictly between the two flags "
-            "(F). Otherwise the gate scrolls past unscored. Clear all 10 "
-            "gates to win the run. Reward: +1/10 per cleared gate."
+            "(F). Otherwise the gate scrolls past unscored. The course "
+            "ends when the last gate has scrolled past your row (~54 "
+            "ticks). Clearing all 10 gates wins instantly; otherwise the "
+            "course-end terminates the run with whatever partial credit "
+            "you earned. Reward: +1/10 per cleared gate (no penalty)."
         )

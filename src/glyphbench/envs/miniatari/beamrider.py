@@ -71,12 +71,18 @@ class MiniBeamRiderEnv(MiniatariBase):
         self._beam_idx = len(self._BEAMS) // 2
         self._player_x = self._BEAMS[self._beam_idx]
         self._player_y = self._PLAYER_Y
-        # Pre-seed 2 enemies on different beams
+        # Pre-seed 2 enemies on distinct (beam, y) cells (no collisions).
         rng = self.rng
+        used: set[tuple[int, int]] = set()
         for _ in range(2):
-            bi = int(rng.integers(0, len(self._BEAMS)))
-            y = int(rng.integers(0, 4))
-            self._enemies.append([bi, y])
+            for _attempt in range(40):
+                bi = int(rng.integers(0, len(self._BEAMS)))
+                y = int(rng.integers(0, 4))
+                if (bi, y) in used:
+                    continue
+                used.add((bi, y))
+                self._enemies.append([bi, y])
+                break
 
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0

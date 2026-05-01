@@ -155,7 +155,11 @@ class MiniBattleZoneEnv(MiniatariBase):
                     sdx, sdy = 0, dy
                 if sdx == 0 and sdy == 0:
                     continue
-                self._shells.append([ex + sdx, ey + sdy, sdx, sdy])
+                # Spawn the shell at the enemy's cell; the same-tick
+                # movement loop below carries it 1 cell toward the
+                # player. This avoids the shell skipping the enemy's
+                # cell on its first tick of flight.
+                self._shells.append([ex, ey, sdx, sdy])
 
         # 5. Move shells; check hit
         new_shells: list[list[int]] = []

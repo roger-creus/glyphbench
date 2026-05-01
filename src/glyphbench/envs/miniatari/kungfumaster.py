@@ -24,11 +24,13 @@ class MiniKungFuMasterEnv(MiniatariBase):
     The corridor is 16x8 with floor at row 5 and ceiling row 0. Player
     (Y, arrow facing) starts in the center. Enemies (e) spawn alternately
     from left/right edges every 4 ticks (up to 8 total spawned). Enemies
-    walk toward the player at 1 cell every 2 ticks. PUNCH knocks out
-    any enemy in the cell directly in front of you. KICK knocks out any
-    enemy in either of the two cells in front (same direction). Spawned
-    enemies are tracked; +1/8 per KO. If any enemy ends a turn on your
-    cell, -1 terminal.
+    walk toward the player at 1 cell every 2 ticks. PUNCH knocks out any
+    enemy in either cell directly adjacent to you (left or right, range
+    1). KICK knocks out any enemy within 2 cells on either side (range
+    2). The strikes hit both sides because there is no separate "face"
+    action and enemies attack from both edges. Spawned enemies are
+    tracked; +1/8 per KO. If any enemy ends a turn on your cell, -1
+    terminal.
     """
 
     action_spec = ActionSpec(
@@ -37,8 +39,8 @@ class MiniKungFuMasterEnv(MiniatariBase):
             "do nothing",
             "step left and face left",
             "step right and face right",
-            "punch the cell directly in front of you (range 1)",
-            "kick the two cells in front of you (range 2)",
+            "punch the cells adjacent on both sides (range 1 each side)",
+            "kick the cells within range 2 on both sides",
         ),
     )
 
@@ -85,7 +87,11 @@ class MiniKungFuMasterEnv(MiniatariBase):
             self._player_x += 1
             self._player_dir = (1, 0)
 
-        # 2. Combat
+        # 2. Combat — PUNCH/KICK hit BOTH sides (not just facing direction).
+        # Without a face-only action there is no way for the agent to attack
+        # an enemy on the side opposite their facing without first moving
+        # toward them. Instead we let PUNCH cover the cells immediately to
+        # the left and right of the player; KICK extends the reach to 2.
         kos_this_step = 0
         if action_name in ("PUNCH", "KICK"):
             reach = 1 if action_name == "PUNCH" else 2
@@ -93,8 +99,7 @@ class MiniKungFuMasterEnv(MiniatariBase):
             for ex, edir in self._enemies:
                 hit = False
                 for k in range(1, reach + 1):
-                    fx = self._player_x + self._player_dir[0] * k
-                    if ex == fx:
+                    if ex == self._player_x + k or ex == self._player_x - k:
                         hit = True
                         break
                 if hit:
@@ -186,8 +191,10 @@ class MiniKungFuMasterEnv(MiniatariBase):
             "facing) stand on row 5. Enemies (e) spawn alternately from "
             "left/right every 4 ticks (up to 8 total) and walk toward you "
             "1 cell every 2 ticks. LEFT/RIGHT moves and faces. PUNCH KOs "
-            "an enemy in the cell directly in front of you (range 1). "
-            "KICK KOs any enemy in the next 2 cells in front (range 2). "
-            "Reward: +1/8 per KO. If any enemy ends a tick on your cell, "
-            "-1 terminal."
+            "an enemy in either cell immediately adjacent to you (left "
+            "OR right, range 1 per side). KICK KOs any enemy within 2 "
+            "cells on either side (range 2 per side). Both strikes hit "
+            "both sides because there is no face-only action. Reward: "
+            "+1/8 per KO. If any enemy ends a tick on your cell, -1 "
+            "terminal."
         )

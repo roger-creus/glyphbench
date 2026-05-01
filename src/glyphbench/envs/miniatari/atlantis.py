@@ -24,10 +24,12 @@ class MiniAtlantisEnv(MiniatariBase):
 
     Turrets sit at row 6, columns 3, 8, 13. City buildings at row 7. The
     agent picks one of 3 turrets to fire from each tick: LEFT, CENTER,
-    RIGHT each fire upward in that turret's column. Raiders spawn at row
-    0 each wave (5 per wave) and march down 1 row every 2 ticks. A raider
-    is destroyed if it overlaps a column where a turret is firing this
-    tick. Reaching row 7 destroys a city building => -1 terminal.
+    RIGHT each fire upward in that turret's column. Each wave has 5
+    raiders that share the 3 turret columns; same-column raiders stagger
+    above the visible field at y=0,-2,-4,... (off-screen but still
+    hittable by the column shot) and march down 1 row every 2 ticks. A
+    column shot kills the lowest raider currently in that column.
+    Reaching row 7 destroys a city building => -1 terminal.
     """
 
     action_spec = ActionSpec(
@@ -78,6 +80,9 @@ class MiniAtlantisEnv(MiniatariBase):
         rng = self.rng
         # Spawn columns must be ON turret columns so raiders are killable.
         # Stagger row offsets so raiders don't pile on row 0 instantly.
+        # Raiders at y < 0 are off-screen but still hittable; the column
+        # shot uses a true -inf sentinel so even raiders at y=-2/-4/...
+        # are selected.
         used_cols: list[int] = []
         for _ in range(self._RAIDERS_PER_WAVE):
             tx = self._TURRETS[int(rng.integers(0, len(self._TURRETS)))]
@@ -104,9 +109,12 @@ class MiniAtlantisEnv(MiniatariBase):
             self._player_x = self._TURRETS[2]
 
         if firing_col is not None:
-            # Find nearest raider in firing_col (and ±0 spread; precise column shot)
+            # Find nearest raider in firing_col (and ±0 spread; precise
+            # column shot). Use a true -inf sentinel so off-screen
+            # raiders at y=-2, -4, ... are still selectable: previously
+            # target_y=-1 silently skipped them.
             target: int | None = None
-            target_y: int = -1
+            target_y: int = -10**9
             for i, (rx, ry) in enumerate(self._raiders):
                 if rx == firing_col and ry < self._TURRET_Y and ry > target_y:
                     target = i
@@ -130,11 +138,12 @@ class MiniAtlantisEnv(MiniatariBase):
         if self._tick_count % self._RAIDER_MOVE_EVERY == 0:
             for r in self._raiders:
                 r[1] += 1
-            # Check city breach
+            # Check city breach. Use += so we never overwrite a wave-clear
+            # bonus (+1/3) earned earlier the same tick.
             for r in self._raiders:
                 if r[1] >= self._CITY_Y:
                     self._message = "Raider reached the city!"
-                    reward = self._death_reward()
+                    reward += self._death_reward()
                     self._on_life_lost()
                     return reward, True, info
 
@@ -191,12 +200,14 @@ class MiniAtlantisEnv(MiniatariBase):
         return (
             "Mini Atlantis on a 16x8 grid. Three stationary turrets (T) "
             "sit at row 6 in columns 3, 8, 13, defending the city (█) at "
-            "row 7. Raiders (R) spawn in a wave of 5 at row 0 and march "
-            "down one row every 2 ticks. Each tick you choose LEFT, CENTER, "
-            "or RIGHT to fire that turret straight up its column, "
-            "destroying the lowest raider in that column instantly. NOOP "
-            "skips the tick. After all 5 raiders in a wave die, the next "
-            "wave spawns. Repel 3 waves to win. If any raider reaches the "
-            "city row, you take a -1 terminal penalty. Reward: +1/3 per "
-            "wave cleared, -1 on city breach."
+            "row 7. Each wave spawns 5 raiders sharing the 3 turret "
+            "columns; raiders that share a column are staggered above the "
+            "visible field (off-screen but still hittable) and march down "
+            "one row every 2 ticks until they enter view. Each tick you "
+            "choose LEFT, CENTER, or RIGHT to fire that turret straight "
+            "up its column, killing the lowest raider currently in that "
+            "column. NOOP skips the tick. After all 5 raiders in a wave "
+            "die, the next wave spawns. Repel 3 waves to win. If any "
+            "raider reaches the city row, you take a -1 terminal "
+            "penalty. Reward: +1/3 per wave cleared, -1 on city breach."
         )

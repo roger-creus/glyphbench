@@ -92,6 +92,7 @@ class MiniDoubleDunkEnv(MiniatariBase):
     def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
         reward = 0.0
         info: dict[str, Any] = {}
+        agent_scored_this_tick = False
 
         # Player movement
         nx, ny = self._player_x, self._player_y
@@ -116,6 +117,7 @@ class MiniDoubleDunkEnv(MiniatariBase):
             if self.rng.random() < p:
                 reward += self._agent_score_reward(self._WIN_TARGET)
                 self._agent_score += 1
+                agent_scored_this_tick = True
                 self._message = "Basket! +1/4"
                 if self._agent_score >= self._WIN_TARGET:
                     self._on_won()
@@ -133,7 +135,9 @@ class MiniDoubleDunkEnv(MiniatariBase):
                     self._message = "Stolen!"
 
         # Opponent AI: when in possession, drive toward bottom hoop and shoot
-        if not self._game_over:
+        # Skip opp's shot block if agent just scored this tick (one-tick gap on
+        # possession reset prevents same-tick agent-make + opp-make).
+        if not self._game_over and not agent_scored_this_tick:
             if self._possession == "opp":
                 # Move toward bottom hoop
                 if self.rng.random() < 0.6:

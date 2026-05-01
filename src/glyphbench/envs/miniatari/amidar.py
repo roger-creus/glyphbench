@@ -20,10 +20,10 @@ from glyphbench.envs.miniatari.base import MiniatariBase
 
 
 class MiniAmidarEnv(MiniatariBase):
-    """Mini Amidar: 12x10 grid, walk a 4x4 rectangle perimeter.
+    """Mini Amidar: 12x10 grid, walk a 3x4 rectangle perimeter.
 
-    The painting rectangle is at columns 3..6, rows 3..6 — 12 perimeter
-    cells (4 corners + 8 edge cells). Paint each by stepping onto it.
+    The painting rectangle is at columns 3..5, rows 3..6 — 10 perimeter
+    cells (4 corners + 6 edge cells). Paint each by stepping onto it.
     A patrol enemy (e) traverses the perimeter clockwise 1 cell every
     3 ticks. Pattern D: +1/10 per painted cell, -1 on catch.
     """

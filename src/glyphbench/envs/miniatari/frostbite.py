@@ -122,7 +122,7 @@ class MiniFrostbiteEnv(MiniatariBase):
         if py == 0:
             # Solid shore at top — safe
             pass
-        else:
+        elif py in self._FLOE_ROWS:
             li = self._on_floe(self._player_x, self._player_y)
             if li is None:
                 # Fell into water — game over (no penalty per Pattern A)
@@ -139,6 +139,7 @@ class MiniFrostbiteEnv(MiniatariBase):
                     if self._progress >= self._WIN_TARGET:
                         self._on_won()
                         return reward, self._game_over, info
+        # Gap rows (1, 3, 5, 7, 9) are safe to stand on — no death, no reward.
 
         info["progress"] = self._progress
         return reward, self._game_over, info

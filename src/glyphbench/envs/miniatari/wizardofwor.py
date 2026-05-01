@@ -25,8 +25,9 @@ def _sign(a: int, b: int) -> int:
 class MiniWizardOfWorEnv(MiniatariBase):
     """Mini Wizard of Wor: 14x10 dungeon with central pillars; 5 monsters.
 
-    The dungeon is bordered by walls (█); a 2x3 block of pillars in the
-    center forces routing. Player (Y, arrow) starts at the bottom-center.
+    The dungeon is bordered by walls (█); a 4x2 block of pillars in the
+    center (cols 5-8, rows 4-5) forces routing. Player (Y, arrow) starts
+    at the bottom-center.
     5 monsters (m) start at scattered open cells. Monsters step 1 cell
     every 3 ticks toward the player on the dominant axis (skipped if
     blocked). FIRE shoots up to 5 cells in facing direction; first monster
@@ -221,7 +222,7 @@ class MiniWizardOfWorEnv(MiniatariBase):
     def _task_description(self) -> str:
         return (
             "Mini Wizard of Wor on a 14x10 dungeon with border walls and a "
-            "2x4 central pillar block (cols 5-8, rows 4-5). You (arrow "
+            "4x2 central pillar block (cols 5-8, rows 4-5). You (arrow "
             "shows facing) start at the bottom-center. 5 monsters (m) sit "
             "at scattered open cells. Monsters step 1 cell every 3 ticks "
             "toward you on the dominant axis (skipping into walls). "

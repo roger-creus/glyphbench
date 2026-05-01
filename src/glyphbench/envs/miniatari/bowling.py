@@ -22,19 +22,15 @@ from glyphbench.envs.miniatari.base import MiniatariBase
 class MiniBowlingEnv(MiniatariBase):
     """Mini Bowling: 12-wide x 10-tall side-view lane, 2 frames.
 
-    The bowler sits at row 8. The lane runs from row 1 (pins) to row 8
-    (bowler). Pins occupy 4 columns, in a zigzag triangle shape, at
-    rows 1-3. UP/DOWN moves the bowler vertically (changing aim row);
-    actually we keep the bowler at the foul line and use UP/DOWN as
-    targeting the y-spin of the ball; see implementation.
-
-    Simpler design: the bowler can move LEFT/RIGHT along the foul line
-    (row 8). FIRE rolls a ball straight up the bowler's column. Pin
-    interactions: the ball hits any pin in its column and "domino" the
-    pin against horizontally adjacent pins (one cell each side).
-    Knocked pins are removed; reward = +1/_TOTAL_PINS each. After all
-    10 pins of a frame fall (or 4 rolls in the frame), reset to a fresh
-    pinset for frame 2.
+    The bowler sits at row 8. Pins occupy a tight triangle in rows 1..4
+    spanning columns 3..6, with adjacent columns so the single-hop
+    horizontal cascade can chain across the rack. The bowler moves
+    LEFT/RIGHT along the foul line. FIRE rolls a ball straight up the
+    bowler's column. Pin interactions: the ball hits any pin in its
+    column and "dominoes" each knocked pin against its horizontally
+    adjacent pins (one cell each side). Knocked pins are removed;
+    reward = +1/_TOTAL_PINS per pin. After all 10 pins of a frame fall
+    (or 4 rolls in the frame), reset to a fresh pinset for frame 2.
     """
 
     action_spec = ActionSpec(
@@ -57,13 +53,15 @@ class MiniBowlingEnv(MiniatariBase):
     _TOTAL_PINS = 20
     _MAX_ROLLS_PER_FRAME = 4
 
-    # Pin layout: classic triangle shape in cols 4..8 within rows 1..4
-    # Using a compact layout in 12-wide grid.
+    # Pin layout: tight triangle in cols 3..6 within rows 1..4. Adjacent
+    # columns let the single-hop horizontal cascade chain across the rack
+    # so reaching the 20-pin (2-frame) target with 4 rolls/frame is
+    # mechanically possible.
     _PIN_LAYOUT: tuple[tuple[int, int], ...] = (
-        (5, 1),                         # apex
-        (4, 2), (6, 2),                 # second row
-        (3, 3), (5, 3), (7, 3),         # third row
-        (2, 4), (4, 4), (6, 4), (8, 4)  # fourth row
+        (5, 1),                                  # apex (1)
+        (4, 2), (5, 2),                          # row 2 (2)
+        (4, 3), (5, 3), (6, 3),                  # row 3 (3)
+        (3, 4), (4, 4), (5, 4), (6, 4),          # row 4 (4)
     )
 
     def __init__(self, max_turns: int | None = None) -> None:
@@ -198,12 +196,15 @@ class MiniBowlingEnv(MiniatariBase):
     def _task_description(self) -> str:
         return (
             "Mini Bowling: 12x10 lane, 2 frames of 10 pins each. Pins (P) "
-            "are arranged in a 4-row triangle in rows 1-4, columns 2..8. "
-            "Your bowler (Y) stands at row 8 (foul line). LEFT/RIGHT slides "
-            "you along the foul line. FIRE rolls a ball straight up your "
-            "current column: any pin in that column is knocked, plus one "
-            "horizontally-adjacent pin per knocked pin (single-hop "
-            "cascade). A frame ends after all pins fall or after 4 rolls; "
-            "frame 2 spawns a fresh set. Knock down all 20 pins across "
-            "the 2 frames to win. Reward: +1/20 per pin knocked."
+            "are racked in a tight 4-row triangle (1-2-3-4) in rows 1..4 "
+            "across columns 3..6. Your bowler (Y) stands at row 8 (foul "
+            "line). LEFT/RIGHT slides you along the foul line. FIRE rolls "
+            "a ball straight up your current column: any pin in that "
+            "column is knocked, plus each horizontally-adjacent pin per "
+            "knocked pin (single-hop cascade). Because adjacent columns "
+            "are populated, a single roll down the centre can topple most "
+            "of the rack via the cascade. A frame ends after all pins "
+            "fall or after 4 rolls; frame 2 spawns a fresh set. Knock "
+            "down all 20 pins across the 2 frames to win. Reward: +1/20 "
+            "per pin knocked."
         )

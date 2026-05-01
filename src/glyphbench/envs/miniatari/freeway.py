@@ -1,6 +1,6 @@
 """miniatari Freeway.
 
-Identity: Cross a 4-lane highway dodging cars; chicken crosses the road.
+Identity: Cross a 3-lane highway dodging cars; chicken crosses the road.
 Win condition: agent reaches the top side of the road 4 times.
 Reward: Pattern A, +1/4 per successful crossing.
 Loss: time runs out (no -1 on car collision; collision just bumps you back).
@@ -20,7 +20,7 @@ from glyphbench.envs.miniatari.base import MiniatariBase
 
 
 class MiniFreewayEnv(MiniatariBase):
-    """Mini Freeway: 14x10 grid, 4 lanes of moving cars.
+    """Mini Freeway: 14x10 grid, 3 lanes of moving cars.
 
     Agent (chicken) starts at the bottom edge (y=9) and must reach the top
     edge (y=0). Each crossing teleports the chicken back to the bottom.

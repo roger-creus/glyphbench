@@ -47,7 +47,6 @@ class MiniZaxxonEnv(MiniatariBase):
     _WIN_TARGET = _N_TURRETS
     _PLAYER_X = 1
     _TURRET_FIRE_EVERY = 5
-    _TORPEDO_RANGE = 14
 
     def __init__(self, max_turns: int | None = None) -> None:
         super().__init__(max_turns=max_turns)

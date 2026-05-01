@@ -23,10 +23,14 @@ class MiniSpaceInvadersEnv(MiniatariBase):
     """Mini Space Invaders: 14x12 grid, single 8-invader wave.
 
     Cannon at the bottom row (y=11). Invaders form a 2x4 block
-    starting at top-left, sweeping right→left→down. Bullet travels
-    instantly up the column when FIRE is pressed (first invader in
-    column dies). Invaders advance one row every K ticks. Game ends
-    when invaders reach the cannon row (-1) or all are destroyed (+1).
+    starting at top-left, sweeping right→left→down. FIRE launches a
+    travelling bullet (|) from the cannon row up the cannon's column.
+    The bullet rises one row per tick and explodes on the first
+    invader it reaches; only one bullet is in flight at a time. The
+    wave advances one row every _ADVANCE_EVERY ticks AND drops one
+    row each time it bounces off a wall (every _SWEEP_EVERY ticks).
+    Game ends when invaders reach the cannon row (-1) or all are
+    destroyed (+1).
     """
 
     action_spec = ActionSpec(
@@ -47,8 +51,14 @@ class MiniSpaceInvadersEnv(MiniatariBase):
     _CANNON_Y = 11
     _INVADER_ROWS = 2
     _INVADER_COLS = 4
-    _ADVANCE_EVERY = 8  # ticks per invader-row drop
-    _SWEEP_EVERY = 2    # ticks per invader-column shift
+    # Slowed down so a real travelling bullet has time to traverse the
+    # column between FIRE and impact (each kill takes up to ~9 ticks of
+    # bullet flight). With the previous 8/2 the wave reached the cannon
+    # at tick 48 — faster than 8 sequential bullets could clear. Tuned
+    # so under pure NOOP the wave breaks the cannon row at ~140 ticks,
+    # giving an active player time to clear all 8 invaders.
+    _ADVANCE_EVERY = 24  # ticks per invader-row drop
+    _SWEEP_EVERY = 5     # ticks per invader-column shift (also drives bounce-induced drops)
 
     def __init__(self, max_turns: int | None = None) -> None:
         super().__init__(max_turns=max_turns)
@@ -58,6 +68,9 @@ class MiniSpaceInvadersEnv(MiniatariBase):
         self._wave_y: int = 0
         self._tick_count: int = 0
         self._progress: int = 0
+        # In-flight bullet, (x, y) or None. At most one bullet is in
+        # flight; FIRE is ignored while a bullet is travelling.
+        self._bullet: tuple[int, int] | None = None
 
     def env_id(self) -> str:
         return "glyphbench/miniatari-spaceinvaders-v0"
@@ -69,6 +82,7 @@ class MiniSpaceInvadersEnv(MiniatariBase):
         self._sweep_dir = 1
         self._wave_x = 1
         self._wave_y = 1
+        self._bullet = None
         # 2x4 grid of invaders, spaced 2 cells apart horizontally
         self._invaders = set()
         for r in range(self._INVADER_ROWS):
@@ -102,27 +116,39 @@ class MiniSpaceInvadersEnv(MiniatariBase):
             self._player_x += 1
             self._player_dir = (1, 0)
 
-        # 2. Fire bullet (instantaneous column-shot)
-        if action_name == "FIRE":
-            # Find lowest invader in player's column
-            col_x = self._player_x
-            target: tuple[int, int] | None = None
-            for ix, iy in self._invaders:
-                ax = self._wave_x + ix
-                ay = self._wave_y + iy
-                if ax == col_x and 0 <= ay < self._CANNON_Y:
-                    if target is None or ay > self._wave_y + target[1]:
-                        target = (ix, iy)
-            if target is not None:
-                self._invaders.discard(target)
+        # 2. FIRE: launch a bullet if no bullet is in flight. The bullet
+        # spawns one row above the cannon and travels up at 1 row/tick.
+        if action_name == "FIRE" and self._bullet is None:
+            self._bullet = (self._player_x, self._CANNON_Y - 1)
+
+        # 3. Bullet flight and impact. Resolve at the bullet's current
+        # cell first (so a bullet that lands on an invader cell this
+        # tick scores a hit), then advance.
+        if self._bullet is not None:
+            bx, by = self._bullet
+            invader_cells = self._abs_invader_cells()
+            if (bx, by) in invader_cells:
+                # Find the invader at (bx, by) and remove it.
+                for ix, iy in list(self._invaders):
+                    if self._wave_x + ix == bx and self._wave_y + iy == by:
+                        self._invaders.discard((ix, iy))
+                        break
+                self._bullet = None
                 reward += self._progress_reward(self._WIN_TARGET)
                 self._progress += 1
                 self._message = f"Hit! ({self._progress}/{self._WIN_TARGET})"
                 if self._progress >= self._WIN_TARGET:
                     self._on_won()
                     return reward, self._game_over, info
+            else:
+                # Advance bullet one row up.
+                ny = by - 1
+                if ny < 0:
+                    self._bullet = None
+                else:
+                    self._bullet = (bx, ny)
 
-        # 3. Wave sweeps every _SWEEP_EVERY ticks
+        # 4. Wave sweeps every _SWEEP_EVERY ticks
         if self._tick_count % self._SWEEP_EVERY == 0 and self._invaders:
             xs = [self._wave_x + ix for ix, _iy in self._invaders]
             min_x, max_x = min(xs), max(xs)
@@ -136,17 +162,19 @@ class MiniSpaceInvadersEnv(MiniatariBase):
             else:
                 self._wave_x = new_wave_x
 
-        # 4. Wave drops every _ADVANCE_EVERY ticks (regardless of bounce)
+        # 5. Wave drops every _ADVANCE_EVERY ticks (regardless of bounce)
         if self._tick_count % self._ADVANCE_EVERY == 0 and self._invaders:
             self._wave_y += 1
 
-        # 5. Reach cannon row?
+        # 6. Reach cannon row?
         if self._invaders:
             ys = [self._wave_y + iy for _ix, iy in self._invaders]
             max_y = max(ys)
             if max_y >= self._CANNON_Y:
                 self._message = "Invaders reached the cannon row!"
-                reward = self._death_reward()
+                # Use += so any kill bonus earned earlier this tick is
+                # preserved alongside the death penalty.
+                reward += self._death_reward()
                 self._on_life_lost()
                 return reward, True, info
 
@@ -166,6 +194,11 @@ class MiniSpaceInvadersEnv(MiniatariBase):
             ax, ay = self._wave_x + ix, self._wave_y + iy
             if 0 <= ax < self._WIDTH and 0 <= ay < self._HEIGHT:
                 grid[ay][ax] = "M"
+        # Bullet (drawn before cannon so cannon never gets overdrawn)
+        if self._bullet is not None:
+            bx, by = self._bullet
+            if 0 <= bx < self._WIDTH and 0 <= by < self._HEIGHT:
+                grid[by][bx] = "|"
         # Cannon
         if 0 <= self._player_x < self._WIDTH and 0 <= self._player_y < self._HEIGHT:
             grid[self._player_y][self._player_x] = "Y"
@@ -174,14 +207,18 @@ class MiniSpaceInvadersEnv(MiniatariBase):
             " ": "empty space",
             "_": "cannon row (defense line)",
             "M": "invader",
+            "|": "your bullet",
             "Y": "your cannon",
         }
 
+        bullet_str = (
+            f"({self._bullet[0]},{self._bullet[1]})" if self._bullet else "none"
+        )
         hud = (
             f"Step: {self._turn} / {self.max_turns}    "
             f"Killed: {self._progress}/{self._WIN_TARGET}    "
             f"Score: {self._score:.3f}\n"
-            f"Cannon x={self._player_x}    "
+            f"Cannon x={self._player_x}    Bullet: {bullet_str}    "
             f"Wave shift=({self._wave_x},{self._wave_y}) sweep_dir={self._sweep_dir:+d}"
         )
 
@@ -196,10 +233,14 @@ class MiniSpaceInvadersEnv(MiniatariBase):
         return (
             "Mini Space Invaders on a 14x12 grid. A 2x4 wave of 8 invaders "
             "(M) sweeps left/right, dropping one row when it reaches an "
-            "edge AND every 8 ticks regardless. Your cannon (Y) sits on "
-            "the bottom row. LEFT/RIGHT slides the cannon. FIRE destroys "
-            "the lowest invader in your current column instantly. Clear "
-            "all 8 invaders to win. If any invader reaches the cannon row "
-            "you take a -1 terminal penalty. Reward: +1/8 per kill, -1 if "
+            f"edge (every {self._SWEEP_EVERY} ticks) AND every "
+            f"{self._ADVANCE_EVERY} ticks regardless. Your cannon (Y) "
+            "sits on the bottom row. LEFT/RIGHT slides the cannon. FIRE "
+            "launches a bullet (|) from the cannon's column; the bullet "
+            "rises one row per tick and explodes on the first invader "
+            "it touches. Only one bullet may be in flight at a time — "
+            "FIRE is ignored while a bullet is travelling. Clear all 8 "
+            "invaders to win. If any invader reaches the cannon row you "
+            "take a -1 terminal penalty. Reward: +1/8 per kill, -1 if "
             "the wave breaks through."
         )
