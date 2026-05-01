@@ -30,7 +30,8 @@ class BerzerkEnv(AtariBase):
 
     Actions: NOOP, FIRE, UP, RIGHT, LEFT, DOWN,
              UP_FIRE, DOWN_FIRE, LEFT_FIRE, RIGHT_FIRE
-    Reward: +1 per robot destroyed, -1 per damage taken.
+    Pattern D: +1/_WIN_TARGET per robot destroyed (full-scope = 5
+    rooms x 6 robots = 30), -1.0 on damage (single-life model).
     Level clears when all robots dead or agent exits through door.
     """
 
@@ -53,14 +54,23 @@ class BerzerkEnv(AtariBase):
         ),
     )
 
+    # Pattern D full-scope target: 30 robots destroyed (5 rooms x 6).
+    _WIN_TARGET: int = 30
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._facing: tuple[int, int] = (1, 0)
         self._robots_killed: int = 0
         self._total_robots: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-berzerk-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _task_description(self) -> str:
         return (
@@ -227,13 +237,10 @@ class BerzerkEnv(AtariBase):
             if not self._is_solid(nx, ny):
                 self._player_x, self._player_y = nx, ny
 
-        # Check if player touched a wall (electrocution)
+        # Check if player touched a wall (Pattern D death penalty)
         if self._is_solid(self._player_x, self._player_y):
             self._on_life_lost()
-            reward -= 1.0
-            if not self._game_over:
-                self._player_x = 2
-                self._player_y = _H - 3
+            reward = self._DEATH_PENALTY
             return reward, self._game_over, info
 
         # Fire bullet
@@ -311,19 +318,15 @@ class BerzerkEnv(AtariBase):
                         rb.dy = ddy
                         rb.data["owner"] = "robot"
 
-        # Check bullet-robot collisions
+        # Check bullet-robot collisions (Pattern D death penalty for player hits)
         for b in self._entities:
             if b.etype != "bullet" or not b.alive:
                 continue
             if b.data.get("owner") == "robot":
-                # Robot bullets hit player
                 if b.x == self._player_x and b.y == self._player_y:
                     b.alive = False
                     self._on_life_lost()
-                    reward -= 1.0
-                    if not self._game_over:
-                        self._player_x = 2
-                        self._player_y = _H - 3
+                    reward = self._DEATH_PENALTY
                 continue
             # Player bullets hit robots
             for r in self._entities:
@@ -334,24 +337,29 @@ class BerzerkEnv(AtariBase):
                     r.alive = False
                     self._robots_killed += 1
                     self._on_point_scored(1)
-                    reward += 1.0
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
 
-        # Check robot-player collision
+        # Check robot-player collision (Pattern D death penalty)
         for e in self._entities:
             if e.etype == "robot" and e.alive and e.x == self._player_x and e.y == self._player_y:
-                    self._on_life_lost()
-                    reward -= 1.0
-                    if not self._game_over:
-                        self._player_x = 2
-                        self._player_y = _H - 3
-                    break
+                self._on_life_lost()
+                reward = self._DEATH_PENALTY
+                break
 
         # Clean dead entities
         self._entities = [e for e in self._entities if e.alive]
 
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All rooms cleared!"
+
         # Check if all robots are dead
         robots_alive = sum(1 for e in self._entities if e.etype == "robot" and e.alive)
-        if robots_alive == 0 and self._total_robots > 0:
+        if robots_alive == 0 and self._total_robots > 0 and not self._game_over:
             self._message = "All robots destroyed!"
             self._level += 1
             self._generate_level(self._level * 7919)
