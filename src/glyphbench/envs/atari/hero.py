@@ -21,7 +21,8 @@ class HeroEnv(AtariBase):
 
     Grid: 20x16.
     Actions: NOOP, FIRE, UP, RIGHT, LEFT, DOWN
-    Reward: +1 per wall cleared, +1 per bat zapped, +10 per survivor rescued
+    Pattern A: +1/_WIN_TARGET per survivor rescued. -1 on death
+    (lava / bat). Full-scope = 5 caves.
     """
 
     action_spec = ActionSpec(
@@ -40,6 +41,10 @@ class HeroEnv(AtariBase):
     _HEIGHT = 16
     _MAX_DYNAMITE = 6
 
+    # Pattern A full-scope target: 5 caves cleared (survivors rescued).
+    _WIN_TARGET: int = 5
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._dynamite: int = self._MAX_DYNAMITE
@@ -47,9 +52,14 @@ class HeroEnv(AtariBase):
         self._lava: set[tuple[int, int]] = set()
         self._survivor_pos: tuple[int, int] = (0, 0)
         self._survivor_alive: bool = True
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-hero-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -150,32 +160,37 @@ class HeroEnv(AtariBase):
                 self._player_x = new_x
                 self._player_y = new_y
 
-        # Check lava
+        # Check lava (Pattern A death penalty)
         if (self._player_x, self._player_y) in self._lava:
             self._on_life_lost()
-            self._message = "Lava! Lost a life."
-            self._player_x = self._WIDTH // 2
-            self._player_y = 1
+            reward = self._DEATH_PENALTY
+            self._message = "Lava!"
 
-        # Check enemy collision
+        # Check enemy collision (Pattern A death penalty)
         for e in self._entities:
             if e.alive and e.etype == "bat" and e.x == self._player_x and e.y == self._player_y:
                 self._on_life_lost()
-                self._message = "Hit by bat! Lost a life."
-                self._player_x = self._WIDTH // 2
-                self._player_y = 1
+                reward = self._DEATH_PENALTY
+                self._message = "Hit by bat!"
                 e.alive = False
 
         # Check survivor rescue
-        if self._survivor_alive:
+        if self._survivor_alive and not self._game_over:
             sx, sy = self._survivor_pos
             if self._player_x == sx and self._player_y == sy:
                 self._survivor_alive = False
-                self._on_point_scored(10)
-                reward += 10
-                self._message = "Survivor rescued! +10"
-                self._level += 1
-                self._generate_level(self._level + seed_offset(self._level))
+                self._on_point_scored(0)
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Survivor rescued!"
+                if self._progress_count >= self._WIN_TARGET:
+                    self._game_over = True
+                    info["won"] = True
+                    self._message = "All caves cleared!"
+                else:
+                    self._level += 1
+                    self._generate_level(self._level + seed_offset(self._level))
 
         # Move enemies
         for e in self._entities:
@@ -198,8 +213,8 @@ class HeroEnv(AtariBase):
         return reward, self._game_over, info
 
     def _use_fire(self) -> float:
-        """Fire laser at adjacent walls or place dynamite."""
-        reward = 0.0
+        """Fire laser at adjacent walls or place dynamite. No reward
+        emitted; the only Pattern A progress is survivor rescue."""
         # Check all 4 adjacent cells for destructible walls
         for ddx, ddy in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             tx = self._player_x + ddx
@@ -209,9 +224,7 @@ class HeroEnv(AtariBase):
                     self._walls.discard((tx, ty))
                     self._set_cell(tx, ty, " ")
                     self._dynamite -= 1
-                    self._on_point_scored(1)
-                    reward += 1
-                    self._message = f"Wall cleared! +1 (dynamite: {self._dynamite})"
+                    self._message = f"Wall cleared! (dynamite: {self._dynamite})"
                 else:
                     self._message = "No dynamite left!"
                 break
@@ -225,12 +238,10 @@ class HeroEnv(AtariBase):
                 and abs(e.y - self._player_y) <= 1
             ):
                 e.alive = False
-                self._on_point_scored(1)
-                reward += 1
-                self._message = "Bat zapped! +1"
+                self._message = "Bat zapped!"
                 break
 
-        return reward
+        return 0.0
 
     def _redraw_enemies(self) -> None:
         """Clear and redraw enemy positions."""
@@ -297,13 +308,14 @@ class HeroEnv(AtariBase):
             "you have dynamite, it blows the wall (uses 1 of 6 "
             "dynamites) and also zaps any adjacent bat.\n\n"
             "SCORING\n"
-            "+1 reward per destructible wall cleared with dynamite. "
-            "+1 reward per bat zapped with the laser/dynamite "
-            "blast. +10 reward for rescuing the survivor.\n\n"
+            "+1/5 reward per survivor rescued (Pattern A full-scope "
+            "= 5 caves). Wall clearing and bat zapping yield no "
+            "direct reward (only useful as means to reach the "
+            "survivor). -1.0 on death (lava or bat).\n\n"
             "TERMINATION\n"
-            ". Stepping on lava or touching a bat costs a "
-            "life and respawns you at the top. Episode ends at 0 "
-            "lives or after max_turns.\n\n"
+            "Stepping on lava or touching a bat ends the episode "
+            "with -1.0. Episode ends after 5 caves cleared "
+            "(cumulative reward plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, dynamite remaining, and "
             "survivor status.\n\n"

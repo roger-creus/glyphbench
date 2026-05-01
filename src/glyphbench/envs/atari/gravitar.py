@@ -24,7 +24,8 @@ class GravitarEnv(AtariBase):
     collect fuel. Multiple planets to clear.
 
     Actions: NOOP, LEFT, RIGHT, THRUST, FIRE
-    Reward: +2 per enemy, +1 per fuel pickup
+    Pattern A: +1/_WIN_TARGET per enemy/fuel pickup combined to a
+    single progress unit. Full-scope = 12 (4 planets x 3 fights).
 
     """
 
@@ -45,6 +46,9 @@ class GravitarEnv(AtariBase):
         (0, 1), (-1, 1), (-1, 0), (-1, -1),
     )
 
+    # Pattern A full-scope target: 12 (4 planets x 3 enemies).
+    _WIN_TARGET: int = 12
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._facing = 0
@@ -57,9 +61,14 @@ class GravitarEnv(AtariBase):
         self._step_counter = 0
         self._gravity_timer = 0
         self._planet = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-gravitar-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _respawn(self) -> None:
         self._player_x = self._WIDTH // 2
@@ -93,8 +102,8 @@ class GravitarEnv(AtariBase):
             for y in range(ty, self._HEIGHT - 1):
                 self._terrain.add((x, y))
                 self._set_cell(x, y, "=")
-        # Enemies on terrain surface
-        for _ in range(min(3 + self._level, 8)):
+        # Enemies on terrain surface (3 per planet)
+        for _ in range(3):
             for _ in range(20):
                 ex = int(rng.integers(2, self._WIDTH - 2))
                 ey = base_y - 1
@@ -161,7 +170,6 @@ class GravitarEnv(AtariBase):
                     and (self._player_x, gy) not in self._terrain):
                 self._player_y = gy
             elif (self._player_x, gy) in self._terrain:
-                self._on_life_lost()
                 self._message = "Crashed into surface!"
                 self._respawn()
         # Fire
@@ -196,8 +204,10 @@ class GravitarEnv(AtariBase):
                     e.alive = False
                     b.alive = False
                     self._on_point_scored(2)
-                    reward += 2
-                    self._message = "Enemy down! +2"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Enemy down!"
                     break
         # Fuel pickup
         for fp in self._fuel_pickups:
@@ -206,8 +216,7 @@ class GravitarEnv(AtariBase):
                 fp.alive = False
                 self._fuel = min(self._MAX_FUEL, self._fuel + 40)
                 self._on_point_scored(1)
-                reward += 1
-                self._message = "Fuel +40! +1pt"
+                self._message = "Fuel +40!"
         # Enemy fire
         for e in self._enemies:
             if not e.alive:
@@ -245,16 +254,19 @@ class GravitarEnv(AtariBase):
             elif (eb.x == self._player_x
                   and eb.y == self._player_y):
                 eb.alive = False
-                self._on_life_lost()
                 self._message = "Hit by enemy fire!"
                 self._respawn()
-        # Out of fuel
+        # Out of fuel (no penalty per spec; just respawn)
         if self._fuel <= 0:
-            self._on_life_lost()
             self._message = "Out of fuel!"
             self._respawn()
-        # Level clear
-        if not any(e.alive for e in self._enemies):
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All planets cleared!"
+        # Level clear (only if not won yet)
+        elif not any(e.alive for e in self._enemies):
             self._level += 1
             self._planet += 1
             self._message = f"Planet {self._planet} cleared!"
@@ -349,15 +361,16 @@ class GravitarEnv(AtariBase):
             "FIRE launches a bullet (max 3 alive, TTL 10). Enemies "
             "fire at you every 12 steps along the dominant axis.\n\n"
             "SCORING\n"
-            "+2 reward per enemy destroyed. +1 reward per fuel "
-            "pickup (also restores 40 fuel, capped at 120). No "
-            "per-step penalty; fuel decreases only when thrusting.\n\n"
+            "+1/12 reward per enemy destroyed (Pattern A full-scope "
+            "= 4 planets x 3 enemies). Fuel pickups restore 40 fuel "
+            "(no reward). No per-step penalty; fuel decreases only "
+            "when thrusting.\n\n"
             "TERMINATION\n"
-            ". Crashing into terrain, being hit by an "
-            "enemy bullet, or running out of fuel each cost a life "
-            "and respawn you near the top. Clearing all enemies "
-            "advances level + planet. Episode ends at 0 lives or "
-            "after max_turns.\n\n"
+            "Crashing into terrain, being hit by an enemy bullet, "
+            "or running out of fuel only respawns you near the top "
+            "(no penalty). Clearing all enemies advances level + "
+            "planet. Episode ends after 12 enemies destroyed "
+            "(cumulative reward plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, fuel remaining, and ship "
             "facing direction.\n\n"
