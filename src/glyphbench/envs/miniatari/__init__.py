@@ -21,6 +21,7 @@ from glyphbench.envs.miniatari.freeway import MiniFreewayEnv
 from glyphbench.envs.miniatari.frostbite import MiniFrostbiteEnv
 from glyphbench.envs.miniatari.icehockey import MiniIceHockeyEnv
 from glyphbench.envs.miniatari.pong import MiniPongEnv
+from glyphbench.envs.miniatari.skiing import MiniSkiingEnv
 from glyphbench.envs.miniatari.spaceinvaders import MiniSpaceInvadersEnv
 from glyphbench.envs.miniatari.surround import MiniSurroundEnv
 from glyphbench.envs.miniatari.tennis import MiniTennisEnv
@@ -41,6 +42,7 @@ REGISTRY: dict = {
     "glyphbench/miniatari-centipede-v0": MiniCentipedeEnv,
     "glyphbench/miniatari-demonattack-v0": MiniDemonAttackEnv,
     "glyphbench/miniatari-enduro-v0": MiniEnduroEnv,
+    "glyphbench/miniatari-skiing-v0": MiniSkiingEnv,
 }
 
 for env_id, cls in REGISTRY.items():
