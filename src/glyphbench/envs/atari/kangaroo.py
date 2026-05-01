@@ -24,6 +24,9 @@ class KangarooEnv(AtariBase):
 
     Grid: 20 wide x 20 tall.
     Gravity: agent falls if no platform below.
+    Pattern A: +1/_WIN_TARGET per fruit picked or baby rescued
+    (full-scope = 4 levels x 5 progress markers = 20). -1.0 on
+    death (monkey collision).
     """
 
     action_spec = ActionSpec(
@@ -41,15 +44,24 @@ class KangarooEnv(AtariBase):
     _WIDTH = 20
     _HEIGHT = 20
 
+    # Pattern A full-scope target: 4 levels x 5 floors = 20.
+    _WIN_TARGET: int = 20
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 1000) -> None:
         super().__init__(max_turns=max_turns)
         self._lives = 1
         self._jumping: bool = False
         self._jump_vy: int = 0
         self._fruits_collected: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-kangaroo-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._jumping = False
@@ -204,7 +216,7 @@ class KangarooEnv(AtariBase):
             if below < self._HEIGHT and not self._is_platform(self._player_x, below):
                 self._player_y = below
 
-        # Punch: destroy nearby enemies
+        # Punch: destroy nearby enemies (no direct reward)
         if punch:
             for e in self._entities:
                 if (
@@ -214,9 +226,7 @@ class KangarooEnv(AtariBase):
                     and e.y == self._player_y
                 ):
                     e.alive = False
-                    self._on_point_scored(2)
-                    reward += 2
-                    self._message = "Punched monkey! +2"
+                    self._message = "Punched monkey!"
 
         # Enemy bounce
         for e in self._entities:
@@ -231,27 +241,32 @@ class KangarooEnv(AtariBase):
                 continue
             if e.x == self._player_x and e.y == self._player_y:
                 if e.etype == "enemy":
+                    # Pattern A death penalty
                     self._on_life_lost()
-                    self._player_x = 2
-                    self._player_y = self._HEIGHT - 3
-                    self._jumping = False
-                    self._jump_vy = 0
+                    reward = self._DEATH_PENALTY
                     self._message = "Hit by monkey!"
                     break
                 elif e.etype == "fruit":
                     e.alive = False
                     self._fruits_collected += 1
-                    self._on_point_scored(3)
-                    reward += 3
-                    self._message = "Fruit! +3"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Fruit!"
                 elif e.etype == "baby":
                     e.alive = False
-                    self._on_point_scored(10)
-                    reward += 10
-                    self._message = "Baby rescued! +10"
-                    # Next level
-                    self._level += 1
-                    self._generate_level(self._level)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Baby rescued!"
+                    if self._progress_count >= self._WIN_TARGET:
+                        self._game_over = True
+                        info["won"] = True
+                        self._message = "All levels complete!"
+                    else:
+                        # Next level
+                        self._level += 1
+                        self._generate_level(self._level)
 
         info["fruits"] = self._fruits_collected
 
@@ -320,14 +335,15 @@ class KangarooEnv(AtariBase):
             "a ladder, you fall 1 row per step until you land on a "
             "platform. Monkeys reverse direction at walls/platforms.\n\n"
             "SCORING\n"
-            "+2 reward per monkey punched. +3 reward per fruit "
-            "collected. +10 reward for rescuing the baby (walking "
-            "onto B). No per-step penalty.\n\n"
+            "+1/20 reward per fruit collected. +1/20 reward per "
+            "baby rescued (Pattern A full-scope = 4 levels x 5 "
+            "progress markers = 20). Punching monkeys yields no "
+            "reward. -1.0 on death (monkey collision).\n\n"
             "TERMINATION\n"
-            ". Touching a monkey (without punching) costs "
-            "a life and respawns you at (2, ground-1). Rescuing the "
-            "baby advances the level. Episode ends at 0 lives or "
-            "after max_turns.\n\n"
+            "Touching a monkey (without punching) ends the episode "
+            "with -1.0. Rescuing the baby advances the level. "
+            "Episode ends after 20 progress markers (cumulative "
+            "reward plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, jump state (airborne/"
             "grounded), and current floor index 0-4.\n\n"

@@ -34,7 +34,8 @@ class JamesBondEnv(AtariBase):
     The world scrolls left; dodge or destroy threats.
 
     Grid: 30x16.
-    Reward: +1 per obstacle, +2 per enemy, +3 per intel.
+    Pattern A: +1/_WIN_TARGET per stage cleared (full-scope = 4
+    environments). -1.0 on death.
     """
 
     action_spec = ActionSpec(
@@ -51,14 +52,23 @@ class JamesBondEnv(AtariBase):
         ),
     )
 
+    # Pattern A full-scope target: 4 mission stages.
+    _WIN_TARGET: int = 4
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._scroll_timer: int = 0
         self._spawn_timer: int = 0
         self._distance: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-jamesbond-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         rng = np.random.default_rng(
@@ -149,7 +159,7 @@ class JamesBondEnv(AtariBase):
                         if e.x < 1:
                             e.alive = False
 
-        # Bullet-enemy/obstacle collisions
+        # Bullet-enemy/obstacle collisions (no direct reward)
         for b in self._entities:
             if b.etype != "bullet" or not b.alive:
                 continue
@@ -159,9 +169,7 @@ class JamesBondEnv(AtariBase):
                 if t.etype == "enemy" and b.x == t.x and b.y == t.y:
                     b.alive = False
                     t.alive = False
-                    self._on_point_scored(2)
-                    reward += 2
-                    self._message = "Enemy destroyed! +2"
+                    self._message = "Enemy destroyed!"
                 elif (
                     t.etype == "obstacle"
                     and b.x == t.x
@@ -169,11 +177,9 @@ class JamesBondEnv(AtariBase):
                 ):
                     b.alive = False
                     t.alive = False
-                    self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Obstacle destroyed! +1"
+                    self._message = "Obstacle destroyed!"
 
-        # Player pickups
+        # Player pickups (no direct reward)
         for e in self._entities:
             if (
                 e.etype == "intel"
@@ -182,11 +188,9 @@ class JamesBondEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 e.alive = False
-                self._on_point_scored(3)
-                reward += 3
-                self._message = "Intel collected! +3"
+                self._message = "Intel collected!"
 
-        # Player-enemy/obstacle collision
+        # Player-enemy/obstacle collision (Pattern A death penalty)
         for e in self._entities:
             if not e.alive:
                 continue
@@ -196,10 +200,8 @@ class JamesBondEnv(AtariBase):
                     and e.y == self._player_y
                 ):
                     self._on_life_lost()
+                    reward = self._DEATH_PENALTY
                     self._message = f"Hit by {e.etype}!"
-                    if not self._game_over:
-                        self._player_x = 3
-                        self._player_y = _GROUND_Y - 2
                     return reward, self._game_over, info
 
         self._entities = [
@@ -228,11 +230,19 @@ class JamesBondEnv(AtariBase):
                     "intel", "i", _W - 2, oy, dx=-1,
                 )
 
-        # Level progression based on distance
+        # Level progression based on distance (Pattern A progress)
         if self._distance >= 80 + self._level * 20:
             self._level += 1
+            if self._progress_count < self._WIN_TARGET:
+                reward += 1.0 / self._WIN_TARGET
+                self._progress_count += 1
             self._message = "Mission stage complete!"
-            self._generate_level(self._level * 2999)
+            if self._progress_count >= self._WIN_TARGET:
+                self._game_over = True
+                info["won"] = True
+                self._message = "All stages complete!"
+            else:
+                self._generate_level(self._level * 2999)
 
         # Redraw ground decorations
         for x in range(0, _W, 4):
@@ -299,16 +309,16 @@ class JamesBondEnv(AtariBase):
             "steps (30 percent enemy, 40 percent obstacle, 30 percent "
             "intel).\n\n"
             "SCORING\n"
-            "+1 reward per obstacle 'X' destroyed by a bullet. +2 "
-            "reward per enemy 'E' destroyed by a bullet. +3 reward "
-            "per intel 'i' collected (walk onto it). No per-step "
-            "penalty.\n\n"
+            "+1/4 reward per mission stage cleared (Pattern A "
+            "full-scope = 4 environments). Destroying enemies / "
+            "obstacles and collecting intel yield no direct "
+            "reward, only progress toward stage completion. -1.0 "
+            "on death (collision with enemy or obstacle).\n\n"
             "TERMINATION\n"
-            ". Colliding with enemy or obstacle costs a "
-            "life and respawns you at (3, GROUND-2). Traveling "
-            "80 + 20*level distance advances to the next stage "
-            "(regenerates level). Episode ends at 0 lives or after "
-            "max_turns.\n\n"
+            "Colliding with enemy or obstacle ends the episode "
+            "with -1.0. Traveling 80 + 20*level distance advances "
+            "to the next stage. Episode ends after 4 stages cleared "
+            "(cumulative reward plateaus at +1.0) or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, and distance traveled.\n\n"
             + self.action_spec.render_for_prompt()
