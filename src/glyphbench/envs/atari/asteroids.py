@@ -22,8 +22,8 @@ class AsteroidsEnv(AtariBase):
     Screen wraps on all edges.
 
     Actions: NOOP, LEFT, RIGHT, THRUST, FIRE
-    Reward: +1 large, +2 medium, +3 small asteroid
-
+    Pattern A: +1/_WIN_TARGET per asteroid destroyed (full-scope =
+    5 waves x 5 rocks). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -44,6 +44,9 @@ class AsteroidsEnv(AtariBase):
     _FACING_CHARS = ("↑", "/", "→", "\\", "↓", "/", "←", "\\")
     _INIT_ASTEROIDS = 4
 
+    # Pattern A full-scope target: 25 rocks destroyed (5 waves x 5 rocks).
+    _WIN_TARGET: int = 25
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._facing: int = 0
@@ -52,9 +55,14 @@ class AsteroidsEnv(AtariBase):
         self._step_counter: int = 0
         self._ship_dx: int = 0
         self._ship_dy: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-asteroids-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -178,8 +186,10 @@ class AsteroidsEnv(AtariBase):
                     sz = a.data["size"]
                     pts = {3: 1, 2: 2, 1: 3}.get(sz, 1)
                     self._on_point_scored(pts)
-                    reward += pts
-                    self._message = f"Asteroid! +{pts}"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Asteroid!"
                     if sz > 1:
                         for _ in range(2):
                             rng = self.rng
@@ -219,8 +229,14 @@ class AsteroidsEnv(AtariBase):
         self._bullets = [b for b in self._bullets if b.alive]
         self._asteroids = [a for a in self._asteroids if a.alive]
 
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All asteroids cleared!"
+
         # Level clear
-        if len(self._asteroids) == 0:
+        if len(self._asteroids) == 0 and not self._game_over:
             self._level += 1
             self._message = "Level cleared!"
             self._generate_level(self._level)
