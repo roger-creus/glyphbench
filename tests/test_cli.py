@@ -323,3 +323,32 @@ def test_resolve_action_with_env_id_returns_noop_when_action_unknown():
     )
     assert action == noop_name
     assert parse_failed is True
+
+
+def test_replay_renders_failure_mode_chips():
+    """When a step's extras flag failure modes, the TUI line includes chips."""
+    from glyphbench.cli import _render_turn_line
+
+    line = _render_turn_line(
+        turn=4,
+        grid="A",
+        action_chosen="FORFEIT",
+        reward=0.0,
+        is_truncated=True,
+        memory_parse_failed=False,
+        step_role="action",
+    )
+    assert "[forfeit]" in line
+    assert "[trunc-action]" in line
+
+    line2 = _render_turn_line(
+        turn=5,
+        grid="B",
+        action_chosen="MOVE_FORWARD",
+        reward=1.0,
+        is_truncated=False,
+        memory_parse_failed=True,
+        step_role="memory",
+    )
+    assert "[mem-parse-fail]" in line2
+    assert "[trunc-memory]" not in line2

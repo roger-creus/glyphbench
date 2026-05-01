@@ -496,6 +496,51 @@ def _scale_grid(grid: str, x: int, y: int) -> str:
     return "\n".join(scaled_lines)
 
 
+def _render_turn_line(
+    *,
+    turn: int,
+    grid: str,
+    action_chosen: str,
+    reward: float,
+    is_truncated: bool,
+    memory_parse_failed: bool,
+    step_role: str,
+) -> str:
+    """Compose a single-turn display line with failure-mode chips.
+
+    Returns a short multi-line string of the form::
+
+        (turn N) [chip1] [chip2]
+        <grid>
+        chose ACTION → reward R
+
+    Chips:
+      ``[forfeit]``       — action turn parse failed; env was not stepped.
+      ``[trunc-action]``  — action completion was truncated (role="action").
+      ``[trunc-memory]``  — memory completion was truncated (role="memory").
+      ``[mem-parse-fail]``— memory turn emitted no ``<memory>`` tag.
+
+    Used both by the plain-text fallback renderer and as a testable unit
+    for the chip-presence assertions.
+    """
+    chips: list[str] = []
+    if action_chosen == "FORFEIT":
+        chips.append("[forfeit]")
+    if is_truncated and step_role == "action":
+        chips.append("[trunc-action]")
+    if is_truncated and step_role == "memory":
+        chips.append("[trunc-memory]")
+    if memory_parse_failed:
+        chips.append("[mem-parse-fail]")
+    chip_str = " ".join(chips)
+    suffix = f" {chip_str}" if chip_str else ""
+    if action_chosen == "FORFEIT":
+        action_part = "chose FORFEIT (parse failed) → reward 0"
+    else:
+        action_part = f"chose {action_chosen} → reward {reward:+.3f}"
+    return f"(turn {turn}){suffix}\n{grid}\n{action_part}"
+
+
 def _render_rollout_rich(
     rollout: dict,
     info: dict,
