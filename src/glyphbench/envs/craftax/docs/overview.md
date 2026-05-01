@@ -49,10 +49,10 @@ The full action spec has 45 named actions. Key categories:
 
 Each turn the agent receives:
 
-- **[Grid]**: ASCII art of the 11x9 viewport centered on the agent. Each cell is one Unicode codepoint.
-- **[Legend]**: per-turn glyph key (see `legend.md` for the full palette).
-- **[HUD]**: HP / Food / Drink / Energy / Mana / XP / DEX / STR / INT / Floor / Step, plus the full inventory and armor slots.
-- **[Message]**: last game message (achievement unlocks, damage events, crafting results, etc.).
+- **Grid**: ASCII art of the 11x9 viewport centered on the agent. Each cell is one Unicode codepoint.
+- **Legend**: per-turn glyph key listing every glyph visible in the current grid (see `legend.md` for the full palette).
+- **HUD**: HP / Food / Drink / Energy / Mana / XP / DEX / STR / INT / Floor / Step, plus the full inventory and armor slots.
+- **Message**: last game message (achievement unlocks, damage events, crafting results, etc.).
 
 The agent selects one action name per turn. Invalid or blocked actions are silently no-oped.
 <!-- :end -->
