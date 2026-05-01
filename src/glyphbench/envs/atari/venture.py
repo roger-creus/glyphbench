@@ -22,6 +22,8 @@ class VentureEnv(AtariBase):
     enemies and treasures. Shoot enemies and collect treasures.
 
     Grid: 20 wide x 16 tall.
+    Pattern D: +1/_WIN_TARGET per chamber treasure collected,
+    -1 on contact with a monster.
     """
 
     action_spec = ActionSpec(
@@ -40,6 +42,11 @@ class VentureEnv(AtariBase):
     _HEIGHT = 16
     _NUM_ROOMS = 4
 
+    # Pattern D full-scope: 4 chambers cleared (one treasure per
+    # room). Each yields +1/4. Death by monster terminates with -1.
+    _WIN_TARGET: int = 4
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._current_room: int = -1  # -1 = hallway
@@ -47,9 +54,16 @@ class VentureEnv(AtariBase):
         self._collected: set[int] = set()
         self._arrow_cooldown: int = 0
         self._arrow_kill_reward: float = 0
+        self._progress_count: int = 0
+        self._death_pending: bool = False
 
     def env_id(self) -> str:
         return "glyphbench/atari-venture-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        self._death_pending = False
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._lives = 1
@@ -184,21 +198,19 @@ class VentureEnv(AtariBase):
                 continue
             if e.x == self._player_x and e.y == self._player_y:
                 if e.etype == "enemy":
+                    # Single-life: monster contact ends the episode.
                     self._on_life_lost()
-                    self._message = "Hit by enemy!"
-                    if self._current_room >= 0:
-                        self._player_x = self._WIDTH // 2
-                        self._player_y = self._HEIGHT - 2
-                    else:
-                        self._player_x = self._WIDTH // 2
-                        self._player_y = self._HEIGHT // 2
-                    break
+                    self._message = "Hit by enemy! Game Over."
+                    reward = self._DEATH_PENALTY
+                    return reward, self._game_over, info
                 elif e.etype == "treasure":
                     e.alive = False
                     self._collected.add(self._current_room)
-                    self._on_point_scored(5)
-                    reward += 5
-                    self._message = "Treasure! +5"
+                    self._on_point_scored(1)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Treasure!"
                 elif e.etype == "door":
                     room_id = int(e.char) - 1
                     self._current_room = room_id
@@ -216,15 +228,14 @@ class VentureEnv(AtariBase):
             self._build_hallway()
             self._message = "Back to hallway."
 
-        # Check win (all rooms cleared)
-        if len(self._collected) >= self._NUM_ROOMS:
-            self._level += 1
-            self._collected = set()
-            self._current_room = -1
-            self._player_x = self._WIDTH // 2
-            self._player_y = self._HEIGHT // 2
-            self._build_hallway()
-            self._message = f"Level {self._level}!"
+        # Win check (all 4 chambers cleared)
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Dungeon cleared!"
 
         info["current_room"] = self._current_room
         info["collected"] = len(self._collected)
@@ -235,7 +246,7 @@ class VentureEnv(AtariBase):
         self, action: int
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super()._step(action)
-        reward += self._arrow_kill_reward
+        # Arrow kills are now reward-neutral; keep call signature.
         return obs, reward, terminated, truncated, info
 
     def _fire_arrow(self) -> None:
@@ -254,7 +265,7 @@ class VentureEnv(AtariBase):
     def _advance_entities(self) -> None:
         """Override to handle arrow-enemy collisions."""
         super()._advance_entities()
-        # Check arrow hitting enemies
+        # Check arrow hitting enemies (no reward; clearing only)
         arrows = [e for e in self._entities if e.etype == "arrow" and e.alive]
         enemies = [e for e in self._entities if e.etype == "enemy" and e.alive]
         for arrow in arrows:
@@ -262,9 +273,7 @@ class VentureEnv(AtariBase):
                 if arrow.x == enemy.x and arrow.y == enemy.y:
                     arrow.alive = False
                     enemy.alive = False
-                    self._on_point_scored(2)
-                    self._arrow_kill_reward += 2
-                    self._message = "Enemy destroyed! +2"
+                    self._message = "Enemy destroyed!"
         self._entities = [e for e in self._entities if e.alive]
 
     def _symbol_meaning(self, ch: str) -> str:
@@ -324,14 +333,14 @@ class VentureEnv(AtariBase):
             "room. Enemies patrol with simple axis movement and "
             "bounce at walls. Each room also has an internal wall.\n\n"
             "SCORING\n"
-            "+5 reward for collecting a treasure '$' (marks the "
-            "room as cleared). +2 reward per enemy killed by an "
-            "arrow. No per-step penalty.\n\n"
+            "Pattern D: +1/4 reward per chamber treasure "
+            "collected. Killing enemies emits no reward (only "
+            "clears the path). -1 reward on contact with a "
+            "monster. Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Touching an enemy costs a life and "
-            "respawns you at the room exit (if in a room) or "
-            "hallway center. Episode ends at 0 lives or after "
-            "max_turns.\n\n"
+            "Single-life: any monster contact ends with -1. "
+            "Collecting all 4 chamber treasures ends with "
+            "cumulative +1. Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, facing, and current room "
             "number (0 = hallway, 1-4 = rooms).\n\n"

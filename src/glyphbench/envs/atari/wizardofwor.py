@@ -28,7 +28,8 @@ class WizardOfWorEnv(AtariBase):
     """Wizard of Wor: shoot warrior ghosts in a maze.
 
     Actions: NOOP, FIRE, UP, RIGHT, LEFT, DOWN
-    Reward: +1 per ghost, +5 for the Wizard, -1 on hit (terminates).
+    Pattern D: +1/_WIN_TARGET per monster (ghost or wizard)
+    killed. -1 on monster contact (terminates).
     Single-life. Level clears when all enemies are dead.
     """
 
@@ -44,15 +45,25 @@ class WizardOfWorEnv(AtariBase):
         ),
     )
 
+    # Pattern D full-scope: 48 monsters (~8 dungeons × 6 monsters
+    # per dungeon). Each kill yields +1/48 reward.
+    _WIN_TARGET: int = 48
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._facing: tuple[int, int] = (1, 0)
         self._enemies_killed: int = 0
         self._total_enemies: int = 0
         self._player_bullet_cooldown: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-wizardofwor-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _task_description(self) -> str:
         return (
@@ -84,12 +95,14 @@ class WizardOfWorEnv(AtariBase):
             "every 10-25 steps to a random corridor cell and "
             "otherwise moves like a ghost.\n\n"
             "SCORING\n"
-            "+1 reward per warrior ghost shot. +5 reward for "
-            "killing the Wizard. -1 on enemy bullet hit or "
-            "enemy contact (terminates the episode — single life).\n\n"
+            "Pattern D: +1/48 reward per monster (ghost or "
+            "wizard) killed. -1 reward on contact with an enemy "
+            "bullet or monster (terminates the episode -- single "
+            "life). Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            "Single-life: any hit ends the episode. Otherwise the "
-            "episode runs until max_turns.\n\n"
+            "Single-life: any hit ends with -1. Killing 48 "
+            "monsters across dungeons ends with cumulative +1. "
+            "Otherwise the episode runs until max_turns.\n\n"
             + self.action_spec.render_for_prompt()
         )
 
@@ -231,15 +244,12 @@ class WizardOfWorEnv(AtariBase):
             if b.etype != "bullet" or not b.alive:
                 continue
             if b.data.get("owner") != "player":
-                # Enemy bullet: check player hit
+                # Enemy bullet: check player hit -- terminal failure
                 if b.x == self._player_x and b.y == self._player_y:
                     b.alive = False
                     self._on_life_lost()
-                    reward -= 1.0
-                    if not self._game_over:
-                        self._player_x = 1
-                        py_options = [2, 5, 8, 11, 13]
-                        self._player_y = py_options[-1]
+                    reward = self._DEATH_PENALTY
+                    return reward, self._game_over, info
                 continue
             for enemy in self._entities:
                 if enemy.etype not in ("ghost", "wizard") or not enemy.alive:
@@ -248,9 +258,10 @@ class WizardOfWorEnv(AtariBase):
                     b.alive = False
                     enemy.alive = False
                     self._enemies_killed += 1
-                    pts = 5 if enemy.etype == "wizard" else 1
-                    self._on_point_scored(pts)
-                    reward += float(pts)
+                    self._on_point_scored(1)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
 
         # Move ghosts (after bullet collision checks)
         for e in self._entities:
@@ -259,7 +270,7 @@ class WizardOfWorEnv(AtariBase):
             elif e.etype == "wizard" and e.alive:
                 self._move_wizard(e)
 
-        # Check enemy-player collision
+        # Check enemy-player collision -- terminal failure
         for e in self._entities:
             if (
                 e.etype in ("ghost", "wizard")
@@ -267,17 +278,14 @@ class WizardOfWorEnv(AtariBase):
                 and e.x == self._player_x
                 and e.y == self._player_y
             ):
-                    self._on_life_lost()
-                    reward -= 1.0
-                    if not self._game_over:
-                        self._player_x = 1
-                        self._player_y = 13
-                    break
+                self._on_life_lost()
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
 
         # Clean dead entities
         self._entities = [e for e in self._entities if e.alive]
 
-        # Check level complete
+        # Check level complete (no extra reward — kills already counted)
         enemies_alive = sum(
             1 for e in self._entities if e.etype in ("ghost", "wizard") and e.alive
         )
@@ -285,8 +293,19 @@ class WizardOfWorEnv(AtariBase):
         if enemies_alive == 0 and self._total_enemies > 0:
             self._message = "Level complete!"
             self._level += 1
+            saved_progress = self._progress_count
             self._generate_level(self._level * 3571)
+            self._progress_count = saved_progress
             info["level_cleared"] = True
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "All dungeons cleared!"
 
         info["enemies_alive"] = enemies_alive
         info["enemies_killed"] = self._enemies_killed

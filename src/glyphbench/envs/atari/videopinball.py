@@ -21,8 +21,8 @@ class VideoPinballEnv(AtariBase):
     Use flippers to keep ball in play.
 
     Actions: NOOP, LEFT_FLIPPER, RIGHT_FLIPPER, NUDGE
-    Reward: +1 bumper, +3 target, +5 spinner
-    Lives: 3 (lost when ball drains)
+    Pattern A: +1/_WIN_TARGET per scoring event (bumper,
+    target, or spinner hit). No reward penalty for ball drains.
     """
 
     action_spec = ActionSpec(
@@ -40,6 +40,12 @@ class VideoPinballEnv(AtariBase):
     _FLIPPER_Y = 21
     _DRAIN_Y = 22
 
+    # Pattern A full-scope: 100 scoring events (bumpers, targets,
+    # spinners). Each event yields +1/100. Cumulative reward
+    # bound: [0, +1]. No failure penalty (ball drains end the
+    # ball but emit zero reward).
+    _WIN_TARGET: int = 100
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._ball_x = 0
@@ -50,9 +56,14 @@ class VideoPinballEnv(AtariBase):
         self._targets: list[AtariEntity] = []
         self._spinners: list[AtariEntity] = []
         self._step_counter = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-videopinball-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _reset_ball(self) -> None:
         self._ball_x = self._WIDTH // 2
@@ -144,7 +155,8 @@ class VideoPinballEnv(AtariBase):
                 )
                 ny = self._FLIPPER_Y - 1
             elif ny >= self._DRAIN_Y:
-                self._on_life_lost()
+                # Ball drain just resets the ball; no penalty,
+                # no termination ("no fail" Pattern A env).
                 self._message = "Ball drained!"
                 self._reset_ball()
                 self._redraw()
@@ -159,8 +171,10 @@ class VideoPinballEnv(AtariBase):
                 self._ball_dx = -self._ball_dx
                 self._ball_dy = -self._ball_dy
                 self._on_point_scored(1)
-                reward += 1
-                self._message = "Bumper! +1"
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Bumper!"
                 self._ball_x += self._ball_dx
                 self._ball_y += self._ball_dy
                 break
@@ -170,23 +184,37 @@ class VideoPinballEnv(AtariBase):
                     and t.y == self._ball_y):
                 t.alive = False
                 self._ball_dy = -self._ball_dy
-                self._on_point_scored(3)
-                reward += 3
-                self._message = "Target! +3"
+                self._on_point_scored(1)
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Target!"
         # Spinner collision
         for sp in self._spinners:
             if (sp.alive and sp.x == self._ball_x
                     and sp.y == self._ball_y):
                 self._ball_dy = -self._ball_dy
-                self._on_point_scored(5)
-                reward += 5
-                self._message = "Spinner! +5"
-        # All targets cleared
+                self._on_point_scored(1)
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Spinner!"
+        # All targets cleared (just respawn — progress already counted)
         alive = [t for t in self._targets if t.alive]
         if not alive and self._targets:
             self._level += 1
             self._message = "All targets cleared!"
             self._spawn_targets()
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Highscore reached!"
+
         self._targets = [t for t in self._targets if t.alive]
         self._redraw()
         return reward, self._game_over, info
@@ -270,13 +298,15 @@ class VideoPinballEnv(AtariBase):
             "walls and ceiling; hitting a bumper reverses both "
             "velocities.\n\n"
             "SCORING\n"
-            "+1 reward per bumper hit. +3 reward per target "
-            "destroyed (once cleared, all targets clear -> level "
-            "up). +5 reward per spinner hit. No per-step penalty.\n\n"
+            "Pattern A: +1/100 reward per scoring event "
+            "(bumper, target, or spinner hit). Targets respawn "
+            "after they are all cleared. Cumulative reward bound: "
+            "[0, +1].\n\n"
             "TERMINATION\n"
-            ". Ball crossing row 22 (drain) costs a "
-            "life and resets the ball above the flippers. Episode "
-            "ends at 0 lives or after max_turns.\n\n"
+            "Ball crossing row 22 (drain) just resets the ball "
+            "above the flippers (no penalty, no termination). "
+            "Episode ends after 100 scoring events (cumulative +1) "
+            "or after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, and ball position and "
             "velocity.\n\n"

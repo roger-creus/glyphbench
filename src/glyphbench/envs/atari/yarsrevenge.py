@@ -21,8 +21,9 @@ class YarsRevengeEnv(AtariBase):
     cannon to destroy the Qotile. Dodge the Destroyer missile.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE
-    Reward: +1 per shield cell, +5 Qotile hit
-
+    Pattern D: +1/_WIN_TARGET per Qotile kill (each kill is one
+    cycle of shield-eating + Qotile-shooting). Eating shield
+    cells emits no reward (only energy). -1 on Destroyer contact.
     """
 
     action_spec = ActionSpec(
@@ -45,6 +46,11 @@ class YarsRevengeEnv(AtariBase):
     _NEUTRAL_RIGHT = 10
     _MAX_ENERGY = 6
 
+    # Pattern D full-scope: 3 Qotile kill cycles. Each kill yields
+    # +1/3. Destroyer contact ends the episode with -1.
+    _WIN_TARGET: int = 3
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._shield_cells: set[tuple[int, int]] = set()
@@ -55,9 +61,14 @@ class YarsRevengeEnv(AtariBase):
         self._destroyer: AtariEntity | None = None
         self._cannon_shot: AtariEntity | None = None
         self._qotile_dir: int = 1
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-yarsrevenge-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -114,13 +125,12 @@ class YarsRevengeEnv(AtariBase):
             self._player_x += 1
             self._player_dir = (1, 0)
 
-        # Eat shield cells (player touches them)
+        # Eat shield cells (player touches them) -- only builds
+        # energy; no reward. Reward is paid only on Qotile kills.
         pos = (self._player_x, self._player_y)
         if pos in self._shield_cells:
             self._shield_cells.discard(pos)
             self._energy = min(self._MAX_ENERGY, self._energy + 1)
-            self._on_point_scored(1)
-            reward += 1
             self._message = f"Shield eaten! Energy: {self._energy}"
 
         # Fire Zorlon cannon
@@ -150,15 +160,24 @@ class YarsRevengeEnv(AtariBase):
                 and cx == self._QOTILE_X
                 and cy == self._qotile_y
             ):
-                # Hit Qotile!
+                # Hit Qotile! One progress cycle complete.
                 self._qotile_alive = False
                 self._cannon_shot.alive = False
                 self._cannon_shot = None
-                self._on_point_scored(5)
-                reward += 5
-                self._message = "Qotile destroyed! +5"
+                self._on_point_scored(1)
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
+                self._message = "Qotile destroyed!"
+                if self._progress_count >= self._WIN_TARGET:
+                    self._game_over = True
+                    info["won"] = True
+                    self._message = "All Qotile cycles cleared!"
+                    return reward, self._game_over, info
                 self._level += 1
+                saved_progress = self._progress_count
                 self._generate_level(self._level)
+                self._progress_count = saved_progress
                 return reward, self._game_over, info
 
         # Move Qotile
@@ -190,7 +209,7 @@ class YarsRevengeEnv(AtariBase):
                 elif self._destroyer.y < self._player_y:
                     self._destroyer.y += 1
 
-            # Hit player
+            # Hit player -- terminal failure
             if (
                 self._destroyer.x == self._player_x
                 and self._destroyer.y == self._player_y
@@ -198,9 +217,9 @@ class YarsRevengeEnv(AtariBase):
                 self._destroyer.alive = False
                 self._destroyer = None
                 self._on_life_lost()
-                self._message = "Destroyed! Lost a life."
-                self._player_x = 3
-                self._player_y = self._HEIGHT // 2
+                self._message = "Destroyed! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
 
             # Out of bounds or enters neutral zone
             if self._destroyer is not None and self._destroyer.alive:
@@ -310,13 +329,15 @@ class YarsRevengeEnv(AtariBase):
             "(moves every 2 steps); it dies if it enters the "
             "neutral zone.\n\n"
             "SCORING\n"
-            "+1 reward per shield cell eaten. +5 reward for "
-            "hitting the Qotile with the Zorlon cannon (level "
-            "up). No per-step penalty.\n\n"
+            "Pattern D: +1/3 reward per Qotile kill cycle "
+            "(shield-eat to fill energy then hit the Qotile). "
+            "Eating shield cells emits no reward (only energy). "
+            "-1 reward on Destroyer contact. Cumulative reward "
+            "bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Destroyer contact costs a life and "
-            "respawns you at (3, mid). Episode ends at 0 lives or "
-            "after max_turns.\n\n"
+            "Single-life: Destroyer contact ends with -1. "
+            "Completing 3 Qotile kill cycles ends with cumulative "
+            "+1. Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, and energy (out of 6).\n\n"
             + self.action_spec.render_for_prompt()

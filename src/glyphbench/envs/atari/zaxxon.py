@@ -21,8 +21,9 @@ class ZaxxonEnv(AtariBase):
     dodge walls, manage fuel. Destroy fuel depots to refuel.
 
     Actions: NOOP, LEFT, RIGHT, UP, DOWN, FIRE
-    Reward: +2 per enemy, +1 per fuel depot
-
+    Pattern D: +1/_WIN_TARGET per progress unit (enemy
+    destroyed or fuel depot collected). -1 on collision /
+    out-of-fuel.
     """
 
     action_spec = ActionSpec(
@@ -39,6 +40,11 @@ class ZaxxonEnv(AtariBase):
     _MAX_FUEL = 100
     _FUEL_BURN = 1
 
+    # Pattern D full-scope: 20 progress events (~5 events per
+    # level × 4 levels). Each yields +1/20.
+    _WIN_TARGET: int = 20
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._enemies: list[AtariEntity] = []
@@ -47,9 +53,14 @@ class ZaxxonEnv(AtariBase):
         self._fuel = self._MAX_FUEL
         self._step_counter = 0
         self._scroll_timer = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-zaxxon-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _reset_pos(self) -> None:
         self._player_x = self._WIDTH // 2
@@ -99,10 +110,10 @@ class ZaxxonEnv(AtariBase):
         self._step_counter += 1
         self._fuel -= self._FUEL_BURN
         if self._fuel <= 0:
-            self._fuel = self._MAX_FUEL
             self._on_life_lost()
-            self._message = "Out of fuel!"
-            self._reset_pos()
+            self._message = "Out of fuel! Game Over."
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
         # Move player
         nx, ny = self._player_x, self._player_y
         if action_name == "LEFT":
@@ -123,8 +134,9 @@ class ZaxxonEnv(AtariBase):
             self._player_x, self._player_y = nx, ny
         if (self._player_x, self._player_y) in self._walls:
             self._on_life_lost()
-            self._message = "Hit a wall!"
-            self._reset_pos()
+            self._message = "Hit a wall! Game Over."
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
         # Fire
         if action_name == "FIRE" and len(self._bullets) < 3:
             b = self._add_entity(
@@ -156,12 +168,16 @@ class ZaxxonEnv(AtariBase):
                             self._MAX_FUEL, self._fuel + 30
                         )
                         self._on_point_scored(1)
-                        reward += 1
-                        self._message = "Fuel +30! +1pt"
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
+                        self._message = "Fuel depot destroyed!"
                     else:
-                        self._on_point_scored(2)
-                        reward += 2
-                        self._message = "Enemy down! +2"
+                        self._on_point_scored(1)
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
+                        self._message = "Enemy down!"
                     break
         # Player-enemy collision
         for e in self._enemies:
@@ -174,18 +190,38 @@ class ZaxxonEnv(AtariBase):
                         self._MAX_FUEL, self._fuel + 30
                     )
                     self._on_point_scored(1)
-                    reward += 1
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
                     self._message = "Fuel collected!"
                 else:
                     self._on_life_lost()
-                    self._message = "Hit by enemy!"
-                    self._reset_pos()
+                    self._message = "Hit by enemy! Game Over."
+                    reward = self._DEATH_PENALTY
+                    return reward, self._game_over, info
         # Scroll
         self._scroll_timer += 1
         spd = max(1, 3 - self._level // 2)
         if self._scroll_timer >= spd:
             self._scroll_timer = 0
             self._scroll_down()
+            if self._game_over:
+                # Wall-crush during scroll: terminal failure.
+                reward = self._DEATH_PENALTY
+                self._bullets = [b for b in self._bullets if b.alive]
+                self._enemies = [e for e in self._enemies if e.alive]
+                info["fuel"] = self._fuel
+                return reward, self._game_over, info
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Battlefield cleared!"
+
         self._bullets = [b for b in self._bullets if b.alive]
         self._enemies = [e for e in self._enemies if e.alive]
         self._redraw()
@@ -221,8 +257,7 @@ class ZaxxonEnv(AtariBase):
                 self._enemies.append(e)
         if (self._player_x, self._player_y) in self._walls:
             self._on_life_lost()
-            self._message = "Crushed by wall!"
-            self._reset_pos()
+            self._message = "Crushed by wall! Game Over."
 
     def _redraw(self) -> None:
         for y in range(1, self._HEIGHT - 1):
@@ -284,16 +319,16 @@ class ZaxxonEnv(AtariBase):
             "down. New walls and entities spawn at row 1. Fuel "
             "decreases 1 per step.\n\n"
             "SCORING\n"
-            "+2 reward per enemy 'E' destroyed (shoot or touch). "
-            "+1 reward per fuel depot (shoot or touch; also "
-            "refills +30 fuel, capped at 100). No per-step penalty "
-            "beyond the fuel timer.\n\n"
+            "Pattern D: +1/20 reward per progress event (enemy "
+            "'E' destroyed or fuel depot 'F' collected -- "
+            "fuel depots also refill +30 fuel, capped at 100). "
+            "-1 reward on hitting a wall, colliding with an "
+            "enemy, being crushed by a scrolling wall, or running "
+            "out of fuel. Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Hitting an obstacle wall, colliding with "
-            "an enemy, being crushed by a scrolling wall, or "
-            "running out of fuel costs a life and respawns at the "
-            "starting position (center, near bottom). Episode ends "
-            "at 0 lives or after max_turns.\n\n"
+            "Single-life: any death event ends with -1. Reaching "
+            "20 progress events ends with cumulative +1. Episode "
+            "also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, and fuel remaining.\n\n"
             + self.action_spec.render_for_prompt()
