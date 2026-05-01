@@ -352,3 +352,117 @@ def test_replay_renders_failure_mode_chips():
     )
     assert "[mem-parse-fail]" in line2
     assert "[trunc-memory]" not in line2
+
+    # Fix 5 additions ---
+
+    # Positive case: [trunc-memory] appears when is_truncated=True + role="memory".
+    line3 = _render_turn_line(
+        turn=6,
+        grid="C",
+        action_chosen="MOVE_FORWARD",
+        reward=0.5,
+        is_truncated=True,
+        memory_parse_failed=False,
+        step_role="memory",
+    )
+    assert "[trunc-memory]" in line3
+    assert "[trunc-action]" not in line3
+
+    # Negative case: a clean turn has no chips and shows the normal action line.
+    line4 = _render_turn_line(
+        turn=7,
+        grid="D",
+        action_chosen="MOVE_LEFT",
+        reward=1.0,
+        is_truncated=False,
+        memory_parse_failed=False,
+        step_role="action",
+    )
+    assert "[forfeit]" not in line4
+    assert "[trunc-action]" not in line4
+    assert "[trunc-memory]" not in line4
+    assert "[mem-parse-fail]" not in line4
+    assert "chose MOVE_LEFT" in line4
+    assert "reward" in line4
+
+
+def _make_synthetic_rollout() -> dict:
+    """Return a synthetic rollout dict exercising all four failure-mode chips.
+
+    Structure (3 env-turns):
+      turn 1 — forfeit: action step with action_chosen=FORFEIT, is_truncated=False
+      turn 2 — trunc-action: action step with is_truncated=True
+      turn 3 — mem-parse-fail + trunc-memory: action step OK, memory step with
+                memory_parse_failed=True and is_truncated=True
+    """
+    _grid_block = "[Grid]\n.@.\n"
+
+    def _user(grid=_grid_block):
+        return {"role": "user", "content": grid}
+
+    def _asst(text):
+        return {"role": "assistant", "content": text}
+
+    def _traj_action(action_chosen, is_truncated=False):
+        return {
+            "prompt": [_user()],
+            "completion": [_asst(f"<action>{action_chosen}</action>")],
+            "reward": 0.0,
+            "is_truncated": is_truncated,
+            "extras": {
+                "glyphbench_step_role": "action",
+                "action_chosen": action_chosen,
+                "parse_failed": action_chosen == "FORFEIT",
+                "forfeit": action_chosen == "FORFEIT",
+                "parse_failure_reason": "no_action_tag" if action_chosen == "FORFEIT" else None,
+            },
+        }
+
+    def _traj_memory(memory_parse_failed=False, is_truncated=False):
+        return {
+            "prompt": [_user(), _asst("x"), {"role": "user", "content": "[Memory Update]\n"}],
+            "completion": [_asst("<memory>mem</memory>" if not memory_parse_failed else "oops")],
+            "reward": 0.0,
+            "is_truncated": is_truncated,
+            "extras": {
+                "glyphbench_step_role": "memory",
+                "memory_parse_failed": memory_parse_failed,
+                "stored_memory": "" if memory_parse_failed else "mem",
+            },
+        }
+
+    return {
+        "info": {"env_id": "glyphbench/atari-pong-v0", "seed": 0},
+        "reward": 0.0,
+        "prompt": [
+            {"role": "system", "content": "sys"},
+            _user(),
+        ],
+        "completion": [
+            _asst(""),                          # turn 1 (forfeit)
+            _user(), _asst("<action>MOVE_FORWARD</action>"),  # turn 2
+            _user(), _asst("<action>MOVE_LEFT</action>"),     # turn 3
+        ],
+        "trajectory": [
+            _traj_action("FORFEIT", is_truncated=False),          # turn 1
+            _traj_action("MOVE_FORWARD", is_truncated=True),      # turn 2 trunc
+            _traj_action("MOVE_LEFT", is_truncated=False),        # turn 3
+            _traj_memory(memory_parse_failed=True, is_truncated=True),  # turn 3 mem
+        ],
+    }
+
+
+def test_plaintext_replay_emits_all_four_chips(tmp_path: Path, capsys):
+    """Integration: plain-text fallback path surfaces all four failure-mode chips."""
+    rollout = _make_synthetic_rollout()
+    results_file = tmp_path / "results.jsonl"
+    results_file.write_text(json.dumps(rollout) + "\n")
+
+    rc = cli.main(["replay", str(tmp_path), "--delay", "0"])
+    assert rc == 0, "replay command should return 0"
+
+    out = capsys.readouterr().out
+    assert "[forfeit]" in out, f"expected [forfeit] chip in output; got:\n{out}"
+    assert "[trunc-action]" in out, f"expected [trunc-action] chip in output; got:\n{out}"
+    assert "[trunc-memory]" in out, f"expected [trunc-memory] chip in output; got:\n{out}"
+    assert "[mem-parse-fail]" in out, f"expected [mem-parse-fail] chip in output; got:\n{out}"

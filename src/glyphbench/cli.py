@@ -567,6 +567,35 @@ def _render_rollout_rich(
         console.print(Text("(no turns to render)", style="red"))
         return
 
+    # Pre-index trajectory steps for per-turn chip data (action is_truncated,
+    # memory is_truncated, memory_parse_failed).  Mirrors the logic in the
+    # plain-text fallback path so both paths surface the same chips.
+    # When an action step has no memory partner (non-memory mode or trailing
+    # step) it is flushed into per_turn_extras with an empty memory dict.
+    _rich_per_turn_extras: list[tuple[dict, dict]] = []
+    _rich_a: dict = {}
+    for _step in rollout.get("trajectory") or []:
+        _se = (_step.get("extras") or {})
+        _role = _se.get("glyphbench_step_role", "action")
+        if _role == "action":
+            if _rich_a:
+                _rich_per_turn_extras.append((_rich_a, {}))
+            _rich_a = {
+                "is_truncated": bool(_step.get("is_truncated")),
+                "action_chosen": _se.get("action_chosen", ""),
+            }
+        elif _role == "memory":
+            _rich_per_turn_extras.append((
+                _rich_a,
+                {
+                    "memory_parse_failed": bool(_se.get("memory_parse_failed")),
+                    "is_truncated": bool(_step.get("is_truncated")),
+                },
+            ))
+            _rich_a = {}
+    if _rich_a:
+        _rich_per_turn_extras.append((_rich_a, {}))
+
     console_h = console.size.height or 40
     reasoning_cap = max(8, console_h // 4)
     memory_cap = max(5, console_h // 6)
@@ -626,15 +655,35 @@ def _render_rollout_rich(
         # assistant content.
         strict_think = bool(_THINK_CLOSE_RE.search(a_text))
         max_tokens_hit = a_text and not strict_action and len(a_text) > 1500
+
+        # Trajectory-level extras for this turn (chips that require the
+        # stored TrajectoryStep data rather than just re-parsing the text).
+        _t_action_extras, _t_mem_extras = (
+            _rich_per_turn_extras[t_idx - 1]
+            if t_idx - 1 < len(_rich_per_turn_extras)
+            else ({}, {})
+        )
+        trunc_action = bool(_t_action_extras.get("is_truncated"))
+        trunc_memory = bool(_t_mem_extras.get("is_truncated"))
+        mem_parse_fail = bool(_t_mem_extras.get("memory_parse_failed"))
+
         flags: list[Text] = []
+        # [forfeit] replaces the legacy "PARSE FAIL" chip so users see one
+        # chip per failure mode rather than two overlapping labels.
         if action_parse_failed:
-            flags.append(Text(" PARSE FAIL ", style="bold white on red"))
+            flags.append(Text(" [forfeit] ", style="bold white on red"))
         elif not strict_action:
             flags.append(Text(" parse-fallback ", style="bold black on yellow"))
         if not strict_think and think:
             flags.append(Text(" no <think> ", style="bold grey70 on grey23"))
-        if max_tokens_hit:
+        if trunc_action:
+            flags.append(Text(" [trunc-action] ", style="bold black on bright_yellow"))
+        elif max_tokens_hit:
             flags.append(Text(" likely token-truncated ", style="bold black on bright_yellow"))
+        if trunc_memory:
+            flags.append(Text(" [trunc-memory] ", style="bold black on bright_yellow"))
+        if mem_parse_fail:
+            flags.append(Text(" [mem-parse-fail] ", style="bold black on bright_magenta"))
 
         # ---- header bar ----
         hdr = Table.grid(expand=True, padding=(0, 1))
@@ -1140,10 +1189,68 @@ def _cmd_replay(args: argparse.Namespace) -> int:
                 sys.stdout.write(clear + header + "\n\n")
                 sys.stdout.flush()
                 time.sleep(min(args.delay * 4, 1.0))
-                for turn in _build_turns(rollout):
+                # Pre-index trajectory steps so we can look up per-step extras.
+                # Trajectory is a sequence of steps: in memory mode each env-turn
+                # produces an action step immediately followed by a memory step; in
+                # non-memory mode every step is an action step.  We group them into
+                # (action_extras, memory_extras) pairs — one pair per env-turn.
+                # When an action step has no memory step (non-memory mode or the
+                # last step of a memory-mode rollout) the memory_extras dict is {}.
+                traj_steps = rollout.get("trajectory") or []
+                per_turn_extras: list[tuple[dict, dict]] = []
+                _a: dict = {}
+                for _step in traj_steps:
+                    _step_extras = (_step.get("extras") or {})
+                    _role = _step_extras.get("glyphbench_step_role", "action")
+                    if _role == "action":
+                        # Flush any pending action step that had no memory partner.
+                        if _a:
+                            per_turn_extras.append((_a, {}))
+                        _a = {
+                            "action_chosen": _step_extras.get("action_chosen", ""),
+                            "is_truncated": bool(_step.get("is_truncated")),
+                        }
+                    elif _role == "memory":
+                        per_turn_extras.append((
+                            _a,
+                            {
+                                "memory_parse_failed": bool(
+                                    _step_extras.get("memory_parse_failed")
+                                ),
+                                "is_truncated": bool(_step.get("is_truncated")),
+                            },
+                        ))
+                        _a = {}
+                # Flush the final action step if it has no memory partner.
+                if _a:
+                    per_turn_extras.append((_a, {}))
+                for t_idx, turn in enumerate(_build_turns(rollout)):
                     grid = _extract_grid(turn["user"])
                     if grid is None:
                         continue
+                    # Resolve per-step chip inputs from trajectory extras when
+                    # available; fall back to safe defaults for legacy/partial files.
+                    action_extras, mem_extras = (
+                        per_turn_extras[t_idx] if t_idx < len(per_turn_extras)
+                        else ({}, {})
+                    )
+                    # action_chosen: prefer trajectory extras (authoritative); fall
+                    # back to parsing the assistant text (replay only needs the name).
+                    action_chosen = action_extras.get("action_chosen") or ""
+                    if not action_chosen:
+                        action_chosen, _ = _resolve_action(
+                            turn.get("assistant") or "", info.get("env_id")
+                        )
+                    reward = float(rollout.get("reward") or 0.0)
+                    line = _render_turn_line(
+                        turn=t_idx + 1,
+                        grid=grid,
+                        action_chosen=action_chosen,
+                        reward=reward,
+                        is_truncated=bool(action_extras.get("is_truncated")),
+                        memory_parse_failed=bool(mem_extras.get("memory_parse_failed")),
+                        step_role="action",
+                    )
                     memory = turn.get("memory")
                     suffix = ""
                     if memory and memory.get("stored_memory"):
@@ -1151,7 +1258,21 @@ def _cmd_replay(args: argparse.Namespace) -> int:
                             str(memory["stored_memory"]).strip(),
                             8, mode="tail", max_line_width=200,
                         )
-                    sys.stdout.write(clear + grid + suffix + "\n")
+                    # If memory step itself was truncated, surface a chip line.
+                    if mem_extras.get("is_truncated"):
+                        mem_trunc_line = _render_turn_line(
+                            turn=t_idx + 1,
+                            grid="",
+                            action_chosen=action_chosen,
+                            reward=reward,
+                            is_truncated=True,
+                            memory_parse_failed=bool(
+                                mem_extras.get("memory_parse_failed")
+                            ),
+                            step_role="memory",
+                        )
+                        suffix += "\n" + mem_trunc_line
+                    sys.stdout.write(clear + line + suffix + "\n")
                     sys.stdout.flush()
                     time.sleep(args.delay)
             return 0
