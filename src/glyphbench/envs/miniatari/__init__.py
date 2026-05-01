@@ -18,6 +18,7 @@ from glyphbench.envs.miniatari.gopher import MiniGopherEnv
 from glyphbench.envs.miniatari.kangaroo import MiniKangarooEnv
 from glyphbench.envs.miniatari.kungfumaster import MiniKungFuMasterEnv
 from glyphbench.envs.miniatari.seaquest import MiniSeaquestEnv
+from glyphbench.envs.miniatari.wizardofwor import MiniWizardOfWorEnv
 from glyphbench.envs.miniatari.asteroids import MiniAsteroidsEnv
 from glyphbench.envs.miniatari.atlantis import MiniAtlantisEnv
 from glyphbench.envs.miniatari.battlezone import MiniBattleZoneEnv
@@ -87,6 +88,7 @@ REGISTRY: dict = {
     "glyphbench/miniatari-kangaroo-v0": MiniKangarooEnv,
     "glyphbench/miniatari-kungfumaster-v0": MiniKungFuMasterEnv,
     "glyphbench/miniatari-seaquest-v0": MiniSeaquestEnv,
+    "glyphbench/miniatari-wizardofwor-v0": MiniWizardOfWorEnv,
 }
 
 for env_id, cls in REGISTRY.items():
