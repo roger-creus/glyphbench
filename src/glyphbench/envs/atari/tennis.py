@@ -19,10 +19,13 @@ class TennisEnv(AtariBase):
     """Tennis: top-down tennis with standard scoring.
 
     20x24 grid. Ball bounces, AI opponent returns.
-    Standard scoring: 15-30-40-game, sets to 6.
+    Standard scoring within games (15-30-40-game), but the
+    match terminates when either side reaches _WIN_TARGET total
+    points scored (Pattern C).
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT
-    Reward: +1 per point won, -1 per point lost
+    Pattern C (adversarial first-to-W): ±1/_WIN_TARGET per
+    point won/lost.
     """
 
     action_spec = ActionSpec(
@@ -44,6 +47,10 @@ class TennisEnv(AtariBase):
     _COURT_B = 22
     _NET_Y = 12
 
+    # Pattern C full-scope: first side to 18 total points wins
+    # the match. Each point is worth ±1/18 reward.
+    _WIN_TARGET: int = 18
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._opp_x: int = 0
@@ -59,9 +66,18 @@ class TennisEnv(AtariBase):
         self._serving: bool = True
         self._serve_side: str = "player"
         self._rally_active: bool = False
+        # Pattern C running totals (separate from per-game points
+        # which reset every game).
+        self._agent_progress: int = 0
+        self._opp_progress: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-tennis-v0"
+
+    def _reset(self, seed: int):
+        self._agent_progress = 0
+        self._opp_progress = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -154,15 +170,20 @@ class TennisEnv(AtariBase):
             # Ball out bottom = opponent scores
             if by > self._COURT_B:
                 self._rally_active = False
-                reward, self._opp_points = -1.0, self._opp_points + 1
+                self._opp_points += 1
+                if self._opp_progress < self._WIN_TARGET:
+                    reward = -1.0 / self._WIN_TARGET
+                    self._opp_progress += 1
                 self._message = "Out! Opponent scores."
                 self._check_game()
                 self._setup_point()
             # Ball out top = player scores
             elif by < self._COURT_T:
                 self._rally_active = False
-                reward = 1.0
                 self._player_points += 1
+                if self._agent_progress < self._WIN_TARGET:
+                    reward = 1.0 / self._WIN_TARGET
+                    self._agent_progress += 1
                 self._on_point_scored(1)
                 self._message = "Point! You score."
                 self._check_game()
@@ -176,8 +197,11 @@ class TennisEnv(AtariBase):
         info["o_pts"] = self._opp_points
         info["p_games"] = self._player_games
         info["o_games"] = self._opp_games
+        info["agent_progress"] = self._agent_progress
+        info["opp_progress"] = self._opp_progress
         terminated = (
-            self._player_games >= 6 or self._opp_games >= 6
+            self._agent_progress >= self._WIN_TARGET
+            or self._opp_progress >= self._WIN_TARGET
         )
         return reward, terminated, info
 
@@ -337,14 +361,15 @@ class TennisEnv(AtariBase):
             "Opponent AI returns similarly. Ball leaving top = you "
             "score; leaving bottom = opponent scores.\n\n"
             "SCORING\n"
-            "+1 reward per point you win (ball leaves opponent's "
-            "baseline). -1 reward per point lost. No per-step "
-            "penalty. Winning a game (reach 4 points or win-by-2 "
-            "past 3-3) awards no extra reward but counts toward "
-            "6-game set.\n\n"
+            "Pattern C (first-to-18): +1/18 reward per point you "
+            "win (ball leaves opponent's baseline). -1/18 reward "
+            "per point lost. The classic 15/30/40/game scoring is "
+            "kept for HUD only -- the match terminates the moment "
+            "either side reaches 18 total points scored. "
+            "Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            "Episode ends when either player reaches 6 games. No "
-            "life system. Max_turns also ends it.\n\n"
+            "Episode ends when either player accumulates 18 "
+            "points. No life system. Max_turns also ends it.\n\n"
             "HUD\n"
             "Shows your point/game score, opponent's, ball "
             "position and velocity, and serving side.\n\n"

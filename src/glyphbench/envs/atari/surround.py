@@ -21,7 +21,9 @@ class SurroundEnv(AtariBase):
     Hitting any trail (including your own) or a wall = death.
 
     Actions: NOOP, UP, RIGHT, LEFT, DOWN
-    Reward: +1 for win, -1 for loss
+    Pattern C (adversarial first-to-W): ±1/_WIN_TARGET per
+    point. Single duel ends the match: +1 if opponent
+    crashes first, -1 if you crash, 0 on simultaneous draw.
     """
 
     action_spec = ActionSpec(
@@ -37,6 +39,10 @@ class SurroundEnv(AtariBase):
 
     _WIDTH = 20
     _HEIGHT = 20
+
+    # Pattern C full-scope: single Tron-style duel — first to 1
+    # win takes the match. ±1/_WIN_TARGET = ±1.
+    _WIN_TARGET: int = 1
 
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
@@ -119,13 +125,13 @@ class SurroundEnv(AtariBase):
             self._message = "Draw!"
             return reward, True, info
         elif player_dead:
-            reward = -1.0
-            self._message = "You crashed! -1"
+            reward = -1.0 / self._WIN_TARGET
+            self._message = "You crashed!"
             return reward, True, info
         elif opp_dead:
-            reward = 1.0
+            reward = 1.0 / self._WIN_TARGET
             self._on_point_scored(1)
-            self._message = "Opponent crashed! +1"
+            self._message = "Opponent crashed!"
             return reward, True, info
 
         # Update positions and trails
@@ -266,9 +272,10 @@ class SurroundEnv(AtariBase):
             "on their previous cell. Opponent AI chases you along "
             "safe directions.\n\n"
             "SCORING\n"
-            "+1 reward if the opponent crashes before you. -1 "
-            "reward if you crash. 0 reward for a simultaneous "
-            "crash (draw). No per-step reward.\n\n"
+            "Pattern C (first-to-1): +1 reward if the opponent "
+            "crashes before you. -1 reward if you crash. 0 reward "
+            "for a simultaneous crash (draw). Cumulative reward "
+            "bound: [-1, +1].\n\n"
             "TERMINATION\n"
             "Episode ends the first time either or both players "
             "hit a wall or trail. No lives system.\n\n"

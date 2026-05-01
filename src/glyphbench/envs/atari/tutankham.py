@@ -32,7 +32,9 @@ class TutankhamEnv(AtariBase):
     and mummies (M). Find the key (K) to unlock the exit (D).
 
     Grid: 20x16.
-    Reward: +2 per treasure, +2 per enemy, +5 exit bonus.
+    Pattern D: +1/_WIN_TARGET per progress unit (treasure
+    collected or exit cleared). -1 if a snake or mummy
+    catches you.
     """
 
     action_spec = ActionSpec(
@@ -49,14 +51,24 @@ class TutankhamEnv(AtariBase):
         ),
     )
 
+    # Pattern D full-scope: 8 progress events (each room's
+    # treasure plus an exit clearance). Each yields +1/8.
+    _WIN_TARGET: int = 8
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._facing: tuple[int, int] = (1, 0)
         self._has_key: bool = False
         self._treasures_left: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-tutankham-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         rng = np.random.default_rng(seed + self._level * 773)
@@ -224,7 +236,7 @@ class TutankhamEnv(AtariBase):
             if not self._is_solid(nx2, ny2):
                 e.x, e.y = nx2, ny2
 
-        # Bullet-enemy collisions
+        # Bullet-enemy collisions (no extra reward; just clearing)
         for b in self._entities:
             if b.etype != "bullet" or not b.alive:
                 continue
@@ -236,9 +248,7 @@ class TutankhamEnv(AtariBase):
                 if b.x == en.x and b.y == en.y:
                     b.alive = False
                     en.alive = False
-                    self._on_point_scored(2)
-                    reward += 2
-                    self._message = f"{en.etype} destroyed! +2"
+                    self._message = f"{en.etype} destroyed!"
 
         # Player pickups
         for e in self._entities:
@@ -248,10 +258,12 @@ class TutankhamEnv(AtariBase):
                 continue
             if e.etype == "treasure":
                 e.alive = False
-                self._on_point_scored(2)
-                reward += 2
+                self._on_point_scored(1)
+                if self._progress_count < self._WIN_TARGET:
+                    reward += 1.0 / self._WIN_TARGET
+                    self._progress_count += 1
                 self._treasures_left -= 1
-                self._message = "Treasure! +2"
+                self._message = "Treasure!"
             elif e.etype == "key":
                 e.alive = False
                 self._has_key = True
@@ -259,15 +271,22 @@ class TutankhamEnv(AtariBase):
             elif e.etype == "door":
                 if self._has_key:
                     self._level += 1
-                    self._on_point_scored(5)
-                    reward += 5
-                    self._message = "Level cleared! +5"
+                    self._on_point_scored(1)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Level cleared!"
+                    saved_progress = self._progress_count
                     self._generate_level(self._level * 3571)
-                    return reward, False, info
+                    self._progress_count = saved_progress
+                    if self._progress_count >= self._WIN_TARGET:
+                        self._game_over = True
+                        info["won"] = True
+                    return reward, self._game_over, info
                 else:
                     self._message = "Door locked. Find the key (K)!"
 
-        # Player-enemy collision
+        # Player-enemy collision -- terminal failure
         for e in self._entities:
             if e.etype not in ("snake", "mummy"):
                 continue
@@ -277,11 +296,18 @@ class TutankhamEnv(AtariBase):
                 and e.y == self._player_y
             ):
                 self._on_life_lost()
-                self._message = f"Hit by {e.etype}!"
-                if not self._game_over:
-                    self._player_x = 2
-                    self._player_y = 2
-                break
+                self._message = f"Hit by {e.etype}! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Pyramid cleared!"
 
         self._entities = [
             e for e in self._entities if e.alive
@@ -347,14 +373,15 @@ class TutankhamEnv(AtariBase):
             "the key. Stepping onto 'D' exits only if you have the "
             "key.\n\n"
             "SCORING\n"
-            "+2 reward per treasure '$' collected. +2 reward "
-            "per enemy killed by a bullet. +5 reward for "
-            "exiting through the door with the key (advances "
-            "level). No per-step penalty.\n\n"
+            "Pattern D: +1/8 reward per treasure collected and "
+            "per door exited with the key. Killing enemies emits "
+            "no reward (only clears the path). -1 reward on "
+            "contact with a snake or mummy. Cumulative reward "
+            "bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Contact with a snake or mummy costs a "
-            "life and respawns at (2, 2). Episode ends at 0 "
-            "lives or after max_turns.\n\n"
+            "Single-life: contact with an enemy ends the episode "
+            "with -1. Reaching 8 progress events ends with "
+            "cumulative +1. Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, facing, key status (yes/"
             "no), and treasures remaining.\n\n"

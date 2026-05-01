@@ -21,8 +21,8 @@ class TimePilotEnv(AtariBase):
     Player stays roughly centered, enemies swarm in.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, FIRE
-    Reward: +1 per enemy, +5 boss
-
+    Pattern D: +1/_WIN_TARGET per enemy or boss destroyed,
+    -1 on collision with enemy/boss.
     """
 
     action_spec = ActionSpec(
@@ -42,6 +42,11 @@ class TimePilotEnv(AtariBase):
     _MAX_BULLETS = 3
     _BOSS_THRESHOLD = 10  # enemies to kill per wave
 
+    # Pattern D full-scope: 25 progress events (~5 eras × 5 enemies
+    # each, including bosses). Each kill yields +1/25 reward.
+    _WIN_TARGET: int = 25
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._bullets: list[AtariEntity] = []
@@ -51,9 +56,14 @@ class TimePilotEnv(AtariBase):
         self._facing_dy: int = 0
         self._kills: int = 0
         self._boss: AtariEntity | None = None
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-timepilot-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -160,9 +170,11 @@ class TimePilotEnv(AtariBase):
                     e.alive = False
                     b.alive = False
                     self._on_point_scored(1)
-                    reward += 1
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
                     self._kills += 1
-                    self._message = "Enemy shot! +1"
+                    self._message = "Enemy shot!"
                     break
             # Check boss hit
             if (
@@ -175,11 +187,18 @@ class TimePilotEnv(AtariBase):
                 self._boss.data["hp"] -= 1
                 if self._boss.data["hp"] <= 0:
                     self._boss.alive = False
-                    self._on_point_scored(5)
-                    reward += 5
-                    self._message = "Boss destroyed! +5"
+                    self._on_point_scored(1)
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Boss destroyed!"
                     self._level += 1
+                    saved_progress = self._progress_count
                     self._generate_level(self._level)
+                    self._progress_count = saved_progress
+                    if self._progress_count >= self._WIN_TARGET:
+                        self._game_over = True
+                        info["won"] = True
                     return reward, self._game_over, info
                 else:
                     self._message = "Boss hit!"
@@ -216,7 +235,7 @@ class TimePilotEnv(AtariBase):
                 elif self._boss.y > self._player_y:
                     self._boss.y -= 1
 
-        # Player collision
+        # Player collision -- terminal failure
         for e in self._enemies:
             if (
                 e.alive
@@ -225,10 +244,9 @@ class TimePilotEnv(AtariBase):
             ):
                 e.alive = False
                 self._on_life_lost()
-                self._message = "Collision! Lost a life."
-                self._player_x = self._WIDTH // 2
-                self._player_y = self._HEIGHT // 2
-                break
+                self._message = "Collision! Game Over."
+                reward = self._DEATH_PENALTY
+                return reward, self._game_over, info
 
         if (
             self._boss is not None
@@ -237,9 +255,9 @@ class TimePilotEnv(AtariBase):
             and self._boss.y == self._player_y
         ):
             self._on_life_lost()
-            self._message = "Boss collision!"
-            self._player_x = self._WIDTH // 2
-            self._player_y = self._HEIGHT // 2
+            self._message = "Boss collision! Game Over."
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
 
         # Spawn more enemies
         self._enemies = [e for e in self._enemies if e.alive]
@@ -253,6 +271,15 @@ class TimePilotEnv(AtariBase):
         ):
             self._spawn_boss()
             self._message = "Boss incoming!"
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "All eras conquered!"
 
         self._redraw()
         return reward, self._game_over, info
@@ -332,12 +359,14 @@ class TimePilotEnv(AtariBase):
             "(8-direction chase). Boss moves every 2 steps. More "
             "enemies spawn every 8 steps (cap 6).\n\n"
             "SCORING\n"
-            "+1 reward per enemy shot. +5 reward for "
-            "destroying the boss (level up). No per-step penalty.\n\n"
+            "Pattern D: +1/25 reward per enemy or boss "
+            "destroyed. Killing a boss advances the era (level). "
+            "-1 reward on collision with any enemy or boss. "
+            "Cumulative reward bound: [-1, +1].\n\n"
             "TERMINATION\n"
-            ". Collision with an enemy or boss costs a "
-            "life and respawns at center. Episode ends at 0 lives "
-            "or after max_turns.\n\n"
+            "Single-life: any collision ends with -1. Reaching 25 "
+            "kills ends with cumulative +1. Episode also ends "
+            "after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level/era, facing, kills toward "
             "10 (boss threshold), and boss HP.\n\n"

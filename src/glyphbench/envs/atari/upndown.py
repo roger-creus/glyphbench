@@ -21,8 +21,8 @@ class UpNDownEnv(AtariBase):
     Jump on cars for points or dodge them.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, JUMP
-    Reward: +1 jump on car, +3 checkpoint
-
+    Pattern D: +1/_WIN_TARGET per progress event (jump-on-car
+    or checkpoint reached). -1 on collision / going off-road.
     """
 
     action_spec = ActionSpec(
@@ -44,6 +44,11 @@ class UpNDownEnv(AtariBase):
     _ROAD_RIGHT = 9
     _NUM_LANES = 3
 
+    # Pattern D full-scope: 50 progress events (cars stomped or
+    # checkpoints reached). Each yields +1/50.
+    _WIN_TARGET: int = 50
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._cars: list[AtariEntity] = []
@@ -53,9 +58,14 @@ class UpNDownEnv(AtariBase):
         self._jumping: bool = False
         self._jump_timer: int = 0
         self._distance: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-upndown-v0"
+
+    def _reset(self, seed: int):
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _lane_x(self, lane: int) -> int:
         """Get x coordinate for a lane (0-2)."""
@@ -168,35 +178,49 @@ class UpNDownEnv(AtariBase):
                 continue
             if c.x == self._player_x and c.y == self._player_y:
                 if self._jumping:
-                    # Jump on car
+                    # Jump on car -- progress unit
                     c.alive = False
                     self._on_point_scored(1)
-                    reward += 1
-                    self._message = "Jumped on car! +1"
+                    if self._progress_count < self._WIN_TARGET:
+                        reward += 1.0 / self._WIN_TARGET
+                        self._progress_count += 1
+                    self._message = "Jumped on car!"
                 else:
-                    # Crash
+                    # Crash -- terminal failure
                     c.alive = False
                     self._on_life_lost()
-                    self._message = "Crash! Lost a life."
-                    self._player_x = self._lane_x(1)
-                    break
+                    self._message = "Crash! Game Over."
+                    reward = self._DEATH_PENALTY
+                    return reward, self._game_over, info
 
-        # Off-road check
+        # Off-road check -- terminal failure
         if (
             self._player_x < self._ROAD_LEFT + 1
             or self._player_x > self._ROAD_RIGHT - 1
         ):
             self._on_life_lost()
-            self._message = "Off road!"
-            self._player_x = self._lane_x(1)
+            self._message = "Off road! Game Over."
+            reward = self._DEATH_PENALTY
+            return reward, self._game_over, info
 
-        # Level progression by distance
+        # Level progression by distance -- progress unit
         if self._distance >= 50 + self._level * 10:
-            self._on_point_scored(3)
-            reward += 3
-            self._message = "Checkpoint! +3"
+            self._on_point_scored(1)
+            if self._progress_count < self._WIN_TARGET:
+                reward += 1.0 / self._WIN_TARGET
+                self._progress_count += 1
+            self._message = "Checkpoint!"
             self._level += 1
             self._distance = 0
+
+        # Win check
+        if (
+            self._progress_count >= self._WIN_TARGET
+            and not self._game_over
+        ):
+            self._game_over = True
+            info["won"] = True
+            self._message = "Distance traveled!"
 
         self._cars = [c for c in self._cars if c.alive]
         self._redraw()
@@ -283,13 +307,15 @@ class UpNDownEnv(AtariBase):
             "oncoming cars also move up 2 rows every 2 steps. New "
             "cars spawn at row 1 ~33 percent of scroll steps.\n\n"
             "SCORING\n"
-            "+1 reward when you land on a car while airborne. "
-            "+3 reward per checkpoint reached (distance >= 50 + "
-            "10*level). No per-step penalty.\n\n"
+            "Pattern D: +1/50 reward per progress event (landing "
+            "on a car while airborne, or reaching a checkpoint). "
+            "-1 reward on collision with a car without jumping "
+            "or going off-road. Cumulative reward bound: "
+            "[-1, +1].\n\n"
             "TERMINATION\n"
-            ". Colliding with a car without jumping or "
-            "going off-road costs a life and re-centers you in "
-            "lane 1. Episode ends at 0 lives or after max_turns.\n\n"
+            "Single-life: any collision/off-road event ends with "
+            "-1. Reaching 50 progress events ends with cumulative "
+            "+1. Episode also ends after max_turns.\n\n"
             "HUD\n"
             "Shows score, lives, level, jump state, distance "
             "traveled (toward next checkpoint).\n\n"
