@@ -16,6 +16,11 @@ from glyphbench.core.observation import GridObservation
 _SIZE = 8
 _NUM_GEMS = 6
 
+# Target total gems matched for cumulative reward = 1.0. A skilled player
+# matching 4-of-a-kind ~25 times reaches the cap; random play falls far
+# short, preserving discrimination between strategies.
+_TARGET_GEMS_MATCHED = 100
+
 _GEM_SYMS = ("\u2666", "\u2663", "\u2660", "\u2665", "\u2605", "\u25cf")
 # ♦ ♣ ♠ ♥ ★ ●
 _GEM_NAMES = ("diamond", "club", "spade", "heart", "star", "circle")
@@ -240,7 +245,14 @@ class Match3Env(BaseGlyphEnv):
         # Process cascades
         score = self._cascade()
         self._score += score
-        reward = float(score)
+        # Pattern A: normalize so cumulative reward across the episode is
+        # capped near 1.0 once the agent has matched ~_TARGET_GEMS_MATCHED
+        # gems via player-triggered matches. Cap at 1.0 to keep the bound.
+        normalized = float(score) / _TARGET_GEMS_MATCHED
+        # Cap remaining headroom against 1.0 - already_earned to avoid
+        # ever exceeding the bound.
+        remaining = max(0.0, 1.0 - (self._score - score) / _TARGET_GEMS_MATCHED)
+        reward = min(normalized, remaining)
 
         self._last_msg = f"Match! +{score} points."
 
@@ -296,8 +308,11 @@ class Match3Env(BaseGlyphEnv):
             "After matches, gems above fall down and new gems fill from the top.\n"
             "Cascades from falling gems continue the turn but do NOT multiply score.\n\n"
             "SCORING\n"
-            "  1 point per gem matched. 3-match = 3 points, 4-match = 4, 5-match = 5.\n"
-            "  Cascade matches add their gem counts (no multiplier).\n\n"
+            f"  Reward is normalized so that matching {_TARGET_GEMS_MATCHED} gems via\n"
+            f"  player-triggered matches earns cumulative reward = 1.0 (the cap).\n"
+            "  Each gem in a player match contributes 1/{N} reward where {N} is the\n"
+            f"  target ({_TARGET_GEMS_MATCHED}). 3-match=3 gems; 4-match=4 gems; etc.\n"
+            "  Cascade matches from falling gems contribute 0 reward.\n\n"
             "ACTIONS\n"
             f"Actions are named SWAP_<row>_<col>_<DIRECTION> with row,col in [0,{_SIZE - 1}] "
             "and DIRECTION in {UP, DOWN, LEFT, RIGHT}. Swaps out of bounds are NOOP.\n"

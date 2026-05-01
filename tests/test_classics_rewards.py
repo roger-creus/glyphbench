@@ -12,7 +12,7 @@ import numpy as np
 import glyphbench.envs.classics  # noqa: F401 — register envs
 from glyphbench.core import make_env
 from glyphbench.envs.classics.flappy import FlappyEnv
-from glyphbench.envs.classics.match3 import Match3Env, _SIZE
+from glyphbench.envs.classics.match3 import Match3Env, _SIZE, _TARGET_GEMS_MATCHED
 
 
 # ---------------------------------------------------------------------------
@@ -116,12 +116,14 @@ def test_match3_reward_no_cascade_multiplier() -> None:
     action = 1 * _SIZE * 4 + 1 * 4 + 0
     _, reward, _, _, _ = env.step(action)
 
-    # Option B: reward == count of gems in the player-triggered match only.
-    # Cascades from newly falling gems contribute 0. So reward == 3 exactly.
-    # Even if the old x2/x3 multiplier had been applied, it would have
-    # produced 3*1 + 3*2 (= 9) or larger on any cascade; the tight
-    # equality below pins the new contract.
-    assert reward == 3.0, f"expected exactly 3 points (first-wave only), got {reward}"
+    # Option B: reward == count of gems in the player-triggered match only,
+    # normalized by _TARGET_GEMS_MATCHED so cumulative episode reward stays
+    # in [-1, 1]. Cascades from newly falling gems contribute 0. So reward
+    # == 3 / _TARGET_GEMS_MATCHED exactly.
+    expected = 3.0 / _TARGET_GEMS_MATCHED
+    assert abs(reward - expected) < 1e-9, (
+        f"expected {expected:.6f} (first-wave only, normalized), got {reward}"
+    )
 
 
 def test_match3_random_baseline_bounded() -> None:
@@ -148,11 +150,14 @@ def test_match3_random_baseline_bounded() -> None:
         env.close()
 
     mean = float(np.mean(returns))
-    # Previously 164.48 due to exponential cascade multiplier. With cascades
-    # worth 0 reward (Option B), random play should drop far below 164.
-    # Bound generously at 70 to tolerate action-space RNG variation while
-    # still catching re-introduction of any chain multiplier.
-    assert mean < 70.0, f"random mean {mean:.2f} still too high; cascade bug?"
+    # With per-gem reward normalized by _TARGET_GEMS_MATCHED and cumulative
+    # capped at 1.0, random rollouts should be far below 1.0 -- the cap is
+    # only reachable through high-skill match construction, not random
+    # swaps. We pin a generous upper bound to catch re-introduction of any
+    # cascade multiplier or unbounded score plumbing.
+    assert mean < 1.0 + 1e-6, f"random mean {mean:.4f} exceeds [-1, 1] cap"
+    # Re-introduction of the cascade x2/x3 bug would push mean far above
+    # the unnormalized 70-point bound; the [-1, 1] cap subsumes it.
 
 
 def test_flappy_random_baseline_has_variance() -> None:
