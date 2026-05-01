@@ -28,8 +28,7 @@ class AmidarEnv(AtariBase):
     """Amidar: paint grid segments by walking over them.
 
     Actions: NOOP, UP, RIGHT, LEFT, DOWN
-    Reward: +1 per segment painted, +5 when grid fully painted.
-    Enemies patrol segments. Contact = lose a life.
+    Pattern D: +1/_WIN_TARGET per segment painted, -1 on enemy contact.
     """
 
     action_spec = ActionSpec(
@@ -43,13 +42,23 @@ class AmidarEnv(AtariBase):
         ),
     )
 
+    # Pattern D full-scope target: 100 unique segments painted across
+    # any number of levels.
+    _WIN_TARGET: int = 100
+    _DEATH_PENALTY: float = -1.0
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._total_segments: int = 0
         self._painted_segments: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-amidar-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _task_description(self) -> str:
         return (
@@ -184,7 +193,9 @@ class AmidarEnv(AtariBase):
             self._set_cell(self._player_x, self._player_y, _PAINTED)
             self._painted_segments += 1
             self._on_point_scored(1)
-            reward += 1.0
+            if self._progress_count < self._WIN_TARGET:
+                reward += 1.0 / self._WIN_TARGET
+                self._progress_count += 1
 
         # Move enemies
         for e in self._entities:
@@ -192,25 +203,28 @@ class AmidarEnv(AtariBase):
                 continue
             self._move_enemy(e)
 
-        # Check enemy collision
+        # Check enemy collision (Pattern D death penalty)
         for e in self._entities:
             if e.etype == "enemy" and e.alive and e.x == self._player_x and e.y == self._player_y:
-                    self._on_life_lost()
-                    reward -= 1.0
-                    if not self._game_over:
-                        self._player_x = 1
-                        self._player_y = 1
-                    break
+                self._on_life_lost()
+                reward = self._DEATH_PENALTY
+                self._message = "Caught by enemy!"
+                break
 
         # Check level complete
         terminated = False
-        if self._painted_segments >= self._total_segments:
-            self._on_point_scored(5)
-            reward += 5.0
-            self._message = "Level complete!"
-            self._level += 1
-            self._generate_level(self._level * 6173)
-            info["level_cleared"] = True
+        if self._painted_segments >= self._total_segments and not self._game_over:
+            if self._progress_count >= self._WIN_TARGET:
+                # Full-scope win.
+                self._game_over = True
+                terminated = True
+                info["won"] = True
+                self._message = "All segments painted!"
+            else:
+                self._message = "Level complete!"
+                self._level += 1
+                self._generate_level(self._level * 6173)
+                info["level_cleared"] = True
 
         info["painted"] = self._painted_segments
         info["total"] = self._total_segments
