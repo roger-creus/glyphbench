@@ -20,7 +20,9 @@ class DoubleDunkEnv(AtariBase):
     AI opponent defends and attacks.
 
     Actions: NOOP, UP, DOWN, LEFT, RIGHT, SHOOT
-    Reward: +2 or +3 per basket scored
+    Pattern C (adversarial first-to-W): +1/_WIN_TARGET per agent point,
+    -1/_WIN_TARGET per opponent point. First side to _WIN_TARGET points
+    wins. Cumulative is bounded in [-1, +1].
     """
 
     action_spec = ActionSpec(
@@ -48,6 +50,9 @@ class DoubleDunkEnv(AtariBase):
     _OPP_HOOP_Y = 13
     _THREE_LINE = 5
 
+    # Pattern C target: first side to 24 points wins.
+    _WIN_TARGET: int = 24
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._opp_x: int = 0
@@ -63,6 +68,8 @@ class DoubleDunkEnv(AtariBase):
         self._quarter: int = 1
         self._quarter_timer: int = 0
         self._quarter_len: int = 300
+        self._agent_progress: int = 0
+        self._opp_progress: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-doubledunk-v0"
@@ -74,6 +81,8 @@ class DoubleDunkEnv(AtariBase):
         self._quarter = 1
         self._quarter_timer = 0
         self._lives = 1
+        self._agent_progress = 0
+        self._opp_progress = 0
         self._reset_possession(player_has=True)
         self._redraw()
 
@@ -128,10 +137,20 @@ class DoubleDunkEnv(AtariBase):
                 if abs(bx - hx) <= 2:
                     dist = abs(self._player_y - self._HOOP_Y)
                     pts = 3 if dist >= self._THREE_LINE else 2
-                    self._message = f"{'Three pointer' if pts == 3 else 'Basket'}! +{pts}"
                     if self.rng.random() < 0.6:
+                        self._message = (
+                            "Three pointer!" if pts == 3 else "Basket!"
+                        )
                         self._on_point_scored(pts)
-                        reward = float(pts)
+                        # Pattern C: cap progress at _WIN_TARGET; only
+                        # the units below the cap accrue reward.
+                        granted = min(
+                            pts,
+                            self._WIN_TARGET - self._agent_progress,
+                        )
+                        if granted > 0:
+                            reward += granted / self._WIN_TARGET
+                            self._agent_progress += granted
                     else:
                         self._message = "Missed shot!"
                     self._ball_flying = False
@@ -145,16 +164,26 @@ class DoubleDunkEnv(AtariBase):
         self._move_opponent()
 
         # Steal check
+        terminated = False
         if self._has_ball:
             dist = abs(self._player_x - self._opp_x) + abs(self._player_y - self._opp_y)
             if dist <= 1 and self.rng.random() < 0.15:
                 self._has_ball = False
                 self._message = "Stolen!"
-                self._opp_attack()
+                opp_delta, opp_won = self._opp_attack()
+                reward += opp_delta
+                if opp_won:
+                    terminated = True
+                    self._message = "Opponent wins!"
+
+        # First-to-_WIN_TARGET termination
+        if not terminated and self._agent_progress >= self._WIN_TARGET:
+            terminated = True
+            info["won"] = True
+            self._message = "You win!"
 
         # Quarter transitions
-        terminated = False
-        if self._quarter_timer >= self._quarter_len:
+        if not terminated and self._quarter_timer >= self._quarter_len:
             self._quarter += 1
             self._quarter_timer = 0
             if self._quarter > 4:
@@ -199,17 +228,29 @@ class DoubleDunkEnv(AtariBase):
             if self._on_court(nx, ny):
                 self._opp_x, self._opp_y = nx, ny
 
-    def _opp_attack(self) -> None:
+    def _opp_attack(self) -> tuple[float, bool]:
+        """Return (delta_reward, opp_won) from this attack."""
         rng = self.rng
+        delta = 0.0
+        opp_won = False
         dist = abs(self._opp_y - self._OPP_HOOP_Y)
         if dist < 6 and rng.random() < 0.2:
             pts = 3 if dist >= self._THREE_LINE else 2
             if rng.random() < 0.4:
                 self._opp_score += pts
+                granted = min(
+                    pts, self._WIN_TARGET - self._opp_progress
+                )
+                if granted > 0:
+                    delta -= granted / self._WIN_TARGET
+                    self._opp_progress += granted
                 self._message = f"Opponent scores {pts}!"
+                if self._opp_progress >= self._WIN_TARGET:
+                    opp_won = True
             else:
                 self._message = "Opponent missed!"
             self._reset_possession(player_has=True)
+        return delta, opp_won
 
     def _redraw(self) -> None:
         for y in range(self._HEIGHT):
