@@ -1,0 +1,202 @@
+"""miniatari Atlantis.
+
+Identity: Defend a city from descending raider waves with stationary turrets.
+Win condition: repel 3 waves of raiders.
+Reward: Pattern D, +1/3 per wave repelled, -1 if any city building is destroyed.
+Loss: a raider reaches a city building (terminal -1).
+
+Gym ID: glyphbench/miniatari-atlantis-v0
+
+Random baseline (seed=0..29): success_rate=30%, mean_length=28, mean_return=-0.244
+"""
+from __future__ import annotations
+
+from typing import Any
+
+from glyphbench.core.action import ActionSpec
+from glyphbench.core.glyph_primitives import build_legend, grid_to_string
+from glyphbench.core.observation import GridObservation
+from glyphbench.envs.miniatari.base import MiniatariBase
+
+
+class MiniAtlantisEnv(MiniatariBase):
+    """Mini Atlantis: 16x8 grid, 3 stationary turrets defend a 3-building city.
+
+    Turrets sit at row 6, columns 3, 8, 13. City buildings at row 7. The
+    agent picks one of 3 turrets to fire from each tick: LEFT, CENTER,
+    RIGHT each fire upward in that turret's column. Raiders spawn at row
+    0 each wave (5 per wave) and march down 1 row every 2 ticks. A raider
+    is destroyed if it overlaps a column where a turret is firing this
+    tick. Reaching row 7 destroys a city building => -1 terminal.
+    """
+
+    action_spec = ActionSpec(
+        names=("NOOP", "LEFT", "CENTER", "RIGHT"),
+        descriptions=(
+            "do not fire this tick",
+            "fire left turret upward",
+            "fire center turret upward",
+            "fire right turret upward",
+        ),
+    )
+
+    default_max_turns = 300
+
+    _WIDTH = 16
+    _HEIGHT = 8
+    _WIN_TARGET = 3
+    _N_WAVES = 3
+    _RAIDERS_PER_WAVE = 5
+    _TURRET_Y = 6
+    _CITY_Y = 7
+    _TURRETS = (3, 8, 13)
+    _RAIDER_MOVE_EVERY = 2
+
+    def __init__(self, max_turns: int | None = None) -> None:
+        super().__init__(max_turns=max_turns)
+        self._raiders: list[list[int]] = []  # [x, y]
+        self._wave_idx: int = 0
+        self._wave_kills: int = 0
+        self._tick_count: int = 0
+        self._progress: int = 0
+
+    def env_id(self) -> str:
+        return "glyphbench/miniatari-atlantis-v0"
+
+    def _generate_level(self, seed: int) -> None:
+        self._init_grid(self._WIDTH, self._HEIGHT)
+        self._progress = 0
+        self._wave_idx = 0
+        self._wave_kills = 0
+        self._tick_count = 0
+        self._raiders = []
+        self._spawn_wave()
+        self._player_x = self._TURRETS[1]
+        self._player_y = self._TURRET_Y
+
+    def _spawn_wave(self) -> None:
+        rng = self.rng
+        # Spawn columns must be ON turret columns so raiders are killable.
+        # Stagger row offsets so raiders don't pile on row 0 instantly.
+        used_cols: list[int] = []
+        for _ in range(self._RAIDERS_PER_WAVE):
+            tx = self._TURRETS[int(rng.integers(0, len(self._TURRETS)))]
+            stack = sum(1 for c in used_cols if c == tx)
+            self._raiders.append([tx, -2 * stack])
+            used_cols.append(tx)
+        self._wave_kills = 0
+
+    def _game_step(self, action_name: str) -> tuple[float, bool, dict[str, Any]]:
+        reward = 0.0
+        info: dict[str, Any] = {}
+        self._tick_count += 1
+
+        # 1. Fire selected turret
+        firing_col: int | None = None
+        if action_name == "LEFT":
+            firing_col = self._TURRETS[0]
+            self._player_x = self._TURRETS[0]
+        elif action_name == "CENTER":
+            firing_col = self._TURRETS[1]
+            self._player_x = self._TURRETS[1]
+        elif action_name == "RIGHT":
+            firing_col = self._TURRETS[2]
+            self._player_x = self._TURRETS[2]
+
+        if firing_col is not None:
+            # Find nearest raider in firing_col (and ±0 spread; precise column shot)
+            target: int | None = None
+            target_y: int = -1
+            for i, (rx, ry) in enumerate(self._raiders):
+                if rx == firing_col and ry < self._TURRET_Y and ry > target_y:
+                    target = i
+                    target_y = ry
+            if target is not None:
+                self._raiders.pop(target)
+                self._wave_kills += 1
+                self._message = "Raider destroyed!"
+                if self._wave_kills >= self._RAIDERS_PER_WAVE:
+                    self._wave_idx += 1
+                    reward += self._progress_reward(self._WIN_TARGET)
+                    self._progress += 1
+                    self._message = f"Wave {self._wave_idx} repelled! ({self._progress}/{self._WIN_TARGET})"
+                    if self._progress >= self._WIN_TARGET:
+                        self._on_won()
+                        return reward, self._game_over, info
+                    else:
+                        self._spawn_wave()
+
+        # 2. Raiders march down
+        if self._tick_count % self._RAIDER_MOVE_EVERY == 0:
+            for r in self._raiders:
+                r[1] += 1
+            # Check city breach
+            for r in self._raiders:
+                if r[1] >= self._CITY_Y:
+                    self._message = "Raider reached the city!"
+                    reward = self._death_reward()
+                    self._on_life_lost()
+                    return reward, True, info
+
+        info["progress"] = self._progress
+        info["wave"] = self._wave_idx + 1
+        info["wave_kills"] = self._wave_kills
+        info["raiders"] = len(self._raiders)
+        return reward, self._game_over, info
+
+    def _render_current_observation(self) -> GridObservation:
+        grid: list[list[str]] = [
+            [" " for _ in range(self._WIDTH)] for _ in range(self._HEIGHT)
+        ]
+        # City row
+        for x in range(self._WIDTH):
+            grid[self._CITY_Y][x] = "█"
+        # Turrets
+        for tx in self._TURRETS:
+            grid[self._TURRET_Y][tx] = "T"
+        # Raiders
+        for rx, ry in self._raiders:
+            if 0 <= rx < self._WIDTH and 0 <= ry < self._HEIGHT:
+                grid[ry][rx] = "R"
+        # Player marker (selected turret)
+        if 0 <= self._player_x < self._WIDTH:
+            grid[self._TURRET_Y][self._player_x] = "Y"
+
+        symbols = {
+            " ": "sky",
+            "█": "city building",
+            "T": "turret (idle)",
+            "Y": "selected turret (you)",
+            "R": "raider",
+        }
+
+        raiders_info = " ".join(f"({rx},{ry})" for rx, ry in self._raiders)
+        hud = (
+            f"Step: {self._turn} / {self.max_turns}    "
+            f"Wave: {self._wave_idx + 1}/{self._N_WAVES}    "
+            f"Wave kills: {self._wave_kills}/{self._RAIDERS_PER_WAVE}    "
+            f"Score: {self._score:.3f}\n"
+            f"Selected turret x={self._player_x}    "
+            f"Raiders: {raiders_info}"
+        )
+
+        return GridObservation(
+            grid=grid_to_string(grid),
+            legend=build_legend(symbols),
+            hud=hud,
+            message=self._message,
+        )
+
+    def _task_description(self) -> str:
+        return (
+            "Mini Atlantis on a 16x8 grid. Three stationary turrets (T) "
+            "sit at row 6 in columns 3, 8, 13, defending the city (█) at "
+            "row 7. Raiders (R) spawn in a wave of 5 at row 0 and march "
+            "down one row every 2 ticks. Each tick you choose LEFT, CENTER, "
+            "or RIGHT to fire that turret straight up its column, "
+            "destroying the lowest raider in that column instantly. NOOP "
+            "skips the tick. After all 5 raiders in a wave die, the next "
+            "wave spawns. Repel 3 waves to win. If any raider reaches the "
+            "city row, you take a -1 terminal penalty. Reward: +1/3 per "
+            "wave cleared, -1 on city breach."
+        )
