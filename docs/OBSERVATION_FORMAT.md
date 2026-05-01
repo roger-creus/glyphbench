@@ -46,30 +46,35 @@ Markov).
 
 ## Memory mode
 
-Set `use_memory=True` to add an opt-in memory scaffold across all environments.
-Each environment step then uses two model generations:
+Memory mode is the default. Each environment step uses two model generations:
 
-1. The action — same as the no-memory case.
-2. A concise memory update conditioned on the action response, the reward,
-   the done flags, and the same HUD-stripped next-observation view used for
-   action selection.
+1. **Action** — same as before. Prompt is `[system, user_obs_t]`; completion
+   is `<think>...</think><action>NAME</action>`.
+2. **Memory update** — prompt is `[system, user_obs_t, assistant_action_t,
+   lean_memory_user]`; completion is `<memory>...</memory>` (thinking is
+   forced off via `chat_template_kwargs.enable_thinking=False`). The lean
+   memory_user contains only the env's reaction to the last action: reward,
+   `terminated`, `truncated`, plus the write instruction. Previous memory
+   and the action chosen are visible via the conversation prefix; the
+   action's `<think>` content is stripped by the chat template the same way
+   it is for any prior assistant turn.
 
-These two generations are stored as **two separate trajectory steps** in the
+The two generations are stored as **two separate trajectory steps** in the
 verifiers `results.jsonl` — an `action` step followed by a `memory` step —
-each with its own `prompt`/`completion` pair. This was changed post-commit
-`1c24d37` (see `src/glyphbench/verifiers_integration/env.py` lines 349–448).
-The split is required because prime-rl's `pretokenize_rollout_trajectory`
-rejects trajectory steps whose completion contains mixed roles (e.g. an
-assistant turn followed by a user turn in the same step). Storing them
-separately guarantees every step's completion is purely assistant tokens,
-making both action tokens and memory-update tokens eligible for on-policy RL
-training with the same per-turn task reward.
+each with its own `prompt`/`completion` pair. The split is required because
+prime-rl's `pretokenize_rollout_trajectory` rejects trajectory steps whose
+completion contains mixed roles. Storing them separately guarantees every
+step's completion is purely assistant tokens, and both steps share the same
+per-turn task reward so action and memory tokens are both eligible for
+on-policy RL.
 
-`memory_update_max_tokens` overrides only the second generation's token
-limit; by default it reuses the action sampling limit. Memory-aware
-trajectories show previous and updated memory in `gb replay`; the
-standalone trajectory / GIF renderer also includes stored memory when
-present.
+`memory_update_max_tokens` (default 4096) caps only the second generation's
+output. The memory text persists across turns: the next user observation
+opens with a `[Memory]` block carrying the stored text, with the current
+grid still authoritative on conflicts. Pass `use_memory=False` for the
+single-generation loop. Memory-aware trajectories show previous and updated
+memory in `gb replay`; the standalone trajectory / GIF renderer also
+includes stored memory when present.
 
 ## Determinism
 
@@ -87,8 +92,8 @@ glyphbench.load_environment(
     max_turns: int | None = None,
     max_output_tokens: int = 512,
     seed: int = 42,
-    use_memory: bool = False,
-    memory_update_max_tokens: int | None = None,
+    use_memory: bool = True,
+    memory_update_max_tokens: int | None = 4096,
 ) -> verifiers.Environment
 ```
 

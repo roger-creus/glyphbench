@@ -81,8 +81,8 @@ vf_env = glyphbench.load_environment(
     num_episodes=5,
     n_frames=0,
     max_output_tokens=8192,  # match your --max-tokens
-    use_memory=False,
 )
+# Memory mode is on by default; pass use_memory=False to disable.
 ```
 
 The returned `verifiers.Environment` plugs into `prime eval run` or any
@@ -98,8 +98,8 @@ load_environment(
     max_turns: int | None = None,             # None = use each env's own budget
     max_output_tokens: int = 512,             # LLM token budget per turn
     seed: int = 42,
-    use_memory: bool = False,                 # opt-in carried memory scaffold
-    memory_update_max_tokens: int | None = None,  # token cap for memory update only
+    use_memory: bool = True,                  # carried memory scaffold (on by default)
+    memory_update_max_tokens: int | None = 4096,  # token cap for memory update only
 )
 ```
 
@@ -110,10 +110,11 @@ Always pass `max_output_tokens` matching your server's `--max-tokens`. The
 system prompt advertises this value so the model can self-pace its reasoning;
 mismatched values cause premature self-truncation.
 
-`use_memory=True` enables a two-generation turn: action selection followed by
-a concise memory update. `memory_update_max_tokens` caps only the second
-generation's output. See `docs/OBSERVATION_FORMAT.md` for full memory-mode
-behaviour.
+Memory mode is the default — every env turn is split into an action
+generation followed by a `<memory>...</memory>` update generation, with the
+memory call capped at `memory_update_max_tokens` (default 4096). Pass
+`use_memory=False` for the legacy single-generation loop. See
+`docs/OBSERVATION_FORMAT.md` for full memory-mode behaviour.
 
 ## Filtering envs (suites and tasks)
 

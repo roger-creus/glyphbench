@@ -51,8 +51,9 @@ vf_env = glyphbench.load_environment(
     num_episodes=5,
     n_frames=0,
     max_output_tokens=8192,  # match the budget your agent runs at
-    use_memory=False,
 )
+# Memory mode is on by default (two-generation turn: action then
+# <memory>...</memory> write). Pass use_memory=False to disable.
 ```
 
 Full signature:
@@ -65,8 +66,8 @@ glyphbench.load_environment(
     max_turns: int | None = None,
     max_output_tokens: int = 512,
     seed: int = 42,
-    use_memory: bool = False,
-    memory_update_max_tokens: int | None = None,
+    use_memory: bool = True,
+    memory_update_max_tokens: int | None = 4096,
 ) -> verifiers.Environment
 ```
 
@@ -74,7 +75,10 @@ glyphbench.load_environment(
 - `task_id=list[str]` interleaves multiple envs within the returned environment.
 - `n_frames` controls how many past grid frames are appended to the observation
   for context (0 = current turn only).
-- `use_memory` enables a persistent scratchpad updated between turns.
+- `use_memory` enables a persistent scratchpad updated between turns. Default
+  is `True` — every env turn becomes an action generation followed by a
+  `<memory>...</memory>` write, with a 4096-token budget on the memory call.
+  Pass `use_memory=False` for the legacy single-generation loop.
 
 Returns a `verifiers.Environment` (concretely `GlyphbenchMultiTurnEnv`). Plug
 into `prime eval run` or any RL trainer that consumes verifiers envs. See
