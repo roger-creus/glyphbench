@@ -49,8 +49,6 @@ DIFFICULTY = {
     "hard": {"size": 21, "max_turns": 500},
 }
 
-STEP_PENALTY = -0.01
-
 
 # ---------------------------------------------------------------------------
 # Maze generation (recursive backtracker)
@@ -168,7 +166,15 @@ class _MazeRunnerBase(BaseGlyphEnv):
             self._won = True
             return self._render_current_observation(), 1.0, True, False, info
 
-        return self._render_current_observation(), STEP_PENALTY, False, False, info
+        # Pattern A with bounded shaping: -1/max_turns per step so that
+        # cumulative reward bottoms at -1 if the exit is never reached.
+        return (
+            self._render_current_observation(),
+            -1.0 / self.max_turns,
+            False,
+            False,
+            info,
+        )
 
     # ------------------------------------------------------------------
     # Rendering
@@ -210,7 +216,8 @@ class _MazeRunnerBase(BaseGlyphEnv):
             "- Find the exit (\u2605) somewhere in the maze.\n"
             "- Moving into a wall does nothing.\n"
             "- Reaching the exit gives +1 reward and ends the episode.\n"
-            f"- Each step costs {STEP_PENALTY} reward.\n"
+            "- Each step costs a small penalty scaled so cumulative reward\n"
+            "  bottoms at -1 if you never reach the exit. Find the exit fast.\n"
             f"- The episode ends after {self.max_turns} steps if the exit is not reached.\n\n"
             + self.action_spec.render_for_prompt()
         )
