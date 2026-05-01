@@ -132,13 +132,18 @@ def test_speedrun_starts_on_dungeon_entrance() -> None:
 
 
 def test_speedrun_descends_grants_floor_reward() -> None:
-    """When _current_floor increments, +3 reward fires."""
+    """When _current_floor increments, the per-floor milestone reward fires.
+
+    Post-P2-B reward sweep: each floor contributes +1/5 (sum to +1.0 on
+    reaching floor 5). The test asserts a positive reward fires when
+    _current_floor advances.
+    """
     env = _reset("glyphbench/craftax-speedrun-v0", seed=0)
     # Simulate floor change by patching state -- verifies the _step reward path.
     env._current_floor = 1
     # Any valid action; NOOP keeps state stable, reward path triggers.
     noop_idx = 0
     _, r, _, _, _ = env.step(noop_idx)
-    # +3 per floor gained (from 0 to 1).  Additional achievement rewards may
-    # also fire; we only assert at least the floor bonus.
-    assert r >= 3.0, f"expected at least +3 for new floor, got {r}"
+    # +1/5 per floor gained (from 0 to 1).
+    assert r > 0.0, f"expected a positive reward for new floor, got {r}"
+    assert r <= 1.0, f"per-floor reward should not exceed 1.0, got {r}"

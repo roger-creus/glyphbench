@@ -420,6 +420,9 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
     tutorial_sections = _BF_ALL
     del _BF_ALL
 
+    # Pattern D: +1.0 on boss kill, -1.0 on death.
+    _DEATH_PENALTY = -1.0
+
     def __init__(self, max_turns: int = 200) -> None:
         super().__init__(max_turns=max_turns)
 
@@ -431,10 +434,10 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
             "Defeat the lich boss on dungeon floor 5. You start on floor 5 "
             "with a diamond sword (fire-enchanted), full diamond armor, all 3 "
             "spells learned, and 3 health potions. Use DO facing the lich to "
-            "melee or CAST_FIREBALL for ranged damage. Reward: +10 on kill, "
-            "episode ends. Time limit: 200 steps. (Note: this is the lich, "
-            "not the necromancer — see craftax-necromancer-v0 for the floor-8 "
-            "final boss.)"
+            "melee or CAST_FIREBALL for ranged damage. Reward: +1 on kill, -1 "
+            "on death; episode ends. Time limit: 200 steps. (Note: this is "
+            "the lich, not the necromancer — see craftax-necromancer-v0 for "
+            "the floor-8 final boss.)"
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -470,15 +473,29 @@ class CraftaxBossFightEnv(CraftaxFullEnv):
         )
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Replace any parent-emitted reward with structural Pattern D shape.
+        reward = 0.0
         # Check if boss on floor 5 is dead
         if not self._bosses_alive.get(5, True):
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
+        elif self._hp <= 0:
+            reward = self._DEATH_PENALTY
+            terminated = True
         return obs, reward, terminated, truncated, info
 
 
@@ -1596,7 +1613,7 @@ class CraftaxReachDungeonEnv(CraftaxFullEnv):
             "A dungeon entrance is somewhere on the surface. Find the stairs "
             "down (⇣) and use DESCEND to enter the dungeon. The stairs are "
             "placed near the center of the map but you must navigate to them. "
-            "Reward: +10 for entering the dungeon."
+            "Reward: +1 for entering the dungeon."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1615,13 +1632,25 @@ class CraftaxReachDungeonEnv(CraftaxFullEnv):
         self._energy = _MAX_ENERGY
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         old_floor = self._current_floor
         obs, reward, terminated, truncated, info = super()._step(action)
+        # Pattern A: replace any parent-emitted reward with structural +1
+        # on entering the dungeon (terminal).
+        reward = 0.0
         if self._current_floor == 1 and old_floor == 0:
-            reward += 10.0
+            reward = 1.0
             terminated = True
             info["subtask_success"] = True
         return obs, reward, terminated, truncated, info
@@ -1694,6 +1723,11 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
     tutorial_sections = _SR_ALL
     del _SR_ALL
 
+    # Pattern A (milestone): 5 floor transitions to reach floor 5,
+    # each worth +1/5 = +0.2 (sum to +1.0 on success).
+    _FLOOR_TARGET = 5
+    _PER_FLOOR_REWARD = 1.0 / 5
+
     def __init__(self, max_turns: int = 300) -> None:
         super().__init__(max_turns=max_turns)
 
@@ -1706,8 +1740,8 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
             "right next to the stairs down, with endgame gear (diamond sword, "
             "full diamond armor, all spells learned, fire-enchanted weapon, "
             "torches). Find stairs down (⇣) on each floor, use DESCEND, and "
-            "repeat. Reward: +1 per new floor reached, +10 bonus + episode "
-            "end on reaching floor 5. Time limit: 300 steps."
+            "repeat. Reward: +1/5 per new floor reached, episode ends on "
+            "reaching floor 5. Time limit: 300 steps."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1737,20 +1771,28 @@ class CraftaxSpeedrunEnv(CraftaxFullEnv):
         self._deepest_floor = 0
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = super()._step(action)
-        # Reward for reaching new floors. Per-floor reward is +1 (not +3) so
-        # random agents can't accumulate large returns by accident; the +10
-        # bonus on floor 5 is the meaningful signal that requires real
-        # navigation.
+        # Pattern A: replace any parent-emitted reward with structural
+        # per-floor milestones. Each new floor contributes +1/5 so the
+        # sum on success is +1.0.
+        reward = 0.0
         if self._current_floor > self._deepest_floor:
             floors_gained = self._current_floor - self._deepest_floor
             self._deepest_floor = self._current_floor
-            reward += floors_gained * 1.0
-            if self._current_floor >= 5:
-                reward += 10.0
+            reward = floors_gained * self._PER_FLOOR_REWARD
+            if self._current_floor >= self._FLOOR_TARGET:
                 terminated = True
                 info["subtask_success"] = True
         info["deepest_floor"] = self._deepest_floor
@@ -2506,6 +2548,9 @@ class CraftaxNecromancerEnv(CraftaxFullEnv):
     tutorial_sections = _NEC_ALL
     del _NEC_ALL
 
+    # Pattern D: +1.0 on necromancer kill, -1.0 on death.
+    _DEATH_PENALTY = -1.0
+
     def __init__(self, max_turns: int = 300) -> None:
         super().__init__(max_turns=max_turns)
 
@@ -2524,9 +2569,8 @@ class CraftaxNecromancerEnv(CraftaxFullEnv):
             "diamond armor + fire- and ice-enchanted gear + all 3 spells "
             "learned + bow + 20 arrows + 3 health potions. Floor 8 doubles "
             "incoming damage (×1.5) and freezes vitals (food/drink/energy "
-            "do not decay). Reward: +10 + defeat_necromancer achievement on "
-            "win, episode ends. Time limit: 300 steps. (CraftaxFullEnv._step "
-            "wires the termination + reward — see mechanics/boss.py.)"
+            "do not decay). Reward: +1 on necromancer kill, -1 on death; "
+            "episode ends. Time limit: 300 steps."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -2574,8 +2618,38 @@ class CraftaxNecromancerEnv(CraftaxFullEnv):
         self._boss_summon_timer = 0
         return self._render_current_observation()
 
-    # _step is inherited from CraftaxFullEnv — it already terminates on
-    # boss_progress_win() with +10 reward + defeat_necromancer achievement.
+    # Suppress parent achievement rewards (the subtask defines its own goal).
+    def _try_unlock(self, name: str) -> float:  # type: ignore[override]
+        if (
+            name in self._ALL_ACHIEVEMENTS
+            and name not in self._achievements_unlocked
+        ):
+            self._achievements_unlocked.add(name)
+        return 0.0
+
+    def _step(
+        self, action: int,
+    ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
+        # CraftaxFullEnv._step itself emits the literal +10 boss-kill bonus
+        # and the +1 defeat_necromancer achievement. Strip both and replace
+        # with the structural Pattern D shape: +1 on win, -1 on death.
+        was_won = (
+            self._boss_progress >= 8
+            and "defeat_necromancer" in self._achievements_unlocked
+        )
+        obs, _parent_reward, terminated, truncated, info = super()._step(action)
+        reward = 0.0
+        won_now = (
+            "defeat_necromancer" in self._achievements_unlocked and not was_won
+        )
+        if won_now:
+            reward = 1.0
+            terminated = True
+            info["subtask_success"] = True
+        elif self._hp <= 0:
+            reward = self._DEATH_PENALTY
+            terminated = True
+        return obs, reward, terminated, truncated, info
 
 
 # Registration is handled in glyphbench.envs.craftax.__init__.
