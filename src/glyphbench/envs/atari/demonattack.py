@@ -21,8 +21,8 @@ class DemonAttackEnv(AtariBase):
     higher levels. Player at bottom.
 
     Actions: NOOP, LEFT, RIGHT, FIRE
-    Reward: +2 per demon, +1 per split demon
-
+    Pattern A: +1/_WIN_TARGET per demon hit (full-scope = 5 waves x 8
+    demons = 40). No failure penalty.
     """
 
     action_spec = ActionSpec(
@@ -39,15 +39,23 @@ class DemonAttackEnv(AtariBase):
     _HEIGHT = 20
     _PLAYER_Y = 18
 
+    # Pattern A full-scope target: 40 demon hits.
+    _WIN_TARGET: int = 40
+
     def __init__(self, max_turns: int = 10000) -> None:
         super().__init__(max_turns=max_turns)
         self._demons: list[AtariEntity] = []
         self._bullets: list[AtariEntity] = []
         self._enemy_bullets: list[AtariEntity] = []
         self._step_counter: int = 0
+        self._progress_count: int = 0
 
     def env_id(self) -> str:
         return "glyphbench/atari-demonattack-v0"
+
+    def _reset(self, seed: int) -> GridObservation:
+        self._progress_count = 0
+        return super()._reset(seed)
 
     def _generate_level(self, seed: int) -> None:
         self._init_grid(self._WIDTH, self._HEIGHT)
@@ -125,8 +133,10 @@ class DemonAttackEnv(AtariBase):
                     if tier > 0:
                         dem.data["tier"] = tier - 1
                         self._on_point_scored(1)
-                        reward += 1
-                        self._message = "Demon split! +1"
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
+                        self._message = "Demon split!"
                         # Spawn a split
                         sx = dem.x + 1
                         if sx >= self._WIDTH - 1:
@@ -141,8 +151,10 @@ class DemonAttackEnv(AtariBase):
                     else:
                         dem.alive = False
                         self._on_point_scored(2)
-                        reward += 2
-                        self._message = "Demon destroyed! +2"
+                        if self._progress_count < self._WIN_TARGET:
+                            reward += 1.0 / self._WIN_TARGET
+                            self._progress_count += 1
+                        self._message = "Demon destroyed!"
                     break
         self._demons.extend(new_spawns)
         self._bullets = [b for b in self._bullets if b.alive]
@@ -195,8 +207,14 @@ class DemonAttackEnv(AtariBase):
                 self._message = "Demon reached you!"
         self._demons = [d for d in self._demons if d.alive]
 
+        # Win check
+        if self._progress_count >= self._WIN_TARGET and not self._game_over:
+            self._game_over = True
+            info["won"] = True
+            self._message = "All demons destroyed!"
+
         # Level clear
-        if not self._demons:
+        if not self._demons and not self._game_over:
             self._level += 1
             self._message = "Wave cleared!"
             self._generate_level(self._level)
