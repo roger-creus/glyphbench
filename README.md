@@ -59,9 +59,9 @@ All environments use single-codepoint Unicode glyphs (`→↓←↑` for player 
 
 ### Craftax
 
-| **Classic** | **FightCow** | **ChopTrees** | **Speedrun** | **FindWater** |
+| **FirstDay** | **FightCow** | **ChopTrees** | **Speedrun** | **FindWater** |
 |:---:|:---:|:---:|:---:|:---:|
-| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-classic-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-fight-cow-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-choptrees-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-speedrun-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-find-water-v0.gif" width="130" /> |
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-firstday-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-fight-cow-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-choptrees-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-speedrun-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftax-find-water-v0.gif" width="130" /> |
 
 ### Procgen
 
@@ -70,6 +70,10 @@ All environments use single-codepoint Unicode glyphs (`→↓←↑` for player 
 | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-coinrun-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-maze-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-bigfish-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-ninja-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__procgen-jumper-v0.gif" width="130" /> |
 
 ### Miniatari
+
+| **Pong** | **Breakout** | **SpaceInvaders** | **Freeway** | **MsPacman** |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-pong-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-breakout-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-spaceinvaders-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-freeway-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__miniatari-mspacman-v0.gif" width="130" /> |
 
 Atari originals run at `max_turns=10000` and were designed for thousands of frames per game — prohibitive for LLM evaluation, where each step is an API call. **Miniatari is a curated suite of 43 short-horizon redesigns** that keeps each game's identity (mechanics, theme, core decision) while compressing the horizon to `max_turns ∈ [100, 500]`. It's the practical default for LLM eval and training; the original `atari` suite is kept as a long-horizon archival reference and excluded from default eval.
 
@@ -83,9 +87,11 @@ The miniaturization recipe:
 
 14 atari games are dropped from miniatari because their identity is *exploration over an unbounded map* (`montezumarevenge`, `pitfall`, `privateeye`, `solaris`, `gravitar`, `venture`, `hero`), *endurance over a long horizon* (`crazyclimber`, `videopinball`, `roadrunner`), *multi-screen multi-stage* (`krull`, `jamesbond`), or *no clear terminal win* (`tutankham`, `namethisgame`). Those stay in `atari/` for archival eval.
 
-Sample envs: `miniatari-pong-v0` (first-to-3), `miniatari-breakout-v0` (clear 6 bricks), `miniatari-spaceinvaders-v0` (clear 1 wave of 8), `miniatari-freeway-v0` (cross 4 lanes), `miniatari-frostbite-v0` (4 ice floes), `miniatari-mspacman-v0` (~16 dots, 3 ghosts), `miniatari-asteroids-v0` (destroy 5).
-
 ### Craftaxfull
+
+| **Crafter (Classic)** | **Craftax (Full)** |
+|:---:|:---:|
+| <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftaxfull-classic-v0.gif" width="130" /> | <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/gifs/glyphbench__craftaxfull-v0.gif" width="130" /> |
 
 The two upstream-faithful Crafter / Craftax games — `craftaxfull-classic-v0` (22 achievements) and `craftaxfull-v0` (93 achievements) — extracted from the `craftax` suite into their own home. They use `max_turns=10000` and the full open-ended reward shape (per-achievement milestone summing to 1.0, terminal `−1` on death). Too long for default LLM eval, but kept as the open-ended capability ceiling.
 
