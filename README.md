@@ -2,7 +2,7 @@
 
 # ★  →  GlyphBench  ←  ★
 
-**A benchmark of 343 text-rendered reinforcement-learning environments for evaluating LLM agents on sequential decision-making.**
+**A benchmark of 343 text-rendered reinforcement-learning environments for training and evaluating LLM agents on sequential decision-making.**
 
 <img src="https://huggingface.co/datasets/anon-paper-submission/glyphbench-assets/resolve/main/readme/hero.gif?v=3" width="320" />
 
