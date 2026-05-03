@@ -17,9 +17,10 @@ node × 8 GPUs**. Adjust `[deployment]`, `[inference.parallel]`, and
 `fused_lm_head_token_chunk_size` for different fleets.
 
 - Trainer: FSDP across 8 GPUs, full activation checkpointing, fused chunked
-  LM head (vanilla LM head OOMs on Qwen3.5-4B's 152K vocab + 16K seq).
-- Inference: vLLM, `tp=1, dp=8`, `max_model_len=24576` (16384 prompt + 8192
-  action output budget).
+  LM head (vanilla LM head OOMs on Qwen3.5-4B's 152K vocab × 32K seq).
+- Inference: vLLM, `tp=1, dp=8`, `max_model_len=32768` (matches trainer
+  `seq_len`; action calls get up to 24576-token prompts, memory calls up to
+  28672).
 
 If your two nodes can open arbitrary TCP ports to each other, switch
 `[weight_broadcast] type = "nccl"` for faster broadcasts. Filesystem
@@ -28,10 +29,16 @@ inference nodes (NFS, sshfs, etc.).
 
 ## Sizing reference
 
-- 256 rollouts/step (32 examples × 8 rollouts).
-- ≈ 15-60 s/step at 16K seq once warm; eval cycles add ~15-90 min depending
-  on which slots are running.
-- 1000 steps wall-clock estimate: 4-12 h (excluding the heavier step-0 eval).
+- **256 rollouts/step** = `batch_size = 256` (prime-rl semantic: total
+  rollouts, not unique examples) ÷ `rollouts_per_example = 8` (GRPO group
+  size) → **32 unique tasks/step × 8 rollouts each**.
+- `seq_len = 32768` trainer-side, matching `max_model_len = 32768` on the
+  inference side. No rollout segments get truncated.
+- Eval cycles (every 25 steps) = 240 rollouts across 30 task slots; add
+  ~15-90 min depending on env wall-time.
+- 1000 steps wall-clock: highly dependent on per-rollout completion length
+  (most rollouts will be far under 32K, but worst-case scaling is roughly
+  2-3× per token vs the 16K baseline).
 
 ## Pinned-decision summary
 

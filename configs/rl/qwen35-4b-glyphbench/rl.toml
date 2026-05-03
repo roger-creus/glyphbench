@@ -11,7 +11,7 @@
 # Trainer side uses the prime-rl trainer entrypoint as usual.
 
 max_steps = 1000
-seq_len = 16384
+seq_len = 32768
 max_async_level = 1
 
 [deployment]
@@ -81,10 +81,14 @@ kwargs = { dppo_mask_low = 0.2, dppo_mask_high = 0.2, adv_tau = 1.0, kl_tau = 1e
 # --- Orchestrator ---
 
 [orchestrator]
-batch_size = 32
+# prime-rl semantic: batch_size is TOTAL rollouts per step, NOT unique
+# examples. With rollouts_per_example=8 (the GRPO group size), this gives
+# batch_size / rollouts_per_example = 256 / 8 = 32 unique tasks per step.
+# Total = 256 rollouts per gradient step.
+batch_size = 256
 rollouts_per_example = 8
 oversampling_factor = 1.5
-seq_len = 16384
+seq_len = 32768
 
 [orchestrator.advantage]
 type = "default"  # our monkey-patch on compute_advantages bypasses this; placeholder so validators pass
@@ -289,10 +293,11 @@ api_server_count = 8
 gpu_memory_utilization = 0.85
 
 [inference.model]
-# vLLM envelope: 16384 prompt cap + 8192 action output budget. Memory turns
-# send max_tokens=4096, comfortably within the same envelope. Bumping this
-# eliminates the 16385>16384 per-request rejections when prompts hug the cap.
-max_model_len = 24576
+# vLLM envelope = max prompt + max completion. With action calls capped at
+# 8192 tokens this leaves an implicit 24576-token prompt budget; memory
+# calls (4096-token completions) get up to 28672. Matches the trainer-side
+# seq_len = 32768 so no rollout segment can be truncated.
+max_model_len = 32768
 
 [inference.parallel]
 tp = 1
