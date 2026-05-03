@@ -77,8 +77,20 @@ GEMINI.md
 configs/rl/**/cluster.local.toml
 # RL launcher scripts + per-cluster TOML configs. Tied to specific node names
 # (sf-node-*) and absolute paths; not part of the public release.
+# Note: use `configs/rl/*` (not `configs/rl/`) so that nested re-include
+# rules below can take effect — git can't un-ignore a child of an excluded
+# directory.
 scripts/rl/
-configs/rl/
+configs/rl/*
+# Public-release exception: the qwen35-4b-glyphbench prod config + its
+# README are cluster-agnostic (no IPs, no API keys, no hostnames), so
+# coworkers / external users can drop them into their own infra and run
+# training as-is. Smoke variants in the same dir stay gitignored because
+# they hard-code SF-cluster wiring.
+!configs/rl/qwen35-4b-glyphbench/
+configs/rl/qwen35-4b-glyphbench/*
+!configs/rl/qwen35-4b-glyphbench/rl.toml
+!configs/rl/qwen35-4b-glyphbench/README.md
 # Helper module that splits the unified rl.toml into per-component sub-tomls
 # for the manual launchers in scripts/rl/. Only used by those (gitignored)
 # launchers, so it travels with them rather than the public package.

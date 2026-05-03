@@ -1,0 +1,299 @@
+# Glyphbench RL training: Qwen3.5-4B, 284 trainable envs (atari + craftaxfull
+# excluded by policy), memory mode, thinking on.
+#
+# This toml is cluster-agnostic — no hostnames, IPs, or API keys. Cluster
+# wiring (output dir, inference base URL, weight broadcast transport) is
+# expected to be supplied via env vars or a sibling cluster.local.toml that
+# overrides this one. See README.md in this directory.
+#
+# Launch (orchestrator side, with the per-env σ monkey-patch installed):
+#   uv run python -m glyphbench.rl.orchestrator_patch @ orchestrator.toml
+# Trainer side uses the prime-rl trainer entrypoint as usual.
+
+max_steps = 1000
+seq_len = 16384
+max_async_level = 1
+
+[deployment]
+type = "multi_node"
+num_train_nodes = 1
+num_infer_nodes = 1
+gpus_per_node = 8
+
+[slurm]
+# Dummy block required by prime-rl's pydantic validator when deployment.type =
+# "multi_node". Has no runtime effect when launching manually (not via
+# SLURM); SLURM users should populate this block normally.
+job_name = "noop"
+
+[weight_broadcast]
+# "filesystem" if the trainer and inference nodes share a path (NFS, sshfs,
+# etc.) or if cross-node NCCL sockets are firewalled. "nccl" if both nodes
+# can open arbitrary TCP ports to each other. Filesystem mode: trainer
+# writes HF safetensors + STABLE marker under run_default/broadcasts/step_N/;
+# orchestrator polls and tells vLLM workers to load_weights_from_path.
+type = "filesystem"
+
+[wandb]
+project = "glyphbench-rl"
+name = "qwen35-4b-glyphbench"   # override per run
+shared = false       # offline mode requires shared = false
+offline = true       # if WANDB_API_KEY isn't set, wandb sync the offline dir post-run
+
+[ckpt]
+interval = 100
+keep_last = 3
+keep_interval = 500
+
+[model]
+name = "Qwen/Qwen3.5-4B"
+
+# --- Trainer ---
+
+[trainer.model]
+impl = "auto"          # let prime-rl pick custom or hf based on model family
+attn = "flash_attention_2"
+# Vanilla LM head materialises full logits (vocab × seq × microbatch), which
+# OOMs on 80 GB H100 with Qwen3.5-4B's 152K vocab + 16K seq_len. "auto" chunks
+# at 8192 tokens/chunk — same numerics, peak mem dropped from >80 GiB to ~23.
+fused_lm_head_token_chunk_size = "auto"
+
+[trainer.model.ac]     # activation checkpointing — needed for 16K seq on 4B
+mode = "full"
+freq = 1
+
+[trainer.optim]
+type = "adamw"
+lr = 1e-6
+betas1 = 0.9
+betas2 = 0.95
+weight_decay = 0.0
+max_norm = 1.0
+
+[trainer.scheduler]
+type = "constant"
+
+[trainer.loss]
+type = "custom"
+import_path = "glyphbench.rl.loss.sequence_mean_loss"
+kwargs = { dppo_mask_low = 0.2, dppo_mask_high = 0.2, adv_tau = 1.0, kl_tau = 1e-3 }
+
+# --- Orchestrator ---
+
+[orchestrator]
+batch_size = 32
+rollouts_per_example = 8
+oversampling_factor = 1.5
+seq_len = 16384
+
+[orchestrator.advantage]
+type = "default"  # our monkey-patch on compute_advantages bypasses this; placeholder so validators pass
+
+[[orchestrator.train.env]]
+id = "glyphbench"
+name = "glyphbench-all"
+# Train on every registered env except atari (long-horizon, archived) and
+# craftaxfull (full-game Crafter, archived). Surviving suites: classics,
+# craftax (subtasks), miniatari, minigrid, minihack, procgen ≈ 284 envs.
+# load_environment honours exclude_suites via task_selection.list_task_ids.
+args = { exclude_suites = ["atari", "craftaxfull"], num_episodes = 32, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[orchestrator.train.sampling]
+temperature = 1.0
+max_completion_tokens = 8192
+[orchestrator.train.sampling.extra_body]
+top_p = 0.95
+top_k = 20
+min_p = 0.0
+presence_penalty = 1.5
+chat_template_kwargs = { enable_thinking = true }
+
+# --- Eval (during-training subset; full 292-env sweep is the offline CLI) ---
+#
+# 30 slots = 5 tasks × 6 surviving training suites, eval'd every 25 grad
+# steps. One block per task_id (not a list-form) so the per-task summary
+# line is emitted distinctly and visible in the orchestrator log:
+#   `Evaluated eval-<suite>-<task> in Xs (Avg@2=..., Truncated: ...)`.
+# Tasks were picked across difficulties + mechanics within each suite; tune
+# for your own infra by editing or pruning blocks.
+
+[orchestrator.eval]
+interval = 25
+num_examples = 4
+rollouts_per_example = 2
+
+# Reusable args fragment is intentionally inlined per-block: prime-rl's
+# orchestrator config schema doesn't support TOML anchors / aliases, so
+# duplication is the readable option.
+
+# --- Minigrid (5) ---
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minigrid-keycorridor-s5r3"
+args = { task_id = "glyphbench/minigrid-keycorridor-s5r3-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minigrid-obstructedmaze-1dlh"
+args = { task_id = "glyphbench/minigrid-obstructedmaze-1dlh-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minigrid-dynamic-obstacles-16x16"
+args = { task_id = "glyphbench/minigrid-dynamic-obstacles-16x16-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minigrid-lockedroom"
+args = { task_id = "glyphbench/minigrid-lockedroom-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minigrid-unlockpickup"
+args = { task_id = "glyphbench/minigrid-unlockpickup-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+# --- MiniHack (5) ---
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minihack-hidenseek-big"
+args = { task_id = "glyphbench/minihack-hidenseek-big-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minihack-hidenseek-lava"
+args = { task_id = "glyphbench/minihack-hidenseek-lava-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minihack-mazewalk-9x9"
+args = { task_id = "glyphbench/minihack-mazewalk-9x9-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minihack-river-lava"
+args = { task_id = "glyphbench/minihack-river-lava-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-minihack-room-ultimate-5x5"
+args = { task_id = "glyphbench/minihack-room-ultimate-5x5-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+# --- MiniAtari (5) ---
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-miniatari-defender"
+args = { task_id = "glyphbench/miniatari-defender-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-miniatari-pong"
+args = { task_id = "glyphbench/miniatari-pong-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-miniatari-skiing"
+args = { task_id = "glyphbench/miniatari-skiing-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-miniatari-asteroids"
+args = { task_id = "glyphbench/miniatari-asteroids-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-miniatari-bankheist"
+args = { task_id = "glyphbench/miniatari-bankheist-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+# --- Procgen (5) ---
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-procgen-starpilot"
+args = { task_id = "glyphbench/procgen-starpilot-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-procgen-caveflyer"
+args = { task_id = "glyphbench/procgen-caveflyer-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-procgen-heist"
+args = { task_id = "glyphbench/procgen-heist-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-procgen-jumper"
+args = { task_id = "glyphbench/procgen-jumper-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-procgen-fruitbot"
+args = { task_id = "glyphbench/procgen-fruitbot-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+# --- Craftax (5) ---
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-craftax-fight-bats"
+args = { task_id = "glyphbench/craftax-fight-bats-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-craftax-wave-defense"
+args = { task_id = "glyphbench/craftax-wave-defense-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-craftax-firstday"
+args = { task_id = "glyphbench/craftax-firstday-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-craftax-craft-ironset"
+args = { task_id = "glyphbench/craftax-craft-ironset-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-craftax-fight-skeletons"
+args = { task_id = "glyphbench/craftax-fight-skeletons-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+# --- Classics (5) ---
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-classics-sokoban-easy"
+args = { task_id = "glyphbench/classics-sokoban-easy-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-classics-lightsout-hard"
+args = { task_id = "glyphbench/classics-lightsout-hard-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-classics-maze-medium"
+args = { task_id = "glyphbench/classics-maze-medium-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-classics-icesliding-easy"
+args = { task_id = "glyphbench/classics-icesliding-easy-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+[[orchestrator.eval.env]]
+id = "glyphbench"
+name = "eval-classics-nonogram-easy"
+args = { task_id = "glyphbench/classics-nonogram-easy-v0", num_episodes = 4, n_frames = 0, use_memory = true, memory_update_max_tokens = 4096, max_output_tokens = 8192 }
+
+# --- Inference (vLLM) ---
+
+[inference]
+api_server_count = 8
+gpu_memory_utilization = 0.85
+
+[inference.model]
+# vLLM envelope: 16384 prompt cap + 8192 action output budget. Memory turns
+# send max_tokens=4096, comfortably within the same envelope. Bumping this
+# eliminates the 16385>16384 per-request rejections when prompts hug the cap.
+max_model_len = 24576
+
+[inference.parallel]
+tp = 1
+dp = 8         # 1 inference node × 8 GPUs. Adjust for your hardware.
