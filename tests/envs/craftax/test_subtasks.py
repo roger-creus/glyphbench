@@ -12,6 +12,7 @@ from __future__ import annotations
 import pytest
 
 from glyphbench.core.registry import make_env
+from glyphbench.envs.craftax.base import TILE_TREE
 from glyphbench.envs.craftaxfull.classic import CraftaxClassicEnv
 
 
@@ -161,3 +162,44 @@ def test_fight_zombie_death_penalty_is_reachable():
     # Death branch returns -1.0. Parent reward on death is 0, so total
     # step reward should be exactly -1.0.
     assert r == pytest.approx(-1.0, abs=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# Reward normalization regressions
+# ---------------------------------------------------------------------------
+
+
+def test_craft_ironset_success_reward_is_normalized():
+    """The focused iron-set task should pay two bounded milestones, not the
+    pre-normalization +5/+5 bonuses."""
+    env = make_env("glyphbench/craftax-craft-ironset-v0")
+    env.reset(seed=0)
+    env._inventory["iron_pickaxe"] = 1
+    env._inventory["iron_sword"] = 1
+    noop = _action_idx(env, "NOOP")
+
+    _, reward, terminated, _, info = env.step(noop)
+
+    assert terminated
+    assert info["subtask_success"] is True
+    assert reward == pytest.approx(1.0, abs=1e-6)
+
+
+def test_gatherresources_spent_wood_does_not_overpay_progress():
+    """Collecting replacement wood after spending earlier wood should not
+    exceed the three-wood half of the 3 wood + 3 stone target."""
+    env = make_env("glyphbench/craftax-gatherresources-v0")
+    env.reset(seed=0)
+    do_idx = _action_idx(env, "DO")
+    total = 0.0
+
+    for _ in range(4):
+        env._facing = (1, 0)
+        env._world[env._agent_y][env._agent_x + 1] = TILE_TREE
+        _, reward, terminated, truncated, _ = env.step(do_idx)
+        assert not terminated
+        assert not truncated
+        total += reward
+        env._inventory["wood"] = 0
+
+    assert total == pytest.approx(0.5, abs=1e-6)

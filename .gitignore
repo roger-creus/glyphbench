@@ -40,6 +40,7 @@ results/
 wandb/
 outputs/
 .ipynb_checkpoints/
+eval/*.ipynb
 *.parquet
 
 # Project-specific (local workspace)
@@ -87,6 +88,7 @@ prime-rl/
 # internally to run the experiments that feed the leaderboard. Downstream
 # users of GlyphBench don't need it.
 cluster_manager/
+tests/test_cluster_manager_*.py
 
 # Internal planning artifacts (specs, plans, brainstorm docs). The bare
 # `specs/` and `plans/` rules above already match these in any subdir;

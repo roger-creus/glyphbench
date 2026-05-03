@@ -217,5 +217,4 @@ action output budget). Memory turns send `max_tokens=4096`.
 | `run_archival.sh` | Archival sweep: includes only the long-horizon `atari` + `craftaxfull` suites. |
 | `random_baseline.json` | Pre-computed zero-skill reference: mean/std/min/max return per env under uniform-random action selection. |
 | `random_baseline.py` | Script to regenerate `random_baseline.json`. See "Filtering envs" for filter flags. |
-| `plot_results.ipynb` | Notebook for per-suite result visualisation. |
 | `eval/figures/` | Auto-regenerated per-suite plots (gitignored). |

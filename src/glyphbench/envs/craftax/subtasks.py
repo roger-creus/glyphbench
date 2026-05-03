@@ -387,6 +387,8 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
                     self._world[ny][nx] = TILE_GRASS
         self._agent_x = cx
         self._agent_y = cy
+        self._wood_progress = 0
+        self._stone_progress = 0
 
     # Suppress parent achievement rewards (the subtask defines its own goal).
     def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
@@ -411,14 +413,18 @@ class CraftaxGatherResourcesEnv(_SubtaskMixin, CraftaxClassicEnv):
         new_wood = self._inventory.get("wood", 0)
         new_stone = self._inventory.get("stone", 0)
         target_total = self._WOOD_TARGET + self._STONE_TARGET
-        wood_gained = max(
-            0,
-            min(new_wood, self._WOOD_TARGET) - min(old_wood, self._WOOD_TARGET),
+        wood_progress = getattr(self, "_wood_progress", 0)
+        stone_progress = getattr(self, "_stone_progress", 0)
+        wood_gained = min(
+            self._WOOD_TARGET - wood_progress,
+            max(0, new_wood - old_wood),
         )
-        stone_gained = max(
-            0,
-            min(new_stone, self._STONE_TARGET) - min(old_stone, self._STONE_TARGET),
+        stone_gained = min(
+            self._STONE_TARGET - stone_progress,
+            max(0, new_stone - old_stone),
         )
+        self._wood_progress = wood_progress + wood_gained
+        self._stone_progress = stone_progress + stone_gained
         gained = wood_gained + stone_gained
         if gained > 0:
             reward += gained / target_total

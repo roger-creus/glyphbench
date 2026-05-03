@@ -1284,7 +1284,7 @@ class CraftaxCraftIronSetEnv(CraftaxClassicEnv):
             "AND an iron sword. Chain: chop wood → place table → craft wood "
             "pickaxe → mine stone → place furnace → craft stone pickaxe → "
             "mine iron → craft iron tools (need table+furnace adjacent). "
-            "Reward: +5 for iron pickaxe, +5 for iron sword."
+            "Reward: +1/2 for iron pickaxe, +1/2 for iron sword."
         )
 
     def _reset(self, seed: int) -> GridObservation:
@@ -1321,6 +1321,13 @@ class CraftaxCraftIronSetEnv(CraftaxClassicEnv):
         self._has_iron_sword = False
         return self._render_current_observation()
 
+    # Suppress parent achievement rewards; this focused subtask defines its
+    # own two milestone rewards.
+    def _try_unlock_achievement(self, name: str) -> float:  # type: ignore[override]
+        if name in self._ALL_ACHIEVEMENTS and name not in self._achievements_unlocked:
+            self._achievements_unlocked.add(name)
+        return 0.0
+
     def _step(
         self, action: int,
     ) -> tuple[GridObservation, float, bool, bool, dict[str, Any]]:
@@ -1329,10 +1336,10 @@ class CraftaxCraftIronSetEnv(CraftaxClassicEnv):
         bonus = 0.0
         if self._inventory.get("iron_pickaxe", 0) > 0 and not self._has_iron_pick:
             self._has_iron_pick = True
-            bonus += 5.0
+            bonus += 0.5
         if self._inventory.get("iron_sword", 0) > 0 and not self._has_iron_sword:
             self._has_iron_sword = True
-            bonus += 5.0
+            bonus += 0.5
         reward += bonus
         if self._has_iron_pick and self._has_iron_sword:
             terminated = True
