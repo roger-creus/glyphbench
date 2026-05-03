@@ -11,7 +11,7 @@
 # Trainer side uses the prime-rl trainer entrypoint as usual.
 
 max_steps = 1000
-seq_len = 32768
+seq_len = 24576
 max_async_level = 1
 
 [deployment]
@@ -88,7 +88,7 @@ kwargs = { dppo_mask_low = 0.2, dppo_mask_high = 0.2, adv_tau = 1.0, kl_tau = 1e
 batch_size = 256
 rollouts_per_example = 8
 oversampling_factor = 1.5
-seq_len = 32768
+seq_len = 24576
 
 [orchestrator.advantage]
 type = "default"  # our monkey-patch on compute_advantages bypasses this; placeholder so validators pass
@@ -294,10 +294,14 @@ gpu_memory_utilization = 0.85
 
 [inference.model]
 # vLLM envelope = max prompt + max completion. With action calls capped at
-# 8192 tokens this leaves an implicit 24576-token prompt budget; memory
-# calls (4096-token completions) get up to 28672. Matches the trainer-side
-# seq_len = 32768 so no rollout segment can be truncated.
-max_model_len = 32768
+# 8192 tokens this leaves an implicit 16384-token prompt budget; memory
+# calls (4096-token completions) get up to 20480.
+#
+# IMPORTANT: must equal trainer-side seq_len. prime-rl's
+# trainer/rl/packer.py:174 EVICTS the entire run if any sample exceeds
+# seq_len — there is no silent truncation. If max_model_len > seq_len
+# vLLM may emit a sample that exceeds seq_len, killing the training.
+max_model_len = 24576
 
 [inference.parallel]
 tp = 1
