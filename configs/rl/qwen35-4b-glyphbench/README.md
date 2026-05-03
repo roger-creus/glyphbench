@@ -31,16 +31,17 @@ inference nodes (NFS, sshfs, etc.).
 
 ## Sizing reference
 
-- **256 rollouts/step** = `batch_size = 256` (prime-rl semantic: total
+- **32 rollouts/step** = `batch_size = 32` (prime-rl semantic: total
   rollouts, not unique examples) ÷ `rollouts_per_example = 8` (GRPO group
-  size) → **32 unique tasks/step × 8 rollouts each**.
+  size) → **4 unique tasks/step × 8 rollouts each**.
 - `seq_len = 24576` trainer-side, matching `max_model_len = 24576` on the
   inference side. No rollout segments can exceed seq_len.
 - Eval cycles (every 25 steps) = 240 rollouts across 30 task slots; add
-  ~15-90 min depending on env wall-time.
-- 1000 steps wall-clock: highly dependent on per-rollout completion length
-  (most rollouts will be far under 32K, but worst-case scaling is roughly
-  2-3× per token vs the 16K baseline).
+  ~15-90 min depending on env wall-time. At 32 train rollouts/step, eval
+  cycles are noticeable overhead — adjust `[orchestrator.eval] interval`
+  upward if eval-vs-train compute ratio matters.
+- 1000 steps wall-clock: highly dependent on per-rollout completion length;
+  expect on the lower end of 4-12 h with this small batch.
 
 ## Pinned-decision summary
 

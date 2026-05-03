@@ -83,9 +83,9 @@ kwargs = { dppo_mask_low = 0.2, dppo_mask_high = 0.2, adv_tau = 1.0, kl_tau = 1e
 [orchestrator]
 # prime-rl semantic: batch_size is TOTAL rollouts per step, NOT unique
 # examples. With rollouts_per_example=8 (the GRPO group size), this gives
-# batch_size / rollouts_per_example = 256 / 8 = 32 unique tasks per step.
-# Total = 256 rollouts per gradient step.
-batch_size = 256
+# batch_size / rollouts_per_example = 32 / 8 = 4 unique tasks per step.
+# Total = 32 rollouts per gradient step.
+batch_size = 32
 rollouts_per_example = 8
 oversampling_factor = 1.5
 seq_len = 24576
