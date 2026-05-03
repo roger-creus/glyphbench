@@ -79,6 +79,10 @@ configs/rl/**/cluster.local.toml
 # (sf-node-*) and absolute paths; not part of the public release.
 scripts/rl/
 configs/rl/
+# Helper module that splits the unified rl.toml into per-component sub-tomls
+# for the manual launchers in scripts/rl/. Only used by those (gitignored)
+# launchers, so it travels with them rather than the public package.
+src/glyphbench/rl/split_rl_toml.py
 # Read-only reference clone of prime-rl for local inspection. Use `git clone
 # https://github.com/PrimeIntellect-ai/prime-rl.git prime-rl` if you want one.
 prime-rl/
